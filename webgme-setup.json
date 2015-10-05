@@ -1,0 +1,13 @@
+{
+  "components": {
+    "plugins": {
+      "FSMCodeGenerator": {
+        "src": "src\\plugins\\FSMCodeGenerator",
+        "test": "test\\plugins\\FSMCodeGenerator"
+      }
+    }
+  },
+  "dependencies": {
+    "plugins": {}
+  }
+}

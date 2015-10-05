@@ -1,0 +1,32 @@
+{
+  "name": "webgme-finite-state-machine",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node ./node_modules/mocha/bin/mocha --recursive test"
+  },
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/webgme/webgme-fsm.git"
+  },
+  "dependencies": {
+    "webgme": "latest"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.5",
+    "rimraf": "^2.4.0",
+    "chai": "^3.0.0"
+  },
+  "description": "UML Finite State Machine domain with plugin for generating executable code.",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "keywords": [
+    "webgme",
+    "UMLFiniteStateMachine",
+    "FiniteStateMachine",
+    "FSM"
+  ],
+  "license": "MIT"
+}

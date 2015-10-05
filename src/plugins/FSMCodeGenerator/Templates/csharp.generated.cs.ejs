@@ -1,0 +1,66 @@
+// Generated from:
+//
+//
+<%
+var i, j,
+    outerIf = 'if',
+    innerIf = 'if';
+
+%>
+using System;
+using System.Collections.Generic;
+
+namespace FSMSimulator
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            System.Console.WriteLine("State machine for <%=stateMachine%>. Type 'exit' to exit the program any time.");
+
+            List<int> finalStates = new List<int>();
+<%for (i = 0; i < finalStates.length; i += 1) {%>
+            finalStates.Add(<%=finalStates[i]%>);
+<%}%>
+            string currentInput = "";
+            int currentState = <%=initialState%>;
+            while (currentInput != "exit")
+            {
+                System.Console.WriteLine("Current state: {0}", currentState);
+                System.Console.Write("Enter an event: ");
+                currentInput = System.Console.ReadLine();
+                if (currentState == 1)
+                {
+                    if (currentInput == "12")
+                    {
+                        System.Console.WriteLine("Switching state from '{0}' to '{1}'", currentState, 2);
+                        currentState = 2;
+                    } else {
+                        System.Console.WriteLine("Possible events for transition(s): 12");
+                    }
+                }
+                else if (currentState == 0)
+                {
+                    if (currentInput == "01")
+                    {
+                        System.Console.WriteLine("Switching state from '{0}' to '{1}'", currentState, 1);
+                        currentState = 1;
+                    }
+                    else 
+                    {
+                        System.Console.WriteLine("Possible events for transition(s): 01");
+                    }
+
+                }
+                // Break the loop at a final state.
+                if (finalStates.Contains(currentState))
+                {
+                    System.Console.WriteLine("At a final state '{0}'", currentState);
+                    break;
+                }
+            }
+            System.Console.WriteLine("Press enter to exit");
+            System.Console.ReadLine();
+        }
+    }
+}
