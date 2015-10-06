@@ -46,6 +46,13 @@ define([
                 batFile: 'python.bat.ejs',
                 static: 'python.simulator.cs.ejs',
                 fileExtension: 'py'
+            },
+            {
+                name: 'C++',
+                generated: 'c++.generated.cpp.ejs',
+                batFile: 'c++.bat.ejs',
+                static: 'c++.simulator.cs.ejs',
+                fileExtension: 'cpp'
             }
         ];
     };
@@ -272,9 +279,14 @@ define([
         var genFileName = 'FSM-GeneratedCode/' + languageInfo.name + '/Program.' + languageInfo.fileExtension,
             batFileName = 'FSM-GeneratedCode/' + languageInfo.name + '/execute.bat';
 
+        this.logger.debug(genFileName);
+        this.logger.debug(batFileName);
+
         filesToAdd[genFileName] = ejs.render(TEMPLATES[languageInfo.generated], dataModel);
         filesToAdd[batFileName] = ejs.render(TEMPLATES[languageInfo.batFile], dataModel);
+
         //TODO Add the static files too.
+        this.logger.info('Generated files for', languageInfo.name);
 
     };
 
