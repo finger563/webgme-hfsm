@@ -39,6 +39,13 @@ define([
                 batFile: 'csharp.bat.ejs',
                 static: 'csharp.simulator.cs.ejs',
                 fileExtension: 'cs'
+            },
+            {
+                name: 'Python',
+                generated: 'python.generated.py.ejs',
+                batFile: 'python.bat.ejs',
+                static: 'python.simulator.cs.ejs',
+                fileExtension: 'py'
             }
         ];
     };
