@@ -8,15 +8,26 @@
         "02d72bc9-c726-025f-359c-b1af41f16c70": "622990788",
         "03d36072-9e09-7866-cb4e-d0a36ff825f6": null,
         "0eae23e4-c802-86bb-3d60-c45191b0efa2": "903349001",
+        "11d0d89b-329a-f9f8-e4df-d80eec9df69f": "484262466",
+        "18508b82-848c-6289-f155-0ba14793f65d": "785608684",
         "2224b611-eab2-b692-9f4d-b3501833893f": "484262466",
+        "31234543-1f0e-4d35-4e0e-daf1b55f13d0": "622990788",
         "38b21b05-09bf-7181-0e1c-d7428e3d076e": "909339777",
+        "46252cfb-102a-c9d1-46f2-af0f651e9002": "1319592604",
+        "4fa2c59c-a6f0-917d-dfa3-d210e066899e": "1238370714",
         "6142e6db-2edb-439d-085a-4546ea60084e": "318746662",
         "682bbfe9-48c6-9de0-2a45-3315bca7c7cf": "1416392928",
+        "85714cc2-2c12-f0da-25cb-017ddc1c3c70": "1784105995",
         "8c701de6-e377-4f5b-39ae-7299239c148f": "2090816916",
+        "934c0df9-8189-ebe0-fc66-3b42cdc1621c": "524989402",
         "9a14d727-4725-eb17-6174-d88581f510d7": "353482612",
         "a0b86373-59a1-a48a-87f4-501c396f1dbc": "524989402",
+        "a9e0b9ad-9f0d-a47d-1ae6-b3db755b6f77": "353482612",
         "ac888c15-1e7d-6e40-e7e3-d3defd2fde7b": "1077978197",
+        "b9edb241-9114-ffa2-4b85-177a8733105f": "335698072",
+        "bf84736c-3b5f-0031-423c-19c7d7326b2f": "2090816916",
         "cd891e7b-e2ea-e929-f6cd-9faf4f1fc045": "1",
+        "d69bdbb5-20d0-35d2-9543-83984460c574": "1364444264",
         "d799addf-eb22-8471-0f3e-a5146ac905c8": "615025579",
         "f61f3ba5-029c-d771-7945-34eb2057bdf1": "1178174363",
         "f8fc18e6-db54-3cf1-51e5-df2a7693628f": "1242097160"
@@ -28,6 +39,18 @@
             "8c701de6-e377-4f5b-39ae-7299239c148f": {},
             "9a14d727-4725-eb17-6174-d88581f510d7": {},
             "a0b86373-59a1-a48a-87f4-501c396f1dbc": {}
+        },
+        "46252cfb-102a-c9d1-46f2-af0f651e9002": {
+            "11d0d89b-329a-f9f8-e4df-d80eec9df69f": {},
+            "18508b82-848c-6289-f155-0ba14793f65d": {},
+            "31234543-1f0e-4d35-4e0e-daf1b55f13d0": {},
+            "4fa2c59c-a6f0-917d-dfa3-d210e066899e": {},
+            "85714cc2-2c12-f0da-25cb-017ddc1c3c70": {},
+            "934c0df9-8189-ebe0-fc66-3b42cdc1621c": {},
+            "a9e0b9ad-9f0d-a47d-1ae6-b3db755b6f77": {},
+            "b9edb241-9114-ffa2-4b85-177a8733105f": {},
+            "bf84736c-3b5f-0031-423c-19c7d7326b2f": {},
+            "d69bdbb5-20d0-35d2-9543-83984460c574": {}
         },
         "cd891e7b-e2ea-e929-f6cd-9faf4f1fc045": {},
         "d799addf-eb22-8471-0f3e-a5146ac905c8": {
@@ -63,7 +86,7 @@
         },
         "03d36072-9e09-7866-cb4e-d0a36ff825f6": {
             "attributes": {
-                "name": "ROOT"
+                "name": "FSM"
             },
             "base": null,
             "meta": {
@@ -106,7 +129,7 @@
                 },
                 "usedAddOns": "",
                 "validDecorators": "ModelDecorator MetaDecorator UMLStateMachineDecorator",
-                "validPlugins": "",
+                "validPlugins": "FSMCodeGenerator",
                 "validVisualizers": "ModelEditor"
             },
             "sets": {
@@ -298,10 +321,46 @@
             "sets": {},
             "constraints": {}
         },
-        "2224b611-eab2-b692-9f4d-b3501833893f": {
-            "attributes": {
-                "ID": "2"
+        "11d0d89b-329a-f9f8-e4df-d80eec9df69f": {
+            "attributes": {},
+            "base": "f61f3ba5-029c-d771-7945-34eb2057bdf1",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "f61f3ba5-029c-d771-7945-34eb2057bdf1"
             },
+            "registry": {
+                "position": {
+                    "x": 698,
+                    "y": 98
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "18508b82-848c-6289-f155-0ba14793f65d": {
+            "attributes": {
+                "event": "24"
+            },
+            "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+                "dst": "d69bdbb5-20d0-35d2-9543-83984460c574",
+                "src": "85714cc2-2c12-f0da-25cb-017ddc1c3c70"
+            },
+            "registry": {
+                "position": {
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "2224b611-eab2-b692-9f4d-b3501833893f": {
+            "attributes": {},
             "base": "f61f3ba5-029c-d771-7945-34eb2057bdf1",
             "meta": {},
             "parent": "0eae23e4-c802-86bb-3d60-c45191b0efa2",
@@ -317,19 +376,33 @@
             "sets": {},
             "constraints": {}
         },
+        "31234543-1f0e-4d35-4e0e-daf1b55f13d0": {
+            "attributes": {
+                "event": "01"
+            },
+            "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+                "dst": "934c0df9-8189-ebe0-fc66-3b42cdc1621c",
+                "src": "bf84736c-3b5f-0031-423c-19c7d7326b2f"
+            },
+            "registry": {
+                "position": {
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
         "38b21b05-09bf-7181-0e1c-d7428e3d076e": {
             "attributes": {
-                "ID": 0,
                 "name": "StateBase"
             },
             "base": "cd891e7b-e2ea-e929-f6cd-9faf4f1fc045",
-            "meta": {
-                "attributes": {
-                    "ID": {
-                        "type": "integer"
-                    }
-                }
-            },
+            "meta": {},
             "parent": "d799addf-eb22-8471-0f3e-a5146ac905c8",
             "pointers": {
                 "base": "cd891e7b-e2ea-e929-f6cd-9faf4f1fc045"
@@ -339,6 +412,46 @@
                 "position": {
                     "x": 486,
                     "y": 112
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "46252cfb-102a-c9d1-46f2-af0f651e9002": {
+            "attributes": {
+                "name": "SimpleMachine"
+            },
+            "base": "ac888c15-1e7d-6e40-e7e3-d3defd2fde7b",
+            "meta": {},
+            "parent": "03d36072-9e09-7866-cb4e-d0a36ff825f6",
+            "pointers": {
+                "base": "ac888c15-1e7d-6e40-e7e3-d3defd2fde7b"
+            },
+            "registry": {
+                "position": {
+                    "x": 58,
+                    "y": 266
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "4fa2c59c-a6f0-917d-dfa3-d210e066899e": {
+            "attributes": {
+                "event": "12"
+            },
+            "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+                "dst": "85714cc2-2c12-f0da-25cb-017ddc1c3c70",
+                "src": "934c0df9-8189-ebe0-fc66-3b42cdc1621c"
+            },
+            "registry": {
+                "position": {
+                    "x": 100,
+                    "y": 100
                 }
             },
             "sets": {},
@@ -428,6 +541,25 @@
             "sets": {},
             "constraints": {}
         },
+        "85714cc2-2c12-f0da-25cb-017ddc1c3c70": {
+            "attributes": {
+                "name": "State2"
+            },
+            "base": "682bbfe9-48c6-9de0-2a45-3315bca7c7cf",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "682bbfe9-48c6-9de0-2a45-3315bca7c7cf"
+            },
+            "registry": {
+                "position": {
+                    "x": 343,
+                    "y": 229
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
         "8c701de6-e377-4f5b-39ae-7299239c148f": {
             "attributes": {},
             "base": "f8fc18e6-db54-3cf1-51e5-df2a7693628f",
@@ -440,6 +572,25 @@
                 "position": {
                     "x": 121,
                     "y": 115
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "934c0df9-8189-ebe0-fc66-3b42cdc1621c": {
+            "attributes": {
+                "name": "State1"
+            },
+            "base": "682bbfe9-48c6-9de0-2a45-3315bca7c7cf",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "682bbfe9-48c6-9de0-2a45-3315bca7c7cf"
+            },
+            "registry": {
+                "position": {
+                    "x": 338,
+                    "y": 94
                 }
             },
             "sets": {},
@@ -468,7 +619,6 @@
         },
         "a0b86373-59a1-a48a-87f4-501c396f1dbc": {
             "attributes": {
-                "ID": "1",
                 "name": "State1"
             },
             "base": "682bbfe9-48c6-9de0-2a45-3315bca7c7cf",
@@ -481,6 +631,27 @@
                 "position": {
                     "x": 338,
                     "y": 94
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "a9e0b9ad-9f0d-a47d-1ae6-b3db755b6f77": {
+            "attributes": {
+                "event": "13"
+            },
+            "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+                "dst": "11d0d89b-329a-f9f8-e4df-d80eec9df69f",
+                "src": "934c0df9-8189-ebe0-fc66-3b42cdc1621c"
+            },
+            "registry": {
+                "position": {
+                    "x": 100,
+                    "y": 100
                 }
             },
             "sets": {},
@@ -525,6 +696,44 @@
             "sets": {},
             "constraints": {}
         },
+        "b9edb241-9114-ffa2-4b85-177a8733105f": {
+            "attributes": {
+                "event": "02"
+            },
+            "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "6142e6db-2edb-439d-085a-4546ea60084e",
+                "dst": "85714cc2-2c12-f0da-25cb-017ddc1c3c70",
+                "src": "bf84736c-3b5f-0031-423c-19c7d7326b2f"
+            },
+            "registry": {
+                "position": {
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "bf84736c-3b5f-0031-423c-19c7d7326b2f": {
+            "attributes": {},
+            "base": "f8fc18e6-db54-3cf1-51e5-df2a7693628f",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "f8fc18e6-db54-3cf1-51e5-df2a7693628f"
+            },
+            "registry": {
+                "position": {
+                    "x": 121,
+                    "y": 115
+                }
+            },
+            "sets": {},
+            "constraints": {}
+        },
         "cd891e7b-e2ea-e929-f6cd-9faf4f1fc045": {
             "attributes": {
                 "name": "FCO"
@@ -558,6 +767,23 @@
                     "y": 51
                 },
                 "validVisualizers": "ModelEditor"
+            },
+            "sets": {},
+            "constraints": {}
+        },
+        "d69bdbb5-20d0-35d2-9543-83984460c574": {
+            "attributes": {},
+            "base": "f61f3ba5-029c-d771-7945-34eb2057bdf1",
+            "meta": {},
+            "parent": "46252cfb-102a-c9d1-46f2-af0f651e9002",
+            "pointers": {
+                "base": "f61f3ba5-029c-d771-7945-34eb2057bdf1"
+            },
+            "registry": {
+                "position": {
+                    "x": 714,
+                    "y": 244
+                }
             },
             "sets": {},
             "constraints": {}

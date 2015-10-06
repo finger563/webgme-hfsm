@@ -110,7 +110,7 @@ define([
                     initialState: null,
                     finalStates: [],
                     states: [
-                        //id: <number>
+                        //id: <nodePathStr>
                         //name: <string>
                         //events: []
                     ]
@@ -134,9 +134,9 @@ define([
                     metaType = self.core.getAttribute(self.getMetaType(children[i]), 'name');
 
                     if (metaType === 'Initial') {
-                        dataModel.stateMachine.initialState = parseInt(self.core.getAttribute(children[i], 'ID'));
+                        dataModel.stateMachine.initialState = self.core.getPath(children[i]);
                     } else if (metaType === 'End') {
-                        dataModel.stateMachine.finalStates.push(parseInt(self.core.getAttribute(children[i], 'ID')));
+                        dataModel.stateMachine.finalStates.push(self.core.getPath(children[i]));
                     }
                 }
             }
@@ -156,11 +156,11 @@ define([
         var self = this,
             deferred = new Q.defer(),
             stateData = {
-                id: parseInt(self.core.getAttribute(stateNode, 'ID')),
+                id: self.core.getPath(stateNode),
                 name: self.core.getAttribute(stateNode, 'name'),
                 transitions: [
                     // event: <string>
-                    // targetId: <number>
+                    // targetId: <nodePathStr>
                 ]
             },
             error,
@@ -174,7 +174,7 @@ define([
                 } else {
                     stateData.transitions.push({
                         event: self.core.getAttribute(connection, 'event'),
-                        targetId: parseInt(self.core.getAttribute(dstState, 'ID')),
+                        targetId: self.core.getPath(dstState),
                         targetName: self.core.getAttribute(dstState, 'name'),
                     });
                 }
@@ -225,7 +225,7 @@ define([
         self.addXmlStateMachine(filesToAdd, dataModel);
 
         self.LANGUAGES.forEach(function (languageInfo) {
-            //self.addLanguageToFiles(filesToAdd, dataModel, languageInfo);
+            self.addLanguageToFiles(filesToAdd, dataModel, languageInfo);
         });
 
         artifact.addFiles(filesToAdd, function (err) {
@@ -258,8 +258,8 @@ define([
         var genFileName = 'FSM-GeneratedCode/' + languageInfo.name + '/Program.' + languageInfo.fileExtension,
             batFileName = 'FSM-GeneratedCode/' + languageInfo.name + '/execute.bat';
 
-        filesToAdd[genFileName] = ejs.render(TEMPLATES[languageInfo.generated], dataModel.stateMachine);
-        filesToAdd[batFileName] = ejs.render(TEMPLATES[languageInfo.batFile], dataModel.stateMachine);
+        filesToAdd[genFileName] = ejs.render(TEMPLATES[languageInfo.generated], dataModel);
+        filesToAdd[batFileName] = ejs.render(TEMPLATES[languageInfo.batFile], dataModel);
         //TODO Add the static files too.
 
     };

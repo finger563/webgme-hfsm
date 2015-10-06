@@ -4,7 +4,15 @@
 <%
 var i, j,
     outerIf = 'if',
-    innerIf = 'if';
+    innerIf = 'if',
+    initialStateName;
+
+    for (i = 0; i < stateMachine.states.length; i += 1) {
+        if (stateMachine.states[i].id === stateMachine.initialState) {
+            initialStateName = stateMachine.states[i].name;
+            break;
+        }
+    }
 
 %>
 using System;
@@ -16,46 +24,48 @@ namespace FSMSimulator
     {
         public static void Main(string[] args)
         {
-            System.Console.WriteLine("State machine for <%=name%>. Type 'exit' to exit the program any time.");
+            System.Console.WriteLine("State machine for <%=stateMachine.name%>. Type 'exit' to exit the program any time.");
 
-            List<int> finalStates = new List<int>();
-<%for (i = 0; i < finalStates.length; i += 1) {%>
-            finalStates.Add(<%=finalStates[i]%>);
+            List<string> finalStates = new List<string>();
+<%for (i = 0; i < stateMachine.finalStates.length; i += 1) {%>            finalStates.Add("<%=stateMachine.finalStates[i]%>");
 <%}%>
+            string currentStateId = "<%=stateMachine.initialState%>";
+            string currentState = "<%=initialStateName%>";
+
             string currentInput = "";
-            int currentState = <%=initialState%>;
             while (currentInput != "exit")
             {
-                System.Console.WriteLine("Current state: {0}", currentState);
+                System.Console.WriteLine("Current state: {0} ({1})", currentState, currentStateId);
                 System.Console.Write("Enter an event: ");
                 currentInput = System.Console.ReadLine();
-                if (currentState == 1)
-                {
-                    if (currentInput == "12")
-                    {
-                        System.Console.WriteLine("Switching state from '{0}' to '{1}'", currentState, 2);
-                        currentState = 2;
-                    } else {
-                        System.Console.WriteLine("Possible events for transition(s): 12");
-                    }
-                }
-                else if (currentState == 0)
-                {
-                    if (currentInput == "01")
-                    {
-                        System.Console.WriteLine("Switching state from '{0}' to '{1}'", currentState, 1);
-                        currentState = 1;
-                    }
-                    else 
-                    {
-                        System.Console.WriteLine("Possible events for transition(s): 01");
-                    }
 
-                }
-                // Break the loop at a final state.
-                if (finalStates.Contains(currentState))
+<%for (i = 0; i < stateMachine.states.length; i += 1) {
+    var eventStr = '';
+    if (stateMachine.states[i].transitions.length === 0) {
+        continue;
+    }
+    innerIf = 'if';%>                <%=outerIf%> (currentStateId == "<%=stateMachine.states[i].id%>")
                 {
-                    System.Console.WriteLine("At a final state '{0}'", currentState);
+<%for (j = 0; j < stateMachine.states[i].transitions.length; j += 1) {
+    var transition = stateMachine.states[i].transitions[j];
+    eventStr += ', ' + transition.event;
+%>                    <%=innerIf%> (currentInput == "<%=transition.event%>")
+                    {
+                        System.Console.WriteLine("Switching state to <%=transition.targetName%> (<%=transition.targetId%>)");
+                        currentStateId = "<%=transition.targetId%>";
+                        currentState = "<%=transition.targetName%>";
+                    }<%if (j === stateMachine.states[i].transitions.length - 1) {%>
+                    else
+                    {
+                        System.Console.WriteLine("Possible events for transition(s): <%=eventStr.substring(2)%>");
+                    }<%}%>
+<%innerIf = 'else if';}%>
+                }
+<%outerIf = 'else if';}%>
+                // Break the loop at a final state.
+                if (finalStates.Contains(currentStateId))
+                {
+                    System.Console.WriteLine("At a final state {0} ({1})", currentState, currentStateId);
                     break;
                 }
             }
