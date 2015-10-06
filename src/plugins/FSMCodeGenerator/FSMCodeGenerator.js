@@ -9,12 +9,14 @@ define([
     'plugin/PluginConfig',
     'plugin/PluginBase',
     'common/util/ejs',
+    'common/util/xmljsonconverter',
     'plugin/FSMCodeGenerator/FSMCodeGenerator/Templates/Templates',
     'q'
 ], function (
     PluginConfig,
     PluginBase,
     ejs,
+    Converter,
     TEMPLATES,
     Q) {
     'use strict';
@@ -36,6 +38,7 @@ define([
                 generated: 'csharp.generated.cs.ejs',
                 batFile: 'csharp.bat.ejs',
                 static: 'csharp.simulator.cs.ejs',
+                fileExtension: 'cs'
             }
         ];
     };
@@ -102,14 +105,16 @@ define([
         var self = this,
             deferred = new Q.defer(),
             dataModel = {
-                stateMachine: self.core.getAttribute(fsmNode, 'name'),
-                initialState: null,
-                finalStates: [],
-                states: [
-                    //id: <number>
-                    //name: <string>
-                    //events: []
-                ]
+                stateMachine: {
+                    name: self.core.getAttribute(fsmNode, 'name'),
+                    initialState: null,
+                    finalStates: [],
+                    states: [
+                        //id: <number>
+                        //name: <string>
+                        //events: []
+                    ]
+                }
             };
 
 
@@ -129,16 +134,16 @@ define([
                     metaType = self.core.getAttribute(self.getMetaType(children[i]), 'name');
 
                     if (metaType === 'Initial') {
-                        dataModel.initialState = parseInt(self.core.getAttribute(children[i], 'ID'));
+                        dataModel.stateMachine.initialState = parseInt(self.core.getAttribute(children[i], 'ID'));
                     } else if (metaType === 'End') {
-                        dataModel.finalStates.push(parseInt(self.core.getAttribute(children[i], 'ID')));
+                        dataModel.stateMachine.finalStates.push(parseInt(self.core.getAttribute(children[i], 'ID')));
                     }
                 }
             }
 
             Q.all(statePromises)
                 .then(function (statesData) {
-                    dataModel.states = statesData;
+                    dataModel.stateMachine.states = statesData;
                     deferred.resolve(dataModel);
                 })
                 .catch(deferred.reject);
@@ -213,13 +218,15 @@ define([
         var self = this,
             filesToAdd = {},
             deferred = new Q.defer(),
+            jsonToXml = new Converter.JsonToXml(),
             artifact = self.blobClient.createArtifact('GeneratedFiles');
 
         filesToAdd['StateMachine.json'] = JSON.stringify(dataModel, null, 2);
+        self.addXmlStateMachine(filesToAdd, dataModel);
 
-        //filesToAdd['StateMachine.xml'] =
-
-        // TODO: Go through self.LANGUAGES and files
+        self.LANGUAGES.forEach(function (languageInfo) {
+            //self.addLanguageToFiles(filesToAdd, dataModel, languageInfo);
+        });
 
         artifact.addFiles(filesToAdd, function (err) {
             if (err) {
@@ -240,8 +247,52 @@ define([
         return deferred.promise;
     };
 
-    FSMCodeGenerator.prototype.addLanguageToFiles = function (filesToAdd, languageInfo) {
+    /**
+     * Appends the rendered templates for the language to filesToAdd.
+     *
+     * @param {object} filesToAdd
+     * @param {object} dataModel
+     * @param {object} languageInfo - see self.LANGUAGES
+     */
+    FSMCodeGenerator.prototype.addLanguageToFiles = function (filesToAdd, dataModel, languageInfo) {
+        var genFileName = 'FSM-GeneratedCode/' + languageInfo.name + '/Program.' + languageInfo.fileExtension,
+            batFileName = 'FSM-GeneratedCode/' + languageInfo.name + '/execute.bat';
 
+        filesToAdd[genFileName] = ejs.render(TEMPLATES[languageInfo.generated], dataModel.stateMachine);
+        filesToAdd[batFileName] = ejs.render(TEMPLATES[languageInfo.batFile], dataModel.stateMachine);
+        //TODO Add the static files too.
+
+    };
+
+    FSMCodeGenerator.prototype.addXmlStateMachine = function (filesToAdd, dataModel) {
+        var self = this,
+            taggedDataModel = {
+                stateMachine: {
+                    '@name': dataModel.stateMachine.name,
+                    '@initialState': dataModel.stateMachine.initialState,
+                    '@finalStates': dataModel.stateMachine.finalStates.join(' '),
+                    state: []
+                }
+            },
+            jsonToXml = new Converter.JsonToXml();
+
+        dataModel.stateMachine.states.forEach(function (state) {
+            var taggedState = {
+                '@id': state.id,
+                '@name': state.name,
+                transition: []
+            };
+            state.transitions.forEach(function (transition) {
+                taggedState.transition.push({
+                    '@event': transition.event,
+                    '@targetId': transition.targetId,
+                    '@targetName': transition.targetName
+                });
+            });
+            taggedDataModel.stateMachine.state.push(taggedState);
+        });
+
+        filesToAdd['StateMachine.xml'] = jsonToXml.convertToString(taggedDataModel);
     };
 
     return FSMCodeGenerator;
