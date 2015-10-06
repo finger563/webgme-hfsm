@@ -62,7 +62,7 @@ define([
      * @public
      */
     FSMCodeGenerator.prototype.getVersion = function () {
-        return '0.1.0';
+        return '0.2.0';
     };
 
     /**
@@ -222,6 +222,13 @@ define([
             artifact = self.blobClient.createArtifact('GeneratedFiles');
 
         filesToAdd['StateMachine.json'] = JSON.stringify(dataModel, null, 2);
+        filesToAdd['metadata.json'] = JSON.stringify({
+            projectId: self.projectId,
+            commitHash: self.commitHash,
+            branchName: self.branchName,
+            timeStamp: (new Date()).toISOString(),
+            pluginVersion: self.getVersion()
+        }, null, 2);
         self.addXmlStateMachine(filesToAdd, dataModel);
 
         self.LANGUAGES.forEach(function (languageInfo) {
