@@ -1,0 +1,69 @@
+// Generated from:
+//
+//
+
+#include <iostream>
+#include <string>
+#include <set>
+
+
+
+
+int main(int argc, char** argv)
+{
+    std::cout << "State machine for MinimalMachine. Type 'exit' to exit the program any time." << std::endl;
+
+	std::set<std::string> finalStates;	
+	finalStates.insert("/903349001/484262466");
+    
+    std::string currentStateId = "/903349001/2090816916";
+    std::string currentState = "Initial";
+    
+	std::string currentInput = "";
+	while (strcmp(currentInput.c_str(), "exit"))
+    {
+        std::cout << "Current state: '" << currentState << " (" << currentStateId << ")" << std::endl;
+        std::cout << "Enter an event: ";
+		std::getline(std::cin, currentInput);
+
+        if (currentStateId == "/903349001/2090816916")
+        {
+            if (currentInput == "01")
+            {
+				std::cout << "Switching state to State1 (/903349001/524989402)" << std::endl;
+				currentStateId = "/903349001/524989402";
+                currentState = "State1";
+			}
+            else
+            {
+                std::cout << "Possible events for transition(s): 01" << std::endl;
+            }
+            
+		}
+		else if (currentStateId == "/903349001/524989402")
+		{
+			if (currentInput == "12")
+			{
+				std::cout << "Switching state to End (/903349001/484262466)" << std::endl;
+                currentStateId = "/903349001/484262466";
+                currentState = "End";
+			}
+            else
+            {
+                std::cout << "Possible events for transition(s): 12" << std::endl;
+            }
+            
+		}
+        
+		// Break the loop at a final state.
+		if (finalStates.find(currentStateId) != finalStates.end())
+        {
+			std::cout << "At a final state " << currentState << " (" << currentStateId << ")" << std::endl;
+			break;
+		}
+	}
+	std::cout << "Press enter to exit" << std::endl;
+	std::getline(std::cin, currentInput);
+
+	return 0;
+}

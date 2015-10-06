@@ -16,7 +16,7 @@ if defined COMNTOOLS (
     call "%COMNTOOLS%..\..\VC\vcvarsall.bat" x86
     
     REM compile
-    csc Program.cs /out:Program.exe
+    cl Program.cpp -o Program.exe
     REM execute
     Program.exe
 )
