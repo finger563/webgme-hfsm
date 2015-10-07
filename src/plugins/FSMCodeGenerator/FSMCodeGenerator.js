@@ -53,6 +53,13 @@ define([
                 batFile: 'c++.bat.ejs',
                 static: 'c++.simulator.cs.ejs',
                 fileExtension: 'cpp'
+            },
+            {
+                name: 'JavaScript',
+                generated: 'javascript.generated.js.ejs',
+                batFile: 'javascript.bat.ejs',
+                static: 'javascript.simulator.cs.ejs',
+                fileExtension: 'js'
             }
         ];
     };
