@@ -28,7 +28,7 @@ describe('FSMCodeGenerator', function () {
             })
             .then(function () {
                 var importParam = {
-                    projectSeed: testFixture.path.join(testFixture.SEED_DIR, 'EmptyProject.json'),
+                    projectSeed: testFixture.path.join('seeds', 'FSM.json'),
                     projectName: projectName,
                     branchName: 'master',
                     logger: logger,
@@ -53,7 +53,7 @@ describe('FSMCodeGenerator', function () {
             .nodeify(done);
     });
 
-    it('should run plugin and update the branch', function (done) {
+    it('should run plugin on minimal machine and succeed', function (done) {
         var manager = new PluginCliManager(null, logger, gmeConfig),
             pluginConfig = {
             },
@@ -61,19 +61,64 @@ describe('FSMCodeGenerator', function () {
                 project: project,
                 commitHash: commitHash,
                 branchName: 'test',
-                activeNode: '/960660211',
+                activeNode: '/1319592604',
             };
 
         manager.executePlugin(pluginName, pluginConfig, context, function (err, pluginResult) {
-            expect(err).to.equal(null);
-            expect(typeof pluginResult).to.equal('object');
-            expect(pluginResult.success).to.equal(true);
+            try {
+                expect(err).to.equal(null);
+                expect(typeof pluginResult).to.equal('object');
+                expect(pluginResult.success).to.equal(true);
+                done();
+            } catch (err) {
+                done(err);
+            }
+        });
+    })
 
-            project.getBranchHash('test')
-                .then(function (branchHash) {
-                    expect(branchHash).to.not.equal(commitHash);
-                })
-                .nodeify(done);
+    it('should run plugin on root and fail', function (done) {
+        var manager = new PluginCliManager(null, logger, gmeConfig),
+            pluginConfig = {
+            },
+            context = {
+                project: project,
+                commitHash: commitHash,
+                branchName: 'test',
+                activeNode: '',
+            };
+
+        manager.executePlugin(pluginName, pluginConfig, context, function (err, pluginResult) {
+            try {
+                expect(err.message).to.include('Active node is not a "UMLStateMachine"');
+                expect(typeof pluginResult).to.equal('object');
+                expect(pluginResult.success).to.equal(false);
+                done();
+            } catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('should run plugin on FCO and fail', function (done) {
+        var manager = new PluginCliManager(null, logger, gmeConfig),
+            pluginConfig = {
+            },
+            context = {
+                project: project,
+                commitHash: commitHash,
+                branchName: 'test',
+                activeNode: '/1',
+            };
+
+        manager.executePlugin(pluginName, pluginConfig, context, function (err, pluginResult) {
+            try {
+                expect(err.message).to.include('Active node is not a "UMLStateMachine"');
+                expect(typeof pluginResult).to.equal('object');
+                expect(pluginResult.success).to.equal(false);
+                done();
+            } catch (err) {
+                done(err);
+            }
         });
     });
 });

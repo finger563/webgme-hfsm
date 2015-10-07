@@ -98,9 +98,10 @@ define([
     FSMCodeGenerator.prototype.main = function (callback) {
         var self = this;
 
-        if (self.core.getAttribute(self.getMetaType(self.activeNode), 'name') !== 'UMLStateMachine') {
-            self.createMessage(self.activeNode, 'Active node is not a "UMLStateMachine".', 'error');
-            callback(null, self.result);
+        if (self.core.getPath(self.activeNode) === '' ||
+            self.core.getAttribute(self.getMetaType(self.activeNode), 'name') !== 'UMLStateMachine') {
+            //self.createMessage(self.activeNode, 'Active node is not a "UMLStateMachine".', 'error');
+            callback(new Error('Active node is not a "UMLStateMachine".'), self.result);
             return;
         }
 
