@@ -1,0 +1,44 @@
+#!/usr/bin/ruby
+
+puts "State machine for MinimalMachine. Type 'exit' to exit the program any time."
+
+finalStates = []
+finalStates << "/903349001/484262466"
+
+currentStateId = "/903349001/2090816916"
+currentState = "Initial"
+
+currentInput = ""
+while currentInput != "exit" do
+    puts "Current state: #{currentState} (#{currentStateId})"
+    print "Enter an event: "
+    $stdout.flush
+    currentInput = gets.chomp    
+    
+    if currentStateId == "/903349001/2090816916"
+        if currentInput == "01"
+            puts "Switching state to State1 (/903349001/524989402)"
+            currentStateId = "/903349001/524989402"
+            currentState = "State1"
+        else
+            puts "Possible events for transition(s): 01"
+        end
+    elsif currentStateId == "/903349001/524989402"
+        if currentInput == "12"
+            puts "Switching state to End (/903349001/484262466)"
+            currentStateId = "/903349001/484262466"
+            currentState = "End"
+        else
+            puts "Possible events for transition(s): 12"
+        end
+    end   
+    
+    if finalStates.index(currentStateId) != nil
+        puts "At final state #{currentState} (#{currentStateId})"
+        break
+    end
+    
+end
+
+puts "Press enter to exit";
+gets.chomp
