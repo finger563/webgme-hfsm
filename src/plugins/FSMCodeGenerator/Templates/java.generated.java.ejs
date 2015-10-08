@@ -1,0 +1,75 @@
+// Generated from:
+//
+//
+import java.io.*;
+import java.util.Scanner;
+import java.util.List;
+import java.util.ArrayList;
+
+
+public class Program {
+
+    public static void main(String[] args) {
+        
+        System.out.println("State machine for MinimalMachine. Type 'exit' to exit the program any time.");
+        Scanner scanner = new Scanner(System.in);
+        List finalStates = new ArrayList();
+        finalStates.add("/903349001/484262466");
+        
+        String currentStateId = "/903349001/2090816916";
+        String currentState = "Initial";
+        
+        String currentInput = "";        
+        while (currentInput.equals("exit") == false) {
+            
+            System.out.format("Current state: %s (%s)", currentState, currentStateId);
+            System.out.println();
+            System.out.print("Enter an event: ");
+            currentInput = scanner.next();           
+            
+            if (currentStateId.equals("/903349001/2090816916"))
+            {
+                if (currentInput.equals("01"))
+                {                    
+                    System.out.println("Switching state to State1 (/903349001/524989402)");
+                    currentStateId = "/903349001/524989402";
+                    currentState = "State1";
+                }
+                else
+                {
+                    System.out.println("Possible events for transition(s): 01");
+                }
+                
+            }
+            else if (currentStateId.equals("/903349001/524989402"))
+            {
+                if (currentInput.equals("12"))
+                {
+                    System.out.println("Switching state to End (/903349001/484262466)");
+                    currentStateId = "/903349001/484262466";
+                    currentState = "End";
+                }                
+                else
+                {
+                    System.out.println("Possible events for transition(s): 12");
+                }
+                
+            }
+            // Break the loop at a final state.
+            if (finalStates.contains(currentStateId)) {
+                System.out.format("At a final state %s (%s)", currentState, currentStateId);
+                System.out.println();
+                break;
+            }
+        }
+        
+        System.out.println("Press enter to exit");
+        try {
+            System.in.read();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+}

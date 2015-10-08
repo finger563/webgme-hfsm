@@ -1,0 +1,10 @@
+echo off
+if defined JAVA_HOME (
+    REM compile
+    "%JAVA_HOME%\bin\javac.exe" Program.java
+
+    REM execute
+    "%JAVA_HOME%\bin\java.exe" Program
+) else (
+    echo "JAVA_HOME is not defined"
+)
