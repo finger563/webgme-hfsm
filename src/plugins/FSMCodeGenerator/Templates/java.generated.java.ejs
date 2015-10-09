@@ -9,11 +9,11 @@ import java.util.ArrayList;
 
 public class Program {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         
         System.out.println("State machine for MinimalMachine. Type 'exit' to exit the program any time.");
         Scanner scanner = new Scanner(System.in);
-        List finalStates = new ArrayList();
+        List<String> finalStates = new ArrayList<String>();
         finalStates.add("/903349001/484262466");
         
         String currentStateId = "/903349001/2090816916";
@@ -22,8 +22,7 @@ public class Program {
         String currentInput = "";        
         while (currentInput.equals("exit") == false) {
             
-            System.out.format("Current state: %s (%s)", currentState, currentStateId);
-            System.out.println();
+            System.out.format("Current state: %s (%s)%s", currentState, currentStateId, System.lineSeparator());            
             System.out.print("Enter an event: ");
             currentInput = scanner.next();           
             
@@ -57,19 +56,13 @@ public class Program {
             }
             // Break the loop at a final state.
             if (finalStates.contains(currentStateId)) {
-                System.out.format("At a final state %s (%s)", currentState, currentStateId);
-                System.out.println();
+                System.out.format("At a final state %s (%s)%s", currentState, currentStateId, System.lineSeparator());
                 break;
             }
         }
         
         System.out.println("Press enter to exit");
-        try {
-            System.in.read();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
 
+        System.in.read();
+    }
 }
