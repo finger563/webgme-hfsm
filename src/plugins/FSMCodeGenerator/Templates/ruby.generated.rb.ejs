@@ -1,38 +1,61 @@
 #!/usr/bin/ruby
+<%
+var i, j,
+        outerIf = 'if',
+        innerIf = 'if',
+        initialStateName;
 
-puts "State machine for MinimalMachine. Type 'exit' to exit the program any time."
+for (i = 0; i < stateMachine.states.length; i += 1) {
+    if (stateMachine.states[i].id === stateMachine.initialState) {
+        initialStateName = stateMachine.states[i].name;
+        break;
+    }
+}
+
+%>
+puts "State machine for <%=stateMachine.name%>. Type 'exit' to exit the program any time."
 
 finalStates = []
-finalStates << "/903349001/484262466"
+<%for (i = 0; i < stateMachine.finalStates.length; i += 1) {%>finalStates << "<%=stateMachine.finalStates[i]%>"
+<%}%>
 
-currentStateId = "/903349001/2090816916"
-currentState = "Initial"
+currentStateId = "<%=stateMachine.initialState%>"
+currentState = "<%=initialStateName%>"
 
 currentInput = ""
 while currentInput != "exit" do
     puts "Current state: #{currentState} (#{currentStateId})"
     print "Enter an event: "
     $stdout.flush
-    currentInput = gets.chomp    
-    
-    if currentStateId == "/903349001/2090816916"
-        if currentInput == "01"
-            puts "Switching state to State1 (/903349001/524989402)"
-            currentStateId = "/903349001/524989402"
-            currentState = "State1"
+    currentInput = gets.chomp
+
+<%for (i = 0; i < stateMachine.states.length; i += 1) {
+    var eventStr = '';
+    if (stateMachine.states[i].transitions.length === 0) {
+        continue;
+    }
+    innerIf = 'if';%>    <%=outerIf%> currentStateId == "<%=stateMachine.states[i].id%>"
+{
+<%for (j = 0; j < stateMachine.states[i].transitions.length; j += 1) {
+    var transition = stateMachine.states[i].transitions[j];
+    eventStr += ', ' + transition.event;
+%>        <%=innerIf%> currentInput == "<%=transition.event%>"
+            puts "Switching state to <%=transition.targetName%> (<%=transition.targetId%>)"
+            currentStateId = "<%=transition.targetId%>"
+            currentState = "<%=transition.targetName%>"
+}<%if (j === stateMachine.states[i].transitions.length - 1) {%>
         else
-            puts "Possible events for transition(s): 01"
+            puts "Possible events for transition(s): <%=eventStr.substring(2)%>"
         end
-    elsif currentStateId == "/903349001/524989402"
-        if currentInput == "12"
-            puts "Switching state to End (/903349001/484262466)"
-            currentStateId = "/903349001/484262466"
-            currentState = "End"
-        else
-            puts "Possible events for transition(s): 12"
-        end
-    end   
-    
+<%}%>
+<%if (i === stateMachine.states[i].length - 1) {%>
+    end
+<%
+}
+    innerIf = 'elsif';
+    }
+outerIf = 'elsif';
+}%>
     if finalStates.index(currentStateId) != nil
         puts "At final state #{currentState} (#{currentStateId})"
         break
