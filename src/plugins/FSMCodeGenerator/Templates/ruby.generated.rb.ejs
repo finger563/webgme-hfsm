@@ -35,7 +35,6 @@ while currentInput != "exit" do
         continue;
     }
     innerIf = 'if';%>    <%=outerIf%> currentStateId == "<%=stateMachine.states[i].id%>"
-{
 <%for (j = 0; j < stateMachine.states[i].transitions.length; j += 1) {
     var transition = stateMachine.states[i].transitions[j];
     eventStr += ', ' + transition.event;
@@ -43,17 +42,16 @@ while currentInput != "exit" do
             puts "Switching state to <%=transition.targetName%> (<%=transition.targetId%>)"
             currentStateId = "<%=transition.targetId%>"
             currentState = "<%=transition.targetName%>"
-}<%if (j === stateMachine.states[i].transitions.length - 1) {%>
+<%if (j === stateMachine.states[i].transitions.length - 1) {%>
         else
             puts "Possible events for transition(s): <%=eventStr.substring(2)%>"
         end
-<%}%>
-<%if (i === stateMachine.states[i].length - 1) {%>
-    end
-<%
-}
+<%}
     innerIf = 'elsif';
-    }
+}
+if (i === stateMachine.states.length - 1) {%>
+    end
+<%}
 outerIf = 'elsif';
 }%>
     if finalStates.index(currentStateId) != nil

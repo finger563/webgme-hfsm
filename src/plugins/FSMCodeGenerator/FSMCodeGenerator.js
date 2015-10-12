@@ -44,22 +44,29 @@ define([
                 name: 'Python',
                 generated: 'python.generated.py.ejs',
                 batFile: 'python.bat.ejs',
-                static: 'python.simulator.cs.ejs',
+                static: 'python.simulator.py.ejs',
                 fileExtension: 'py'
             },
             {
                 name: 'C++',
                 generated: 'c++.generated.cpp.ejs',
                 batFile: 'c++.bat.ejs',
-                static: 'c++.simulator.cs.ejs',
+                static: 'c++.simulator.cpp.ejs',
                 fileExtension: 'cpp'
             },
             {
                 name: 'JavaScript',
                 generated: 'javascript.generated.js.ejs',
                 batFile: 'javascript.bat.ejs',
-                static: 'javascript.simulator.cs.ejs',
+                static: 'javascript.simulator.js.ejs',
                 fileExtension: 'js'
+            },
+            {
+                name: 'Ruby',
+                generated: 'ruby.generated.rb.ejs',
+                batFile: 'ruby.bat.ejs',
+                static: 'ruby.simulator.rb.ejs',
+                fileExtension: 'rb'
             }
         ];
     };
