@@ -1,6 +1,20 @@
 // Generated from:
 //
 //
+<%
+var i, j,
+        outerIf = 'if',
+        innerIf = 'if',
+        initialStateName;
+
+for (i = 0; i < stateMachine.states.length; i += 1) {
+    if (stateMachine.states[i].id === stateMachine.initialState) {
+        initialStateName = stateMachine.states[i].name;
+        break;
+    }
+}
+
+%>
 import java.io.*;
 import java.util.Scanner;
 import java.util.List;
@@ -10,57 +24,51 @@ import java.util.ArrayList;
 public class Program {
 
     public static void main(String[] args) throws IOException {
-        
+
         System.out.println("State machine for MinimalMachine. Type 'exit' to exit the program any time.");
         Scanner scanner = new Scanner(System.in);
         List<String> finalStates = new ArrayList<String>();
-        finalStates.add("/903349001/484262466");
-        
-        String currentStateId = "/903349001/2090816916";
-        String currentState = "Initial";
-        
-        String currentInput = "";        
+<%for (i = 0; i < stateMachine.finalStates.length; i += 1) {%>        finalStates.add("<%=stateMachine.finalStates[i]%>");
+<%}%>
+
+        String currentStateId = "<%=stateMachine.initialState%>";
+        String currentState = "<%=initialStateName%>";
+
+        String currentInput = "";
         while (currentInput.equals("exit") == false) {
-            
-            System.out.format("Current state: %s (%s)%s", currentState, currentStateId, System.lineSeparator());            
+            System.out.format("Current state: %s (%s)%s", currentState, currentStateId, System.lineSeparator());
             System.out.print("Enter an event: ");
-            currentInput = scanner.next();           
-            
-            if (currentStateId.equals("/903349001/2090816916"))
+            currentInput = scanner.next();
+<%for (i = 0; i < stateMachine.states.length; i += 1) {
+    var eventStr = '';
+    if (stateMachine.states[i].transitions.length === 0) {
+        continue;
+    }
+innerIf = 'if';%>            <%=outerIf%> (currentStateId.equals("<%=stateMachine.states[i].id%>"))
             {
-                if (currentInput.equals("01"))
-                {                    
-                    System.out.println("Switching state to State1 (/903349001/524989402)");
-                    currentStateId = "/903349001/524989402";
-                    currentState = "State1";
-                }
+<%for (j = 0; j < stateMachine.states[i].transitions.length; j += 1) {
+            var transition = stateMachine.states[i].transitions[j];
+            eventStr += ', ' + transition.event;
+%>                <%=innerIf%> (currentInput.equals("<%=transition.event%>"))
+                {
+                    System.out.println("Switching state to <%=transition.targetName%> (<%=transition.targetId%>)");
+                    currentStateId = "<%=transition.targetId%>";
+                    currentState = "<%=transition.targetName%>";
+                }<%if (j === stateMachine.states[i].transitions.length - 1) {%>
                 else
                 {
-                    System.out.println("Possible events for transition(s): 01");
-                }
-                
+                    System.out.println("Possible events for transition(s): <%=eventStr.substring(2)%>");
+                }<%}%>
+<%innerIf = 'else if';}%>
             }
-            else if (currentStateId.equals("/903349001/524989402"))
-            {
-                if (currentInput.equals("12"))
-                {
-                    System.out.println("Switching state to End (/903349001/484262466)");
-                    currentStateId = "/903349001/484262466";
-                    currentState = "End";
-                }                
-                else
-                {
-                    System.out.println("Possible events for transition(s): 12");
-                }
-                
-            }
+<%outerIf = 'else if';}%>
             // Break the loop at a final state.
             if (finalStates.contains(currentStateId)) {
                 System.out.format("At a final state %s (%s)%s", currentState, currentStateId, System.lineSeparator());
                 break;
             }
         }
-        
+
         System.out.println("Press enter to exit");
 
         System.in.read();

@@ -67,6 +67,13 @@ define([
                 batFile: 'ruby.bat.ejs',
                 static: 'ruby.simulator.rb.ejs',
                 fileExtension: 'rb'
+            },
+            {
+                name: 'Java',
+                generated: 'java.generated.java.ejs',
+                batFile: 'java.bat.ejs',
+                static: 'java.simulator.java.ejs',
+                fileExtension: 'java'
             }
         ];
     };
