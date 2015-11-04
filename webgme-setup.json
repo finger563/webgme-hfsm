@@ -4,6 +4,10 @@
       "FSMCodeGenerator": {
         "src": "src\\plugins\\FSMCodeGenerator",
         "test": "test\\plugins\\FSMCodeGenerator"
+      },
+      "FSMImporter": {
+        "src": "src\\plugins\\FSMImporter",
+        "test": "test\\plugins\\FSMImporter"
       }
     }
   },

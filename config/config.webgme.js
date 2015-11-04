@@ -16,5 +16,6 @@ config.plugin.basePaths.push('src/plugins');
 // Add requirejs paths
 
 
+config.mongo.uri = 'mongodb://127.0.0.1:27017/webgme_finite_state_machine'
 validateConfig(config);
 module.exports = config;
