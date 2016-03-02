@@ -14,10 +14,16 @@
       "FiniteStateMachine": {
         "src": "src/seeds/FiniteStateMachine"
       }
+    },
+    "decorators": {
+      "UMLStateMachineDecorator": {
+        "src": "src/decorators/UMLStateMachineDecorator"
+      }
     }
   },
   "dependencies": {
     "plugins": {},
-    "seeds": {}
+    "seeds": {},
+    "decorators": {}
   }
 }

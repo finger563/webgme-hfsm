@@ -145,7 +145,7 @@ define([
         // Create the stateMachine
         smNode = self.core.createNode({
             parent: self.rootNode,
-            base: self.META.UMLStateMachine
+            base: self.META.UMLStateDiagram
         });
 
         self.core.setAttribute(smNode, 'name', smData.name);
