@@ -113,9 +113,9 @@ define([
         var self = this;
 
         if (self.core.getPath(self.activeNode) === '' ||
-            self.core.getAttribute(self.getMetaType(self.activeNode), 'name') !== 'UMLStateMachine') {
+            self.core.getAttribute(self.getMetaType(self.activeNode), 'name') !== 'UMLStateDiagram') {
             //self.createMessage(self.activeNode, 'Active node is not a "UMLStateMachine".', 'error');
-            callback(new Error('Active node is not a "UMLStateMachine".'), self.result);
+            callback(new Error('Active node is not a "UMLStateDiagram".'), self.result);
             return;
         }
 

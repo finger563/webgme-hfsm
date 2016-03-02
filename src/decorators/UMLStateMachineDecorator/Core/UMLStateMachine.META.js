@@ -38,19 +38,6 @@ define(['underscore'], function (_underscore) {
         return dictionary;
     }
 
-    //META ASPECT TYPES
-    var _metaTypes = {
-        End: '/-8/-6',
-        FCO: '/-1',
-        Initial: '/-8/-5',
-        Language: '/-8',
-        Models: '/-9',
-        State: '/-8/-3',
-        StateBase: '/-8/-2',
-        Transition: '/-8/-4',
-        UMLStateDiagram: '/-8/-7'
-    };
-
     //META ASPECT TYPE CHECKING
     var _isEnd = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.End]);
@@ -80,9 +67,6 @@ define(['underscore'], function (_underscore) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.UMLStateDiagram]);
     };
 
-
-
-    //return utility functions
     return {
         getMetaTypes: _getMetaTypes,
         TYPE_INFO: {
