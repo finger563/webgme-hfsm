@@ -7,11 +7,15 @@
 
 define([
     'plugin/PluginConfig',
-    'plugin/PluginBase'
+    'plugin/PluginBase',
+    'text!./metadata.json'
 ], function (
     PluginConfig,
-    PluginBase) {
+    PluginBase,
+    pluginMetadata) {
     'use strict';
+
+    pluginMetadata = JSON.parse(pluginMetadata);
 
     /**
      * Initializes a new instance of FSMImporter.
@@ -23,50 +27,15 @@ define([
     var FSMImporter = function () {
         // Call base class' constructor.
         PluginBase.call(this);
+        this.pluginMetadata = pluginMetadata;
+
     };
+
+    FSMImporter.metadata = pluginMetadata;
 
     // Prototypal inheritance from PluginBase.
     FSMImporter.prototype = Object.create(PluginBase.prototype);
     FSMImporter.prototype.constructor = FSMImporter;
-
-    /**
-     * Gets the name of the FSMImporter.
-     * @returns {string} The name of the plugin.
-     * @public
-     */
-    FSMImporter.prototype.getName = function () {
-        return 'FSM Importer';
-    };
-
-    /**
-     * Gets the semantic version (semver.org) of the FSMImporter.
-     * @returns {string} The version of the plugin.
-     * @public
-     */
-    FSMImporter.prototype.getVersion = function () {
-        return '0.1.0';
-    };
-
-    /**
-     * Gets the configuration structure for the FSMImporter.
-     * The ConfigurationStructure defines the configuration for the plugin
-     * and will be used to populate the GUI when invoking the plugin from webGME.
-     * @returns {object} The version of the plugin.
-     * @public
-     */
-    FSMImporter.prototype.getConfigStructure = function () {
-        return [
-            {
-                name: 'file',
-                displayName: 'StateMachine json',
-                description: 'Exported state-machine JSON file',
-                value: '',
-                valueType: 'asset',
-                readOnly: false
-            }
-        ];
-    };
-
 
     /**
      * Main function for the plugin to execute. This will perform the execution.
@@ -88,27 +57,10 @@ define([
             return;
         }
 
-        self.blobClient.getObject(currentConfig.file, function (err, jsonOrBuf) {
-            var dataModel;
+        self.blobClient.getObjectAsJSON(currentConfig.file, function (err, dataModel) {
             if (err) {
-                callback(err);
+                callback(err, self.result);
                 return;
-            }
-
-            if (typeof Buffer !== 'undefined' && jsonOrBuf instanceof Buffer) {
-                // This clause is entered when the plugin in executed in a node process (on the server) rather than
-                // in a browser. Then the getObject returns a Buffer and we need to convert it to string and then
-                // parse it into an object.
-                try {
-                    jsonOrBuf = String.fromCharCode.apply(null, new Uint8Array(jsonOrBuf));
-                    dataModel = JSON.parse(jsonOrBuf);
-                } catch (err) {
-                    callback(err, self.result);
-                    return;
-                }
-            } else {
-                // In the browser the getObject automatically returns a json object.
-                dataModel = jsonOrBuf;
             }
 
             self.logger.info('Obtained dataModel', dataModel);
@@ -201,7 +153,7 @@ define([
         }
 
         callback(null);
-    }
+    };
 
     return FSMImporter;
 });

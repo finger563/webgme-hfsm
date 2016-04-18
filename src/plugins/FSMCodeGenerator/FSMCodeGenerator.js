@@ -8,6 +8,7 @@
 define([
     'plugin/PluginConfig',
     'plugin/PluginBase',
+    'text!./metadata.json',
     'common/util/ejs',
     'common/util/xmljsonconverter',
     'plugin/FSMCodeGenerator/FSMCodeGenerator/Templates/Templates',
@@ -15,11 +16,14 @@ define([
 ], function (
     PluginConfig,
     PluginBase,
+    pluginMetadata,
     ejs,
     Converter,
     TEMPLATES,
     Q) {
     'use strict';
+
+    pluginMetadata = JSON.parse(pluginMetadata);
 
     /**
      * Initializes a new instance of FSMCodeGenerator.
@@ -31,6 +35,7 @@ define([
     var FSMCodeGenerator = function () {
         // Call base class' constructor.
         PluginBase.call(this);
+        this.pluginMetadata = pluginMetadata;
 
         this.LANGUAGES = [
             {
@@ -78,27 +83,11 @@ define([
         ];
     };
 
-    // Prototypal inheritance from PluginBase.
+    FSMCodeGenerator.metadata = pluginMetadata;
+
+    // Prototypical inheritance from PluginBase.
     FSMCodeGenerator.prototype = Object.create(PluginBase.prototype);
     FSMCodeGenerator.prototype.constructor = FSMCodeGenerator;
-
-    /**
-     * Gets the name of the FSMCodeGenerator.
-     * @returns {string} The name of the plugin.
-     * @public
-     */
-    FSMCodeGenerator.prototype.getName = function () {
-        return 'FSM Code Generator';
-    };
-
-    /**
-     * Gets the semantic version (semver.org) of the FSMCodeGenerator.
-     * @returns {string} The version of the plugin.
-     * @public
-     */
-    FSMCodeGenerator.prototype.getVersion = function () {
-        return '0.2.0';
-    };
 
     /**
      * Main function for the plugin to execute. This will perform the execution.
@@ -107,7 +96,7 @@ define([
      * - Do NOT put any user interaction logic UI, etc. inside this method.
      * - callback always has to be called even if error happened.
      *
-     * @param {function(string, plugin.PluginResult)} callback - the result callback
+     * @param {function(string|Error, plugin.PluginResult)} callback - the result callback
      */
     FSMCodeGenerator.prototype.main = function (callback) {
         var self = this;
