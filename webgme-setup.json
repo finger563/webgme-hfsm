@@ -8,6 +8,10 @@
       "FSMImporter": {
         "src": "src/plugins/FSMImporter",
         "test": "test/plugins/FSMImporter"
+      },
+      "GenerateBGS": {
+        "src": "src/plugins/GenerateBGS",
+        "test": "test/plugins/GenerateBGS"
       }
     },
     "seeds": {
@@ -19,11 +23,22 @@
       "UMLStateMachineDecorator": {
         "src": "src/decorators/UMLStateMachineDecorator"
       }
-    }
+    },
+    "visualizers": {}
   },
   "dependencies": {
     "plugins": {},
     "seeds": {},
-    "decorators": {}
+    "decorators": {},
+    "visualizers": {
+      "CodeEditor": {
+        "src": "panels/CodeEditor/CodeEditorPanel",
+        "title": "CodeEditor",
+        "panel": "src/visualizers/panels/CodeEditor",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/CodeEditor",
+        "project": "webgme-codeeditor"
+      }
+    }
   }
 }

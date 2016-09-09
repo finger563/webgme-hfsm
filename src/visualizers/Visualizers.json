@@ -1,0 +1,8 @@
+[
+  {
+    "id": "CodeEditor",
+    "title": "CodeEditor",
+    "panel": "panels/CodeEditor/CodeEditorPanel",
+    "DEBUG_ONLY": false
+  }
+]

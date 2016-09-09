@@ -1,0 +1,77 @@
+{
+    "CodeEditor": {
+	"theme": "default",
+	"keyBinding": "emacs",
+        "autoSaveInterval": "2000",
+	"map": {
+	    "UMLStateDiagram": {
+		"globals": {
+		    "name":"text/x-python",
+		    "version": 2,
+		    "singleLineStringErrors": true,
+		    "extra_keywords": [
+			"event",
+			"dim",
+			"procedure",
+			"export",
+			"end"
+		    ]
+		},
+		"constants": {
+		    "name":"text/x-python",
+		    "version": 2,
+		    "singleLineStringErrors": true,
+		    "extra_keywords": [
+			"event",
+			"dim",
+			"procedure",
+			"export",
+			"end"
+		    ]
+		}
+	    },
+	    "State": {
+		"function": {
+		    "name":"text/x-python",
+		    "version": 2,
+		    "singleLineStringErrors": true,
+		    "extra_keywords": [
+			"event",
+			"dim",
+			"procedure",
+			"export",
+			"end"
+		    ]
+		}
+	    },
+	    "Event": {
+		"function": {
+		    "name":"text/x-python",
+		    "version": 2,
+		    "singleLineStringErrors": true,
+		    "extra_keywords": [
+			"event",
+			"dim",
+			"procedure",
+			"export",
+			"end"
+		    ]
+		}
+	    },
+	    "Library": {
+		"code": {
+		    "name":"text/x-python",
+		    "version": 2,
+		    "singleLineStringErrors": true,
+		    "extra_keywords": [
+			"event",
+			"dim",
+			"procedure",
+			"export",
+			"end"
+		    ]
+		}
+	    }
+	}
+    }
+}
