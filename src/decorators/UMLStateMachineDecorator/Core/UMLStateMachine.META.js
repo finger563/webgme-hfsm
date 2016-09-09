@@ -18,6 +18,8 @@ define(['underscore'], function (_underscore) {
         State: 'State',
         StateBase: 'StateBase',
         Transition: 'Transition',
+        Library: 'Library',
+        Event: 'Event',
         UMLStateDiagram: 'UMLStateDiagram'
     },
         client = WebGMEGlobal.Client;
@@ -63,6 +65,12 @@ define(['underscore'], function (_underscore) {
     var _isTransition = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Transition]);
     };
+    var _isLibrary = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Library]);
+    };
+    var _isEvent = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Event]);
+    };
     var _isUMLStateDiagram = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.UMLStateDiagram]);
     };
@@ -78,6 +86,8 @@ define(['underscore'], function (_underscore) {
             isState: _isState,
             isStateBase: _isStateBase,
             isTransition: _isTransition,
+            isLibrary: _isLibrary,
+            isEvent: _isEvent,
             isUMLStateDiagram: _isUMLStateDiagram
         }
     };

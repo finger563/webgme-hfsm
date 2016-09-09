@@ -4,6 +4,8 @@
 @import "State";
 @import "Diagram";
 @import "Transition";
+@import "Library";
+@import "Event";
 
 @import "Colors";
 
@@ -16,6 +18,8 @@
     @include State;
     @include Diagram;
     @include Transition;
+    @include Library;
+    @include Event;
 
     &.default {
       min-width: 65px;
@@ -43,6 +47,8 @@
       @include SelectedState;
       @include SelectedDiagram;
       @include SelectedTransition;
+      @include SelectedLibrary;
+      @include SelectedEvent;
 
       &.default {
         background-color: $selected-background-color;

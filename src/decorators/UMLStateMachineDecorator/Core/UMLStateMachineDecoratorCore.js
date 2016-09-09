@@ -16,6 +16,8 @@ define([
     'text!./EndState.html',
     'text!./State.html',
     'text!./Transition.html',
+    'text!./Library.html',
+    'text!./Event.html',
     './Transition',
     './UMLStateMachine.META'
 ], function (CONSTANTS,
@@ -27,6 +29,8 @@ define([
              EndStateTemplate,
              StateTemplate,
              TransitionTemplate,
+             LibraryTemplate,
+             EventTemplate,
              Transition,
              UMLStateMachineMETA) {
     'use strict';
@@ -38,7 +42,9 @@ define([
         METATYPETEMPLATE_END = $(EndStateTemplate),
         METATYPETEMPLATE_UMLSTATEDIAGRAM = $(DiagramTemplate),
         METATYPETEMPLATE_STATE = $(StateTemplate),
-        METATYPETEMPLATE_TRANSITION = $(TransitionTemplate);
+        METATYPETEMPLATE_TRANSITION = $(TransitionTemplate),
+        METATYPETEMPLATE_LIBRARY = $(LibraryTemplate),
+        METATYPETEMPLATE_EVENT = $(EventTemplate);
 
 
     UMLStateMachineDecoratorCore = function () {
@@ -165,6 +171,12 @@ define([
             } else if (UMLStateMachineMETA.TYPE_INFO.isState(this._gmeID)) {
                 this._metaType = META_TYPES.State;
                 this._metaTypeTemplate = METATYPETEMPLATE_STATE.clone();
+            } else if (UMLStateMachineMETA.TYPE_INFO.isLibrary(this._gmeID)) {
+                this._metaType = META_TYPES.Library;
+                this._metaTypeTemplate = METATYPETEMPLATE_LIBRARY.clone();
+            } else if (UMLStateMachineMETA.TYPE_INFO.isEvent(this._gmeID)) {
+                this._metaType = META_TYPES.Event;
+                this._metaTypeTemplate = METATYPETEMPLATE_EVENT.clone();
             } else if (UMLStateMachineMETA.TYPE_INFO.isTransition(this._gmeID)) {
                 this._metaType = META_TYPES.Transition;
                 this._metaTypeTemplate = METATYPETEMPLATE_TRANSITION.clone();
@@ -203,6 +215,10 @@ define([
                     }
                 }
             } else if (UMLStateMachineMETA.TYPE_INFO.isState(this._gmeID)) {
+                this._metaTypeTemplate.css({'background-color': this.fillColor});
+            } else if (UMLStateMachineMETA.TYPE_INFO.isLibrary(this._gmeID)) {
+                this._metaTypeTemplate.css({'background-color': this.fillColor});
+            } else if (UMLStateMachineMETA.TYPE_INFO.isEvent(this._gmeID)) {
                 this._metaTypeTemplate.css({'background-color': this.fillColor});
             } else if (UMLStateMachineMETA.TYPE_INFO.isTransition(this._gmeID)) {
                 // Do nothing

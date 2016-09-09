@@ -154,6 +154,30 @@
       line-height: 16px;
       padding-left: 5px;
       padding-right: 5px; }
+  .uml-state-machine .library {
+    min-width: 65px;
+    height: 40px;
+    border: 1px solid #000000;
+    padding: 3px;
+    background-color: #F0FFF0;
+    text-align: center;
+    line-height: 40px; }
+    .uml-state-machine .library .name > input {
+      font-size: 12px !important;
+      line-height: 16px !important;
+      height: 16px !important; }
+  .uml-state-machine .event {
+    min-width: 65px;
+    height: 40px;
+    border: 1px solid #000000;
+    padding: 3px;
+    background-color: #FFF0F0;
+    text-align: center;
+    line-height: 40px; }
+    .uml-state-machine .event .name > input {
+      font-size: 12px !important;
+      line-height: 16px !important;
+      height: 16px !important; }
   .uml-state-machine.default {
     min-width: 65px;
     height: 40px;
@@ -182,6 +206,14 @@
 .selected .uml-state-machine .transition {
   background-color: #DBEAFC;
   border-color: #52A8EC; }
+.selected .uml-state-machine .library {
+  background-color: #DBEAFC;
+  border-color: #52A8EC; }
+.selected .uml-state-machine .event {
+  background-color: #DBEAFC;
+  border-color: #52A8EC; }
 .selected .uml-state-machine.default {
   background-color: #DBEAFC;
   border-color: #52A8EC; }
+
+/*# sourceMappingURL=UMLStateMachineDecorator.DiagramDesignerWidget.css.map */

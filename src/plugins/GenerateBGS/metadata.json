@@ -2,9 +2,9 @@
   "id": "GenerateBGS",
   "name": "GenerateBGS",
   "version": "0.1.0",
-  "description": "",
+  "description": "Generate BlueGigaScript (BGS) from HFSM.",
   "icon": {
-    "class": "glyphicon glyphicon-cog",
+    "class": "fa fa-code",
     "src": ""
   },
   "disableServerSideExecution": false,
