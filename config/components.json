@@ -15,6 +15,28 @@
 			"procedure",
 			"export",
 			"end"
+		    ],
+		    "extra_builtins": [
+			"system_boot",
+			"system_script_failure",
+			"hardware_soft_timer",
+			"hardware_adc_result",
+			"hardware_io_port_status",
+			"hardware_io_port_config_irq",
+			"hardware_io_port_config_direction",
+			"hardware_io_port_write",
+			"hardware_io_port_read",
+			"hardware_set_soft_timer",
+			"hardware_adc_read",
+			"hardware_i2c_write",
+			"hardware_i2c_read",
+			"gap_scan_response",
+			"connection_status",
+			"connection_disconnect",
+			"attclient_group_found",
+			"attclient_find_information_found",
+			"attclient_procedure_completed",
+			"attclient_attribute_value"
 		    ]
 		},
 		"constants": {
@@ -27,6 +49,28 @@
 			"procedure",
 			"export",
 			"end"
+		    ],
+		    "extra_builtins": [
+			"system_boot",
+			"system_script_failure",
+			"hardware_soft_timer",
+			"hardware_adc_result",
+			"hardware_io_port_status",
+			"hardware_io_port_config_irq",
+			"hardware_io_port_config_direction",
+			"hardware_io_port_write",
+			"hardware_io_port_read",
+			"hardware_set_soft_timer",
+			"hardware_adc_read",
+			"hardware_i2c_write",
+			"hardware_i2c_read",
+			"gap_scan_response",
+			"connection_status",
+			"connection_disconnect",
+			"attclient_group_found",
+			"attclient_find_information_found",
+			"attclient_procedure_completed",
+			"attclient_attribute_value"
 		    ]
 		}
 	    },
@@ -41,6 +85,28 @@
 			"procedure",
 			"export",
 			"end"
+		    ],
+		    "extra_builtins": [
+			"system_boot",
+			"system_script_failure",
+			"hardware_soft_timer",
+			"hardware_adc_result",
+			"hardware_io_port_status",
+			"hardware_io_port_config_irq",
+			"hardware_io_port_config_direction",
+			"hardware_io_port_write",
+			"hardware_io_port_read",
+			"hardware_set_soft_timer",
+			"hardware_adc_read",
+			"hardware_i2c_write",
+			"hardware_i2c_read",
+			"gap_scan_response",
+			"connection_status",
+			"connection_disconnect",
+			"attclient_group_found",
+			"attclient_find_information_found",
+			"attclient_procedure_completed",
+			"attclient_attribute_value"
 		    ]
 		}
 	    },
@@ -55,6 +121,28 @@
 			"procedure",
 			"export",
 			"end"
+		    ],
+		    "extra_builtins": [
+			"system_boot",
+			"system_script_failure",
+			"hardware_soft_timer",
+			"hardware_adc_result",
+			"hardware_io_port_status",
+			"hardware_io_port_config_irq",
+			"hardware_io_port_config_direction",
+			"hardware_io_port_write",
+			"hardware_io_port_read",
+			"hardware_set_soft_timer",
+			"hardware_adc_read",
+			"hardware_i2c_write",
+			"hardware_i2c_read",
+			"gap_scan_response",
+			"connection_status",
+			"connection_disconnect",
+			"attclient_group_found",
+			"attclient_find_information_found",
+			"attclient_procedure_completed",
+			"attclient_attribute_value"
 		    ]
 		}
 	    },
@@ -69,6 +157,28 @@
 			"procedure",
 			"export",
 			"end"
+		    ],
+		    "extra_builtins": [
+			"system_boot",
+			"system_script_failure",
+			"hardware_soft_timer",
+			"hardware_adc_result",
+			"hardware_io_port_status",
+			"hardware_io_port_config_irq",
+			"hardware_io_port_config_direction",
+			"hardware_io_port_write",
+			"hardware_io_port_read",
+			"hardware_set_soft_timer",
+			"hardware_adc_read",
+			"hardware_i2c_write",
+			"hardware_i2c_read",
+			"gap_scan_response",
+			"connection_status",
+			"connection_disconnect",
+			"attclient_group_found",
+			"attclient_find_information_found",
+			"attclient_procedure_completed",
+			"attclient_attribute_value"
 		    ]
 		}
 	    }
