@@ -11,16 +11,18 @@ define([
     'plugin/PluginConfig',
     'text!./metadata.json',
     'plugin/PluginBase',
+    'common/util/ejs', // for ejs templates
     'plugin/GenerateBGS/GenerateBGS/Templates/Templates',
-    'hfsm/meta',
     'hfsm/modelLoader',
+    'q'
 ], function (
     PluginConfig,
     pluginMetadata,
     PluginBase,
+    ejs,
     TEMPLATES,
-    MetaTypes,
-    loader) {
+    loader,
+    Q) {
     'use strict';
 
     pluginMetadata = JSON.parse(pluginMetadata);
@@ -36,7 +38,9 @@ define([
         // Call base class' constructor.
         PluginBase.call(this);
         this.pluginMetadata = pluginMetadata;
-        this.metaTypes = MetaTypes;
+        this.FILES = {
+            'script.bgs': 'script.bgs.ejs'
+        };
     };
 
     /**
@@ -84,45 +88,21 @@ define([
         // Default fails
         self.result.success = false;
 
-	// What did the user select for our configuration?
-	var currentConfig = self.getCurrentConfig();
-
-	self.runningOnClient = false;
-        if (typeof WebGMEGlobal !== 'undefined') {
-	    self.runningOnClient = true;
-	    callback(new Error('Cannot run ' + self.getName() + ' in the browser!'), self.result);
-	    return;
-        }
-	
-        self.updateMETA(self.metaTypes);
-
-	var path = require('path');
-
 	// the active node for this plugin is software -> project
 	var projectNode = self.activeNode;
 	self.projectName = self.core.getAttribute(projectNode, 'name');
-
-	// Setting up variables that will be used by various functions of this plugin
-	self.gen_dir = path.join(process.cwd(),
-				 'generated',
-				 self.project.projectId,
-				 self.branchName,
-				 self.projectName);
 
 	self.projectModel = {}; // will be filled out by loadProjectModel (and associated functions)
 	self.artifacts = {}; // will be filled out and used by various parts of this plugin
 
 	loader.logger = self.logger;
-	utils.logger = self.logger;
-      	loader.loadModel(self.core, projectNode, true)
+
+      	loader.loadModel(self.core, projectNode, false)
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
         	return self.generateArtifacts();
   	    })
-	    .then(function () {
-		return self.createZip();
-	    })
 	    .then(function () {
         	self.result.setSuccess(true);
         	callback(null, self.result);
@@ -142,16 +122,6 @@ define([
 	    self.notify('info', msg);
 	    return;
 	}
-	var path = require('path'),
-	    filendir = require('filendir'),
-	    prefix = 'src/';
-
-	var path = require('path');
-	var child_process = require('child_process');
-
-	// clear out any previous project files
-	child_process.execSync('rm -rf ' + utils.sanitizePath(path.join(self.gen_dir,'bin')));
-	child_process.execSync('rm -rf ' + utils.sanitizePath(path.join(self.gen_dir,'src')));
 
 	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
@@ -162,66 +132,32 @@ define([
             pluginVersion: self.getVersion()
         }, null, 2);
 
-	// render the doxygen template
-	var doxygenConfigName = 'doxygen_config',
-	    doxygenTemplate = TEMPLATES[self.FILES['doxygen_config']];
-	self.artifacts[doxygenConfigName] = ejs.render(doxygenTemplate, 
-						   {'projectName': self.projectName});
+	var scriptTemplate = TEMPLATES[self.FILES['script.bgs']];
+	self.artifacts['script.bgs'] = ejs.render(scriptTemplate, {
+	    'model': self.projectModel,
+	});
 
-	var software_folder = self.projectModel.Software_list[0];
-	if (software_folder && software_folder.Package_list) {
-	    software_folder.Package_list.map(function(pkgInfo) {
+	self.artifacts['constants.bgs'] = self.projectModel.constants;
+	self.artifacts['globals.bgs'] = self.projectModel.globals;
 
-		if (pkgInfo.Component_list) {
-		    pkgInfo.Component_list.map(function(compInfo) {
-			self.generateComponentFiles(prefix, pkgInfo, compInfo);
+	if (self.projectModel.Library_list) {
+	    self.projectModel.Library_list.map(function(library) {
+		var libFileName = library.name + '.bgs';
+		self.artifacts[libFileName] = library.code;
+		if (library.Event_list) {
+		    library.Event_list.map(function(event) {
+			self.artifacts[libFileName] += event.function;
 		    });
 		}
-
-		if (pkgInfo.Message_list) {
-		    pkgInfo.Message_list.map(function(msgInfo) {
-			var msgFileName = prefix + pkgInfo.name + '/msg/' + msgInfo.name + '.msg';
-			self.artifacts[msgFileName] = msgInfo.Definition;
-		    });
-		}
-		if (pkgInfo.Service_list) {
-		    pkgInfo.Service_list.map(function(srvInfo) {
-			var srvFileName = prefix + pkgInfo.name + '/srv/' + srvInfo.name + '.srv';
-			self.artifacts[srvFileName] = srvInfo.Definition;
-		    });
-		}
-
-		var	cmakeFileName = prefix + pkgInfo.name + '/CMakeLists.txt',
-		cmakeTemplate = TEMPLATES[self.FILES['cmakelists']];
-		self.artifacts[cmakeFileName] = ejs.render(cmakeTemplate, {
-		    'pkgInfo':pkgInfo, 
-		    'model': self.projectModel,
-                    'objects': self.projectObjects
-		});
-
-		var packageXMLFileName = prefix + pkgInfo.name + '/package.xml',
-		packageXMLTemplate = TEMPLATES[self.FILES['package_xml']];
-		self.artifacts[packageXMLFileName] = ejs.render(packageXMLTemplate, {
-		    'pkgInfo': pkgInfo,
-		    'model': self.projectModel,
-                    'objects': self.projectObjects
-		});
 	    });
 	}
 
 	var fileNames = Object.keys(self.artifacts);
 	var tasks = fileNames.map(function(fileName) {
-	    var deferred = Q.defer();
-	    var data = self.artifacts[fileName];
-	    filendir.writeFile(path.join(self.gen_dir, fileName), data, function(err) {
-		if (err) {
-		    deferred.reject(err);
-		}
-		else {
-		    deferred.resolve();
-		}
-	    });
-	    return deferred.promise;
+	    return self.blobClient.putFile(fileName, self.artifacts[fileName])
+		.then(function(hash) {
+		    self.result.addArtifact(hash);
+		});
 	});
 
 	return Q.all(tasks)
