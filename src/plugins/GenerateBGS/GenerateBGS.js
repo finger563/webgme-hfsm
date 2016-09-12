@@ -10,11 +10,17 @@
 define([
     'plugin/PluginConfig',
     'text!./metadata.json',
-    'plugin/PluginBase'
+    'plugin/PluginBase',
+    'plugin/GenerateBGS/GenerateBGS/Templates/Templates',
+    'hfsm/meta',
+    'hfsm/modelLoader',
 ], function (
     PluginConfig,
     pluginMetadata,
-    PluginBase) {
+    PluginBase,
+    TEMPLATES,
+    MetaTypes,
+    loader) {
     'use strict';
 
     pluginMetadata = JSON.parse(pluginMetadata);
@@ -30,6 +36,7 @@ define([
         // Call base class' constructor.
         PluginBase.call(this);
         this.pluginMetadata = pluginMetadata;
+        this.metaTypes = MetaTypes;
     };
 
     /**
@@ -42,6 +49,22 @@ define([
     // Prototypical inheritance from PluginBase.
     GenerateBGS.prototype = Object.create(PluginBase.prototype);
     GenerateBGS.prototype.constructor = GenerateBGS;
+
+    GenerateBGS.prototype.notify = function(level, msg) {
+	var self = this;
+	var prefix = self.projectId + '::' + self.projectName + '::' + level + '::';
+	var max_msg_len = 100;
+	if (level=='error')
+	    self.logger.error(msg);
+	else if (level=='debug')
+	    self.logger.debug(msg);
+	else if (level=='info')
+	    self.logger.info(msg);
+	else if (level=='warning')
+	    self.logger.warn(msg);
+	self.createMessage(self.activeNode, msg, level);
+	self.sendNotification(prefix+msg);
+    };
 
     /**
      * Main function for the plugin to execute. This will perform the execution.
@@ -58,11 +81,154 @@ define([
         var self = this,
             nodeObject;
 
-        // Using the coreAPI to make changes.
-        nodeObject = self.activeNode;
+        // Default fails
+        self.result.success = false;
 
-        self.result.setSuccess(true);
-        callback(null, self.result);
+	// What did the user select for our configuration?
+	var currentConfig = self.getCurrentConfig();
+
+	self.runningOnClient = false;
+        if (typeof WebGMEGlobal !== 'undefined') {
+	    self.runningOnClient = true;
+	    callback(new Error('Cannot run ' + self.getName() + ' in the browser!'), self.result);
+	    return;
+        }
+	
+        self.updateMETA(self.metaTypes);
+
+	var path = require('path');
+
+	// the active node for this plugin is software -> project
+	var projectNode = self.activeNode;
+	self.projectName = self.core.getAttribute(projectNode, 'name');
+
+	// Setting up variables that will be used by various functions of this plugin
+	self.gen_dir = path.join(process.cwd(),
+				 'generated',
+				 self.project.projectId,
+				 self.branchName,
+				 self.projectName);
+
+	self.projectModel = {}; // will be filled out by loadProjectModel (and associated functions)
+	self.artifacts = {}; // will be filled out and used by various parts of this plugin
+
+	loader.logger = self.logger;
+	utils.logger = self.logger;
+      	loader.loadModel(self.core, projectNode, true)
+  	    .then(function (projectModel) {
+		self.projectModel = projectModel.root;
+		self.projectObjects = projectModel.objects;
+        	return self.generateArtifacts();
+  	    })
+	    .then(function () {
+		return self.createZip();
+	    })
+	    .then(function () {
+        	self.result.setSuccess(true);
+        	callback(null, self.result);
+	    })
+	    .catch(function (err) {
+		self.notify('error', err);
+        	self.result.setSuccess(false);
+        	callback(err, self.result);
+	    })
+		.done();
+    };
+
+    GenerateBGS.prototype.generateArtifacts = function () {
+	var self = this;
+	if ( self.runningOnClient ) {
+	    var msg = 'Skipping code generation.'
+	    self.notify('info', msg);
+	    return;
+	}
+	var path = require('path'),
+	    filendir = require('filendir'),
+	    prefix = 'src/';
+
+	var path = require('path');
+	var child_process = require('child_process');
+
+	// clear out any previous project files
+	child_process.execSync('rm -rf ' + utils.sanitizePath(path.join(self.gen_dir,'bin')));
+	child_process.execSync('rm -rf ' + utils.sanitizePath(path.join(self.gen_dir,'src')));
+
+	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);
+        self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
+    	    projectID: self.project.projectId,
+            commitHash: self.commitHash,
+            branchName: self.branchName,
+            timeStamp: (new Date()).toISOString(),
+            pluginVersion: self.getVersion()
+        }, null, 2);
+
+	// render the doxygen template
+	var doxygenConfigName = 'doxygen_config',
+	    doxygenTemplate = TEMPLATES[self.FILES['doxygen_config']];
+	self.artifacts[doxygenConfigName] = ejs.render(doxygenTemplate, 
+						   {'projectName': self.projectName});
+
+	var software_folder = self.projectModel.Software_list[0];
+	if (software_folder && software_folder.Package_list) {
+	    software_folder.Package_list.map(function(pkgInfo) {
+
+		if (pkgInfo.Component_list) {
+		    pkgInfo.Component_list.map(function(compInfo) {
+			self.generateComponentFiles(prefix, pkgInfo, compInfo);
+		    });
+		}
+
+		if (pkgInfo.Message_list) {
+		    pkgInfo.Message_list.map(function(msgInfo) {
+			var msgFileName = prefix + pkgInfo.name + '/msg/' + msgInfo.name + '.msg';
+			self.artifacts[msgFileName] = msgInfo.Definition;
+		    });
+		}
+		if (pkgInfo.Service_list) {
+		    pkgInfo.Service_list.map(function(srvInfo) {
+			var srvFileName = prefix + pkgInfo.name + '/srv/' + srvInfo.name + '.srv';
+			self.artifacts[srvFileName] = srvInfo.Definition;
+		    });
+		}
+
+		var	cmakeFileName = prefix + pkgInfo.name + '/CMakeLists.txt',
+		cmakeTemplate = TEMPLATES[self.FILES['cmakelists']];
+		self.artifacts[cmakeFileName] = ejs.render(cmakeTemplate, {
+		    'pkgInfo':pkgInfo, 
+		    'model': self.projectModel,
+                    'objects': self.projectObjects
+		});
+
+		var packageXMLFileName = prefix + pkgInfo.name + '/package.xml',
+		packageXMLTemplate = TEMPLATES[self.FILES['package_xml']];
+		self.artifacts[packageXMLFileName] = ejs.render(packageXMLTemplate, {
+		    'pkgInfo': pkgInfo,
+		    'model': self.projectModel,
+                    'objects': self.projectObjects
+		});
+	    });
+	}
+
+	var fileNames = Object.keys(self.artifacts);
+	var tasks = fileNames.map(function(fileName) {
+	    var deferred = Q.defer();
+	    var data = self.artifacts[fileName];
+	    filendir.writeFile(path.join(self.gen_dir, fileName), data, function(err) {
+		if (err) {
+		    deferred.reject(err);
+		}
+		else {
+		    deferred.resolve();
+		}
+	    });
+	    return deferred.promise;
+	});
+
+	return Q.all(tasks)
+	    .then(function() {
+		var msg = 'Generated artifacts.';
+		self.notify('info', msg);
+	    });
     };
 
     return GenerateBGS;

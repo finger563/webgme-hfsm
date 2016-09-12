@@ -1,0 +1,185 @@
+/** @file    <%- compInfo.name %>.hpp 
+ *  @author  <%- compInfo.Authors %>
+ *  @date    <%= moment().format() %>
+ *  @brief   This file declares the <%- compInfo.name %> class; <%- compInfo['Brief Description'] %>
+ */
+
+#ifndef CLIENT_HPP
+#define CLIENT_HPP
+#include "node/Component.hpp"
+
+/**
+ * Component Message and Service Headers
+ */
+<%
+if (compInfo.Types.length) {
+  compInfo.Types.map(function(type) {
+-%>
+#include "<%- objects[type.parentPath].name %>/<%- type.name %>.h"
+<%
+    });
+ }
+-%>
+
+#ifdef USE_ROSMOD
+  #include "rosmod/rosmod_ros.h"
+#else
+  #ifdef USE_ROSCPP
+    #include "ros/ros.h"
+  #endif
+#endif
+
+/**
+ * Forward declarations
+ */
+//::::<%- compInfo.path %>::::Forwards::::
+<%- compInfo.Forwards %>
+
+/**
+ * @brief <%- compInfo.name %> class
+ */
+class <%- compInfo.name %> : public Component
+{
+public:
+  /**
+   * @brief <%- compInfo.name %> Constructor.
+   * @param _config Component configuration parsed from deployment JSON
+   */
+  <%- compInfo.name %>(Json::Value& _config)
+  : Component(_config) {}
+
+  /**
+   * @brief <%- compInfo.name %> Initializer
+   * This operation is executed immediately after startup.
+   * @param[in] event a oneshot timer event
+   * @see startUp()
+   */
+  void init_timer_operation(const NAMESPACE::TimerEvent& event);
+
+<%
+if (compInfo.Timer_list) {
+  compInfo.Timer_list.map(function(tmr) {
+-%>
+  /**
+   * @brief <%- tmr.name %>_operation; <%- tmr['Brief Description'] %>
+   *
+   * This operation is executed every time the  
+   * <%- tmr.name %> operation request is serviced 
+   * @param[in] event a timer event
+   *
+   * <%- tmr['Detailed Description'] %>
+   */
+  void <%- tmr.name %>_operation(const NAMESPACE::TimerEvent& event);
+<%
+    });
+ }
+-%>
+
+<%
+if (compInfo.Subscriber_list) {
+  compInfo.Subscriber_list.map(function(sub) {
+-%>
+  /**
+   * @brief <%- sub.name %>_operation; <%- sub['Brief Description'] %>
+   *
+   * This operation is executed every time the  
+   * <%- sub.name %> operation request is serviced 
+   * @param[in] received_data message received by the component subscriber
+   *
+   * <%- sub['Detailed Description'] %>
+   */
+  void <%- sub.name %>_operation(const <%- objects[sub.Message.parentPath].name %>::<%- sub.Message.name %>::ConstPtr& received_data);
+<%
+    });
+ }
+-%>
+
+<%
+if (compInfo.Server_list) {
+  compInfo.Server_list.map(function(srv) {
+-%>
+  /**
+   * @brief <%- srv.name %>_operation; <%- srv['Brief Description'] %>
+   *
+   * This operation is executed every time the  
+   * <%- srv.name %> operation request is serviced 
+   * @param[in] req request received from the client
+   * @param[out] res response sent back to the client
+   *
+   * <%- srv['Detailed Description'] %>
+   */
+  bool <%- srv.name %>_operation(const <%- objects[srv.Service.parentPath].name %>::<%- srv.Service.name %>::Request &req, <%- objects[srv.Service.parentPath].name %>::<%- srv.Service.name %>::Response &res);
+<%
+    });
+ }
+-%>
+
+ /**
+   * @brief Component startup function
+   *
+   * This function configures all the component ports and timers
+   */ 
+  void startUp();
+
+ /**
+   * @brief <%- compInfo.name %> Destructor
+   */ 
+  ~<%- compInfo.name %>();
+
+private:
+
+<%
+if (compInfo.Timer_list) {
+  compInfo.Timer_list.map(function(tmr) {
+-%>
+  NAMESPACE::Timer <%- tmr.name %>;  /*!< <%- tmr.name %> Component Timer */
+<%
+    });
+ }
+-%>
+<%
+if (compInfo.Server_list) {
+  compInfo.Server_list.map(function(srv) {
+-%>
+  NAMESPACE::ServiceServer <%- srv.name %>;  /*!< <%- srv.name %> Component Server */
+<%
+    });
+ }
+-%>
+<%
+if (compInfo.Client_list) {
+  compInfo.Client_list.map(function(clt) {
+ -%>
+  NAMESPACE::ServiceClient <%- clt.name %>;  /*!< <%- clt.name %> Component Client */
+<%
+    });
+ }
+-%>
+<%
+if (compInfo.Publisher_list) {
+  compInfo.Publisher_list.map(function(pub) {
+ -%>
+  NAMESPACE::Publisher <%- pub.name %>;  /*!< <%- pub.name %> Component Publisher */
+<%
+    });
+ }
+-%>
+<%
+if (compInfo.Subscriber_list) {
+  compInfo.Subscriber_list.map(function(sub) {
+ -%>
+  NAMESPACE::Subscriber <%- sub.name %>;  /*!< <%- sub.name %> Component Subscriber */
+<%
+    });
+ }
+-%>
+
+  /** 
+   * User-defined private variables
+   */
+  //::::<%- compInfo.path %>::::Members::::
+  <%- compInfo.Members %>
+};
+
+#endif
+
