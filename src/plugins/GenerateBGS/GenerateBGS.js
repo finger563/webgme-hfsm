@@ -115,13 +115,36 @@ define([
 		.done();
     };
 
+    GenerateBGS.prototype.generateStateFunctions = function () {
+	/*
+	  need to:
+	    * get all guards on all transitions out of this state and its sub states
+	    * store the timer periodicity for this state and its sub states
+
+	  Looks like: 
+	  
+	    changeState = 0
+	    if (state = "state 1")
+	      if ( guard1 )
+	        state = "next state"
+		changeState = 1
+	      end if
+	      if ( guard2 )
+	        state = "next state"
+		changeState = 1
+	      end if
+	      if ( !changeState )
+	        stateFunc()
+		// sub states here
+	      end if
+	    end if 
+	    if (state = "staet 2")
+	    end if 
+	 */
+    };
+
     GenerateBGS.prototype.generateArtifacts = function () {
 	var self = this;
-	if ( self.runningOnClient ) {
-	    var msg = 'Skipping code generation.'
-	    self.notify('info', msg);
-	    return;
-	}
 
 	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({

@@ -1,6 +1,6 @@
 import "constants.bgs"
 import "globals.bgs"
-
+# Import user libraries here (if any)
 <%
 if (model.Library_list) {
   model.Library_list.map(function(library) {
@@ -14,19 +14,24 @@ import "<%- library.name %>.bgs"
 # The timer handles all the state function code and state transition
 #  code
 event hardware_soft_timer(handle)
-
+  # Generated code to perform state transitions
+  # Generated code to execute state functions
 end
 
 # The interrupt routine handles all conversion from input interrupts
 #  to state variables for state transitions
 event hardware_io_port_status(timestamp, port, irq, state_io)
+  # user code to handle the interrupts and convert them to state
+  #  variables
+<%- model.hardware_io_port_status %>
 
+  # Generated code to perform needed state transitions
 end
-
 <%
 if (model.Event_list) {
   model.Event_list.map(function(event) {
 -%>
+
 <%- event.function %>
 <%
   });
