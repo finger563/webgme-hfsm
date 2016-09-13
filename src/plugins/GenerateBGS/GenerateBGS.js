@@ -228,12 +228,12 @@ define([
 		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
 	    var init = state.Initial_list[0];
 	    var tPaths = Object.keys(init.transitions);
-	    if (tPaths.length > 1) {
-		throw new String("State " + state.name + ", " +state.path+" has more than one transition coming out of init!");
-	    }
-	    else {
+	    if (tPaths.length == 1) {
 		var dstPath = init.transitions[tPaths[0]].nextState;
 		initState = self.getStartState(self.projectObjects[dstPath]);
+	    }
+	    else {
+		throw new String("State " + state.name + ", " +state.path+" must have exactly one transition coming out of init!");
 	    }
 	}
 	else if (state.State_list) {
@@ -244,6 +244,18 @@ define([
 
     GenerateBGS.prototype.generateArtifacts = function () {
 	var self = this;
+
+	if (self.projectModel.Initial_list) {
+	    var init = self.projectModel.Initial_list[0];
+	    var tPaths = Object.keys(init.transitions);
+	    if (tPaths.length == 1) {
+		var dstPath = init.transitions[tPaths[0]].nextState;
+		self.projectModel.initState = self.projectObjects[dstPath];
+	    }
+	}
+	else {
+	    self.logger.error("Top-level FSM has no initial state!");
+	}
 
 	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({

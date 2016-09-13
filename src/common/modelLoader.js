@@ -156,6 +156,9 @@ define(['q'], function(Q) {
 		    }
 		}
 	    });
+	    if (self.model.root.Library_list) {
+		self.model.root.Library_list.sort(function(a,b) {return a.order-b.order});
+	    }
 	},
     }
 });

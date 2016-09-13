@@ -11,11 +11,30 @@ import "<%- library.name %>.bgs"
 }
 -%>
 
+dim changeState
+dim state(64)
+
+# The system_boot handler deals with all initialization needed.
+event system_boot(major, minor, patch, build, ll_version, protocol_version, hw)
+  # user initialization code:
+  #
+  # START USER CODE
+  #
+<%- model.system_boot %>
+  #
+  # END USER CODE
+  #
+  # generated initialization code for the state machine:
+  changeState = 0
+  # STATE::<%- model.initState.name %>
+  state(0:<%- model.initState.path.length %>) = "<%- model.initState.path %>"
+end
+
 # The timer handles all the state function code and state transition
 #  code
 event hardware_soft_timer(handle)
   changeState = 0
-  # Generated code to execute state transitions and state functions
+  # Generated code to execute state transitions and state functions:
 <%
 if (model.State_list) {
   model.State_list.map(function(state) {
@@ -31,11 +50,17 @@ end
 #  to state variables for state transitions
 event hardware_io_port_status(timestamp, port, irq, state_io)
   # user code to handle the interrupts and convert them to state
-  #  variables
+  #  variables:
+  #
+  # START USER CODE
+  #
 <%- model.hardware_io_port_status %>
+  #
+  # END USER CODE
+  #
 
   changeState = 0
-  # Generated code to perform needed state transitions
+  # Generated code to perform needed state transitions:
 <%
 if (model.State_list) {
   model.State_list.map(function(state) {
