@@ -78,7 +78,7 @@ define(['q'], function(Q) {
 		    self.resolvePointers(self.model.objects);
                     self.model.root = self.model.objects[self.model.root.path];
 		    if (doProcessModel)
-			self.processModel(self.model.root);
+			self.processModel(self.model);
 		    return self.model;
 		});
 	},
@@ -131,7 +131,31 @@ define(['q'], function(Q) {
 	    var self = this;
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
-	    // handle Component Required Types (convenience)
+	    // get state outgoing transition guards
+	    var objPaths = Object.keys(self.model.objects);
+	    objPaths.map(function(objPath) {
+		var obj = self.model.objects[objPath];
+		if (obj.type == 'Transition') {
+		    var src = model.objects[obj.pointers['src']],
+			dst = model.objects[obj.pointers['dst']];
+		    if ( src && dst ) {
+			// valid transition with source and destination pointers in the tree
+			// - get the source pointer and add to its dictionary
+			if (!src.transitions) {
+			    src.transitions = {}
+			}
+			src.transitions[obj.path] = {
+			    'guard' : obj.event,
+			    'nextState' : dst.path
+			};
+		    }
+		}
+		else if (obj.type == 'State') {
+		    if (!obj.transitions) {
+			obj.transitions = {};
+		    }
+		}
+	    });
 	},
     }
 });

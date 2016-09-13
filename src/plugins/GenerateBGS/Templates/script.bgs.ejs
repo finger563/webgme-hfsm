@@ -16,6 +16,16 @@ import "<%- library.name %>.bgs"
 event hardware_soft_timer(handle)
   # Generated code to perform state transitions
   # Generated code to execute state functions
+  changeState = 0
+<%
+if (model.State_list) {
+  model.State_list.map(function(state) {
+-%>
+<%- state.stateFunc %>
+<%
+  });
+}
+-%>
 end
 
 # The interrupt routine handles all conversion from input interrupts

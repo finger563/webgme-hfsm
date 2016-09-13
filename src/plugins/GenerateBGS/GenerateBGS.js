@@ -97,12 +97,15 @@ define([
 
 	loader.logger = self.logger;
 
-      	loader.loadModel(self.core, projectNode, false)
+      	loader.loadModel(self.core, projectNode, true)
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
-        	return self.generateArtifacts();
+        	return self.generateStateFunctions();
   	    })
+	    .then(function () {
+		return self.generateArtifacts();
+	    })
 	    .then(function () {
         	self.result.setSuccess(true);
         	callback(null, self.result);
@@ -115,7 +118,8 @@ define([
 		.done();
     };
 
-    GenerateBGS.prototype.generateStateFunctions = function () {
+    GenerateBGS.prototype.getStateFunction = function (state, prefix) {
+	var self = this;
 	/*
 	  need to:
 	    * get all guards on all transitions out of this state and its sub states
@@ -124,13 +128,13 @@ define([
 	  Looks like: 
 	  
 	    changeState = 0
-	    if (state = "state 1")
+	    if (state = "state 1 path")
 	      if ( guard1 )
-	        state = "next state"
+	        state = "next state path"
 		changeState = 1
 	      end if
 	      if ( guard2 )
-	        state = "next state"
+	        state = "next state path"
 		changeState = 1
 	      end if
 	      if ( !changeState )
@@ -138,9 +142,54 @@ define([
 		// sub states here
 	      end if
 	    end if 
-	    if (state = "staet 2")
+	    if (state = "state 2 path")
 	    end if 
-	 */
+	*/
+	if (prefix === undefined) {
+	    prefix = '';
+	}
+	// use state.transitions object which was built in loader.processModel()
+	var tPaths = Object.keys(state.transitions);
+	var stateFunc = '';
+	stateFunc += `${prefix}# ${state.name}\n`;
+	stateFunc += `${prefix}if state(0:${state.path.length}) = "${state.path}" and changeState = 0 then\n`;
+	stateFunc += `${prefix}  # check transitions\n`;
+	tPaths.map(function(tPath) {
+	    var guard = state.transitions[tPath].guard;
+	    var nextState = state.transitions[tPath].nextState;
+	    var nextStateName = self.projectObjects[nextState].name;
+	    stateFunc += `${prefix}  if ( ${guard} ) then\n`;
+	    stateFunc += `${prefix}    changeState = 1\n`;
+	    stateFunc += `${prefix}    # next state = ${nextStateName}\n`;
+	    stateFunc += `${prefix}    state(0:${nextState.length}) = "${nextState}"\n`;
+	    stateFunc += `${prefix}  end if\n`;
+	});
+	stateFunc += `${prefix}  if !changeState then\n`;
+	stateFunc += `${prefix}    # execute state func\n`;
+	var funcLines = state.function.split('\n');
+	funcLines.map(function(line) {
+	    stateFunc += `${prefix}    ${line}\n`;
+	});
+	stateFunc += `${prefix}    # execute sub-state funcs\n`;
+	if ( state.State_list ) {
+	    state.State_list.map(function(substate) {
+		var subStateFunc = self.getStateFunction(substate, prefix + '    ');
+		stateFunc += subStateFunc;
+	    });
+	}
+	stateFunc += `${prefix}  end if\n`;
+	stateFunc += `${prefix}end if\n`;
+	state.stateFunc = stateFunc;
+	return stateFunc;
+    };
+
+    GenerateBGS.prototype.generateStateFunctions = function () {
+	var self = this;
+	if (self.projectModel.State_list) {
+	    self.projectModel.State_list.map(function(state) {
+		self.getStateFunction(state, '  ');
+	    });
+	}
     };
 
     GenerateBGS.prototype.generateArtifacts = function () {
