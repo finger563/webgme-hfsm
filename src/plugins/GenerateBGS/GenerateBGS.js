@@ -210,7 +210,7 @@ define([
 	tPaths.map(function(tPath) {
 	    var guard = state.transitions[tPath].guard;
 	    var nextState = self.projectObjects[state.transitions[tPath].nextState];
-	    self.notify('info', state.name);
+	    //self.notify('info', state.name);
 	    nextState = self.getStartState(nextState);
 	    var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
 	    irqFunc += `${prefix}  if ( ${guard} ) then\n`;
