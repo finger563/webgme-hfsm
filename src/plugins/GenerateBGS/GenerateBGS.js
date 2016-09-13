@@ -155,8 +155,8 @@ define([
 	// use state.transitions object which was built in loader.processModel()
 	var tPaths = Object.keys(state.transitions);
 	var stateFunc = '';
-	stateFunc += `${prefix}# ${state.name}\n`;
-	stateFunc += `${prefix}if state(0:${state.path.length}) = "${state.path}" and changeState = 0 then\n`;
+	stateFunc += `${prefix}# STATE::${state.name}\n`;
+	stateFunc += `${prefix}if state(0:${state.path.length}) = "${state.path}" && !changeState then\n`;
 	stateFunc += `${prefix}  # check transitions\n`;
 	tPaths.map(function(tPath) {
 	    var guard = state.transitions[tPath].guard;
