@@ -14,14 +14,13 @@ import "<%- library.name %>.bgs"
 # The timer handles all the state function code and state transition
 #  code
 event hardware_soft_timer(handle)
-  # Generated code to perform state transitions
-  # Generated code to execute state functions
   changeState = 0
+  # Generated code to execute state transitions and state functions
 <%
 if (model.State_list) {
   model.State_list.map(function(state) {
 -%>
-<%- state.stateFunc %>
+<%- state.timerFunc %>
 <%
   });
 }
@@ -35,7 +34,17 @@ event hardware_io_port_status(timestamp, port, irq, state_io)
   #  variables
 <%- model.hardware_io_port_status %>
 
+  changeState = 0
   # Generated code to perform needed state transitions
+<%
+if (model.State_list) {
+  model.State_list.map(function(state) {
+-%>
+<%- state.irqFunc %>
+<%
+  });
+}
+-%>
 end
 <%
 if (model.Event_list) {

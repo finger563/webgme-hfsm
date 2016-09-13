@@ -121,13 +121,15 @@ define([
     /* 
        TODO:
         * Clear / Start timers when transitioning
-	* Get actual next state (look through subtree to find init
 	* Handle initialization routines
+	* Add transition code / timer code to IRQ
+	* Figure out how to properly handle END states
     */
 
     GenerateBGS.prototype.getStartState = function(state) {
 	var self = this;
 	var initState = state;
+	//self.notify('info', '\t->'+state.name);
 	if (state.State_list && state.Initial_list) {
 	    if (state.Initial_list.length > 1)
 		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
@@ -147,51 +149,97 @@ define([
 	return initState;
     };
 
-    GenerateBGS.prototype.getStateFunction = function (state, prefix) {
+    GenerateBGS.prototype.getStateTimer = function(state, prefix) {
 	var self = this;
 	if (prefix === undefined) {
 	    prefix = '';
 	}
 	// use state.transitions object which was built in loader.processModel()
 	var tPaths = Object.keys(state.transitions);
-	var stateFunc = '';
-	stateFunc += `${prefix}# STATE::${state.name}\n`;
-	stateFunc += `${prefix}if state(0:${state.path.length}) = "${state.path}" && !changeState then\n`;
-	stateFunc += `${prefix}  # check transitions\n`;
+	var timerFunc = '';
+	timerFunc += `${prefix}# STATE::${state.name}\n`;
+	timerFunc += `${prefix}if !changeState && state(0:${state.path.length}) = "${state.path}" then\n`;
+	timerFunc += `${prefix}  # STATE::${state.name}::TRANSITIONS\n`;
+	var tPaths = Object.keys(state.transitions);
 	tPaths.map(function(tPath) {
 	    var guard = state.transitions[tPath].guard;
 	    var nextState = self.projectObjects[state.transitions[tPath].nextState];
+	    //self.notify('info', state.name);
 	    nextState = self.getStartState(nextState);
-	    stateFunc += `${prefix}  if ( ${guard} ) then\n`;
-	    stateFunc += `${prefix}    changeState = 1\n`;
-	    stateFunc += `${prefix}    # next state = ${nextState.name}\n`;
-	    stateFunc += `${prefix}    state(0:${nextState.path.length}) = "${nextState.path}"\n`;
-	    stateFunc += `${prefix}  end if\n`;
+	    var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
+	    timerFunc += `${prefix}  if ( ${guard} ) then\n`;
+	    timerFunc += `${prefix}    changeState = 1\n`;
+	    timerFunc += `${prefix}    # TRANSITION::${state.name}->${nextState.name}\n`;
+	    timerFunc += `${prefix}    state(0:${nextState.path.length}) = "${nextState.path}"\n`;
+	    timerFunc += `${prefix}    # stop the current state timer (to change period)\n`;
+	    timerFunc += `${prefix}    call hardware_set_soft_timer( 0, state_timer_handle, 0)\n`;
+	    timerFunc += `${prefix}    # start state timer (@ next states period)\n`;
+	    timerFunc += `${prefix}    call hardware_set_soft_timer( ${period}, state_timer_handle, 0)\n`;
+	    timerFunc += `${prefix}  end if\n`;
 	});
-	stateFunc += `${prefix}  if !changeState then\n`;
-	stateFunc += `${prefix}    # execute state func\n`;
-	var funcLines = state.function.split('\n');
-	funcLines.map(function(line) {
-	    stateFunc += `${prefix}    ${line}\n`;
-	});
-	if ( state.State_list ) {
-	    stateFunc += `${prefix}    # execute sub-state funcs\n`;
+	if (state.State_list) {
 	    state.State_list.map(function(substate) {
-		var subStateFunc = self.getStateFunction(substate, prefix + '    ');
-		stateFunc += subStateFunc;
+		var subStateFunc = self.getStateTimer(substate, prefix + '  ');
+		timerFunc += subStateFunc;
 	    });
 	}
-	stateFunc += `${prefix}  end if\n`;
-	stateFunc += `${prefix}end if\n`;
-	state.stateFunc = stateFunc;
-	return stateFunc;
+	timerFunc += `${prefix}  # STATE::${state.name}::FUNCTION\n`;
+	timerFunc += `${prefix}  if !changeState then\n`;
+	var funcLines = state.function.split('\n');
+	funcLines.map(function(line) {
+	    timerFunc += `${prefix}    ${line}\n`;
+	});
+	timerFunc += `${prefix}  end if\n`;
+	timerFunc += `${prefix}end if\n`;
+	state.timerFunc = timerFunc;
+	return timerFunc;
+    };
+
+    GenerateBGS.prototype.getStateIRQ = function(state, prefix) {
+	var self = this;
+	if (prefix === undefined) {
+	    prefix = '';
+	}
+	// use state.transitions object which was built in loader.processModel()
+	var tPaths = Object.keys(state.transitions);
+	var irqFunc = '';
+	irqFunc += `${prefix}# STATE::${state.name}\n`;
+	irqFunc += `${prefix}if !changeState && state(0:${state.path.length}) = "${state.path}" then\n`;
+	irqFunc += `${prefix}  # STATE::${state.name}::TRANSITIONS\n`;
+	var tPaths = Object.keys(state.transitions);
+	tPaths.map(function(tPath) {
+	    var guard = state.transitions[tPath].guard;
+	    var nextState = self.projectObjects[state.transitions[tPath].nextState];
+	    self.notify('info', state.name);
+	    nextState = self.getStartState(nextState);
+	    var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
+	    irqFunc += `${prefix}  if ( ${guard} ) then\n`;
+	    irqFunc += `${prefix}    changeState = 1\n`;
+	    irqFunc += `${prefix}    # next state = ${nextState.name}\n`;
+	    irqFunc += `${prefix}    state(0:${nextState.path.length}) = "${nextState.path}"\n`;
+	    irqFunc += `${prefix}    # stop the current state timer (to change period)\n`;
+	    irqFunc += `${prefix}    call hardware_set_soft_timer( 0, state_timer_handle, 0)\n`;
+	    irqFunc += `${prefix}    # start state timer (@ next states period)\n`;
+	    irqFunc += `${prefix}    call hardware_set_soft_timer( ${period}, state_timer_handle, 0)\n`;
+	    irqFunc += `${prefix}  end if\n`;
+	});
+	if (state.State_list) {
+	    state.State_list.map(function(substate) {
+		var subStateFunc = self.getStateIRQ(substate, prefix + '  ');
+		irqFunc += subStateFunc;
+	    });
+	}
+	irqFunc += `${prefix}end if\n`;
+	state.irqFunc = irqFunc;
+	return irqFunc;
     };
 
     GenerateBGS.prototype.generateStateFunctions = function () {
 	var self = this;
 	if (self.projectModel.State_list) {
 	    self.projectModel.State_list.map(function(state) {
-		self.getStateFunction(state, '  ');
+		self.getStateTimer(state, '  ');
+		self.getStateIRQ(state, '  ');
 	    });
 	}
     };
