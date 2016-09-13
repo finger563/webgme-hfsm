@@ -118,15 +118,16 @@ define([
 		.done();
     };
 
+    /* 
+       TODO:
+        * Clear / Start timers when transitioning
+	* Get actual next state (look through subtree to find init
+	* Handle initialization routines
+    */
+
     GenerateBGS.prototype.getStateFunction = function (state, prefix) {
 	var self = this;
 	/*
-	  need to:
-	    * get all guards on all transitions out of this state and its sub states
-	    * store the timer periodicity for this state and its sub states
-
-	  Looks like: 
-	  
 	    changeState = 0
 	    if (state = "state 1 path")
 	      if ( guard1 )
