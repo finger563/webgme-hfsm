@@ -15,6 +15,13 @@ const state_timer_handle = 0
 
 dim changeState
 dim state(64)
+<%
+states.map(function(state) {
+-%>
+dim <%- state.stateName %>(<%- state.path.length %>)
+<%
+});
+-%>
 
 # The system_boot handler deals with all initialization needed.
 event system_boot(major, minor, patch, build, ll_version, protocol_version, hw)
@@ -30,6 +37,13 @@ event system_boot(major, minor, patch, build, ll_version, protocol_version, hw)
   changeState = 0
   # STATE::<%- model.initState.name %>
   state(0:<%- model.initState.path.length %>) = "<%- model.initState.path %>"
+<%
+states.map(function(state) {
+-%>
+  <%- state.stateName %>(0:<%- state.path.length %>) = "<%- state.path %>"
+<%
+});
+-%>
 end
 
 # The timer handles all the state function code and state transition

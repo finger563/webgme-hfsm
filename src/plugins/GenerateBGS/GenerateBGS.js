@@ -143,7 +143,7 @@ define([
 	var tPaths = Object.keys(state.transitions);
 	var timerFunc = '';
 	timerFunc += `${prefix}# STATE::${state.name}\n`;
-	timerFunc += `${prefix}if !changeState && state(0:${state.path.length}) = "${state.path}" then\n`;
+	timerFunc += `${prefix}if changeState = 0 && memcmp(state(0), ${state.stateName}(0), ${state.path.length}) then\n`;
 	timerFunc += `${prefix}  # STATE::${state.name}::TRANSITIONS\n`;
 	var tPaths = Object.keys(state.transitions);
 	tPaths.map(function(tPath) {
@@ -174,7 +174,7 @@ define([
 	    });
 	}
 	timerFunc += `${prefix}  # STATE::${state.name}::FUNCTION\n`;
-	timerFunc += `${prefix}  if !changeState then\n`;
+	timerFunc += `${prefix}  if changeState = 0 then\n`;
 	var funcLines = state.function.split('\n');
 	funcLines.map(function(line) {
 	    timerFunc += `${prefix}    ${line}\n`;
@@ -194,7 +194,7 @@ define([
 	var tPaths = Object.keys(state.transitions);
 	var irqFunc = '';
 	irqFunc += `${prefix}# STATE::${state.name}\n`;
-	irqFunc += `${prefix}if !changeState && state(0:${state.path.length}) = "${state.path}" then\n`;
+	irqFunc += `${prefix}if changeState = 0 && memcmp(state(0), ${state.stateName}(0), ${state.path.length}) then\n`;
 	irqFunc += `${prefix}  # STATE::${state.name}::TRANSITIONS\n`;
 	var tPaths = Object.keys(state.transitions);
 	tPaths.map(function(tPath) {
@@ -276,9 +276,18 @@ define([
             pluginVersion: self.getVersion()
         }, null, 2);
 
+	var states = []
+	for (var objPath in self.projectObjects) {
+	    var obj = self.projectObjects[objPath];
+	    if (obj.type == 'State') {
+		states.push(obj);
+	    }
+	}
+
 	var scriptTemplate = TEMPLATES[self.FILES['script.bgs']];
 	self.artifacts['script.bgs'] = ejs.render(scriptTemplate, {
 	    'model': self.projectModel,
+	    'states': states
 	});
 
 	self.artifacts['constants.bgs'] = self.projectModel.constants;
@@ -290,7 +299,7 @@ define([
 		self.artifacts[libFileName] = library.code;
 		if (library.Event_list) {
 		    library.Event_list.map(function(event) {
-			self.artifacts[libFileName] += event.function;
+			self.artifacts[libFileName] += '\n'+event.function;
 		    });
 		}
 	    });

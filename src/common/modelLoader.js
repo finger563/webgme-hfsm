@@ -152,6 +152,13 @@ define(['q'], function(Q) {
 		    }
 		}
 		else if (obj.type == 'State') {
+		    var stateName = obj.name.replace(' ','_');
+		    var parentObj = model.objects[obj.parentPath];
+		    while (parentObj && parentObj.type == 'State') {
+			stateName = parentObj.name.replace(' ','_') + '_'+stateName;
+			parentObj = model.objects[parentObj.parentPath];
+		    }
+		    obj.stateName = 'state_'+stateName;
 		    if (!obj.transitions) {
 			obj.transitions = {};
 		    }
