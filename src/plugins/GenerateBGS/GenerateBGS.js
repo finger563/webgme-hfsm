@@ -125,27 +125,30 @@ define([
 	* Handle initialization routines
     */
 
+    GenerateBGS.prototype.getStartState = function(state) {
+	var self = this;
+	var initState = state;
+	if (state.State_list && state.Initial_list) {
+	    if (state.Initial_list.length > 1)
+		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
+	    var init = state.Initial_list[0];
+	    var tPaths = Object.keys(init.transitions);
+	    if (tPaths.length > 1) {
+		throw new String("State " + state.name + ", " +state.path+" has more than one transition coming out of init!");
+	    }
+	    else {
+		var dstPath = init.transitions[tPaths[0]].nextState;
+		initState = self.getStartState(self.projectObjects[dstPath]);
+	    }
+	}
+	else if (state.State_list) {
+	    throw new String("State " + state.name + ", " + state.path+" has no init state!");
+	}
+	return initState;
+    };
+
     GenerateBGS.prototype.getStateFunction = function (state, prefix) {
 	var self = this;
-	/*
-	    changeState = 0
-	    if (state = "state 1 path")
-	      if ( guard1 )
-	        state = "next state path"
-		changeState = 1
-	      end if
-	      if ( guard2 )
-	        state = "next state path"
-		changeState = 1
-	      end if
-	      if ( !changeState )
-	        stateFunc()
-		// sub states here
-	      end if
-	    end if 
-	    if (state = "state 2 path")
-	    end if 
-	*/
 	if (prefix === undefined) {
 	    prefix = '';
 	}
@@ -157,12 +160,12 @@ define([
 	stateFunc += `${prefix}  # check transitions\n`;
 	tPaths.map(function(tPath) {
 	    var guard = state.transitions[tPath].guard;
-	    var nextState = state.transitions[tPath].nextState;
-	    var nextStateName = self.projectObjects[nextState].name;
+	    var nextState = self.projectObjects[state.transitions[tPath].nextState];
+	    nextState = self.getStartState(nextState);
 	    stateFunc += `${prefix}  if ( ${guard} ) then\n`;
 	    stateFunc += `${prefix}    changeState = 1\n`;
-	    stateFunc += `${prefix}    # next state = ${nextStateName}\n`;
-	    stateFunc += `${prefix}    state(0:${nextState.length}) = "${nextState}"\n`;
+	    stateFunc += `${prefix}    # next state = ${nextState.name}\n`;
+	    stateFunc += `${prefix}    state(0:${nextState.path.length}) = "${nextState.path}"\n`;
 	    stateFunc += `${prefix}  end if\n`;
 	});
 	stateFunc += `${prefix}  if !changeState then\n`;
@@ -171,8 +174,8 @@ define([
 	funcLines.map(function(line) {
 	    stateFunc += `${prefix}    ${line}\n`;
 	});
-	stateFunc += `${prefix}    # execute sub-state funcs\n`;
 	if ( state.State_list ) {
+	    stateFunc += `${prefix}    # execute sub-state funcs\n`;
 	    state.State_list.map(function(substate) {
 		var subStateFunc = self.getStateFunction(substate, prefix + '    ');
 		stateFunc += subStateFunc;
