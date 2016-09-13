@@ -146,6 +146,7 @@ define(['q'], function(Q) {
 			}
 			src.transitions[obj.path] = {
 			    'guard' : obj.event,
+			    'function' : obj.function,
 			    'nextState' : dst.path
 			};
 		    }

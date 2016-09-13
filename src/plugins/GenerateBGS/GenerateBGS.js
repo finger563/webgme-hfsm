@@ -160,6 +160,11 @@ define([
 	    timerFunc += `${prefix}    call hardware_set_soft_timer( 0, state_timer_handle, 0)\n`;
 	    timerFunc += `${prefix}    # start state timer (@ next states period)\n`;
 	    timerFunc += `${prefix}    call hardware_set_soft_timer( ${period}, state_timer_handle, 0)\n`;
+	    timerFunc += `${prefix}    # execute the transition function\n`;
+	    var tLines = state.transitions[tPath].function.split('\n');
+	    tLines.map(function(line) {
+		timerFunc += `${prefix}    ${line}\n`;
+	    });
 	    timerFunc += `${prefix}  end if\n`;
 	});
 	if (state.State_list) {
@@ -200,12 +205,17 @@ define([
 	    var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
 	    irqFunc += `${prefix}  if ( ${guard} ) then\n`;
 	    irqFunc += `${prefix}    changeState = 1\n`;
-	    irqFunc += `${prefix}    # next state = ${nextState.name}\n`;
+	    irqFunc += `${prefix}    # TRANSITION::${state.name}->${nextState.name}\n`;
 	    irqFunc += `${prefix}    state(0:${nextState.path.length}) = "${nextState.path}"\n`;
 	    irqFunc += `${prefix}    # stop the current state timer (to change period)\n`;
 	    irqFunc += `${prefix}    call hardware_set_soft_timer( 0, state_timer_handle, 0)\n`;
 	    irqFunc += `${prefix}    # start state timer (@ next states period)\n`;
 	    irqFunc += `${prefix}    call hardware_set_soft_timer( ${period}, state_timer_handle, 0)\n`;
+	    irqFunc += `${prefix}    # execute the transition function\n`;
+	    var tLines = state.transitions[tPath].function.split('\n');
+	    tLines.map(function(line) {
+		irqFunc += `${prefix}    ${line}\n`;
+	    });
 	    irqFunc += `${prefix}  end if\n`;
 	});
 	if (state.State_list) {
