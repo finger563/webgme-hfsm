@@ -120,33 +120,18 @@ define([
 
     /* 
        TODO:
-        * Clear / Start timers when transitioning
 	* Handle initialization routines
-	* Add transition code / timer code to IRQ
 	* Figure out how to properly handle END states
     */
 
-    GenerateBGS.prototype.getStartState = function(state) {
+    GenerateBGS.prototype.generateStateFunctions = function () {
 	var self = this;
-	var initState = state;
-	//self.notify('info', '\t->'+state.name);
-	if (state.State_list && state.Initial_list) {
-	    if (state.Initial_list.length > 1)
-		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
-	    var init = state.Initial_list[0];
-	    var tPaths = Object.keys(init.transitions);
-	    if (tPaths.length > 1) {
-		throw new String("State " + state.name + ", " +state.path+" has more than one transition coming out of init!");
-	    }
-	    else {
-		var dstPath = init.transitions[tPaths[0]].nextState;
-		initState = self.getStartState(self.projectObjects[dstPath]);
-	    }
+	if (self.projectModel.State_list) {
+	    self.projectModel.State_list.map(function(state) {
+		self.getStateTimer(state, '  ');
+		self.getStateIRQ(state, '  ');
+	    });
 	}
-	else if (state.State_list) {
-	    throw new String("State " + state.name + ", " + state.path+" has no init state!");
-	}
-	return initState;
     };
 
     GenerateBGS.prototype.getStateTimer = function(state, prefix) {
@@ -234,14 +219,27 @@ define([
 	return irqFunc;
     };
 
-    GenerateBGS.prototype.generateStateFunctions = function () {
+    GenerateBGS.prototype.getStartState = function(state) {
 	var self = this;
-	if (self.projectModel.State_list) {
-	    self.projectModel.State_list.map(function(state) {
-		self.getStateTimer(state, '  ');
-		self.getStateIRQ(state, '  ');
-	    });
+	var initState = state;
+	//self.notify('info', '\t->'+state.name);
+	if (state.State_list && state.Initial_list) {
+	    if (state.Initial_list.length > 1)
+		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
+	    var init = state.Initial_list[0];
+	    var tPaths = Object.keys(init.transitions);
+	    if (tPaths.length > 1) {
+		throw new String("State " + state.name + ", " +state.path+" has more than one transition coming out of init!");
+	    }
+	    else {
+		var dstPath = init.transitions[tPaths[0]].nextState;
+		initState = self.getStartState(self.projectObjects[dstPath]);
+	    }
 	}
+	else if (state.State_list) {
+	    throw new String("State " + state.name + ", " + state.path+" has no init state!");
+	}
+	return initState;
     };
 
     GenerateBGS.prototype.generateArtifacts = function () {
