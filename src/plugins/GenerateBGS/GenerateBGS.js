@@ -143,7 +143,7 @@ define([
 	var tPaths = Object.keys(state.transitions);
 	var timerFunc = '';
 	timerFunc += `${prefix}# STATE::${state.name}\n`;
-	timerFunc += `${prefix}if changeState = 0 && memcmp(state(0), ${state.stateName}(0), ${state.path.length}) then\n`;
+	timerFunc += `${prefix}if ((changeState = 0) && (memcmp(state(0), ${state.stateName}(0), ${state.path.length}) = 1)) then\n`;
 	timerFunc += `${prefix}  # STATE::${state.name}::TRANSITIONS\n`;
 	var tPaths = Object.keys(state.transitions);
 	tPaths.map(function(tPath) {
@@ -155,7 +155,7 @@ define([
 	    timerFunc += `${prefix}  if ( ${guard} ) then\n`;
 	    timerFunc += `${prefix}    changeState = 1\n`;
 	    timerFunc += `${prefix}    # TRANSITION::${state.name}->${nextState.name}\n`;
-	    timerFunc += `${prefix}    state(0:${nextState.path.length}) = "${nextState.path}"\n`;
+	    timerFunc += `${prefix}    memcpy(state(0), ${nextState.stateName}(0), ${nextState.path.length})\n`;
 	    timerFunc += `${prefix}    # stop the current state timer (to change period)\n`;
 	    timerFunc += `${prefix}    call hardware_set_soft_timer( 0, state_timer_handle, 0)\n`;
 	    timerFunc += `${prefix}    # start state timer (@ next states period)\n`;
@@ -174,7 +174,7 @@ define([
 	    });
 	}
 	timerFunc += `${prefix}  # STATE::${state.name}::FUNCTION\n`;
-	timerFunc += `${prefix}  if changeState = 0 then\n`;
+	timerFunc += `${prefix}  if (changeState = 0) then\n`;
 	var funcLines = state.function.split('\n');
 	funcLines.map(function(line) {
 	    timerFunc += `${prefix}    ${line}\n`;
@@ -194,7 +194,7 @@ define([
 	var tPaths = Object.keys(state.transitions);
 	var irqFunc = '';
 	irqFunc += `${prefix}# STATE::${state.name}\n`;
-	irqFunc += `${prefix}if changeState = 0 && memcmp(state(0), ${state.stateName}(0), ${state.path.length}) then\n`;
+	irqFunc += `${prefix}if ((changeState = 0) && (memcmp(state(0), ${state.stateName}(0), ${state.path.length}) = 1)) then\n`;
 	irqFunc += `${prefix}  # STATE::${state.name}::TRANSITIONS\n`;
 	var tPaths = Object.keys(state.transitions);
 	tPaths.map(function(tPath) {
@@ -206,7 +206,7 @@ define([
 	    irqFunc += `${prefix}  if ( ${guard} ) then\n`;
 	    irqFunc += `${prefix}    changeState = 1\n`;
 	    irqFunc += `${prefix}    # TRANSITION::${state.name}->${nextState.name}\n`;
-	    irqFunc += `${prefix}    state(0:${nextState.path.length}) = "${nextState.path}"\n`;
+	    irqFunc += `${prefix}    memcpy(state(0), ${nextState.stateName}(0), ${nextState.path.length})\n`;
 	    irqFunc += `${prefix}    # stop the current state timer (to change period)\n`;
 	    irqFunc += `${prefix}    call hardware_set_soft_timer( 0, state_timer_handle, 0)\n`;
 	    irqFunc += `${prefix}    # start state timer (@ next states period)\n`;
@@ -260,11 +260,14 @@ define([
 	    var tPaths = Object.keys(init.transitions);
 	    if (tPaths.length == 1) {
 		var dstPath = init.transitions[tPaths[0]].nextState;
-		self.projectModel.initState = self.projectObjects[dstPath];
+		self.projectModel.initState = self.getStartState(self.projectObjects[dstPath]);
+	    }
+	    else {
+		throw new String("Top-level FSM must have exactly one initial state!");
 	    }
 	}
 	else {
-	    self.logger.error("Top-level FSM has no initial state!");
+	    throw new String("Top-level FSM has no initial state!");
 	}
 
 	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);

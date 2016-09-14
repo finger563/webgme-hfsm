@@ -35,8 +35,6 @@ event system_boot(major, minor, patch, build, ll_version, protocol_version, hw)
   #
   # generated initialization code for the state machine:
   changeState = 0
-  # STATE::<%- model.initState.name %>
-  state(0:<%- model.initState.path.length %>) = "<%- model.initState.path %>"
 <%
 states.map(function(state) {
 -%>
@@ -44,6 +42,10 @@ states.map(function(state) {
 <%
 });
 -%>
+  # STATE::<%- model.initState.name %>
+  memcpy(state(0), <%- model.initState.stateName %>(0), <%- model.initState.path.length %>)
+  # Start the state timer
+  call hardware_set_soft_timer(<%- parseInt(parseFloat(model.initState.timerPeriod) * 32768.0) %>, state_timer_handle, 0)
 end
 
 # The timer handles all the state function code and state transition
