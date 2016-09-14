@@ -150,6 +150,8 @@ define([
 	    var guard = state.transitions[tPath].guard;
 	    var nextState = self.projectObjects[state.transitions[tPath].nextState];
 	    //self.notify('info', state.name);
+	    var transitionFunc = state.transitions[tPath].function;
+	    transitionFunc += self.getInitFunc(nextState);
 	    nextState = self.getStartState(nextState);
 	    var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
 	    timerFunc += `${prefix}  if ( ${guard} ) then\n`;
@@ -161,7 +163,7 @@ define([
 	    timerFunc += `${prefix}    # start state timer (@ next states period)\n`;
 	    timerFunc += `${prefix}    call hardware_set_soft_timer( ${period}, state_timer_handle, 0)\n`;
 	    timerFunc += `${prefix}    # execute the transition function\n`;
-	    var tLines = state.transitions[tPath].function.split('\n');
+	    var tLines = transitionFunc.split('\n');
 	    tLines.map(function(line) {
 		timerFunc += `${prefix}    ${line}\n`;
 	    });
@@ -201,6 +203,8 @@ define([
 	    var guard = state.transitions[tPath].guard;
 	    var nextState = self.projectObjects[state.transitions[tPath].nextState];
 	    //self.notify('info', state.name);
+	    var transitionFunc = state.transitions[tPath].function;
+	    transitionFunc += self.getInitFunc(nextState);
 	    nextState = self.getStartState(nextState);
 	    var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
 	    irqFunc += `${prefix}  if ( ${guard} ) then\n`;
@@ -212,7 +216,7 @@ define([
 	    irqFunc += `${prefix}    # start state timer (@ next states period)\n`;
 	    irqFunc += `${prefix}    call hardware_set_soft_timer( ${period}, state_timer_handle, 0)\n`;
 	    irqFunc += `${prefix}    # execute the transition function\n`;
-	    var tLines = state.transitions[tPath].function.split('\n');
+	    var tLines = transitionFunc.split('\n');
 	    tLines.map(function(line) {
 		irqFunc += `${prefix}    ${line}\n`;
 	    });
@@ -252,6 +256,30 @@ define([
 	return initState;
     };
 
+    GenerateBGS.prototype.getInitFunc = function(state) {
+	var self = this;
+	var initState = state;
+	var tFunc = '\n'
+	//self.notify('info', '\t->'+state.name);
+	if (state.State_list && state.Initial_list) {
+	    if (state.Initial_list.length > 1)
+		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
+	    var init = state.Initial_list[0];
+	    var tPaths = Object.keys(init.transitions);
+	    if (tPaths.length == 1) {
+		var dstPath = init.transitions[tPaths[0]].nextState;
+		tFunc += init.transitions[tPaths[0]].function + self.getInitFunc(self.projectObjects[dstPath]);
+	    }
+	    else {
+		throw new String("State " + state.name + ", " +state.path+" must have exactly one transition coming out of init!");
+	    }
+	}
+	else if (state.State_list) {
+	    throw new String("State " + state.name + ", " + state.path+" has no init state!");
+	}
+	return tFunc;
+    };
+
     GenerateBGS.prototype.generateArtifacts = function () {
 	var self = this;
 
@@ -260,7 +288,9 @@ define([
 	    var tPaths = Object.keys(init.transitions);
 	    if (tPaths.length == 1) {
 		var dstPath = init.transitions[tPaths[0]].nextState;
+		var tFunc = init.transitions[tPaths[0]].function;
 		self.projectModel.initState = self.getStartState(self.projectObjects[dstPath]);
+		self.projectModel.initFunc = tFunc + self.getInitFunc(self.projectObjects[dstPath]);
 	    }
 	    else {
 		throw new String("Top-level FSM must have exactly one initial state!");
