@@ -135,6 +135,7 @@ define(['q'], function(Q) {
 	    var objPaths = Object.keys(self.model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = self.model.objects[objPath];
+		// figure out transition destinations, functions, and guards
 		if (obj.type == 'Transition') {
 		    var src = model.objects[obj.pointers['src']],
 			dst = model.objects[obj.pointers['dst']];
@@ -151,6 +152,7 @@ define(['q'], function(Q) {
 			};
 		    }
 		}
+		// make the state names for the variables and such
 		else if (obj.type == 'State') {
 		    var stateName = obj.name.replace(' ','_');
 		    var parentObj = model.objects[obj.parentPath];
@@ -159,13 +161,42 @@ define(['q'], function(Q) {
 			parentObj = model.objects[parentObj.parentPath];
 		    }
 		    obj.stateName = 'state_'+stateName;
+		    // make sure all states have transitions, even if empty!
 		    if (!obj.transitions) {
 			obj.transitions = {};
 		    }
 		}
 	    });
+	    // sort the libraries according to their order
 	    if (self.model.root.Library_list) {
 		self.model.root.Library_list.sort(function(a,b) {return a.order-b.order});
+	    }
+	    // figure out heirarchy levels and assign state ids
+	    self.makeStateIDs(model);
+	},
+	recurseStates: function(state, levels, level) {
+	    var self = this;
+	    if (levels.length <= level) {
+		levels[level] = {
+		    'numStatesInLevel': 0
+		}
+	    }
+	    state.stateLevel = level;
+	    state.stateID = levels[level].numStatesInLevel++;
+	    if (state.State_list) {
+		state.State_list.map(function(substate) {
+		    self.recurseStates(substate, levels, level + 1);
+		});
+	    }
+	},
+	makeStateIDs: function(model) {
+	    var self = this;
+	    var levels = [];
+	    if (model.root.State_list) {
+		model.root.State_list.map(function(state) {
+		    self.recurseStates(state, levels, 0);
+		});
+		model.root.numHeirarchyLevels = levels.length;
 	    }
 	},
     }
