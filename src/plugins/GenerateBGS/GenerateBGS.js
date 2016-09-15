@@ -12,7 +12,16 @@ define([
     'text!./metadata.json',
     'plugin/PluginBase',
     'common/util/ejs', // for ejs templates
-    'plugin/GenerateBGS/GenerateBGS/Templates/Templates',
+    './Templates/Templates',
+    'text!./static/project.bgproj',
+    'text!./static/project.xml',
+    'text!./static/attributes.txt',
+    'text!./static/cdc.xml',
+    'text!./static/config.xml',
+    'text!./static/gatt.xml',
+    'text!./static/hardware.xml',
+    'text!./static/v1_uuids.txt',
+    'text!./static/v4_uuids.txt',
     'hfsm/modelLoader',
     'q'
 ], function (
@@ -21,6 +30,15 @@ define([
     PluginBase,
     ejs,
     TEMPLATES,
+    BGPROJ,
+    PROJ,
+    ATTRIBUTES,
+    CDC,
+    CONFIG,
+    GATT,
+    HARDWARE,
+    V1UUIDS,
+    V4UUIDS,
     loader,
     Q) {
     'use strict';
@@ -107,6 +125,7 @@ define([
 		return self.generateArtifacts();
 	    })
 	    .then(function () {
+		self.notify('info', "Generated artifacts.");
         	self.result.setSuccess(true);
         	callback(null, self.result);
 	    })
@@ -338,19 +357,34 @@ define([
 	    });
 	}
 
-	var fileNames = Object.keys(self.artifacts);
-	var tasks = fileNames.map(function(fileName) {
-	    return self.blobClient.putFile(fileName, self.artifacts[fileName])
-		.then(function(hash) {
-		    self.result.addArtifact(hash);
-		});
-	});
+	self.artifacts['project.bgproj'] = BGPROJ;
+	self.artifacts['project.xml'] = PROJ;
+	self.artifacts['attributes.txt'] = ATTRIBUTES;
+	self.artifacts['cdc.xml'] = CDC;
+	self.artifacts['config.xml'] = CONFIG;
+	self.artifacts['gatt.xml'] = GATT;
+	self.artifacts['hardware.xml'] = HARDWARE;
+	self.artifacts['v1_uuids.txt'] = V1UUIDS;
+	self.artifacts['v4_uuids.txt'] = V4UUIDS;
 
-	return Q.all(tasks)
-	    .then(function() {
-		var msg = 'Generated artifacts.';
-		self.notify('info', msg);
+	var fileNames = Object.keys(self.artifacts);
+	var artifact = self.blobClient.createArtifact('GeneratedFiles');
+	var deferred = new Q.defer();
+	artifact.addFiles(self.artifacts, function(err) {
+	    if (err) {
+		deferred.reject(err.message);
+		return;
+	    }
+	    self.blobClient.saveAllArtifacts(function(err, hashes) {
+		if (err) {
+		    deferred.reject(err.message);
+		    return;
+		}
+		self.result.addArtifact(hashes[0]);
+		deferred.resolve();
 	    });
+	});
+	return deferred.promise;
     };
 
     return GenerateBGS;

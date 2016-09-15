@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<hardware>
+    <sleeposc enable="true" ppm="30" />
+	<otaboot source="internal" />
+    <usb enable="false" />
+    <sleep enable="true" max_mode="3" />
+	<!--wakeup_pin enable="true" port="1" pin="0" state="up" /-->
+    <txpower power="14" bias="5" />
+    <script enable="true" />
+    <!--usart channel="1" alternate="1" baud="115200" endpoint="none" flow="false"/-->
+	<!--usart channel="0" mode="spi_master" alternate="2" polarity="positive" phase="1" endianness="msb" baud="57600" endpoint="none" />
+	<usart channel="1" alternate="1" baud="38400" endpoint="none" flow="false"/-->
+	<port index="0" tristatemask="160" pull="up" />
+	<!--port index="1" tristatemask="253" pull="down" /-->
+</hardware>
