@@ -57,6 +57,24 @@
 	    }
 	},
 	"attrToSyntaxMap": {
+	    "UMLStateDiagram": {
+		"globals": "",
+		"constants": "",
+		"hardware_io_port_status": "",
+		"system_boot": ""
+	    },
+	    "State": {
+		"function": ""
+	    },
+	    "Event": {
+		"function": ""
+	    },
+	    "Library": {
+		"code": ""
+	    },
+	    "Transition": {
+		"function": ""
+	    }
 	}
     }
 }
