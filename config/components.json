@@ -3,340 +3,77 @@
 	"theme": "default",
 	"keyBinding": "emacs",
         "autoSaveInterval": "2000",
-	"map": {
+	"defaultSyntax": "bgs",
+	"syntaxToModeMap": {
+	    "bgs": {
+		"name":"text/x-python",
+		"version": 2,
+		"singleLineStringErrors": false,
+		"extra_keywords": [
+		    "event",
+		    "const",
+		    "call",
+		    "dim",
+		    "procedure",
+		    "export",
+		    "end"
+		],
+		"extra_builtins": [
+		    "system_boot",
+		    "system_script_failure",
+		    "hardware_soft_timer",
+		    "hardware_adc_result",
+		    "hardware_io_port_status",
+		    "hardware_io_port_config_irq",
+		    "hardware_io_port_config_direction",
+		    "hardware_io_port_write",
+		    "hardware_io_port_read",
+		    "hardware_set_soft_timer",
+		    "hardware_adc_read",
+		    "hardware_i2c_write",
+		    "hardware_i2c_read",
+		    "gap_scan_response",
+		    "connection_status",
+		    "connection_disconnect",
+		    "attclient_group_found",
+		    "attclient_find_information_found",
+		    "attclient_procedure_completed",
+		    "attclient_attribute_value"
+		]
+	    },
+	    "c": {
+		"name": "text/x-c++src"
+	    },
+	    "cpp": {
+		"name": "text/x-c++src",
+		"useCPP": true
+	    },
+	    "python": {
+		"name":"text/x-python",
+		"version": 2
+	    },
+	    "javascript": {
+		"name":"text/javascript"
+	    }
+	},
+	"attrToSyntaxMap": {
 	    "UMLStateDiagram": {
-		"globals": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		},
-		"constants": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		},
-		"hardware_io_port_status": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		},
-		"hardware_soft_timer": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		},
-		"system_boot": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		}
+		"globals": "bgs",
+		"constants": "bgs",
+		"hardware_io_port_status": "bgs",
+		"system_boot": "bgs"
 	    },
 	    "State": {
-		"function": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		}
+		"function": "bgs"
 	    },
 	    "Event": {
-		"function": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		}
+		"function": "bgs"
 	    },
 	    "Library": {
-		"code": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		}
+		"code": "bgs"
 	    },
 	    "Transition": {
-		"function": {
-		    "name":"text/x-python",
-		    "version": 2,
-		    "singleLineStringErrors": false,
-		    "extra_keywords": [
-			"event",
-			"const",
-			"call",
-			"dim",
-			"procedure",
-			"export",
-			"end"
-		    ],
-		    "extra_builtins": [
-			"system_boot",
-			"system_script_failure",
-			"hardware_soft_timer",
-			"hardware_adc_result",
-			"hardware_io_port_status",
-			"hardware_io_port_config_irq",
-			"hardware_io_port_config_direction",
-			"hardware_io_port_write",
-			"hardware_io_port_read",
-			"hardware_set_soft_timer",
-			"hardware_adc_read",
-			"hardware_i2c_write",
-			"hardware_i2c_read",
-			"gap_scan_response",
-			"connection_status",
-			"connection_disconnect",
-			"attclient_group_found",
-			"attclient_find_information_found",
-			"attclient_procedure_completed",
-			"attclient_attribute_value"
-		    ]
-		}
+		"function": "bgs"
 	    }
 	}
     }
