@@ -57,24 +57,6 @@
 	    }
 	},
 	"attrToSyntaxMap": {
-	    "UMLStateDiagram": {
-		"globals": "bgs",
-		"constants": "bgs",
-		"hardware_io_port_status": "bgs",
-		"system_boot": "bgs"
-	    },
-	    "State": {
-		"function": "bgs"
-	    },
-	    "Event": {
-		"function": "bgs"
-	    },
-	    "Library": {
-		"code": "bgs"
-	    },
-	    "Transition": {
-		"function": "bgs"
-	    }
 	}
     }
 }
