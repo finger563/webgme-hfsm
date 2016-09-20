@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "",
   "icon": {
-    "class": "glyphicon glyphicon-cog",
+    "class": "fa fa-code",
     "src": ""
   },
   "disableServerSideExecution": false,
