@@ -9,7 +9,7 @@ var config = require('webgme/config/config.default'),
 // The paths can be loaded from the webgme-setup.json
 config.plugin.basePaths.push(__dirname + '/../src/plugins');
 config.visualization.decoratorPaths.push(__dirname + '/../src/decorators');
-config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
+
 
 
 config.visualization.panelPaths.push(__dirname + '/../node_modules/webgme-codeeditor/src/visualizers/panels');
