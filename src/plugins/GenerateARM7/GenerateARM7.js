@@ -10,11 +10,19 @@
 define([
     'plugin/PluginConfig',
     'text!./metadata.json',
-    'plugin/PluginBase'
+    'plugin/PluginBase',
+    'common/util/ejs', // for ejs templates
+    './Templates/Templates',
+    'hfsm/modelLoader',
+    'q'
 ], function (
     PluginConfig,
     pluginMetadata,
-    PluginBase) {
+    PluginBase,
+    ejs,
+    TEMPLATES,
+    loader,
+    Q) {
     'use strict';
 
     pluginMetadata = JSON.parse(pluginMetadata);
@@ -30,6 +38,9 @@ define([
         // Call base class' constructor.
         PluginBase.call(this);
         this.pluginMetadata = pluginMetadata;
+        this.FILES = {
+            'script.bgs': 'script.bgs.ejs'
+        };
     };
 
     /**
@@ -43,6 +54,22 @@ define([
     GenerateARM7.prototype = Object.create(PluginBase.prototype);
     GenerateARM7.prototype.constructor = GenerateARM7;
 
+    GenerateARM7.prototype.notify = function(level, msg) {
+	var self = this;
+	var prefix = self.projectId + '::' + self.projectName + '::' + level + '::';
+	var max_msg_len = 100;
+	if (level=='error')
+	    self.logger.error(msg);
+	else if (level=='debug')
+	    self.logger.debug(msg);
+	else if (level=='info')
+	    self.logger.info(msg);
+	else if (level=='warning')
+	    self.logger.warn(msg);
+	self.createMessage(self.activeNode, msg, level);
+	self.sendNotification(prefix+msg);
+    };
+
     /**
      * Main function for the plugin to execute. This will perform the execution.
      * Notes:
@@ -55,36 +82,41 @@ define([
     GenerateARM7.prototype.main = function (callback) {
         // Use self to access core, project, result, logger etc from PluginBase.
         // These are all instantiated at this point.
-        var self = this,
+        var self = this,,
             nodeObject;
 
+        // Default fails
+        self.result.success = false;
 
-        // Using the logger.
-        self.logger.debug('This is a debug message.');
-        self.logger.info('This is an info message.');
-        self.logger.warn('This is a warning message.');
-        self.logger.error('This is an error message.');
+	// the active node for this plugin is software -> project
+	var projectNode = self.activeNode;
+	self.projectName = self.core.getAttribute(projectNode, 'name');
 
-        // Using the coreAPI to make changes.
+	self.projectModel = {}; // will be filled out by loadProjectModel (and associated functions)
+	self.artifacts = {}; // will be filled out and used by various parts of this plugin
 
-        nodeObject = self.activeNode;
+	loader.logger = self.logger;
 
-        self.core.setAttribute(nodeObject, 'name', 'My new obj');
-        self.core.setRegistry(nodeObject, 'position', {x: 70, y: 70});
-
-
-        // This will save the changes. If you don't want to save;
-        // exclude self.save and call callback directly from this scope.
-        self.save('GenerateARM7 updated model.')
-            .then(function () {
-                self.result.setSuccess(true);
-                callback(null, self.result);
-            })
-            .catch(function (err) {
-                // Result success is false at invocation.
-                callback(err, self.result);
-            });
-
+      	loader.loadModel(self.core, projectNode, true)
+  	    .then(function (projectModel) {
+		self.projectModel = projectModel.root;
+		self.projectObjects = projectModel.objects;
+        	return self.generateStateFunctions();
+  	    })
+	    .then(function () {
+		return self.generateArtifacts();
+	    })
+	    .then(function () {
+		self.notify('info', "Generated artifacts.");
+        	self.result.setSuccess(true);
+        	callback(null, self.result);
+	    })
+	    .catch(function (err) {
+		self.notify('error', err);
+        	self.result.setSuccess(false);
+        	callback(err, self.result);
+	    })
+		.done();
     };
 
     return GenerateARM7;
