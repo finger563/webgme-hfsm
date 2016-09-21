@@ -60,19 +60,21 @@
 	    "UMLStateDiagram": {
 		"globals": "",
 		"constants": "",
-		"hardware_io_port_status": "",
-		"system_boot": ""
+		"initialization": ""
 	    },
 	    "State": {
 		"function": ""
 	    },
 	    "Event": {
+		"definitions": "",
 		"function": ""
 	    },
 	    "Library": {
+		"definitions": "",
 		"code": ""
 	    },
 	    "Transition": {
+		"definitions": "",
 		"function": ""
 	    }
 	}

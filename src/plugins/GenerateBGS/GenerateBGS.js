@@ -146,9 +146,11 @@ define([
     GenerateBGS.prototype.generateStateFunctions = function () {
 	var self = this;
 	if (self.projectModel.State_list) {
+	    self.projectModel.stateTransitions = '';
 	    self.projectModel.State_list.map(function(state) {
 		self.getStateTimer(state, '  ');
 		self.getStateIRQ(state, '  ');
+		self.projectModel.stateTransitions += state.irqFunc + '\n';
 	    });
 	}
     };
@@ -341,6 +343,11 @@ define([
 
 	var scriptTemplate = TEMPLATES[self.FILES['script.bgs']];
 	self.artifacts['script.bgs'] = ejs.render(scriptTemplate, {
+	    'model': self.projectModel,
+	    'states': states
+	});
+	// re-render so that users' templates are accounted for
+	self.artifacts['script.bgs'] = ejs.render(self.artifacts['script.bgs'], {
 	    'model': self.projectModel,
 	    'states': states
 	});
