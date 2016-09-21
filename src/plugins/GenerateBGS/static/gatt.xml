@@ -1,44 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <configuration>
-    <service uuid="1800">
-      <description>Generic Access Profile</description>
+  <service uuid="1800">
+    <description>Generic Access Profile</description>
 
-      <characteristic uuid="2a00">
-        <properties read="true" const="true" />
-        <value>Smart Drive WB</value>
-      </characteristic>
+    <characteristic uuid="2a00">
+      <properties read="true" const="true" />
+      <value>Smart Drive WB</value>
+    </characteristic>
 
-      <characteristic uuid="2a01">
-        <properties read="true" const="true" />
-        <value type="hex">0001</value>
-      </characteristic>
-    </service>
-	
-	<!--service uuid="9358ac8f-6343-4a31-b4e0-4b13a2b45d86">
-	    <description>DATA</description>
-		<characteristic uuid="58daaa15-f2b2-4cd9-b827-5807b267dae1" id="data_control">
-		    <properties write="true" indicate="true" read="true" />
-			<value length="1" type="hex" />
-		</characteristic>
-		<characteristic uuid="68208ebf-f655-4a2d-98f4-20d7d860c471" id="App_data">
-		    <properties write="true" indicate="true" read="true" />
-			<value length="20" type="hex" />
-		</characteristic>
-		<characteristic uuid="9272e309-cd33-4d83-a959-b54cc7a54d1f" id="OTA_data">
-		    <properties write="true" indicate="true" read="true" />
-			<value length="20" type="hex"/>
-		</characteristic>
-		<characteristic uuid="8489625f-6c73-4fc0-8bcc-735bb173a920" id="WB_data">
-		    <properties write="true" indicate="true" read="true" />
-			<value length="20" type="hex"/>
-		</characteristic>
-		<characteristic uuid="5177fda8-1003-4254-aeb9-7f9edb3cc9cf" id="DU_data">
-		    <properties write="true" indicate="true" read="true" />
-			<value length="20" type="hex"/>
-		</characteristic>
-	</service/-->
-
-
-    
+    <characteristic uuid="2a01">
+      <properties read="true" const="true" />
+      <value type="hex">0001</value>
+    </characteristic>
+  </service>
+  <service uuid="1d14d6ee-fd63-4fa1-bfa4-8f47b42119f0">
+    <description>Bluegiga OTA</description>
+    <characteristic uuid="f7bf3564-fb6d-4e53-88a4-5e37e0326063" id="ota_control">
+      <properties write="true" />
+      <value length="1" type="user" />
+    </characteristic>
+    <characteristic uuid="984227f3-34fc-4045-a5d0-2c581f81a153" id="ota_data">
+      <properties write_no_response="true" />
+      <value length="20" />
+    </characteristic>
+  </service>
 </configuration>
