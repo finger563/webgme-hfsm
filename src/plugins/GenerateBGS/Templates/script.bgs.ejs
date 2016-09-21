@@ -36,7 +36,7 @@ event system_boot(major, minor, patch, build, ll_version, protocol_version, hw)
   #
   # START USER CODE
   #
-<%- model.system_boot %>
+<%- model.initialization %>
   #
   # END USER CODE
   #
@@ -60,32 +60,6 @@ if (model.State_list) {
   model.State_list.map(function(state) {
 -%>
 <%- state.timerFunc %>
-<%
-  });
-}
--%>
-end
-
-# The interrupt routine handles all conversion from input interrupts
-#  to state variables for state transitions
-event hardware_io_port_status(timestamp, port, irq, state_io)
-  # user code to handle the interrupts and convert them to state
-  #  variables:
-  #
-  # START USER CODE
-  #
-<%- model.hardware_io_port_status %>
-  #
-  # END USER CODE
-  #
-
-  changeState = 0
-  # Generated code to perform needed state transitions:
-<%
-if (model.State_list) {
-  model.State_list.map(function(state) {
--%>
-<%- state.irqFunc %>
 <%
   });
 }
