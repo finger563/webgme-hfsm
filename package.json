@@ -10,6 +10,7 @@
     "url": "http://github.com/webgme/webgme-fsm.git"
   },
   "dependencies": {
+    "mustache": "^2.2.1",
     "webgme-codeeditor": "finger563/webgme-codeeditor"
   },
   "peerDependencies": {

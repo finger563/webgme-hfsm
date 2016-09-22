@@ -13,6 +13,16 @@ define([
     'plugin/PluginBase',
     'common/util/ejs', // for ejs templates
     './Templates/Templates',
+    'text!./static/project.bgproj',
+    'text!./static/project.xml',
+    'text!./static/attributes.txt',
+    'text!./static/cdc.xml',
+    'text!./static/config.xml',
+    'text!./static/gatt.xml',
+    'text!./static/hardware.xml',
+    'text!./static/v1_uuids.txt',
+    'text!./static/v4_uuids.txt',
+    'hfsm/renderStates',
     'hfsm/modelLoader',
     'q'
 ], function (
@@ -21,6 +31,16 @@ define([
     PluginBase,
     ejs,
     TEMPLATES,
+    BGPROJ,
+    PROJ,
+    ATTRIBUTES,
+    CDC,
+    CONFIG,
+    GATT,
+    HARDWARE,
+    V1UUIDS,
+    V4UUIDS,
+    renderer,
     loader,
     Q) {
     'use strict';
@@ -82,7 +102,7 @@ define([
     GenerateARM7.prototype.main = function (callback) {
         // Use self to access core, project, result, logger etc from PluginBase.
         // These are all instantiated at this point.
-        var self = this,,
+        var self = this,
             nodeObject;
 
         // Default fails
@@ -101,7 +121,7 @@ define([
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
-        	return self.generateStateFunctions();
+        	return renderer.generateStateFunctions(self.projectModel, self.projectObjects);
   	    })
 	    .then(function () {
 		return self.generateArtifacts();
@@ -117,6 +137,101 @@ define([
         	callback(err, self.result);
 	    })
 		.done();
+    };
+
+    GenerateARM7.prototype.generateArtifacts = function () {
+	var self = this;
+
+	if (self.projectModel.Initial_list) {
+	    var init = self.projectModel.Initial_list[0];
+	    var tPaths = Object.keys(init.transitions);
+	    if (tPaths.length == 1) {
+		var dstPath = init.transitions[tPaths[0]].nextState;
+		var tFunc = init.transitions[tPaths[0]].function;
+		var initState = renderer.getStartState(self.projectObjects[dstPath], self.projectObjects);
+		self.projectModel.initState = initState;
+		self.projectModel.initStateCode = renderer.getSetStateCode(initState, '  ', self.projectObjects);
+		self.projectModel.initFunc = tFunc +
+		    renderer.getInitFunc(self.projectObjects[dstPath], self.projectObjects);
+	    }
+	    else {
+		throw new String("Top-level FSM must have exactly one initial state!");
+	    }
+	}
+	else {
+	    throw new String("Top-level FSM has no initial state!");
+	}
+
+	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);
+        self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
+    	    projectID: self.project.projectId,
+            commitHash: self.commitHash,
+            branchName: self.branchName,
+            timeStamp: (new Date()).toISOString(),
+            pluginVersion: self.getVersion()
+        }, null, 2);
+
+	var states = []
+	for (var objPath in self.projectObjects) {
+	    var obj = self.projectObjects[objPath];
+	    if (obj.type == 'State') {
+		states.push(obj);
+	    }
+	}
+
+	var scriptTemplate = TEMPLATES[self.FILES['script.bgs']];
+	self.artifacts['script.bgs'] = ejs.render(scriptTemplate, {
+	    'model': self.projectModel,
+	    'states': states
+	});
+	// re-render so that users' templates are accounted for
+	self.artifacts['script.bgs'] = ejs.render(self.artifacts['script.bgs'], {
+	    'model': self.projectModel,
+	    'states': states
+	});
+
+	// make sure to render all libraries
+	if (self.projectModel.Library_list) {
+	    self.projectModel.Library_list.map(function(library) {
+		var libFileName = library.name + '.bgs';
+		self.artifacts[libFileName] = library.code;
+		if (library.Event_list) {
+		    library.Event_list.map(function(event) {
+			self.artifacts[libFileName] += '\n'+event.function;
+		    });
+		}
+	    });
+	}
+
+	// render all static files (needed for actually building and deploying)
+	self.artifacts['project.bgproj'] = BGPROJ;
+	self.artifacts['project.xml'] = PROJ;
+	self.artifacts['attributes.txt'] = ATTRIBUTES;
+	self.artifacts['cdc.xml'] = CDC;
+	self.artifacts['config.xml'] = CONFIG;
+	self.artifacts['gatt.xml'] = GATT;
+	self.artifacts['hardware.xml'] = HARDWARE;
+	self.artifacts['v1_uuids.txt'] = V1UUIDS;
+	self.artifacts['v4_uuids.txt'] = V4UUIDS;
+
+	var fileNames = Object.keys(self.artifacts);
+	var artifact = self.blobClient.createArtifact('GeneratedFiles');
+	var deferred = new Q.defer();
+	artifact.addFiles(self.artifacts, function(err) {
+	    if (err) {
+		deferred.reject(err.message);
+		return;
+	    }
+	    self.blobClient.saveAllArtifacts(function(err, hashes) {
+		if (err) {
+		    deferred.reject(err.message);
+		    return;
+		}
+		self.result.addArtifact(hashes[0]);
+		deferred.resolve();
+	    });
+	});
+	return deferred.promise;
     };
 
     return GenerateARM7;

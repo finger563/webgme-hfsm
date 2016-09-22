@@ -139,7 +139,6 @@ define([
 
     /* 
        TODO:
-	* Handle initialization routines
 	* Figure out how to properly handle END states
     */
 

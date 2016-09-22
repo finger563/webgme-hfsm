@@ -21,6 +21,7 @@ config.visualization.panelPaths.push(__dirname + '/../node_modules/webgme-codeed
 config.visualization.visualizerDescriptors.push(__dirname + '/../src/visualizers/Visualizers.json');
 // Add requirejs paths
 config.requirejsPaths = {
+    'mustache': './node_modules/mustache',
   'CodeEditor': 'panels/CodeEditor/CodeEditorPanel',
   'panels': './src/visualizers/panels',
   'widgets': './src/visualizers/widgets',

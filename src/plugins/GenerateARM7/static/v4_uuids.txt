@@ -1,0 +1,10 @@
+9358ac8f-6343-4a31-b4e0-4b13a2b45d86   #data service 
+58daaa15-f2b2-4cd9-b827-5807b267dae1	# data control
+68208ebf-f655-4a2d-98f4-20d7d860c471	#app data
+9272e309-cd33-4d83-a959-b54cc7a54d1f	# ota data
+8489625f-6c73-4fc0-8bcc-735bb173a920	#wb data
+5177fda8-1003-4254-aeb9-7f9edb3cc9cf	# du data
+48ba82bc-cd28-45cd-b6ff-9b31b9461742   # app service
+9dd39381-f2a3-48b3-9e8f-fd8c53a0d074
+302040ed-f892-4f89-b62a-48fd07b6a6c4
+ffe10d45-301e-4ea0-a83d-79305a11ed32
