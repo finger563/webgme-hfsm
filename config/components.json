@@ -58,8 +58,6 @@
 	},
 	"attrToSyntaxMap": {
 	    "UMLStateDiagram": {
-		"globals": "",
-		"constants": "",
 		"initialization": ""
 	    },
 	    "State": {

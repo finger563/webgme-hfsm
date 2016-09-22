@@ -352,9 +352,7 @@ define([
 	    'states': states
 	});
 
-	self.artifacts['constants.bgs'] = self.projectModel.constants;
-	self.artifacts['globals.bgs'] = self.projectModel.globals;
-
+	// make sure to render all libraries
 	if (self.projectModel.Library_list) {
 	    self.projectModel.Library_list.map(function(library) {
 		var libFileName = library.name + '.bgs';
@@ -367,6 +365,7 @@ define([
 	    });
 	}
 
+	// render all static files (needed for actually building and deploying)
 	self.artifacts['project.bgproj'] = BGPROJ;
 	self.artifacts['project.xml'] = PROJ;
 	self.artifacts['attributes.txt'] = ATTRIBUTES;
