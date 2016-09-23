@@ -132,24 +132,25 @@ define(['q'], function(Q) {
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
 	    // get state outgoing transition guards
-	    var objPaths = Object.keys(self.model.objects);
+	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
-		var obj = self.model.objects[objPath];
+		var obj = model.objects[objPath];
 		// figure out transition destinations, functions, and guards
 		if (obj.type == 'Transition') {
 		    var src = model.objects[obj.pointers['src']],
 			dst = model.objects[obj.pointers['dst']];
 		    if ( src && dst ) {
 			// valid transition with source and destination pointers in the tree
-			// - get the source pointer and add to its dictionary
 			if (!src.transitions) {
-			    src.transitions = {}
+			    src.transitions = []
 			}
-			src.transitions[obj.path] = {
+			src.transitions.push({
 			    'guard' : obj.event,
 			    'function' : obj.function,
-			    'nextState' : dst.path
-			};
+			    'prevState' : model.objects[src.path],
+			    'nextState' : model.objects[dst.path],
+			    'transitionFunc': ''
+			});
 		    }
 		}
 		// make the state names for the variables and such
@@ -163,13 +164,24 @@ define(['q'], function(Q) {
 		    obj.stateName = 'state_'+stateName;
 		    // make sure all states have transitions, even if empty!
 		    if (!obj.transitions) {
-			obj.transitions = {};
+			obj.transitions = [];
+		    }
+		    // make sure the State_list is either a real list or null
+		    if (!obj.State_list) {
+			obj.State_list = null;
+		    }
+		    // make sure the state has a ParentState that either exists or is null
+		    if (model.objects[obj.parentPath].type == 'State') {
+			obj.parentState = model.objects[obj.parentPath];
+		    }
+		    else {
+			obj.parentState = null;
 		    }
 		}
 	    });
 	    // sort the libraries according to their order
-	    if (self.model.root.Library_list) {
-		self.model.root.Library_list.sort(function(a,b) {return a.order-b.order});
+	    if (model.root.Library_list) {
+		model.root.Library_list.sort(function(a,b) {return a.order-b.order});
 	    }
 	    // figure out heirarchy levels and assign state ids
 	    self.makeStateIDs(model);
@@ -198,6 +210,62 @@ define(['q'], function(Q) {
 		});
 		model.root.numHeirarchyLevels = levels.length;
 	    }
+	},
+	getInitState: function(state) {
+	    // does not recurse; simply gets the init state and does error checking
+	    var self = this;
+	    var initState = state;
+            if (state.State_list && state.Initial_list) {
+                if (state.Initial_list.length > 1)
+                    throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
+                var init = state.Initial_list[0];
+                if (init.transitions.length == 1) {
+		    initState = init;
+                }
+                else {
+                    throw new String("State " + state.name + ", " +state.path+" must have exactly one transition coming out of init!");
+                }
+            }
+            else if (state.State_list) {
+                throw new String("State " + state.name + ", " + state.path+" has no init state!");
+            }
+	    return initState;
+	},
+	getInitFunc: function(state) {
+	    // recurses to build up the transition function for an arbitrarily nested set of init states.
+	    var self = this;
+            var tFunc = ''
+	    var init = self.getInitState(state);
+	    if (init.transitions.length) {
+		var dst = init.transitions[0].nextState;
+		tFunc += init.transitions[0].function + '\n' + self.getTransitionFunc(dst);
+		init.transitions[0].transitionFunc = tFunc;
+	    }
+            return tFunc;	    
+	},
+	getStartState: function(state) {
+	    // recurses to get the leaf init state
+	    var self = this;
+	    var init = self.getInitState(state);
+	    if (init.transitions.length) {
+		var dst = init.transitions[0].nextState;
+		init = self.getStartState(dst);
+	    }
+            return initState;
+	},
+	buildTransitionFuncs: function(model) {
+	    var self = this;
+	    model.initState = self.getStartState(model.root);
+	    model.root.initFunc = self.getInitFunc(model.root);
+	    var objPaths = Object.keys(model.objects);
+	    objPaths.map(function(objPath) {
+		var obj = model.objects[objPath];
+		if (obj.type == "State") {
+		    obj.transitions.map(function(trans) {
+			trans.transitionFunc = self.getInitFunc(trans.nextState);
+		    });
+		}
+	    });
 	},
     }
 });

@@ -1,38 +1,100 @@
-
+// This code relies on the pre-processing done to the model by modelLoader.js
 
 var templates = {
+    // THE CPP CODE IS FOR THE LPC2148 ARM7TDMI-S
+
     'cpp': {
-        'guard': "{{prefix}}// STATE::{{state.name}}\
-{{prefix}}if (changeState == 0 && stateLevel_{{state.stateLevel}} == {{state.stateName}}) {\
-{{prefix}}  // STATE::{{state.name}}::TRANSITIONS\n`;",
+	// takes a state as the scope (doesn't need any further pre-processing)
+        'setState': "{{prefix}}stateLevel_{{stateLevel}} = {{stateName}};\
+{{#parentState}}
+{{> setState}}
+{{/parentState}}",
 
-        'setState': "{{prefix}}stateLevel_{{state.stateLevel}} = {{state.stateName}};\n",
-
+	// takes a transition as the scope (needs previous state for transition to be pre-processed)
         'transition': "{{prefix}}if ( {{guard}} ) {\
 {{prefix}}  changeState = 1;\
-{{prefix}}  // TRANSITION::{{state.name}}->{{nextState.name}}\
-{{prefix}}  {{setState}}\
+{{prefix}}  // TRANSITION::{{prevState.name}}->{{nextState.name}}\
+{{#nextState}}
+{{prefix}}  {{> setState}}\
+{{/nextState}}
 {{prefix}}  //stop the current state timer (to change period)\
 {{prefix}}  hardware_set_soft_timer( 0, state_timer_handle, 0);
 {{prefix}}  // start state timer (@ next states period)
 {{prefix}}  hardware_set_soft_timer( {{period}}, state_timer_handle, 0);
 {{prefix}}  // execute the transition function\
-{{prefix}}  {{transition}}\
+{{prefix}}  {{transitionFunc}}\
 {{prefix}}}\n",
 
-        'Timer': "// STATE::{{state.name}}\
-if (changeState == 0 && stateLevel_{{state.stateLevel}} == {{state.statename}} {\
-  // STATE::{{state.name}}::TRANSITIONS\
-  {{#state.transitions}}
-  {{> transition}}
-  {{/state.transitions}}
-  {{#state.State_list}}
-  {{> Timer}}
-  {{/state.State_list}}
-  {{state.function}}
-}"
+	// takes a state as the scope
+        'execute': "{{prefix}}// STATE::{{name}}\
+{{prefix}}if (changeState == 0 && stateLevel_{{stateLevel}} == {{statename}} {\
+{{prefix}}  // STATE::{{name}}::TRANSITIONS\
+{{prefix}}  {{#transitions}}
+{{prefix}}  {{> transition}}
+{{prefix}}  {{/transitions}}
+{{prefix}}  {{#State_list}}
+{{prefix}}  {{> execute}}
+{{prefix}}  {{/State_list}}
+{{#execute}}
+{{prefix}}  // STATE::${name}::FUNCTION
+{{prefix}}  if (changeState == 0) {\
+{{prefix}}    {{function}}
+{{prefix}}  }\
+{{/execute}}
+{{prefix}}}\n",
+
+	// takes the root level as the scope
+	'timer': "{{#State_list}}
+{{> execute}}
+{{/State_list}}"
     },
+
+    // THE BGS CODE IS FOR THE BLUEGIGA BLE113 BLUETOOTH SoC MODULE
+    
     'bgs': {
+	// takes a state as the scope (doesn't need any further pre-processing)
+        'setState': "{{prefix}}stateLevel_{{stateLevel}} = {{stateName}}\
+{{#parentState}}
+{{> setState}}
+{{/parentState}}",
+
+	// takes a transition as the scope (needs previous state for transition to be pre-processed)
+        'transition': "{{prefix}}if ( {{guard}} ) then\
+{{prefix}}  changeState = 1\
+{{prefix}}  # TRANSITION::{{prevState.name}}->{{nextState.name}}\
+{{#nextState}}
+{{prefix}}  {{> setState}}\
+{{/nextState}}
+{{prefix}}  # stop the current state timer (to change period)\
+{{prefix}}  hardware_set_soft_timer( 0, state_timer_handle, 0)
+{{prefix}}  # start state timer (@ next states period)
+{{prefix}}  hardware_set_soft_timer( {{period}}, state_timer_handle, 0)
+{{prefix}}  # execute the transition function\
+{{prefix}}  {{transitionFunc}}\
+{{prefix}}end if\n",
+
+	// takes a state as the scope
+        'execute': "{{prefix}}# STATE::{{name}}\
+{{prefix}}if (changeState = 0 && stateLevel_{{stateLevel}} = {{statename}} then\
+{{prefix}}  # STATE::{{name}}::TRANSITIONS\
+{{prefix}}  {{#transitions}}
+{{prefix}}  {{> transition}}
+{{prefix}}  {{/transitions}}
+{{prefix}}  {{#State_list}}
+{{prefix}}  {{> execute}}
+{{prefix}}  {{/State_list}}
+{{#execute}}
+{{prefix}}  # STATE::${name}::FUNCTION
+{{prefix}}  if (changeState = 0) then\
+{{prefix}}    {{function}}
+{{prefix}}  end if\
+{{/execute}}
+{{prefix}}end if\n",
+
+	// takes the root level as the scope
+	'timer': "{{#State_list}}
+{{> execute}}
+{{/State_list}}"
     }
 };
 
@@ -51,32 +113,6 @@ define(['mustache/mustache','q'], function(mustache,Q) {
                     root.stateTransitions += state.irqFunc + '\n';
                 });
             }
-        },
-        getStateGuardCode: function(state, prefix, language) {
-            var self = this;
-            var tmpl = templates[language].guard;
-            var view = {
-                state: state,
-                prefix: prefix
-            };
-            var guardCode = mustache.render(tmpl, view);
-            return guardCode;
-        },
-        getSetStateCode: function(state, language, prefix, objects) {
-            var self = this;
-            if (objects) {
-                self.objects = objects;
-            }
-            var tmpl = templates[language].setState;
-            var view = {
-                state: state,
-                prefix: prefix
-            };
-            var code = mustache.render(tmpl, view);
-            if (self.objects[state.parentPath].type == 'State') {
-                code += self.getSetStateCode(self.objects[state.parentPath], language, prefix);
-            }
-            return code;
         },
         getTransitionCode: function(state, transition, language, prefix, objects) {
             var self = this;
@@ -129,20 +165,6 @@ define(['mustache/mustache','q'], function(mustache,Q) {
             tPaths.map(function(tPath) {
                 timerFunc += self.getTransitionCode(state, state.transitions[tPath], prefix + '  ');
             });
-            if (state.State_list) {
-                state.State_list.map(function(substate) {
-                    var subStateFunc = self.getStateTimer(substate, prefix + '  ');
-                    timerFunc += subStateFunc;
-                });
-            }
-            timerFunc += `${prefix}  // STATE::${state.name}::FUNCTION
-${prefix}  if (changeState == 0) {\n`;
-            var funcLines = state.function.split('\n');
-            funcLines.map(function(line) {
-                timerFunc += `${prefix}    ${line}\n`;
-            });
-            timerFunc += `${prefix}  }\n`;
-            timerFunc += `${prefix}}\n`;
             state.timerFunc = timerFunc;
             return timerFunc;
         },
@@ -171,57 +193,6 @@ ${prefix}  if (changeState == 0) {\n`;
             irqFunc += `${prefix}}\n`;
             state.irqFunc = irqFunc;
             return irqFunc;
-        },
-        getStartState: function(state, objects) {
-            var self = this;
-            if (objects) {
-                self.objects = objects;
-            }
-            var initState = state;
-            //self.notify('info', '\t->'+state.name);
-            if (state.State_list && state.Initial_list) {
-                if (state.Initial_list.length > 1)
-                    throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
-                var init = state.Initial_list[0];
-                var tPaths = Object.keys(init.transitions);
-                if (tPaths.length == 1) {
-                    var dstPath = init.transitions[tPaths[0]].nextState;
-                    initState = self.getStartState(self.objects[dstPath]);
-                }
-                else {
-                    throw new String("State " + state.name + ", " +state.path+" must have exactly one transition coming out of init!");
-                }
-            }
-            else if (state.State_list) {
-                throw new String("State " + state.name + ", " + state.path+" has no init state!");
-            }
-            return initState;
-        },
-        getInitFunc: function(state, objects) {
-            var self = this;
-            if (objects) {
-                self.objects = objects;
-            }
-            var initState = state;
-            var tFunc = '\n'
-            //self.notify('info', '\t->'+state.name);
-            if (state.State_list && state.Initial_list) {
-                if (state.Initial_list.length > 1)
-                    throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
-                var init = state.Initial_list[0];
-                var tPaths = Object.keys(init.transitions);
-                if (tPaths.length == 1) {
-                    var dstPath = init.transitions[tPaths[0]].nextState;
-                    tFunc += init.transitions[tPaths[0]].function + self.getInitFunc(self.objects[dstPath], objects);
-                }
-                else {
-                    throw new String("State " + state.name + ", " +state.path+" must have exactly one transition coming out of init!");
-                }
-            }
-            else if (state.State_list) {
-                throw new String("State " + state.name + ", " + state.path+" has no init state!");
-            }
-            return tFunc;
-        },
+        }
     }
 });
