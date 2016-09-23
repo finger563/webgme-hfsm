@@ -87,7 +87,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{prefix}}    # stop the current state timer (to change period)",
 		"{{prefix}}    call hardware_set_soft_timer( 0, state_timer_handle, 0)",
 		"{{prefix}}    # start state timer (@ next states period)",
-		"{{prefix}}    call hardware_set_soft_timer({{parseInt(parseFloat(timerPeriod)*32768.0)}},state_timer_handle,0)",
+		"{{prefix}}    call hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0)",
 		"{{prefix}}    # execute the transition function",
 		"{{prefix}}    {{&transitionFunc}}",
 		"{{prefix}}  end if",
@@ -161,7 +161,12 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    var view = {
 		root: root,
 		prefix: prefix,
-		execute: execute
+		execute: execute,
+		convertPeriod: function() {
+		    return function(val, render) {
+			return parseInt(parseFloat(render(val))*32768.0);
+		    };
+		}
 	    };
 	    var partials = {
 		'setState': templates[language].setState,
