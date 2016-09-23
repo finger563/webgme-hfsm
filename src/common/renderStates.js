@@ -35,7 +35,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    // takes a state as the scope
             'execute': [
 		"{{prefix}}// STATE::{{name}}",
-		"{{prefix}}if (changeState == 0 && stateLevel_{{stateLevel}} == {{stateName}} {",
+		"{{prefix}}if (changeState == 0 && stateLevel_{{stateLevel}} == {{stateName}}) {",
 		"{{prefix}}  // STATE::{{name}}::TRANSITIONS",
 		"{{prefix}}  {{#transitions}}", // if there are any transitions out of this state
 		"{{prefix}}  {{> transition}}",
@@ -92,7 +92,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    // takes a state as the scope
             'execute': [
 		"{{prefix}}# STATE::{{name}}",
-		"{{prefix}}if (changeState = 0 && stateLevel_{{stateLevel}} = {{statename}} then",
+		"{{prefix}}if (changeState = 0 && stateLevel_{{stateLevel}} = {{stateName}}) then",
 		"{{prefix}}  # STATE::{{name}}::TRANSITIONS",
 		"{{prefix}}  {{#transitions}}",
 		"{{prefix}}  {{> transition}}",
@@ -134,13 +134,17 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    }
 	},
 
-        generateStateFunctions: function(root, language = 'cpp') {
+        generateStateFunctions: function(root, language) {
             var self = this;
+	    if (language === undefined)
+		language = 'cpp';
 	    root.timerFunc = self.getStateCode(root, language, true);
 	    root.stateTransitions = self.getStateCode(root, language, false);
         },
 
-	getSetState: function(state, language = 'cpp') {
+	getSetState: function(state, language) {
+	    if (language === undefined)
+		language = 'cpp';
             // use state.transitions object which was built in loader.processModel()
 	    var tmpl = templates[language].setState;
 	    var view = state;
@@ -149,7 +153,11 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    return mustache.render(tmpl, view, partials);
 	},
 
-        getStateCode: function(root, language = 'cpp', execute = true) {
+        getStateCode: function(root, language, execute) {
+	    if (language === undefined)
+		language = 'cpp';
+	    if (execute === undefined)
+		execute = true;
             var prefix = '  ';
             // use state.transitions object which was built in loader.processModel()
 	    var tmpl = templates[language].timer;

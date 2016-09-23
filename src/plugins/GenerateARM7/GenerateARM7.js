@@ -118,13 +118,17 @@ define([
 	loader.logger = self.logger;
 	renderer.initTemplates()
 
-      	loader.loadModel(self.core, projectNode, true)
+      	loader.loadModel(self.core, projectNode, true, true)
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
-        	return renderer.generateStateFunctions(self.projectModel, 'cpp');
+        	return renderer.generateStateFunctions(self.projectModel, 'bgs');
   	    })
 	    .then(function () {
+		return loader.loadModel(self.core, projectNode, false, false);
+	    })
+	    .then(function (projectJSON) {
+		self.projectJSON = projectJSON;
 		return self.generateArtifacts();
 	    })
 	    .then(function () {
@@ -143,9 +147,9 @@ define([
     GenerateARM7.prototype.generateArtifacts = function () {
 	var self = this;
 
-	self.projectModel.initStateCode = renderer.getSetState(self.projectModel.initState, 'cpp');
+	self.projectModel.initStateCode = renderer.getSetState(self.projectModel.initState, 'bgs');
 
-	//self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectObjects, null, 2);
+	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectJSON, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
     	    projectID: self.project.projectId,
             commitHash: self.commitHash,

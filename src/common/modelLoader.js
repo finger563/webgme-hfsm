@@ -3,8 +3,14 @@
 define(['q'], function(Q) {
     'use strict';
     return {
-	loadModel: function(core, modelNode, doProcessModel) {
+	loadModel: function(core, modelNode, doResolve, doProcessModel) {
 	    var self = this;
+	    if (doResolve === undefined) {
+		doResolve = false;
+	    }
+	    if (doProcessModel === undefined) {
+		doProcessModel = false;
+	    }
 
 	    var nodeName = core.getAttribute(modelNode, 'name'),
 	    nodePath = core.getPath(modelNode),
@@ -75,10 +81,15 @@ define(['q'], function(Q) {
 			});
 			self.model.objects[nodePath] = nodeObj;
 		    });
-		    self.resolvePointers(self.model.objects);
-                    self.model.root = self.model.objects[self.model.root.path];
+
+		    if (doResolve)
+			self.resolvePointers(self.model.objects);
+
+		    self.model.root = self.model.objects[self.model.root.path];
+
 		    if (doProcessModel)
 			self.processModel(self.model);
+
 		    return self.model;
 		});
 	},
@@ -240,7 +251,6 @@ define(['q'], function(Q) {
 	    var init = self.getInitState(state);
 	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;
-		console.log(dst.name);
 		tFunc += init.transitions[0].function + '\n' + self.getInitFunc(dst);
 		init.transitions[0].transitionFunc = tFunc;
 	    }
@@ -265,7 +275,7 @@ define(['q'], function(Q) {
 		var obj = model.objects[objPath];
 		if (obj.type == "State") {
 		    obj.transitions.map(function(trans) {
-			trans.transitionFunc = self.getInitFunc(trans.nextState);
+			trans.transitionFunc = trans.function + '\n' + self.getInitFunc(trans.nextState);
 		    });
 		}
 	    });

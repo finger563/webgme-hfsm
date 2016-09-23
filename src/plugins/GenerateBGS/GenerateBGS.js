@@ -115,13 +115,17 @@ define([
 
 	loader.logger = self.logger;
 
-      	loader.loadModel(self.core, projectNode, true)
+      	loader.loadModel(self.core, projectNode, true, true)
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
         	return self.generateStateFunctions();
   	    })
 	    .then(function () {
+		return loader.loadModel(self.core, projectNode, false, false);
+	    })
+	    .then(function (projectJSON) {
+		self.projectJSON = projectJSON;
 		return self.generateArtifacts();
 	    })
 	    .then(function () {
@@ -166,8 +170,8 @@ define([
     GenerateBGS.prototype.getSetStateCode = function(state, prefix) {
 	var self = this;
 	var code = `${prefix}stateLevel_${state.stateLevel} = ${state.stateName}\n`;
-	if (self.projectObjects[state.parentPath].type == 'State') {
-	    code += self.getSetStateCode(self.projectObjects[state.parentPath], prefix);
+	if (state.parentState) {
+	    code += self.getSetStateCode(state.parentState, prefix);
 	}
 	return code;
     };
@@ -176,11 +180,10 @@ define([
 	var self = this;
 	var transFunc = '';
 	var guard = transition.guard;
-	var nextState = self.projectObjects[transition.nextState];
+	var nextState = transition.nextState;
 	//self.notify('info', state.name);
-	var transitionFunc = transition.function;
-	transitionFunc += self.getInitFunc(nextState);
-	nextState = self.getStartState(nextState);
+	var transitionFunc = transition.transitionFunc;
+	nextState = loader.getStartState(nextState);
 	var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
 	transFunc += `${prefix}if ( ${guard} ) then\n`;
 	transFunc += `${prefix}  changeState = 1\n`;
@@ -254,76 +257,13 @@ define([
 	return irqFunc;
     };
 
-    GenerateBGS.prototype.getStartState = function(state) {
-	var self = this;
-	var initState = state;
-	//self.notify('info', '\t->'+state.name);
-	if (state.State_list && state.Initial_list) {
-	    if (state.Initial_list.length > 1)
-		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
-	    var init = state.Initial_list[0];
-	    var tPaths = Object.keys(init.transitions);
-	    if (tPaths.length == 1) {
-		var dstPath = init.transitions[tPaths[0]].nextState;
-		initState = self.getStartState(self.projectObjects[dstPath]);
-	    }
-	    else {
-		throw new String("State " + state.name + ", " +state.path+" must have exactly one transition coming out of init!");
-	    }
-	}
-	else if (state.State_list) {
-	    throw new String("State " + state.name + ", " + state.path+" has no init state!");
-	}
-	return initState;
-    };
-
-    GenerateBGS.prototype.getInitFunc = function(state) {
-	var self = this;
-	var initState = state;
-	var tFunc = '\n'
-	//self.notify('info', '\t->'+state.name);
-	if (state.State_list && state.Initial_list) {
-	    if (state.Initial_list.length > 1)
-		throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
-	    var init = state.Initial_list[0];
-	    var tPaths = Object.keys(init.transitions);
-	    if (tPaths.length == 1) {
-		var dstPath = init.transitions[tPaths[0]].nextState;
-		tFunc += init.transitions[tPaths[0]].function + self.getInitFunc(self.projectObjects[dstPath]);
-	    }
-	    else {
-		throw new String("State " + state.name + ", " +state.path+" must have exactly one transition coming out of init!");
-	    }
-	}
-	else if (state.State_list) {
-	    throw new String("State " + state.name + ", " + state.path+" has no init state!");
-	}
-	return tFunc;
-    };
-
     GenerateBGS.prototype.generateArtifacts = function () {
 	var self = this;
 
-	if (self.projectModel.Initial_list) {
-	    var init = self.projectModel.Initial_list[0];
-	    var tPaths = Object.keys(init.transitions);
-	    if (tPaths.length == 1) {
-		var dstPath = init.transitions[tPaths[0]].nextState;
-		var tFunc = init.transitions[tPaths[0]].function;
-		var initState = self.getStartState(self.projectObjects[dstPath]);
-		self.projectModel.initState = initState;
-		self.projectModel.initStateCode = self.getSetStateCode(initState, '  ');
-		self.projectModel.initFunc = tFunc + self.getInitFunc(self.projectObjects[dstPath]);
-	    }
-	    else {
-		throw new String("Top-level FSM must have exactly one initial state!");
-	    }
-	}
-	else {
-	    throw new String("Top-level FSM has no initial state!");
-	}
+	var initState = loader.getStartState(self.projectModel);
+	self.projectModel.initStateCode = self.getSetStateCode(initState, '  ');
 
-	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);
+	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectJSON, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
     	    projectID: self.project.projectId,
             commitHash: self.commitHash,
