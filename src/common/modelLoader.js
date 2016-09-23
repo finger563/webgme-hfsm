@@ -185,6 +185,8 @@ define(['q'], function(Q) {
 	    }
 	    // figure out heirarchy levels and assign state ids
 	    self.makeStateIDs(model);
+	    // make sure all state.transitions have valid .transitionFunc attributes
+	    self.buildTransitionFuncs(model);
 	},
 	recurseStates: function(state, levels, level) {
 	    var self = this;
@@ -236,9 +238,10 @@ define(['q'], function(Q) {
 	    var self = this;
             var tFunc = ''
 	    var init = self.getInitState(state);
-	    if (init.transitions.length) {
+	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;
-		tFunc += init.transitions[0].function + '\n' + self.getTransitionFunc(dst);
+		console.log(dst.name);
+		tFunc += init.transitions[0].function + '\n' + self.getInitFunc(dst);
 		init.transitions[0].transitionFunc = tFunc;
 	    }
             return tFunc;	    
@@ -247,15 +250,15 @@ define(['q'], function(Q) {
 	    // recurses to get the leaf init state
 	    var self = this;
 	    var init = self.getInitState(state);
-	    if (init.transitions.length) {
+	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;
 		init = self.getStartState(dst);
 	    }
-            return initState;
+            return init;
 	},
 	buildTransitionFuncs: function(model) {
 	    var self = this;
-	    model.initState = self.getStartState(model.root);
+	    model.root.initState = self.getStartState(model.root);
 	    model.root.initFunc = self.getInitFunc(model.root);
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {

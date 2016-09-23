@@ -53,15 +53,7 @@ end
 event hardware_soft_timer(handle)
   changeState = 0
   # Generated code to execute state transitions and state functions:
-<%
-if (model.State_list) {
-  model.State_list.map(function(state) {
--%>
-<%- state.timerFunc %>
-<%
-  });
-}
--%>
+<%- model.timerFunc %>
 end
 <%
 if (model.Event_list) {

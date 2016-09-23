@@ -116,12 +116,13 @@ define([
 	self.artifacts = {}; // will be filled out and used by various parts of this plugin
 
 	loader.logger = self.logger;
+	renderer.initTemplates()
 
       	loader.loadModel(self.core, projectNode, true)
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
-        	return renderer.generateStateFunctions(self.projectModel, self.projectObjects);
+        	return renderer.generateStateFunctions(self.projectModel, 'cpp');
   	    })
 	    .then(function () {
 		return self.generateArtifacts();
@@ -142,27 +143,9 @@ define([
     GenerateARM7.prototype.generateArtifacts = function () {
 	var self = this;
 
-	if (self.projectModel.Initial_list) {
-	    var init = self.projectModel.Initial_list[0];
-	    var tPaths = Object.keys(init.transitions);
-	    if (tPaths.length == 1) {
-		var dstPath = init.transitions[tPaths[0]].nextState;
-		var tFunc = init.transitions[tPaths[0]].function;
-		var initState = renderer.getStartState(self.projectObjects[dstPath], self.projectObjects);
-		self.projectModel.initState = initState;
-		self.projectModel.initStateCode = renderer.getSetStateCode(initState, '  ', self.projectObjects);
-		self.projectModel.initFunc = tFunc +
-		    renderer.getInitFunc(self.projectObjects[dstPath], self.projectObjects);
-	    }
-	    else {
-		throw new String("Top-level FSM must have exactly one initial state!");
-	    }
-	}
-	else {
-	    throw new String("Top-level FSM has no initial state!");
-	}
+	self.projectModel.initStateCode = renderer.getSetState(self.projectModel.initState, 'cpp');
 
-	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectModel, null, 2);
+	//self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectObjects, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
     	    projectID: self.project.projectId,
             commitHash: self.commitHash,
