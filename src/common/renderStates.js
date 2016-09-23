@@ -19,10 +19,10 @@ define(['mustache/mustache','q'], function(mustache,Q) {
             'transition': [
 		"{{prefix}}if ( {{&guard}} ) {",
 		"{{prefix}}  changeState = 1;",
-		"{{prefix}}  // TRANSITION::{{prevState.name}}->{{nextState.name}}",
-		"{{#nextState}}",
+		"{{prefix}}  // TRANSITION::{{prevState.name}}->{{finalState.name}}",
+		"{{#finalState}}",
 		"{{prefix}}  {{> setState}}",
-		"{{/nextState}}",
+		"{{/finalState}}",
 		"{{prefix}}  //stop the current state timer (to change period)",
 		"{{prefix}}  hardware_set_soft_timer( 0, state_timer_handle, 0);",
 		"{{prefix}}  // start state timer (@ next states period)",
@@ -72,30 +72,25 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{/parentState}}"
 	    ],
 
-	    // takes a transition as the scope (needs previous state for transition to be pre-processed)
-            'transition': [
-		"{{prefix}}if ( {{&guard}} ) then",
-		"{{prefix}}  changeState = 1",
-		"{{prefix}}  # TRANSITION::{{prevState.name}}->{{nextState.name}}",
-		"{{#nextState}}",
-		"{{prefix}}  {{> setState}}",
-		"{{/nextState}}",
-		"{{prefix}}  # stop the current state timer (to change period)",
-		"{{prefix}}  call hardware_set_soft_timer( 0, state_timer_handle, 0)",
-		"{{prefix}}  # start state timer (@ next states period)",
-		"{{prefix}}  call hardware_set_soft_timer({{parseInt(parseFloat(timerPeriod)*32768.0)}},state_timer_handle,0)",
-		"{{prefix}}  # execute the transition function",
-		"{{prefix}}  {{&transitionFunc}}",
-		"{{prefix}}end if"
-	    ],
-
 	    // takes a state as the scope
             'execute': [
 		"{{prefix}}# STATE::{{name}}",
 		"{{prefix}}if (changeState = 0 && stateLevel_{{stateLevel}} = {{stateName}}) then",
 		"{{prefix}}  # STATE::{{name}}::TRANSITIONS",
 		"{{prefix}}  {{#transitions}}",
-		"{{prefix}}  {{> transition}}",
+		"{{prefix}}  if ( {{&guard}} ) then",
+		"{{prefix}}    changeState = 1",
+		"{{prefix}}    # TRANSITION::{{prevState.name}}->{{finalState.name}}",
+		"{{#finalState}}",
+		"{{prefix}}    {{> setState}}",
+		"{{/finalState}}",
+		"{{prefix}}    # stop the current state timer (to change period)",
+		"{{prefix}}    call hardware_set_soft_timer( 0, state_timer_handle, 0)",
+		"{{prefix}}    # start state timer (@ next states period)",
+		"{{prefix}}    call hardware_set_soft_timer({{parseInt(parseFloat(timerPeriod)*32768.0)}},state_timer_handle,0)",
+		"{{prefix}}    # execute the transition function",
+		"{{prefix}}    {{&transitionFunc}}",
+		"{{prefix}}  end if",
 		"{{prefix}}  {{/transitions}}",
 		"{{prefix}}  {{#State_list}}",
 		"{{prefix}}  {{> execute}}",
@@ -149,7 +144,9 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    var tmpl = templates[language].setState;
 	    var view = state;
 	    view.prefix = '';
-	    var partials = {};
+	    var partials = {
+		'setState': templates[language].setState,
+	    };
 	    return mustache.render(tmpl, view, partials);
 	},
 
@@ -168,7 +165,6 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    };
 	    var partials = {
 		'setState': templates[language].setState,
-		'transition': templates[language].transition,
 		'execute': templates[language].execute,
 	    };
 	    return mustache.render(tmpl, view, partials);

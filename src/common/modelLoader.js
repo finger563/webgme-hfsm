@@ -21,32 +21,32 @@ define(['q'], function(Q) {
 	    pointers = core.getPointerNames(modelNode),
 	    sets = core.getSetNames(modelNode);
 
-	    self.model = {
+	    var model = {
 		'objects': {
 		},
-		'root': {
-		    name: nodeName,
-		    path: nodePath,
-		    type: nodeType,
-		    parentPath: parentPath,
-		    childPaths: childPaths,
-		    attributes: {},
-		    pointers: {},
-		    sets: {}
-		}
+		'root': nodePath
+	    };
+	    model.objects[nodePath] = {
+		name: nodeName,
+		path: nodePath,
+		type: nodeType,
+		parentPath: parentPath,
+		childPaths: childPaths,
+		attributes: {},
+		pointers: {},
+		sets: {}
 	    };
 	    attributes.map(function(attribute) {
 		var val = core.getAttribute(modelNode, attribute);
-		self.model.root.attributes[attribute] = val;
-		self.model.root[attribute] = val;
+		model.objects[nodePath].attributes[attribute] = val;
+		model.objects[nodePath][attribute] = val;
 	    });
 	    pointers.map(function(pointer) {
-		self.model.root.pointers[pointer] = core.getPointerPath(modelNode, pointer);
+		model.objects[nodePath].pointers[pointer] = core.getPointerPath(modelNode, pointer);
 	    });
 	    sets.map(function(set) {
-		self.model.root.sets[set] = core.getMemberPaths(modelNode, set);
+		model.objects[nodePath].sets[set] = core.getMemberPaths(modelNode, set);
 	    });
-	    self.model.objects[nodePath] = self.model.root;
 	    return core.loadSubTree(modelNode)
 		.then(function(nodes) {
 		    nodes.map(function(node) {
@@ -58,7 +58,7 @@ define(['q'], function(Q) {
 			childPaths = core.getChildrenPaths(node);
 			pointers = core.getPointerNames(node);
 			sets = core.getSetNames(node);
-			var nodeObj = {
+			model.objects[nodePath] = {
 			    name: nodeName,
 			    path: nodePath,
 			    type: nodeType,
@@ -70,27 +70,26 @@ define(['q'], function(Q) {
 			};
 			attributes.map(function(attribute) {
 			    var val = core.getAttribute(node, attribute);
-			    nodeObj.attributes[attribute] = val;
-			    nodeObj[attribute] = val;
+			    model.objects[nodePath].attributes[attribute] = val;
+			    model.objects[nodePath][attribute] = val;
 			});
 			pointers.map(function(pointer) {
-			    nodeObj.pointers[pointer] = core.getPointerPath(node, pointer);
+			    model.objects[nodePath].pointers[pointer] = core.getPointerPath(node, pointer);
 			});
 			sets.map(function(set) {
-			    nodeObj.sets[set] = core.getMemberPaths(node, set);
+			    model.objects[nodePath].sets[set] = core.getMemberPaths(node, set);
 			});
-			self.model.objects[nodePath] = nodeObj;
 		    });
 
 		    if (doResolve)
-			self.resolvePointers(self.model.objects);
-
-		    self.model.root = self.model.objects[self.model.root.path];
+			self.resolvePointers(model.objects);
 
 		    if (doProcessModel)
-			self.processModel(self.model);
+			self.processModel(model);
 
-		    return self.model;
+		    model.root = model.objects[model.root]
+
+		    return model;
 		});
 	},
 	resolvePointers: function(objects) {
@@ -168,6 +167,14 @@ define(['q'], function(Q) {
 		else if (obj.type == 'State') {
 		    var stateName = obj.name.replace(' ','_');
 		    var parentObj = model.objects[obj.parentPath];
+		    // make sure the state has a ParentState that either exists or is null
+		    if (parentObj && parentObj.type == 'State') {
+			obj.parentState = model.objects[obj.parentPath];
+		    }
+		    else {
+			obj.parentState = null;
+		    }
+		    // make sure we have a relatively unique name for the state
 		    while (parentObj && parentObj.type == 'State') {
 			stateName = parentObj.name.replace(' ','_') + '_'+stateName;
 			parentObj = model.objects[parentObj.parentPath];
@@ -181,18 +188,11 @@ define(['q'], function(Q) {
 		    if (!obj.State_list) {
 			obj.State_list = null;
 		    }
-		    // make sure the state has a ParentState that either exists or is null
-		    if (model.objects[obj.parentPath].type == 'State') {
-			obj.parentState = model.objects[obj.parentPath];
-		    }
-		    else {
-			obj.parentState = null;
-		    }
 		}
 	    });
 	    // sort the libraries according to their order
-	    if (model.root.Library_list) {
-		model.root.Library_list.sort(function(a,b) {return a.order-b.order});
+	    if (model.objects[model.root].Library_list) {
+		model.objects[model.root].Library_list.sort(function(a,b) {return a.order-b.order});
 	    }
 	    // figure out heirarchy levels and assign state ids
 	    self.makeStateIDs(model);
@@ -217,11 +217,11 @@ define(['q'], function(Q) {
 	makeStateIDs: function(model) {
 	    var self = this;
 	    var levels = [];
-	    if (model.root.State_list) {
-		model.root.State_list.map(function(state) {
+	    if (model.objects[model.root].State_list) {
+		model.objects[model.root].State_list.map(function(state) {
 		    self.recurseStates(state, levels, 0);
 		});
-		model.root.numHeirarchyLevels = levels.length;
+		model.objects[model.root].numHeirarchyLevels = levels.length;
 	    }
 	},
 	getInitState: function(state) {
@@ -268,14 +268,15 @@ define(['q'], function(Q) {
 	},
 	buildTransitionFuncs: function(model) {
 	    var self = this;
-	    model.root.initState = self.getStartState(model.root);
-	    model.root.initFunc = self.getInitFunc(model.root);
+	    model.objects[model.root].initState = self.getStartState(model.objects[model.root]);
+	    model.objects[model.root].initFunc = self.getInitFunc(model.objects[model.root]);
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
 		if (obj.type == "State") {
 		    obj.transitions.map(function(trans) {
 			trans.transitionFunc = trans.function + '\n' + self.getInitFunc(trans.nextState);
+			trans.finalState = self.getStartState(trans.nextState);
 		    });
 		}
 	    });
