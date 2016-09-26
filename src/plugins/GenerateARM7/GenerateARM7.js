@@ -122,7 +122,7 @@ define([
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
-        	return renderer.generateStateFunctions(self.projectModel, 'bgs');
+        	return renderer.generateStateFunctions(self.projectModel, 'cpp');
   	    })
 	    .then(function () {
 		return loader.loadModel(self.core, projectNode, false, false);

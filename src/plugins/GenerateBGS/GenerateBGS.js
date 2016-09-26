@@ -22,6 +22,7 @@ define([
     'text!./static/hardware.xml',
     'text!./static/v1_uuids.txt',
     'text!./static/v4_uuids.txt',
+    'hfsm/renderStates',
     'hfsm/modelLoader',
     'q'
 ], function (
@@ -39,6 +40,7 @@ define([
     HARDWARE,
     V1UUIDS,
     V4UUIDS,
+    renderer,
     loader,
     Q) {
     'use strict';
@@ -114,12 +116,13 @@ define([
 	self.artifacts = {}; // will be filled out and used by various parts of this plugin
 
 	loader.logger = self.logger;
+	renderer.initTemplates()
 
       	loader.loadModel(self.core, projectNode, true, true)
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
-        	return self.generateStateFunctions();
+        	return renderer.generateStateFunctions(self.projectModel, 'bgs');
   	    })
 	    .then(function () {
 		return loader.loadModel(self.core, projectNode, false, false);
@@ -141,127 +144,10 @@ define([
 		.done();
     };
 
-    /* 
-       TODO:
-	* Figure out how to properly handle END states
-    */
-
-    GenerateBGS.prototype.generateStateFunctions = function () {
-	var self = this;
-	if (self.projectModel.State_list) {
-	    self.projectModel.stateTransitions = '';
-	    self.projectModel.State_list.map(function(state) {
-		self.getStateTimer(state, '  ');
-		self.getStateIRQ(state, '  ');
-		self.projectModel.stateTransitions += state.irqFunc + '\n';
-	    });
-	}
-    };
-
-    GenerateBGS.prototype.getStateGuardCode = function(state, prefix) {
-	var self = this;
-	var guardCode = '';
-	guardCode += `${prefix}# STATE::${state.name}\n`;
-	guardCode += `${prefix}if (changeState = 0 && stateLevel_${state.stateLevel} = ${state.stateName}) then\n`;
-	guardCode += `${prefix}  # STATE::${state.name}::TRANSITIONS\n`;
-	return guardCode;
-    };
-
-    GenerateBGS.prototype.getSetStateCode = function(state, prefix) {
-	var self = this;
-	var code = `${prefix}stateLevel_${state.stateLevel} = ${state.stateName}\n`;
-	if (state.parentState) {
-	    code += self.getSetStateCode(state.parentState, prefix);
-	}
-	return code;
-    };
-    
-    GenerateBGS.prototype.getTransitionCode = function(state, transition, prefix) {
-	var self = this;
-	var transFunc = '';
-	var guard = transition.guard;
-	var nextState = transition.nextState;
-	//self.notify('info', state.name);
-	var transitionFunc = transition.transitionFunc;
-	nextState = loader.getStartState(nextState);
-	var period = parseInt(parseFloat(nextState.timerPeriod) * 32768.0);
-	transFunc += `${prefix}if ( ${guard} ) then\n`;
-	transFunc += `${prefix}  changeState = 1\n`;
-	transFunc += `${prefix}  # TRANSITION::${state.name}->${nextState.name}\n`;
-	transFunc += self.getSetStateCode(nextState, prefix + '  ');
-	transFunc += `${prefix}  # stop the current state timer (to change period)\n`;
-	transFunc += `${prefix}  call hardware_set_soft_timer( 0, state_timer_handle, 0)\n`;
-	transFunc += `${prefix}  # start state timer (@ next states period)\n`;
-	transFunc += `${prefix}  call hardware_set_soft_timer( ${period}, state_timer_handle, 0)\n`;
-	transFunc += `${prefix}  # execute the transition function\n`;
-	var tLines = transitionFunc.split('\n');
-	tLines.map(function(line) {
-	    transFunc += `${prefix}  ${line}\n`;
-	});
-	transFunc += `${prefix}end if\n`;
-	return transFunc;
-    };
-
-    GenerateBGS.prototype.getStateTimer = function(state, prefix) {
-	var self = this;
-	if (prefix === undefined) {
-	    prefix = '';
-	}
-	// use state.transitions object which was built in loader.processModel()
-	var tPaths = Object.keys(state.transitions);
-	var timerFunc = '';
-	timerFunc += self.getStateGuardCode(state, prefix);
-	var tPaths = Object.keys(state.transitions);
-	tPaths.map(function(tPath) {
-	    timerFunc += self.getTransitionCode(state, state.transitions[tPath], prefix + '  ');
-	});
-	if (state.State_list) {
-	    state.State_list.map(function(substate) {
-		var subStateFunc = self.getStateTimer(substate, prefix + '  ');
-		timerFunc += subStateFunc;
-	    });
-	}
-	timerFunc += `${prefix}  # STATE::${state.name}::FUNCTION\n`;
-	timerFunc += `${prefix}  if (changeState = 0) then\n`;
-	var funcLines = state.function.split('\n');
-	funcLines.map(function(line) {
-	    timerFunc += `${prefix}    ${line}\n`;
-	});
-	timerFunc += `${prefix}  end if\n`;
-	timerFunc += `${prefix}end if\n`;
-	state.timerFunc = timerFunc;
-	return timerFunc;
-    };
-
-    GenerateBGS.prototype.getStateIRQ = function(state, prefix) {
-	var self = this;
-	if (prefix === undefined) {
-	    prefix = '';
-	}
-	// use state.transitions object which was built in loader.processModel()
-	var tPaths = Object.keys(state.transitions);
-	var irqFunc = '';
-	irqFunc += self.getStateGuardCode(state, prefix);
-	var tPaths = Object.keys(state.transitions);
-	tPaths.map(function(tPath) {
-	    irqFunc += self.getTransitionCode(state, state.transitions[tPath], prefix + '  ');
-	});
-	if (state.State_list) {
-	    state.State_list.map(function(substate) {
-		var subStateFunc = self.getStateIRQ(substate, prefix + '  ');
-		irqFunc += subStateFunc;
-	    });
-	}
-	irqFunc += `${prefix}end if\n`;
-	state.irqFunc = irqFunc;
-	return irqFunc;
-    };
-
     GenerateBGS.prototype.generateArtifacts = function () {
 	var self = this;
 
-	var initState = loader.getStartState(self.projectModel);
-	self.projectModel.initStateCode = self.getSetStateCode(initState, '  ');
+	self.projectModel.initStateCode = renderer.getSetState(self.projectModel.initState, 'bgs');
 
 	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectJSON, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({

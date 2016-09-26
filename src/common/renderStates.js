@@ -1,5 +1,10 @@
 // This code relies on the pre-processing done to the model by modelLoader.js
 
+/* 
+TODO:
+  * Figure out how to properly handle END states
+*/
+
 define(['mustache/mustache','q'], function(mustache,Q) {
     'use strict';
 
