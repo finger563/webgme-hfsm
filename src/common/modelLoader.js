@@ -180,6 +180,7 @@ define(['q'], function(Q) {
 			stateName = parentObj.name.replace(' ','_') + '_'+stateName;
 			parentObj = model.objects[parentObj.parentPath];
 		    }
+		    // set the state name
 		    obj.stateName = 'state_'+stateName;
 		    // make sure all states have transitions, even if empty!
 		    if (!obj.transitions) {
@@ -189,6 +190,8 @@ define(['q'], function(Q) {
 		    if (!obj.State_list) {
 			obj.State_list = null;
 		    }
+		    // update the prefix for the state function
+		    obj.function = obj.function.replace(/^(\S|\s)/gm, "    $1");
 		}
 	    });
 	    // sort the libraries according to their order
@@ -277,6 +280,8 @@ define(['q'], function(Q) {
 		if (obj.type == "State") {
 		    obj.transitions.map(function(trans) {
 			trans.transitionFunc = trans.function + '\n' + self.getInitFunc(trans.nextState);
+			// update the prefix for the transition function
+			trans.transitionFunc = trans.transitionFunc.replace(/^(\S|\s)/gm, '    $1');
 			trans.finalState = self.getStartState(trans.nextState);
 		    });
 		}

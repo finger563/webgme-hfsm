@@ -64,10 +64,27 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	'bgs': {
 	    // takes a state as the scope (doesn't need any further pre-processing)
             'setState': [
-		"stateLevel_{{stateLevel}} = {{stateName}}",
+		"    stateLevel_{{stateLevel}} = {{stateName}}",
 		"{{#parentState}}",
 		"{{> setState}}", // recurse here
 		"{{/parentState}}"
+	    ],
+
+	    // takes a transition as the scope
+	    'transition': [
+		"  if ( {{&guard}} ) then",
+		"    changeState = 1",
+		"    # TRANSITION::{{prevState.name}}->{{finalState.name}}",
+		"{{#finalState}}",
+		"{{> setState}}",
+		"    # stop the current state timer (to change period)",
+		"    call hardware_set_soft_timer( 0, state_timer_handle, 0)",
+		"    # start state timer (@ next states period)",
+		"    call hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0)",
+		"{{/finalState}}",
+		"    # execute the transition function", // run the transition function
+		"{{&transitionFunc}}", // not indented because we pre-indent the function
+		"  end if # END::TRANSITION::{{prevState.name}}->{{finalState.name}}\n",
 	    ],
 
 	    // takes a state as the scope
@@ -76,35 +93,23 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"# STATE::{{name}}",
 		"if (changeState = 0 && stateLevel_{{stateLevel}} = {{stateName}}) then",
 		"  # STATE::{{name}}::TRANSITIONS",
-		"  {{#transitions}}",
-		"  if ( {{&guard}} ) then",
-		"    changeState = 1",
-		"    # TRANSITION::{{prevState.name}}->{{finalState.name}}",
-		"{{#finalState}}",
-		"    {{> setState}}",
-		"    # stop the current state timer (to change period)",
-		"    call hardware_set_soft_timer( 0, state_timer_handle, 0)",
-		"    # start state timer (@ next states period)",
-		"    call hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0)",
-		"{{/finalState}}",
-		"    # execute the transition function",
-		"    {{&transitionFunc}}",
-		"  end if",
-		"  {{/transitions}}",
-		"  {{#State_list}}",
-		"  {{> execute}}",
-		"  {{/State_list}}",
+		"{{#transitions}}",
+		"{{> transition}}",// check all transitions 
+		"{{/transitions}}",
+		"{{#State_list}}",
+		"{{> execute}}",   // execute all substates (transitions and functions)
+		"{{/State_list}}",
 		"{{#execute}}",
-		"  # STATE::${name}::FUNCTION",
+		"  # STATE::{{name}}::FUNCTION",
 		"  if (changeState = 0) then",
-		"    {{&function}}",
-		"  end if",
+		"{{&function}}",   // run the state function
+		"  end if # END::STATE::FUNCTION",
 		"{{/execute}}",
-		"end if\n",
+		"end if # END::STATE::{{name}}\n",
 		"{{/getPrefix}}",
 	    ],
 
-	    // takes a scope with: root, prefix, and execute
+	    // takes a scope with: root(state), getPrefix(function), and execute(bool)
 	    // takes partials with: execute, transition, setState
 	    'timer': [
 		"{{#root.State_list}}",
@@ -140,7 +145,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	getPrefix: function() {
 	    return function(val, render) {
 		var rendered = render(val);
-		var prefix = '';
+		var prefix = '  ';
 		for (var i=0; i <this.stateLevel; i++) {
 		    prefix += '  ';
 		}
@@ -167,12 +172,10 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		language = 'cpp';
 	    if (execute === undefined)
 		execute = true;
-            var prefix = '  ';
             // use state.transitions object which was built in loader.processModel()
 	    var tmpl = templates[language].timer;
 	    var view = {
 		root: root,
-		prefix: prefix,
 		execute: execute,
 		convertPeriod: function() {
 		    return function(val, render) {
@@ -183,6 +186,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    };
 	    var partials = {
 		'setState': templates[language].setState,
+		'transition': templates[language].transition,
 		'execute': templates[language].execute,
 	    };
 	    return mustache.render(tmpl, view, partials);
