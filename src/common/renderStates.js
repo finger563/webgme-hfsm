@@ -23,8 +23,6 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{#finalState}}",
 		"{{prefix}}  {{> setState}}",
 		"{{/finalState}}",
-		"{{prefix}}  //stop the current state timer (to change period)",
-		"{{prefix}}  hardware_set_soft_timer( 0, state_timer_handle, 0);",
 		"{{prefix}}  // start state timer (@ next states period)",
 		"{{prefix}}  hardware_set_soft_timer( {{timerPeriod}}, state_timer_handle, 0);",
 		"{{prefix}}  // execute the transition function",
@@ -72,12 +70,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{/parentState}}"
 	    ],
 
-	    // takes a state as the scope
-            'execute': [
-		"{{prefix}}# STATE::{{name}}",
-		"{{prefix}}if (changeState = 0 && stateLevel_{{stateLevel}} = {{stateName}}) then",
-		"{{prefix}}  # STATE::{{name}}::TRANSITIONS",
-		"{{prefix}}  {{#transitions}}",
+	    'transition': [
 		"{{prefix}}  if ( {{&guard}} ) then",
 		"{{prefix}}    changeState = 1",
 		"{{prefix}}    # TRANSITION::{{prevState.name}}->{{finalState.name}}",
@@ -91,6 +84,15 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{prefix}}    # execute the transition function",
 		"{{prefix}}    {{&transitionFunc}}",
 		"{{prefix}}  end if",
+	    ],
+
+	    // takes a state as the scope
+            'execute': [
+		"{{prefix}}# STATE::{{name}}",
+		"{{prefix}}if (changeState = 0 && stateLevel_{{stateLevel}} = {{stateName}}) then",
+		"{{prefix}}  # STATE::{{name}}::TRANSITIONS",
+		"{{prefix}}  {{#transitions}}",
+		"{{prefix}}  {{> transition}}",
 		"{{prefix}}  {{/transitions}}",
 		"{{prefix}}  {{#State_list}}",
 		"{{prefix}}  {{> execute}}",
@@ -170,6 +172,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    };
 	    var partials = {
 		'setState': templates[language].setState,
+		'transition': templates[language].transition,
 		'execute': templates[language].execute,
 	    };
 	    return mustache.render(tmpl, view, partials);

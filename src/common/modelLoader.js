@@ -159,6 +159,7 @@ define(['q'], function(Q) {
 			    'function' : obj.function,
 			    'prevState' : model.objects[src.path],
 			    'nextState' : model.objects[dst.path],
+			    'finalState': null,
 			    'transitionFunc': ''
 			});
 		    }
@@ -252,19 +253,19 @@ define(['q'], function(Q) {
 	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;
 		tFunc += init.transitions[0].function + '\n' + self.getInitFunc(dst);
-		init.transitions[0].transitionFunc = tFunc;
 	    }
             return tFunc;	    
 	},
 	getStartState: function(state) {
 	    // recurses to get the leaf init state
 	    var self = this;
+	    var start = state
 	    var init = self.getInitState(state);
 	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;
-		init = self.getStartState(dst);
+		start = self.getStartState(dst);
 	    }
-            return init;
+            return start;
 	},
 	buildTransitionFuncs: function(model) {
 	    var self = this;
