@@ -13,6 +13,7 @@ define([
     'plugin/PluginBase',
     'common/util/ejs', // for ejs templates
     './Templates/Templates',
+    'text!./static/compile.cmd',
     'text!./static/project.bgproj',
     'text!./static/project.xml',
     'text!./static/attributes.txt',
@@ -31,6 +32,7 @@ define([
     PluginBase,
     ejs,
     TEMPLATES,
+    COMPILE,
     BGPROJ,
     PROJ,
     ATTRIBUTES,
@@ -191,6 +193,7 @@ define([
 	}
 
 	// render all static files (needed for actually building and deploying)
+	self.artifacts['compile.cmd'] = COMPILE;
 	self.artifacts['project.bgproj'] = BGPROJ;
 	self.artifacts['project.xml'] = PROJ;
 	self.artifacts['attributes.txt'] = ATTRIBUTES;

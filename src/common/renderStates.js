@@ -14,7 +14,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	'cpp': {
 	    // takes a state as the scope (doesn't need any further pre-processing)
             'setState': [
-		"stateLevel_{{stateLevel}} = {{stateName}};",
+		"    stateLevel_{{stateLevel}} = {{stateName}};",
 		"{{#parentState}}",
 		"{{> setState}}", // recurse here
 		"{{/parentState}}"
@@ -22,40 +22,42 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 
 	    // takes a transition as the scope (needs previous state for transition to be pre-processed)
             'transition': [
-		"if ( {{&guard}} ) {",
-		"  changeState = 1;",
-		"  // TRANSITION::{{prevState.name}}->{{finalState.name}}",
+		"  if ( {{&guard}} ) {",
+		"    changeState = 1;",
+		"    // TRANSITION::{{prevState.name}}->{{finalState.name}}",
 		"{{#finalState}}",
-		"  {{> setState}}",
+		"{{> setState}}",
+		"    // start state timer (@ next states period)",
+		"    hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0);",
 		"{{/finalState}}",
-		"  // start state timer (@ next states period)",
-		"  hardware_set_soft_timer( {{timerPeriod}}, state_timer_handle, 0);",
-		"  // execute the transition function",
-		"  {{&transitionFunc}}",
-		"}"
+		"    // execute the transition function",
+		"{{&transitionFunc}}",
+		"  } // END::TRANSITION::{{prevState.name}}->{{finalState.name}}\n"
 	    ],
 
 	    // takes a state as the scope
             'execute': [
+		"{{#getPrefix}}",
 		"// STATE::{{name}}",
 		"if (changeState == 0 && stateLevel_{{stateLevel}} == {{stateName}}) {",
 		"  // STATE::{{name}}::TRANSITIONS",
-		"  {{#transitions}}", // if there are any transitions out of this state
-		"  {{> transition}}",
-		"  {{/transitions}}",
-		"  {{#State_list}}",
-		"  {{> execute}}",  // recurse here
-		"  {{/State_list}}",
-		"{{#execute}}", // only add the following if execute is true
+		"{{#transitions}}", 
+		"{{> transition}}", // check all transitions 
+		"{{/transitions}}",
+		"{{#State_list}}",
+		"{{> execute}}",    // execute all substates (transitions and functions)
+		"{{/State_list}}",
+		"{{#execute}}",     // only add the following if execute is true
 		"  // STATE::${name}::FUNCTION",
 		"  if (changeState == 0) {",
-		"    {{&function}}",
+		"{{&function}}",    // run the state function
 		"  }",
 		"{{/execute}}",
-		"}"
+		"}",
+		"{{/getPrefix}}",
 	    ],
 
-	    // takes a scope with: root, prefix, and execute
+	    // takes a scope with: root(state), getPrefix(function), and execute(bool)
 	    // takes partials with: execute, transition, setState
 	    'timer': [
 		"{{#root.State_list}}",
@@ -104,7 +106,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{#State_list}}",
 		"{{> execute}}",   // execute all substates (transitions and functions)
 		"{{/State_list}}",
-		"{{#execute}}",
+		"{{#execute}}",    // only add the following if execute is true
 		"  # STATE::{{name}}::FUNCTION",
 		"  if (changeState = 0) then",
 		"{{&function}}",   // run the state function
