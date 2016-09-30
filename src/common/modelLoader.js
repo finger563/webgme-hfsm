@@ -192,6 +192,8 @@ define(['q'], function(Q) {
 		    }
 		    // update the prefix for the state function
 		    obj.function = obj.function.replace(/^(\S|\s)/gm, "    $1");
+		    // update the prefix for the state initialization
+		    obj.initialization = obj.initialization.replace(/^(\S|\s)/gm, "    $1");
 		}
 	    });
 	    // sort the libraries according to their order

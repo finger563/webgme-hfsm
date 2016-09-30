@@ -61,7 +61,8 @@
 		"initialization": ""
 	    },
 	    "State": {
-		"function": ""
+		"function": "",
+		"initialization": ""
 	    },
 	    "Event": {
 		"definitions": "",
