@@ -30,19 +30,11 @@ const <%- state.stateName %> = <%- state.stateID %>
 
 # The system_boot handler deals with all initialization needed.
 event system_boot(major, minor, patch, build, ll_version, protocol_version, hw)
-  # user initialization code:
-  #
-  # START USER CODE
-  #
-<%- model.initialization %>
-  #
-  # END USER CODE
-  #
   # generated initialization code for the state machine:
   changeState = 0
   # STATE::<%- model.initState.name %>
 <%- model.initStateCode %>
-  # execute the init transition for the chart
+  # execute the init transition for the chart (including user initialization code)
 <%- model.initFunc %>  
   # Start the state timer
   call hardware_set_soft_timer(<%- parseInt(parseFloat(model.initState.timerPeriod) * 32768.0) %>, state_timer_handle, 0)

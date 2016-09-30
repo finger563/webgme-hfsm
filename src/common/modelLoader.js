@@ -192,8 +192,6 @@ define(['q'], function(Q) {
 		    }
 		    // update the prefix for the state function
 		    obj.function = obj.function.replace(/^(\S|\s)/gm, "    $1");
-		    // update the prefix for the state initialization
-		    obj.initialization = obj.initialization.replace(/^(\S|\s)/gm, "    $1");
 		}
 	    });
 	    // sort the libraries according to their order
@@ -253,7 +251,7 @@ define(['q'], function(Q) {
 	getInitFunc: function(state) {
 	    // recurses to build up the transition function for an arbitrarily nested set of init states.
 	    var self = this;
-            var tFunc = ''
+            var tFunc = state.initialization + '\n';
 	    var init = self.getInitState(state);
 	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;

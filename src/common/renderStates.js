@@ -32,7 +32,6 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{/finalState}}",
 		"    // execute the transition function",
 		"{{&transitionFunc}}",
-		"{{&prevState.initialization}}",
 		"  } // END::TRANSITION::{{prevState.name}}->{{finalState.name}}\n"
 	    ],
 
@@ -92,7 +91,6 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{/finalState}}",
 		"    # execute the transition function", // run the transition function
 		"{{&transitionFunc}}", // not indented because we pre-indent the function
-		"{{&prevState.initialization}}",
 		"  end if # END::TRANSITION::{{prevState.name}}->{{finalState.name}}\n",
 	    ],
 
