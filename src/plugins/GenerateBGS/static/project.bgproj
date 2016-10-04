@@ -7,5 +7,5 @@
     <image out="out.hex" />    
 	<device type="ble113" memory="256"/>
 	<boot fw="bootota" />
-	<ota out="myimage.ota" />
+	<ota out="myimage.ota" firmware="false"/>
 </project>
