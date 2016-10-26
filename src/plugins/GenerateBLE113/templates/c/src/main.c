@@ -46,7 +46,7 @@ if (model.Library_list) {
 }
 -%>
 
-int changeState = 0;
+uint32 changeState = 0;
 int stateDelay = 0;
 <%
 for (var i=0; i<model.numHeirarchyLevels; i++) {
