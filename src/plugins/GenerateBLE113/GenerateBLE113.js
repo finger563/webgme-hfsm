@@ -12,17 +12,7 @@ define([
     'text!./metadata.json',
     'plugin/PluginBase',
     'common/util/ejs', // for ejs templates
-    './Templates/Templates',
-    'text!./static/compile.cmd',
-    'text!./static/project.bgproj',
-    'text!./static/project.xml',
-    'text!./static/attributes.txt',
-    'text!./static/cdc.xml',
-    'text!./static/config.xml',
-    'text!./static/gatt.xml',
-    'text!./static/hardware.xml',
-    'text!./static/v1_uuids.txt',
-    'text!./static/v4_uuids.txt',
+    './templates/Templates',
     'hfsm/renderStates',
     'hfsm/modelLoader',
     'q'
@@ -32,16 +22,6 @@ define([
     PluginBase,
     ejs,
     TEMPLATES,
-    COMPILE,
-    BGPROJ,
-    PROJ,
-    ATTRIBUTES,
-    CDC,
-    CONFIG,
-    GATT,
-    HARDWARE,
-    V1UUIDS,
-    V4UUIDS,
     renderer,
     loader,
     Q) {
@@ -50,19 +30,16 @@ define([
     pluginMetadata = JSON.parse(pluginMetadata);
 
     /**
-     * Initializes a new instance of GenerateBGS.
+     * Initializes a new instance of GenerateBLE113.
      * @class
      * @augments {PluginBase}
-     * @classdesc This class represents the plugin GenerateBGS.
+     * @classdesc This class represents the plugin GenerateBLE113.
      * @constructor
      */
-    var GenerateBGS = function () {
+    var GenerateBLE113 = function () {
         // Call base class' constructor.
         PluginBase.call(this);
         this.pluginMetadata = pluginMetadata;
-        this.FILES = {
-            'script.bgs': 'script.bgs.ejs'
-        };
     };
 
     /**
@@ -70,13 +47,13 @@ define([
      * This is also available at the instance at this.pluginMetadata.
      * @type {object}
      */
-    GenerateBGS.metadata = pluginMetadata;
+    GenerateBLE113.metadata = pluginMetadata;
 
     // Prototypical inheritance from PluginBase.
-    GenerateBGS.prototype = Object.create(PluginBase.prototype);
-    GenerateBGS.prototype.constructor = GenerateBGS;
+    GenerateBLE113.prototype = Object.create(PluginBase.prototype);
+    GenerateBLE113.prototype.constructor = GenerateBLE113;
 
-    GenerateBGS.prototype.notify = function(level, msg) {
+    GenerateBLE113.prototype.notify = function(level, msg) {
 	var self = this;
 	var prefix = self.projectId + '::' + self.projectName + '::' + level + '::';
 	var max_msg_len = 100;
@@ -101,7 +78,7 @@ define([
      *
      * @param {function(string, plugin.PluginResult)} callback - the result callback
      */
-    GenerateBGS.prototype.main = function (callback) {
+    GenerateBLE113.prototype.main = function (callback) {
         // Use self to access core, project, result, logger etc from PluginBase.
         // These are all instantiated at this point.
         var self = this,
@@ -109,6 +86,9 @@ define([
 
         // Default fails
         self.result.success = false;
+
+	var currentConfig = self.getCurrentConfig();
+	self.language = currentConfig.language;
 
 	// the active node for this plugin is software -> project
 	var projectNode = self.activeNode;
@@ -124,7 +104,7 @@ define([
   	    .then(function (projectModel) {
 		self.projectModel = projectModel.root;
 		self.projectObjects = projectModel.objects;
-        	return renderer.generateStateFunctions(self.projectModel, 'bgs');
+        	return renderer.generateStateFunctions(self.projectModel, self.language);
   	    })
 	    .then(function () {
 		return loader.loadModel(self.core, projectNode, false, false);
@@ -146,7 +126,7 @@ define([
 		.done();
     };
 
-    GenerateBGS.prototype.generateArtifacts = function () {
+    GenerateBLE113.prototype.generateArtifacts = function () {
 	var self = this;
 
 	self.projectModel.initStateCode = renderer.getSetState(self.projectModel.initState, 'bgs');
@@ -168,41 +148,56 @@ define([
 	    }
 	}
 
-	var scriptTemplate = TEMPLATES[self.FILES['script.bgs']];
-	self.artifacts['script.bgs'] = ejs.render(scriptTemplate, {
-	    'model': self.projectModel,
-	    'states': states
-	});
-	// re-render so that users' templates are accounted for
-	self.artifacts['script.bgs'] = ejs.render(self.artifacts['script.bgs'], {
-	    'model': self.projectModel,
-	    'states': states
+	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(function(key) { return key.startsWith(self.language + '/'); });
+	
+	selectedArtifactKeys.map(function(key) {
+	    self.artifacts[key] = ejs.render(TEMPLATES[key], {
+		'model': self.projectModel,
+		'states': states
+	    });
+	    // re-render so that users' templates are accounted for
+	    self.artifacts[key] = ejs.render(self.artifacts[key], {
+		'model': self.projectModel,
+		'states': states
+	    });
 	});
 
 	// make sure to render all libraries
 	if (self.projectModel.Library_list) {
 	    self.projectModel.Library_list.map(function(library) {
-		var libFileName = library.name + '.bgs';
-		self.artifacts[libFileName] = library.code;
-		if (library.Event_list) {
-		    library.Event_list.map(function(event) {
-			self.artifacts[libFileName] += '\n'+event.function;
-		    });
+		if ( self.language == 'bgs') {
+		    var libFileName = 'bgs/'+library.name + '.bgs';
+		    self.artifacts[libFileName] = library.code;
+		    if (library.Event_list) {
+			library.Event_list.map(function(event) {
+			    self.artifacts[libFileName] += '\n'+event.function;
+			});
+		    }
+		}
+		else if ( self.language == 'c' ) {
+		    var prefix = 'c/src/';
+		    var headerFileName = library.name + '.h';
+		    var includeGuard = library.name.toUpperCase() + '_INCLUDE_GUARD_';
+		    self.artifacts[prefix+headerFileName] = "#ifndef " + includeGuard + "\n#define " + includeGuard +'\n';
+		    self.artifacts[prefix+headerFileName] += library.definitions;
+		    if (library.Event_list) {
+			library.Event_list.map(function(event) {
+			    self.artifacts[prefix+headerFileName] += '\n'+event.definition;
+			});
+		    }
+		    self.artifacts[prefix+headerFileName] += "\n#endif //"+includeGuard;
+
+		    var sourceFileName = library.name + '.c';
+		    self.artifacts[prefix+sourceFileName] = '#include "' + headerFileName + '"';
+		    if (library.Event_list) {
+			library.Event_list.map(function(event) {
+			    self.artifacts[prefix+sourceFileName] += '\n'+event.function;
+			});
+		    }
+		    self.artifacts[prefix+sourceFileName] += '\n' + library.code;
 		}
 	    });
 	}
-
-	// render all static files (needed for actually building and deploying)
-	self.artifacts['compile.cmd'] = COMPILE;
-	self.artifacts['project.bgproj'] = BGPROJ;
-	self.artifacts['project.xml'] = PROJ;
-	self.artifacts['attributes.txt'] = ATTRIBUTES;
-	self.artifacts['cdc.xml'] = CDC;
-	self.artifacts['config.xml'] = CONFIG;
-	self.artifacts['gatt.xml'] = GATT;
-	self.artifacts['hardware.xml'] = HARDWARE;
-	self.artifacts['v1_uuids.txt'] = V1UUIDS;
-	self.artifacts['v4_uuids.txt'] = V4UUIDS;
 
 	var fileNames = Object.keys(self.artifacts);
 	var artifact = self.blobClient.createArtifact('GeneratedFiles');
@@ -224,5 +219,5 @@ define([
 	return deferred.promise;
     };
 
-    return GenerateBGS;
+    return GenerateBLE113;
 });

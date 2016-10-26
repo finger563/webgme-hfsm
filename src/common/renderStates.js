@@ -11,7 +11,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
     var templates = {
 	// THE CPP CODE IS FOR THE LPC2148 ARM7TDMI-S
 
-	'cpp': {
+	'c': {
 	    // takes a state as the scope (doesn't need any further pre-processing)
             'setState': [
 		"    stateLevel_{{stateLevel}} = {{stateName}};",
@@ -28,7 +28,9 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{#finalState}}",
 		"{{> setState}}",
 		"    // start state timer (@ next states period)",
-		"    hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0);",
+		"    stateDelay = {{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}};",
+		"    task_send_msg((enum task_id)task_id_timer_update, 0, 1);",
+		//"    hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0);",
 		"{{/finalState}}",
 		"    // execute the transition function",
 		"{{&transitionFunc}}",
@@ -62,7 +64,68 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    'timer': [
 		"{{#root.State_list}}",
 		"{{> execute}}",
-		"{{/root.State_list}}"
+		"{{/root.State_list}}",
+		"if (!changeState)",
+		"  task_send_timed((enum task_id)task_id_timer_update, 0, 1, stateDelay);"
+	    ],
+	},
+
+	'cpp': {
+	    // takes a state as the scope (doesn't need any further pre-processing)
+            'setState': [
+		"    stateLevel_{{stateLevel}} = {{stateName}};",
+		"{{#parentState}}",
+		"{{> setState}}", // recurse here
+		"{{/parentState}}"
+	    ],
+
+	    // takes a transition as the scope (needs previous state for transition to be pre-processed)
+            'transition': [
+		"  if ( {{&guard}} ) {",
+		"    changeState = 1;",
+		"    // TRANSITION::{{prevState.name}}->{{finalState.name}}",
+		"{{#finalState}}",
+		"{{> setState}}",
+		"    // start state timer (@ next states period)",
+		"    stateDelay = {{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}};",
+		"    task_send_msg((enum task_id)task_id_timer_update, 0, 1);",
+		//"    hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0);",
+		"{{/finalState}}",
+		"    // execute the transition function",
+		"{{&transitionFunc}}",
+		"  } // END::TRANSITION::{{prevState.name}}->{{finalState.name}}\n"
+	    ],
+
+	    // takes a state as the scope
+            'execute': [
+		"{{#getPrefix}}",
+		"// STATE::{{name}}",
+		"if (changeState == 0 && stateLevel_{{stateLevel}} == {{stateName}}) {",
+		"  // STATE::{{name}}::TRANSITIONS",
+		"{{#transitions}}", 
+		"{{> transition}}", // check all transitions 
+		"{{/transitions}}",
+		"{{#State_list}}",
+		"{{> execute}}",    // execute all substates (transitions and functions)
+		"{{/State_list}}",
+		"{{#execute}}",     // only add the following if execute is true
+		"  // STATE::${name}::FUNCTION",
+		"  if (changeState == 0) {",
+		"{{&function}}",    // run the state function
+		"  }",
+		"{{/execute}}",
+		"}",
+		"{{/getPrefix}}",
+	    ],
+
+	    // takes a scope with: root(state), getPrefix(function), and execute(bool)
+	    // takes partials with: execute, transition, setState
+	    'timer': [
+		"{{#root.State_list}}",
+		"{{> execute}}",
+		"{{/root.State_list}}",
+		"if (!changeState)",
+		"  task_send_timed((enum task_id)task_id_timer_update, 0, 1, stateDelay);"
 	    ],
 	},
 

@@ -16,9 +16,7 @@ var main = function () {
     'use strict';
     var fs = require('fs'),
         isEjsFile = function (str) {
-            var ending = '.ejs',
-            lastIndex = str.lastIndexOf(ending);
-            return (lastIndex !== -1) && (lastIndex + ending.length === str.length);
+            return (str.indexOf('combine_templates.js') == -1 && str.indexOf('Templates.js') == -1);
         },
         walk = function (dir, done) {
             var results = [];

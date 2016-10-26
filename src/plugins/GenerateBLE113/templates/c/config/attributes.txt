@@ -1,0 +1,2 @@
+ota_control 8
+ota_data 10

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project>
+    <gatt in="gatt.xml" />
+    <hardware in="hardware.xml" />
+    <config in="config.xml" />
+    <config_dump out="config.bin" start="0x38000" />
+    <device type="ble113-m256k" />
+    <cheader out="attributes.h" />
+    <!-- If you get a compilation error when running first time, please update MAC/license key inside license.xml -->
+    <license in="license.xml" />
+</project>

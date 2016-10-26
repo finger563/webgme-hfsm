@@ -15,7 +15,7 @@
 	    "name": "useFreeRTOS",
 	    "displayName": "Generate with FreeRTOS",
 	    "description": "Run the state functions using FreeRTOS tasks.",
-	    "value": true,
+	    "value": false,
 	    "valueType": "boolean",
 	    "readOnly": false
 	}

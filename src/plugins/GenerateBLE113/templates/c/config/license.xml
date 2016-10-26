@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<license>
+    <!-- Bluetooth address to use, insert address read using BLE Update tool -->
+    <address value="00:07:80:b5:b8:48" />
+
+    <!-- BLE SDK license to use, insert license read using BLE Update tool -->
+    <license value="9634ca79ec7cc9158c65e8ce164c35d4c6c53e0540108f1d2e60b12d4ebf401d" />
+</license>
