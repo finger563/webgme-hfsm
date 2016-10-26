@@ -61,6 +61,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    // takes a scope with: root(state), getPrefix(function), and execute(bool)
 	    // takes partials with: execute, transition, setState
 	    'timer': [
+		"changeState = 0;",
 		"{{#root.State_list}}",
 		"{{> execute}}",
 		"{{/root.State_list}}",
@@ -121,6 +122,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 	    // takes a scope with: root(state), getPrefix(function), and execute(bool)
 	    // takes partials with: execute, transition, setState
 	    'timer': [
+		"changeState = 0",
 		"{{#root.State_list}}",
 		"{{> execute}}",
 		"{{/root.State_list}}"

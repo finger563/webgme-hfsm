@@ -43,7 +43,6 @@ end
 # The timer handles all the state function code and state transition
 #  code
 event hardware_soft_timer(handle)
-  changeState = 0
   # Generated code to execute state transitions and state functions:
 <%- model.timerFunc %>
 end
