@@ -47,11 +47,11 @@ if (model.Library_list) {
 -%>
 
 uint32 changeState = 0;
-int stateDelay = 0;
+uint32 stateDelay = 0;
 <%
 for (var i=0; i<model.numHeirarchyLevels; i++) {
 -%>
-int stateLevel_<%- i %>;
+uint8 stateLevel_<%- i %>;
 <%
 }
 -%>
@@ -59,41 +59,15 @@ int stateLevel_<%- i %>;
 <%
 states.map(function(state) {
 -%>
-const int <%- state.stateName %> = <%- state.stateID %>;
+const uint8 <%- state.stateName %> = <%- state.stateID %>;
 <%
 });
 -%>
    
-enum task_id_app
-{
-    task_id_timer_update = task_id_first_user,
-    task_id_max
-};
-
-void timer_update(uint8 context,uint8 event);    
-/**
-Task handlers, no user tasks defined in this application
-  */
-const task_handler tasks[task_id_max] = {
-    ll_update,
-    connection_update,
-    smp_update,
-    gap_update,
-    timer_update  
-};
-
-void delay_ms(int32 count)
-{
-   int32 countMs  = count * 4000;//8000;
-   while (countMs--);
-}
-
-void timer_update(uint8 context,uint8 event)
+void timer_update(uint8 context, uint8 event)
 {
 <%- model.timerFunc %>
 }
-
-uint8 temp[2];
 
 void main(void)
 {
