@@ -49,7 +49,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{> execute}}",    // execute all substates (transitions and functions)
 		"{{/State_list}}",
 		"{{#execute}}",     // only add the following if execute is true
-		"  // STATE::${name}::FUNCTION",
+		"  // STATE::{{name}}::FUNCTION",
 		"  if (changeState == 0) {",
 		"{{&function}}",    // run the state function
 		"  }",
