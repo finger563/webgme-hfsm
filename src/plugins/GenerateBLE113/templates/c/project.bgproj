@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project>
+  <gatt in=".\config\gatt.xml" />
+  <fw in=".\bgbuild\Exe\out" />
+  <image out="out.hex" />    
+  <hardware in=".\config\hardware.xml" />
+  <config in=".\config\config.xml" />
+  <config_dump out=".\config\config.bin" start="0x38000" />
+  <device type="ble113-m256k" />
+  <cheader out=".\config\attributes.h" />
+  <!-- If you get a compilation error when running first time, please update MAC/license key inside license.xml -->
+  <boot fw="bootota" />
+  <ota out="myimage.ota" />
+</project>
