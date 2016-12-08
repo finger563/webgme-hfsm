@@ -77,7 +77,7 @@
         <option>
           <name>Workseg Size</name>
           <version>0</version>
-          <state>8</state>
+          <state>6</state>
         </option>
         <option>
           <name>Constant Placement</name>
@@ -164,11 +164,11 @@
         <option>
           <name>Output variant</name>
           <version>1</version>
-          <state>5</state>
+          <state>2</state>
         </option>
         <option>
           <name>Output description</name>
-          <state>No specifier a or A, no specifier n, no float or long long, no flags.</state>
+          <state>No specifier a or A.</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -1135,7 +1135,7 @@
         <option>
           <name>Workseg Size</name>
           <version>0</version>
-          <state>8</state>
+          <state>6</state>
         </option>
         <option>
           <name>Constant Placement</name>
@@ -1222,11 +1222,11 @@
         <option>
           <name>Output variant</name>
           <version>1</version>
-          <state>5</state>
+          <state>2</state>
         </option>
         <option>
           <name>Output description</name>
-          <state>No specifier a or A, no specifier n, no float or long long, no flags.</state>
+          <state>No specifier a or A.</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -2193,7 +2193,7 @@
         <option>
           <name>Workseg Size</name>
           <version>0</version>
-          <state>8</state>
+          <state>6</state>
         </option>
         <option>
           <name>Constant Placement</name>
@@ -2280,11 +2280,11 @@
         <option>
           <name>Output variant</name>
           <version>1</version>
-          <state>5</state>
+          <state>2</state>
         </option>
         <option>
           <name>Output description</name>
-          <state>No specifier a or A, no specifier n, no float or long long, no flags.</state>
+          <state>No specifier a or A.</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>

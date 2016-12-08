@@ -42,11 +42,31 @@
 		]
 	    },
 	    "c": {
-		"name": "text/x-c++src"
+		"name": "text/x-c++src",
+		"extra_keywords": [
+		    "int8",
+		    "uint8",
+		    "int16",
+		    "uint16",
+		    "int32",
+		    "uint32",
+		    "int64",
+		    "uint64"
+		]
 	    },
 	    "cpp": {
 		"name": "text/x-c++src",
-		"useCPP": true
+		"useCPP": true,
+		"extra_keywords": [
+		    "int8",
+		    "uint8",
+		    "int16",
+		    "uint16",
+		    "int32",
+		    "uint32",
+		    "int64",
+		    "uint64"
+		]
 	    },
 	    "python": {
 		"name":"text/x-python",
