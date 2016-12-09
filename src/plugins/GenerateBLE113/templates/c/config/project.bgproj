@@ -7,4 +7,5 @@
   <device type="ble113-m256k" />
   <cheader out="attributes.h" />
   <!-- If you get a compilation error when running first time, please update MAC/license key inside license.xml -->
+  <license in="license.xml" />
 </project>
