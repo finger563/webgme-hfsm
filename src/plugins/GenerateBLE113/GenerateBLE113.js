@@ -111,6 +111,19 @@ define([
 	    })
 	    .then(function (projectJSON) {
 		self.projectJSON = projectJSON;
+	    })
+	    .then(function () {
+		return self.blobClient.getObjectAsString(self.projectModel.services)
+		    .then(function(serviceString) {
+			if (self.language == 'bgs') {
+			    self.artifacts['bgs/gatt.xml'] = serviceString;
+			}
+			else if (self.language == 'c') {
+			    self.artifacts['c/config/gatt.xml'] = serviceString;
+			}
+		    });
+	    })
+	    .then(function () {
 		return self.generateArtifacts();
 	    })
 	    .then(function () {
