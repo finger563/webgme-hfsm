@@ -2,5 +2,5 @@
 <hardware>
     <sleeposc enable="true" ppm="30" />
     <txpower power="15" bias="5" />
-    <uartboot channel="1" />
+    <otaboot source="internal" />
 </hardware>

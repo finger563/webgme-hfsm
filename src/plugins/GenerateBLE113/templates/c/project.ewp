@@ -164,11 +164,11 @@
         <option>
           <name>Output variant</name>
           <version>1</version>
-          <state>2</state>
+          <state>5</state>
         </option>
         <option>
           <name>Output description</name>
-          <state>No specifier a or A.</state>
+          <state>No specifier a or A. no specifier n. no float or long long. no flags.</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -208,7 +208,7 @@
         </option>
         <option>
           <name>CodeBankNrOfs</name>
-          <state>0x03</state>
+          <state>0x02</state>
         </option>
         <option>
           <name>CodeBankRegMask</name>
@@ -1222,11 +1222,11 @@
         <option>
           <name>Output variant</name>
           <version>1</version>
-          <state>2</state>
+          <state>5</state>
         </option>
         <option>
           <name>Output description</name>
-          <state>No specifier a or A.</state>
+          <state>No specifier a or A. No specifier n. no float or long long. no flags.</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -1266,7 +1266,7 @@
         </option>
         <option>
           <name>CodeBankNrOfs</name>
-          <state>0x03</state>
+          <state>0x02</state>
         </option>
         <option>
           <name>CodeBankRegMask</name>
@@ -2280,11 +2280,11 @@
         <option>
           <name>Output variant</name>
           <version>1</version>
-          <state>2</state>
+          <state>5</state>
         </option>
         <option>
           <name>Output description</name>
-          <state>No specifier a or A.</state>
+          <state>No specifier a or A. no specifier n. no float or long long. no flags.</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -2324,7 +2324,7 @@
         </option>
         <option>
           <name>CodeBankNrOfs</name>
-          <state>0x03</state>
+          <state>0x02</state>
         </option>
         <option>
           <name>CodeBankRegMask</name>
