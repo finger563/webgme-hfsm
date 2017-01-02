@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <config>
-  <!-- /<connections value="2" /> -->
+  <connections value="2" />
   <user_data size="0x20000"/>
 </config>
