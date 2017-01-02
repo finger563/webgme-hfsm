@@ -208,7 +208,7 @@
         </option>
         <option>
           <name>CodeBankNrOfs</name>
-          <state>0x03</state>
+          <state>0x04</state>
         </option>
         <option>
           <name>CodeBankRegMask</name>
@@ -1266,7 +1266,7 @@
         </option>
         <option>
           <name>CodeBankNrOfs</name>
-          <state>0x03</state>
+          <state>0x04</state>
         </option>
         <option>
           <name>CodeBankRegMask</name>
@@ -2324,7 +2324,7 @@
         </option>
         <option>
           <name>CodeBankNrOfs</name>
-          <state>0x03</state>
+          <state>0x04</state>
         </option>
         <option>
           <name>CodeBankRegMask</name>
