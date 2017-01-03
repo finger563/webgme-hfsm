@@ -65,8 +65,10 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"{{#root.State_list}}",
 		"{{> execute}}",
 		"{{/root.State_list}}",
-		"if (!changeState)",
-		"  task_send_timed((enum task_id)task_id_timer_update, 0, 1, stateDelay);"
+		"if (!changeState) {",
+		"  task_timed_cancel_masked((enum task_id)task_id_timer_update, 0, 0, 0, 0);",
+		"  task_send_timed((enum task_id)task_id_timer_update, 0, 1, stateDelay);",
+		"}"
 	    ],
 	},
 

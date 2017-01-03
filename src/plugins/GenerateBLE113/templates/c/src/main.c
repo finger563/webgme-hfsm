@@ -109,7 +109,7 @@ void main(void)
     // execute the init transition for the chart (including user initialization code)
 <%- model.initFunc %>  
     // Start the state timer
-    task_send_timed(task_id_first_user, 0, 1, <%- parseInt(parseFloat(model.initState.timerPeriod) * 32768.0) %>);
+    task_send_timed((enum task_id)task_id_timer_update, 0, 1, <%- parseInt(parseFloat(model.initState.timerPeriod) * 32768.0) %>);
     
     // start advertisement mode for discoverable/connectable
     // gap_set_mode(gap_general_discoverable, gap_undirected_connectable);
