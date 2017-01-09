@@ -21,15 +21,14 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 
 	    // takes a transition as the scope (needs previous state for transition to be pre-processed)
             'transition': [
-		"  if ( {{&guard}} ) {",
+		"  if ( changeState == 0 && {{&guard}} ) {",
 		"    changeState = 1;",
 		"    // TRANSITION::{{prevState.name}}->{{finalState.name}}",
 		"{{#finalState}}",
 		"{{> setState}}",
 		"    // start state timer (@ next states period)",
 		"    stateDelay = {{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}};",
-		"    task_send_msg((enum task_id)task_id_timer_update, 0, 1);",
-		//"    hardware_set_soft_timer({{#convertPeriod}}{{&timerPeriod}}{{/convertPeriod}},state_timer_handle,0);",
+		//"    task_send_msg((enum task_id)task_id_timer_update, 0, 1);",
 		"{{/finalState}}",
 		"    // execute the transition function",
 		"{{&transitionFunc}}",
@@ -68,7 +67,10 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 		"if (!changeState) {",
 		"  task_timed_cancel_masked((enum task_id)task_id_timer_update, 0, 0, 0, 0);",
 		"  task_send_timed((enum task_id)task_id_timer_update, 0, 1, stateDelay);",
-		"}"
+		"}",
+		"else {",
+		"  task_send_msg((enum task_id)task_id_timer_update, 0, 1);",
+		"}",
 	    ],
 	},
 
@@ -84,7 +86,7 @@ define(['mustache/mustache','q'], function(mustache,Q) {
 
 	    // takes a transition as the scope
 	    'transition': [
-		"  if ( {{&guard}} ) then",
+		"  if ( changeState = 0 && {{&guard}} ) then",
 		"    changeState = 1",
 		"    # TRANSITION::{{prevState.name}}->{{finalState.name}}",
 		"{{#finalState}}",
