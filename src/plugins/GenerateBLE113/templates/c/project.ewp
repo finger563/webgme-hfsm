@@ -3192,9 +3192,15 @@ if (model.Library_list) {
     <file>
       <name>$PROJ_DIR$\src\main.c</name>
     </file>
+    <file>
+      <name>$PROJ_DIR$\src\_generated_states_.c</name>
+    </file>
   </group>
   <group>
     <name>Config</name>
+    <file>
+      <name>$PROJ_DIR$\config\config.xml</name>
+    </file>
     <file>
       <name>$PROJ_DIR$\config\gatt.xml</name>
     </file>

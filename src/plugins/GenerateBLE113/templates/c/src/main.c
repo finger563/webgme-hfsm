@@ -31,42 +31,26 @@
 #include <blestack/hw.h>
 #include <blestack/dma.h>
 
-#include <intrinsics.h>
-#include <string.h>
-#include <stdio.h>
+#include "_generated_states_.h"
 
-// Import user libraries here (if any)
+void timer_update(uint8 context, uint8 event)
+{
+  changeState = 0;
 <%
-if (model.Library_list) {
-  model.Library_list.map(function(library) {
+model.State_list.map(function(state) {
 -%>
-#include "<%- library.name %>.h"
-<%
-  });
-}
--%>
-
-uint32 changeState = 0;
-uint32 stateDelay = 0;
-<%
-for (var i=0; i<model.numHeirarchyLevels; i++) {
--%>
-uint8 stateLevel_<%- i %>;
-<%
-}
--%>
-
-<%
-states.map(function(state) {
--%>
-const uint8 <%- state.stateName %> = <%- state.stateID %>;
+  <%- state.stateName %>_execute();
 <%
 });
 -%>
-   
-void timer_update(uint8 context, uint8 event)
-{
-<%- model.timerFunc %>
+
+  task_timed_cancel_masked((enum task_id)task_id_timer_update, 0, 0, 0, 0);
+  if (!changeState) {
+    task_send_timed((enum task_id)task_id_timer_update, 0, 1, stateDelay);
+  }
+  else {
+    task_send_msg((enum task_id)task_id_timer_update, 0, 1);
+  }
 }
 
 void main(void)
@@ -105,7 +89,7 @@ void main(void)
     // generated initialization code for the state machine:
     changeState = 0;
     // STATE::<%- model.initState.name %>
-<%- model.initStateCode %>
+    <%- model.initState.stateName %>_setState();
     // execute the init transition for the chart (including user initialization code)
 <%- model.initFunc %>  
     // Start the state timer
