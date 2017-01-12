@@ -104,12 +104,13 @@ void main(void)
 
     // generated initialization code for the state machine:
     changeState = 0;
+    stateDelay  = <%- parseInt(parseFloat(model.initState.timerPeriod) * 32768.0) %>;
     // STATE::<%- model.initState.name %>
 <%- model.initStateCode %>
     // execute the init transition for the chart (including user initialization code)
 <%- model.initFunc %>  
     // Start the state timer
-    task_send_timed((enum task_id)task_id_timer_update, 0, 1, <%- parseInt(parseFloat(model.initState.timerPeriod) * 32768.0) %>);
+    task_send_timed((enum task_id)task_id_timer_update, 0, 1, stateDelay);
     
     // start advertisement mode for discoverable/connectable
     // gap_set_mode(gap_general_discoverable, gap_undirected_connectable);
