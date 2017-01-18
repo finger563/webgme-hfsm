@@ -33,6 +33,7 @@ extern const uint8 <%- state.stateName %>;
 void               <%- state.stateName %>_execute    ( void );
 void               <%- state.stateName %>_setState   ( void );
 void               <%- state.stateName %>_transition ( void );
+void               <%- state.stateName %>_exit       ( void );
 <%
 });
 -%>

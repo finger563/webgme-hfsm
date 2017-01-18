@@ -57,15 +57,29 @@ if (state.transitions) {
 -%>
   else if ( <%- transition.guard %> ) {
     changeState = 1;
+    // run the current state's exit function
+    <%- state.stateName %>_exit();
+    // set the current state to the state we are transitioning to
     <%- transition.finalState.stateName %>_setState();
-    // start state timer (@ next states period)",
+    // start state timer (@ next states period)
     stateDelay = <%- parseInt(parseFloat(transition.finalState.timerPeriod)*32768.0) %>;
-    // execute the transition function",
+    // execute the transition function
     <%- transition.transitionFunc %>
   }
 <%
   });
 }
+-%>
+}
+
+void <%- state.stateName %>_exit( void ) {
+  <%- state.finalization %>
+<%
+ if (state.parentState) {
+-%>
+  <%- state.parentState.stateName %>_exit();
+<%
+ }
 -%>
 }
 

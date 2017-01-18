@@ -82,7 +82,8 @@
 	    },
 	    "State": {
 		"function": "",
-		"initialization": ""
+		"initialization": "",
+		"finalization": ""
 	    },
 	    "Event": {
 		"definitions": "",
