@@ -57,8 +57,8 @@ if (state.transitions) {
 -%>
   else if ( <%- transition.guard %> ) {
     changeState = 1;
-    // run the current state's exit function
-    <%- state.stateName %>_exit();
+    // run the current state's finalization function
+    <%- state.stateName %>_finalization();
     // set the current state to the state we are transitioning to
     <%- transition.finalState.stateName %>_setState();
     // start state timer (@ next states period)
@@ -72,12 +72,12 @@ if (state.transitions) {
 -%>
 }
 
-void <%- state.stateName %>_exit( void ) {
+void <%- state.stateName %>_finalization( void ) {
   <%- state.finalization %>
 <%
  if (state.parentState) {
 -%>
-  <%- state.parentState.stateName %>_exit();
+  <%- state.parentState.stateName %>_finalization();
 <%
  }
 -%>
