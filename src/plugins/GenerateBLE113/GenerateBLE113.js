@@ -167,12 +167,10 @@ define([
 		'states': states
 	    });
 	    // re-render so that users' templates are accounted for
-	    /*
 	    self.artifacts[key] = ejs.render(self.artifacts[key], {
 		'model': self.projectModel,
 		'states': states
 	    });
-	    */
 	});
 
 	// make sure to render all libraries
