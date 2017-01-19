@@ -142,6 +142,7 @@ define(['q'], function(Q) {
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
 	    // get state outgoing transition guards
+	    var topLevelStateNames = [];
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
@@ -166,13 +167,24 @@ define(['q'], function(Q) {
 		}
 		// make the state names for the variables and such
 		else if (obj.type == 'State') {
-		    var stateName = obj.name.replace(' ','_');
+		    var stateName = obj.name.replace(/[ \-]/gi,'_');
+		    var varDeclExp = new RegExp(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi);
+		    var isValid = varDeclExp.test(stateName);
+		    if (!isValid)
+			throw new String("State " + obj.path + " has an invalid state name: " + obj.name);
 		    var parentObj = model.objects[obj.parentPath];
 		    // make sure the state has a ParentState that either exists or is null
 		    if (parentObj && parentObj.type == 'State') {
 			obj.parentState = model.objects[obj.parentPath];
+			obj.parentState.State_list.map(function(child) {
+			    if (child.path != obj.path && child.name == obj.name)
+				throw new String("States " + obj.path + " and " + child.path + " have the same name: " + obj.name);
+			});
 		    }
 		    else {
+			if (topLevelStateNames.indexOf(obj.name) > -1)
+			    throw new String("Two top-level states have the same name: " + obj.name);
+			topLevelStateNames.push(obj.name);
 			obj.parentState = null;
 		    }
 		    // make sure we have a relatively unique name for the state

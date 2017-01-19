@@ -142,8 +142,6 @@ define([
     GenerateBLE113.prototype.generateArtifacts = function () {
 	var self = this;
 
-	self.projectModel.initStateCode = renderer.getSetState(self.projectModel.initState, self.language);
-
 	self.artifacts[self.projectModel.name + '.json'] = JSON.stringify(self.projectJSON, null, 2);
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
     	    projectID: self.project.projectId,
