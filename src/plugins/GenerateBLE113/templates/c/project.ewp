@@ -451,7 +451,7 @@
         </option>
         <option>
           <name>CCIncludePath2</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.4\include</state>
+          <state>$EW_DIR$\Bluegiga\ble-1.5\include</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -697,7 +697,7 @@
       <name>BUILDACTION</name>
       <archiveVersion>1</archiveVersion>
       <data>
-        <prebuild>"$EW_DIR$\Bluegiga\ble-1.4\bin\bgbuild.exe" "$PROJ_DIR$\config\project.bgproj"</prebuild>
+        <prebuild>"$EW_DIR$\Bluegiga\ble-1.5\bin\bgbuild.exe" "$PROJ_DIR$\config\project.bgproj"</prebuild>
         <postbuild></postbuild>
       </data>
     </settings>
@@ -780,7 +780,7 @@
         </option>
         <option>
           <name>XclFile</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.4\linker\blestack256_debug.xcl</state>
+          <state>$EW_DIR$\Bluegiga\ble-1.5\linker\blestack256_debug.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -1008,7 +1008,7 @@
           <name>Linker Extra Options Edit</name>
           <state>-R</state>
           <state>-I$PROJ_DIR$\config</state>
-          <state>-I$EW_DIR$\Bluegiga\ble-1.4\fw\</state>
+          <state>-I$EW_DIR$\Bluegiga\ble-1.5\fw\</state>
         </option>
         <option>
           <name>CrcAlign</name>
@@ -1509,7 +1509,7 @@
         </option>
         <option>
           <name>CCIncludePath2</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.4\include</state>
+          <state>$EW_DIR$\Bluegiga\ble-1.5\include</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -1755,7 +1755,7 @@
       <name>BUILDACTION</name>
       <archiveVersion>1</archiveVersion>
       <data>
-        <prebuild>"$EW_DIR$\Bluegiga\ble-1.4\bin\bgbuild.exe" "$PROJ_DIR$\config\project.bgproj"</prebuild>
+        <prebuild>"$EW_DIR$\Bluegiga\ble-1.5\bin\bgbuild.exe" "$PROJ_DIR$\config\project.bgproj"</prebuild>
         <postbuild></postbuild>
       </data>
     </settings>
@@ -1838,7 +1838,7 @@
         </option>
         <option>
           <name>XclFile</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.4\linker\blestack256.xcl</state>
+          <state>$EW_DIR$\Bluegiga\ble-1.5\linker\blestack256.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -2066,7 +2066,7 @@
           <name>Linker Extra Options Edit</name>
           <state>-R</state>
           <state>-I$PROJ_DIR$\config</state>
-          <state>-I$EW_DIR$\Bluegiga\ble-1.4\fw\</state>
+          <state>-I$EW_DIR$\Bluegiga\ble-1.5\fw\</state>
         </option>
         <option>
           <name>CrcAlign</name>
@@ -2567,7 +2567,7 @@
         </option>
         <option>
           <name>CCIncludePath2</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.4\include</state>
+          <state>$EW_DIR$\Bluegiga\ble-1.5\include</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -2813,8 +2813,8 @@
       <name>BUILDACTION</name>
       <archiveVersion>1</archiveVersion>
       <data>
-        <prebuild>"$EW_DIR$\Bluegiga\ble-1.4\bin\bgbuild.exe" "$PROJ_DIR$\config\project.bgproj"</prebuild>
-        <postbuild>"$EW_DIR$\Bluegiga\ble-1.4\bin\fwmem.exe" "$PROJ_DIR$\bgbuild\list\$TARGET_BNAME$.map" "$TARGET_BPATH$.mem"</postbuild>
+        <prebuild>"$EW_DIR$\Bluegiga\ble-1.5\bin\bgbuild.exe" "$PROJ_DIR$\config\project.bgproj"</prebuild>
+        <postbuild>"$EW_DIR$\Bluegiga\ble-1.5\bin\fwmem.exe" "$PROJ_DIR$\bgbuild\list\$TARGET_BNAME$.map" "$TARGET_BPATH$.mem"</postbuild>
       </data>
     </settings>
     <settings>
@@ -2896,7 +2896,7 @@
         </option>
         <option>
           <name>XclFile</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.4\linker\blestack_bgbuild.xcl</state>
+          <state>$EW_DIR$\Bluegiga\ble-1.5\linker\blestack_bgbuild.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -3124,7 +3124,7 @@
           <name>Linker Extra Options Edit</name>
           <state>-R</state>
           <state>-I$PROJ_DIR$\config</state>
-          <state>-I$EW_DIR$\Bluegiga\ble-1.4\fw\</state>
+          <state>-I$EW_DIR$\Bluegiga\ble-1.5\fw\</state>
         </option>
         <option>
           <name>CrcAlign</name>
@@ -3215,7 +3215,7 @@ if (model.Library_list) {
     </file>
   </group>
   <file>
-    <name>$EW_DIR$\Bluegiga\ble-1.4\lib\blestack2541.r51</name>
+    <name>$EW_DIR$\Bluegiga\ble-1.5\lib\blestack2541.r51</name>
   </file>
 </project>
 
