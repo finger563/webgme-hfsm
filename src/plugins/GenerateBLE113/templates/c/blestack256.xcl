@@ -1,0 +1,313 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+//  File:  ti_51ew_cc2540b.xcl
+//
+//  Description:
+//    This is a extended command line file for XLINK tool to be used when
+//    debug applications written for the TI CC2540.
+//
+//  Important:
+//    Data cannot be located at address zero, this address is reserved for
+//    the null pointer.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Variables (used by lnk_base.xcl)
+// ================================
+//
+// Segment limits
+// --------------
+//
+//
+//    IDATA
+//
+-D_IDATA_END=0xFF              // Last address of IDATA memory
+//
+//
+//    PDATA
+//
+-D_PDATA_START=0x0          // First address for PDATA
+-D_PDATA_END=0x0            // Last address for PDATA
+//                             // (note: any 256 byte page of (I)XDATA can be used as PDATA,
+//                             // see "PDATA page setup" section below)
+//
+//    IXDATA
+//
+-D_IXDATA_START=0x0002         // First address for internal XDATA (address 0x0000 saved for NULL pointer)
+-D_IXDATA_END=0x1EFF           // Last address for internal XDATA (for 8 kB SRAM option)
+//-D_IXDATA_END=0x0EFF           //                                 (for 4 kB SRAM option)
+//-D_IXDATA_END=0x06FF           //                                 (for 2 kB SRAM option)
+//
+//
+//    XDATA
+//
+// The internal XDATA is used as XDATA.
+-D_XDATA_START=_IXDATA_START
+-D_XDATA_END=_IXDATA_END
+//
+//
+//    CODE
+//
+-D_CODE_START=0x1000
+-D_CODE_END=0x7FFF             // Last address for ROOT bank.
+//                             // (the rest is mapped into BANKED_CODE segment)
+//
+-D_FIRST_BANK_ADDR=0x10000     // Offset fix for this part's unconventional bank numbering (root bank is callled "bank 0")
+//
+//
+//
+
+//
+//    NEAR CODE
+//
+-D_NEAR_CODE_END=_CODE_END     // Last address for near code, near code segment is 32kB
+//                             // in banked code model.
+//
+//
+// Special SFRs
+// ------------
+//
+//
+//    Register bank setup
+//
+-D?REGISTER_BANK=0             // Default register bank (0,1,2,3).
+-D_REGISTER_BANK_START=0       // Start address for default register bank (00,08,10,18).
+//
+//
+//    PDATA page setup
+//
+-D?PBANK_NUMBER=0x0           // High byte of 16-bit address to the PDATA area
+                               // (i.e. 0x1E00-0x1EFF as PDATA, if 8 kB SRAM).
+// -D?PBANK=0x93                  // Most significant byte in MOVX A,@Ri. (0x93 is sfr MPAGE).
+//
+//
+//    Virtual register setup
+//    ----------------------
+//
+-D_BREG_START=0x00             // The bit address where the BREG segments starts.
+                               // Must be placed on: _BREG_START%8=0 where _BREG_START <= 0x78.
+-D?VB=0x20                     // ?VB is used when referencing BREG as whole byte.
+                               // Must be placed on: ?VB=0x20+_BREG_START/8.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// To the reader: Ignore this section ------------------------------------------
+//
+//
+// Dummy definitions needed to satisfy lnk_base.xcl
+//
+//
+-D_FAR_DATA_NR_OF_BANKS=0x0E   // Number of banks in far data memory.
+-D_FAR_DATA_START=0x010001     // First address of far memory.
+-D_FAR_DATA_END=0xFFFFFF       // Last address of far memory.
+-D_FAR_CODE_START=_CODE_START  // First address for far code.
+-D_FAR_CODE_END=_CODE_END      // Last address for far code.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// IDATA memory
+//
+
+// Setup "bit" segments (only for '__no_init bool' variables).
+-Z(BIT)BREG=_BREG_START
+-Z(BIT)BIT_N=0-7F
+
+-Z(DATA)REGISTERS+8=_REGISTER_BANK_START
+-Z(DATA)BDATA_Z,BDATA_N,BDATA_I=20-2F
+-Z(DATA)VREG+_NR_OF_VIRTUAL_REGISTERS=08-7F
+-Z(DATA)PSP,XSP=08-7F
+-Z(DATA)DOVERLAY=08-7F
+-Z(DATA)DATA_I,DATA_Z,DATA_N=08-7F
+
+-U(IDATA)0-7F=(DATA)0-7F
+
+-Z(IDATA)IDATA_I,IDATA_Z,IDATA_N=08-_IDATA_END
+-Z(IDATA)ISTACK+_IDATA_STACK_SIZE#08-_IDATA_END
+-Z(IDATA)IOVERLAY=08-FF
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ROM memory
+//
+
+// Note: INTVEC must be placed first.
+// Note: CSTART Must be located in first 64k.
+
+//
+// Top of memory
+//
+-Z(CODE)INTVEC=1000
+-Z(CODE)CSTART=_CODE_START-_CODE_END
+
+//
+// Initializers
+//
+-Z(CODE)BIT_ID,BDATA_ID,DATA_ID,IDATA_ID,IXDATA_ID,PDATA_ID,XDATA_ID=_CODE_START-_CODE_END
+-Z(CODE)HUGE_ID=_FAR_CODE_START-_FAR_CODE_END
+
+//
+-D_SLEEP_CODE_SPACE_START=(_CODE_END-7)
+-D_SLEEP_CODE_SPACE_END=(_CODE_END)
+-Z(CODE)SLEEP_CODE=_SLEEP_CODE_SPACE_START-_SLEEP_CODE_SPACE_END
+//
+// Program memory
+//
+-Z(CODE)BANK_RELAYS,RCODE,DIFUNCT,CODE_N,NEAR_CODE=_CODE_START-_CODE_END
+//
+// Setup for constants located in code memory:
+//
+-P(CODE)CODE_C=_CODE_START-_CODE_END
+//
+// Define segments for const data in flash.
+// First the segment with addresses as used by the program (flash mapped as XDATA)
+-P(CONST)XDATA_ROM_C=0x8000-0xFFFF
+-Z(CODE)XDATA_ROM_C2=0x28000-0x2FFFF
+-Z(CODE)XDATA_ROM_C3=0x38000-0x3FFFF
+//
+// Then the segment with addresses as put in the hex file (flash bank 1)
+-P(CODE)XDATA_ROM_C_FLASH=0x18000-0x1FFFF
+//
+// Finally link these segments (XDATA_ROM_C_FLASH is the initializer segment for XDATA_ROM_C,
+// we map the flash in the XDATA address range instead of copying the data to RAM)
+-QXDATA_ROM_C=XDATA_ROM_C_FLASH
+//
+// Banked Code
+//
+-P(CODE)BANKED_CODE=_CODE_START-_CODE_END,[(_CODEBANK_START+_FIRST_BANK_ADDR)-(_CODEBANK_END+_FIRST_BANK_ADDR)]*_NR_OF_BANKS+10000 //  Setup bank-switched segments.
+
+//
+// FAR Code
+//
+-P(CODE)FAR_CODE_C,FAR_CODE_N,FAR_CODE=[_FAR_CODE_START-_FAR_CODE_END]/10000
+-P(CODE)HUGE_CODE_C=_FAR_CODE_START-_FAR_CODE_END
+
+//
+// Checksum
+//
+-Z(CODE)CHECKSUM#_CODE_END
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// XDATA memory
+//
+
+//
+// Stacks located in XDATA
+//
+-Z(XDATA)EXT_STACK+_EXTENDED_STACK_SIZE=_EXTENDED_STACK_START
+-Z(XDATA)PSTACK+_PDATA_STACK_SIZE=_PDATA_START-_PDATA_END
+-Z(XDATA)XSTACK+_XDATA_STACK_SIZE=_XDATA_START-_XDATA_END
+
+//
+// PDATA - data memory
+//
+-Z(XDATA)PDATA_Z,PDATA_I=_PDATA_START-_PDATA_END
+-P(XDATA)PDATA_N=_PDATA_START-_PDATA_END
+
+//
+// XDATA - data memory
+//
+-Z(XDATA)IXDATA_Z,IXDATA_I=_IXDATA_START-_IXDATA_END
+-P(XDATA)IXDATA_N=_IXDATA_START-_IXDATA_END
+
+-Z(XDATA)XDATA_Z,XDATA_I=_XDATA_START-_XDATA_END
+-P(XDATA)XDATA_N=_XDATA_START-_XDATA_END
+
+-Z(XDATA)XDATA_HEAP+_XDATA_HEAP_SIZE=_XDATA_START-_XDATA_END
+
+//
+// FAR - extended data memory
+//
+
+// initialized FAR data
+// Note: The segment FAR_I and FAR_ID must start at the same address within a 64k bank,
+// they must therefore be located first in the FAR data area, and in the xlink linker file
+// Note: *_I segment is located in RAM but *_ID segments is located in ROM
+
+-Z(XDATA)FAR_Z=[_FAR_DATA_START-_FAR_DATA_END]/10000
+-Z(XDATA)FAR_I=[_FAR_DATA_START-_FAR_DATA_END]/10000
+-Z(CODE)FAR_ID=[_FAR_CODE_START-_FAR_CODE_END]/10000
+-Z(XDATA)FAR_HEAP+_FAR_HEAP_SIZE=[_FAR_DATA_START-_FAR_DATA_END]/10000
+-P(XDATA)FAR_N=[_FAR_DATA_START-_FAR_DATA_END]*_FAR_DATA_NR_OF_BANKS+10000
+-P(CONST)FAR_ROM_C=[_FAR_DATA_START-_FAR_DATA_END]*_FAR_DATA_NR_OF_BANKS+10000
+
+//
+// HUGE - extended data memory
+//
+-Z(XDATA)HUGE_Z,HUGE_I=_FAR_DATA_START-_FAR_DATA_END
+-P(XDATA)HUGE_N=_FAR_DATA_START-_FAR_DATA_END
+
+-Z(XDATA)HUGE_HEAP+_HUGE_HEAP_SIZE=_FAR_DATA_START-_FAR_DATA_END
+-Z(CONST)HUGE_ROM_C=_FAR_DATA_START-_FAR_DATA_END
+
+-cx51
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Texas Instruments device specific
+// =================================
+//
+//
+// Setup of CODE banks
+// -------------------
+//
+-D_BANK0_START=0x00000         // Note: Unconventional bank numbering on this part:
+-D_BANK0_END=0x07FFF           //       "BANK0" is the root bank/common area!
+//
+-D_BANK1_START=0x18000
+-D_BANK1_END=0x1FFFF
+//
+-D_BANK2_START=0x28000
+-D_BANK2_END=0x2FFFF
+//
+-D_BANK3_START=0x38000
+-D_BANK3_END=0x3FFFF
+//
+-D_BANK4_START=0x48000
+-D_BANK4_END=0x4FFFF
+//
+-D_BANK5_START=0x58000
+-D_BANK5_END=0x5FFFF
+//
+-D_BANK6_START=0x68000
+-D_BANK6_END=0x6FFFF
+//
+-D_BANK7_START=0x78000
+-D_BANK7_END=0x7FFFF
+//
+// Define each bank as a segment for allowing code placement into specific banks
+-P(CODE)BANK0=_BANK0_START-_BANK0_END
+-P(CODE)BANK1=_BANK1_START-_BANK1_END
+-P(CODE)BANK2=_BANK2_START-_BANK2_END
+-P(CODE)BANK3=_BANK3_START-_BANK3_END
+-P(CODE)BANK4=_BANK4_START-_BANK4_END
+-P(CODE)BANK5=_BANK5_START-_BANK5_END
+-P(CODE)BANK6=_BANK6_START-_BANK6_END
+-P(CODE)BANK7=_BANK7_START-_BANK7_END
+//
+// Include these two lines when generating a .hex file for banked code model:
+// Note: last bank3 is reserved for configuration, Total banks is _NR_BANKS +1
+-M(CODE)[(_CODEBANK_START+_FIRST_BANK_ADDR)-(_CODEBANK_END+_FIRST_BANK_ADDR)]*(_NR_OF_BANKS+1)+_FIRST_BANK_ADDR=0x8000
+//
+
+//BG stack configuration
+
+--image_input=config.bin,BG_STACK_CONFIG_IMAGE,BANK7,1
+-gBG_STACK_CONFIG_IMAGE //Force to include stack configuration
+
+
+-P(CODE)BG_BOOT=0-1fff
+--image_input=dboot.bin,BG_BOOT_IMAGE,BG_BOOT,1
+-gBG_BOOT_IMAGE

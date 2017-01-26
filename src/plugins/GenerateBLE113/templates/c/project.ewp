@@ -481,7 +481,7 @@
         <option>
           <name>CCOptStrategy</name>
           <version>0</version>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCOptLevelSlave</name>
@@ -780,7 +780,7 @@
         </option>
         <option>
           <name>XclFile</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.5\linker\blestack256_debug.xcl</state>
+          <state>$PROJ_DIR$\blestack256_debug.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -1539,7 +1539,7 @@
         <option>
           <name>CCOptStrategy</name>
           <version>0</version>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCOptLevelSlave</name>
@@ -1838,7 +1838,7 @@
         </option>
         <option>
           <name>XclFile</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.5\linker\blestack256.xcl</state>
+          <state>$PROJ_DIR$\blestack256.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -2597,7 +2597,7 @@
         <option>
           <name>CCOptStrategy</name>
           <version>0</version>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCOptLevelSlave</name>
@@ -2896,7 +2896,7 @@
         </option>
         <option>
           <name>XclFile</name>
-          <state>$EW_DIR$\Bluegiga\ble-1.5\linker\blestack_bgbuild.xcl</state>
+          <state>$PROJ_DIR$\blestack256_bgbuild.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -3216,6 +3216,15 @@ if (model.Library_list) {
   </group>
   <file>
     <name>$EW_DIR$\Bluegiga\ble-1.5\lib\blestack2541.r51</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\blestack256.xcl</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\blestack256_debug.xcl</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\blestack256_bgbuild.xcl</name>
   </file>
 </project>
 
