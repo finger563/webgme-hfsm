@@ -3,5 +3,5 @@
     <sleeposc enable="true" ppm="30" />
     <txpower power="15" bias="5" />
     <otaboot source="internal" />
-    <sleep enable="true" max_mode="1" />
+    <sleep enable="true" max_mode="2" />
 </hardware>
