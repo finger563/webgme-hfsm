@@ -3,6 +3,8 @@
 	"theme": "default",
 	"keyBinding": "emacs",
         "autoSaveInterval": "2000",
+	"rootType": "UMLStateDiagram",
+	"loadDepth": 10,
 	"defaultSyntax": "bgs",
 	"syntaxToModeMap": {
 	    "bgs": {

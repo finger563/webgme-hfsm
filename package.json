@@ -11,7 +11,7 @@
     },
     "dependencies": {
 	"mustache": "^2.2.1",
-	"webgme-codeeditor": "finger563/webgme-codeeditor",
+	"webgme-codeeditor": "^3.0.0",
 	"webgme": "2.x"
     },
     "peerDependencies": {
