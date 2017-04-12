@@ -94,6 +94,9 @@ define([
 	var projectNode = self.activeNode;
 	self.projectName = self.core.getAttribute(projectNode, 'name');
 
+	// artifact name that will be returned
+	self.artifactName = self.project.projectId + '+' + self.branchName + '+' + self.projectName + '_generatedCode';
+
 	self.projectModel = {}; // will be filled out by loadProjectModel (and associated functions)
 	self.artifacts = {}; // will be filled out and used by various parts of this plugin
 
@@ -211,7 +214,7 @@ define([
 	}
 
 	var fileNames = Object.keys(self.artifacts);
-	var artifact = self.blobClient.createArtifact('GeneratedFiles');
+	var artifact = self.blobClient.createArtifact(self.artifactName);
 	var deferred = new Q.defer();
 	artifact.addFiles(self.artifacts, function(err) {
 	    if (err) {
