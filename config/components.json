@@ -3,10 +3,13 @@
 	"theme": "default",
 	"keyBinding": "emacs",
         "autoSaveInterval": "2000",
-	"rootType": "UMLStateDiagram",
+	"rootType": "Project",
 	"loadDepth": 10,
-	"defaultSyntax": "bgs",
+	"defaultSyntax": "cpp",
 	"syntaxToModeMap": {
+	    "gfm": {
+		"name": "gfm"
+	    },
 	    "bgs": {
 		"name":"text/x-python",
 		"version": 2,
@@ -79,24 +82,20 @@
 	    }
 	},
 	"attrToSyntaxMap": {
-	    "UMLStateDiagram": {
-		"initialization": ""
+	    "Documentation": {
+		"documentation": "gfm"
 	    },
 	    "State": {
-		"function": "",
-		"initialization": "",
-		"finalization": ""
+		"function": "cpp",
+		"initialization": "cpp",
+		"finalization": "cpp"
 	    },
-	    "Event": {
-		"definitions": "",
-		"function": ""
-	    },
-	    "Library": {
-		"definitions": "",
-		"code": ""
+	    "Source Component": {
+		"definitions": "cpp",
+		"declarations": "cpp"
 	    },
 	    "Transition": {
-		"function": ""
+		"function": "cpp"
 	    }
 	}
     }
