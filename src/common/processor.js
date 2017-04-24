@@ -40,7 +40,7 @@ define(['q'], function(Q) {
 			throw new String("State " + obj.path + " has an invalid state name: " + obj.name);
 		    var parentObj = model.objects[obj.parentPath];
 		    // make sure the state has a ParentState that either exists or is null
-		    if (parentObj && parentObj.type == 'State') {
+		    if (parentObj && parentObj.type != 'Project') {
 			obj.parentState = model.objects[obj.parentPath];
 			obj.parentState.State_list.map(function(child) {
 			    if (child.path != obj.path && child.name == obj.name)
@@ -73,8 +73,8 @@ define(['q'], function(Q) {
 		}
 	    });
 	    // sort the libraries according to their order
-	    if (model.objects[model.root].Library_list) {
-		model.objects[model.root].Library_list.sort(function(a,b) {return a.order-b.order});
+	    if (model.root.Library_list) {
+		model.root.Library_list.sort(function(a,b) {return a.order-b.order});
 	    }
 	    // figure out heirarchy levels and assign state ids
 	    self.makeStateIDs(model);
@@ -99,11 +99,11 @@ define(['q'], function(Q) {
 	makeStateIDs: function(model) {
 	    var self = this;
 	    var levels = [];
-	    if (model.objects[model.root].State_list) {
-		model.objects[model.root].State_list.map(function(state) {
+	    if (model.root.State_list) {
+		model.root.State_list.map(function(state) {
 		    self.recurseStates(state, levels, 0);
 		});
-		model.objects[model.root].numHeirarchyLevels = levels.length;
+		model.root.numHeirarchyLevels = levels.length;
 	    }
 	},
 	getInitState: function(state) {
@@ -150,8 +150,8 @@ define(['q'], function(Q) {
 	},
 	buildTransitionFuncs: function(model) {
 	    var self = this;
-	    model.objects[model.root].initState = self.getStartState(model.objects[model.root]);
-	    model.objects[model.root].initFunc = self.getInitFunc(model.objects[model.root]);
+	    model.root.initState = self.getStartState(model.root);
+	    model.root.initFunc = self.getInitFunc(model.root);
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];

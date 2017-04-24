@@ -88,7 +88,8 @@ define([
         self.result.success = false;
 
 	var currentConfig = self.getCurrentConfig();
-	self.language = currentConfig.language;
+
+	self.language = 'c';
 
 	// the active node for this plugin is software -> project
 	var projectNode = self.activeNode;
@@ -102,7 +103,7 @@ define([
 
 	webgmeToJson.notify = function(level, msg) {self.notify(level, msg);}
 
-      	webgmeToJson.loadModel(self.core, projectNode, true, true)
+      	webgmeToJson.loadModel(self.core, self.rootNode, projectNode, true, true)
   	    .then(function (projectModel) {
 		// make convenience members and extra data
 		processor.processModel(projectModel);
@@ -161,16 +162,7 @@ define([
 	// make sure to render all libraries
 	if (self.projectModel.Library_list) {
 	    self.projectModel.Library_list.map(function(library) {
-		if ( self.language == 'bgs') {
-		    var libFileName = 'bgs/'+library.name + '.bgs';
-		    self.artifacts[libFileName] = library.code;
-		    if (library.Event_list) {
-			library.Event_list.map(function(event) {
-			    self.artifacts[libFileName] += '\n'+event.function;
-			});
-		    }
-		}
-		else if ( self.language == 'c' ) {
+		if ( self.language == 'c' ) {
 		    var prefix = 'c/src/';
 		    var headerFileName = library.name + '.h';
 		    var includeGuard = library.name.toUpperCase() + '_INCLUDE_GUARD_';
