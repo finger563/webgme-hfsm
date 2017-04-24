@@ -9,6 +9,7 @@ config.server.port = 8080;
 config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
 
 config.requirejsPaths.hfsm = "./src/common";
+config.requirejsPaths['webgme-to-json'] = "./node_modules/webgme-to-json";
 
 config.authentication.enable = true;
 config.authentication.allowGuests = true;

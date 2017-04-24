@@ -1,37 +1,37 @@
 {
-    "name": "webgme-hfsm",
-    "scripts": {
-	"start": "node app.js",
-	"test": "node ./node_modules/mocha/bin/mocha --recursive test"
-    },
-    "version": "1.0.0",
-    "repository": {
-	"type": "git",
-	"url": "http://bitbucket.org/maxmobility/webgme-hfsm.git"
-    },
-    "dependencies": {
-	"mustache": "^2.2.1",
-	"webgme-codeeditor": "^3.0.0",
-	"webgme": "2.x"
-    },
-    "peerDependencies": {
-    },
-    "devDependencies": {
-	"mocha": "^2.2.5",
-	"rimraf": "^2.4.0",
-	"chai": "^3.0.0"
-    },
-    "description": "Hierarchical Finite State Machine (HFSM) visual modling tool with embedded code editor and complete code generation for various languages and platforms.",
-    "main": "app.js",
-    "directories": {
-	"test": "test"
-    },
-    "keywords": [
-	"webgme",
-	"Hierarchical",
-	"State Machine",
-	"HFSM",
-	"code generation"
-    ],
-    "license": "MIT"
+  "name": "webgme-hfsm",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node ./node_modules/mocha/bin/mocha --recursive test"
+  },
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "http://bitbucket.org/maxmobility/webgme-hfsm.git"
+  },
+  "dependencies": {
+    "mustache": "^2.2.1",
+    "webgme": "2.x",
+    "webgme-codeeditor": "^3.0.0",
+    "webgme-to-json": "^1.0.4"
+  },
+  "peerDependencies": {},
+  "devDependencies": {
+    "mocha": "^2.2.5",
+    "rimraf": "^2.4.0",
+    "chai": "^3.0.0"
+  },
+  "description": "Hierarchical Finite State Machine (HFSM) visual modling tool with embedded code editor and complete code generation for various languages and platforms.",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "keywords": [
+    "webgme",
+    "Hierarchical",
+    "State Machine",
+    "HFSM",
+    "code generation"
+  ],
+  "license": "MIT"
 }

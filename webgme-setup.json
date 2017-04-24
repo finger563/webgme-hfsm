@@ -13,9 +13,9 @@
         "src": "src/plugins/GenerateBGS",
         "test": "test/plugins/GenerateBGS"
       },
-      "GenerateARM7": {
-        "src": "src/plugins/GenerateARM7",
-        "test": "test/plugins/GenerateARM7"
+      "SoftwareGenerator": {
+        "src": "src/plugins/SoftwareGenerator",
+        "test": "test/plugins/SoftwareGenerator"
       }
     },
     "seeds": {},
