@@ -177,11 +177,6 @@ define([
 
 		    var sourceFileName = library.name + '.c';
 		    self.artifacts[prefix+sourceFileName] = '#include "' + headerFileName + '"';
-		    if (library.Event_list) {
-			library.Event_list.map(function(event) {
-			    self.artifacts[prefix+sourceFileName] += '\n'+event.function;
-			});
-		    }
 		    self.artifacts[prefix+sourceFileName] += '\n' + library.code;
 		}
 	    });

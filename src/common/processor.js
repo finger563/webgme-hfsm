@@ -22,8 +22,8 @@ define(['q'], function(Q) {
 			    src.transitions = []
 			}
 			src.transitions.push({
-			    'guard' : obj.event,
-			    'function' : obj.function,
+			    'Guard' : obj.Guard,
+			    'Function' : obj.Function,
 			    'prevState' : model.objects[src.path],
 			    'nextState' : model.objects[dst.path],
 			    'finalState': null,
@@ -69,13 +69,9 @@ define(['q'], function(Q) {
 			obj.State_list = null;
 		    }
 		    // update the prefix for the state function
-		    obj.function = obj.function.replace(/^(\S|\s)/gm, "    $1");
+		    obj['Periodic Function'] = obj['Periodic Function'].replace(/^(\S|\s)/gm, "    $1");
 		}
 	    });
-	    // sort the libraries according to their order
-	    if (model.root.Library_list) {
-		model.root.Library_list.sort(function(a,b) {return a.order-b.order});
-	    }
 	    // figure out heirarchy levels and assign state ids
 	    self.makeStateIDs(model);
 	    // make sure all state.transitions have valid .transitionFunc attributes
@@ -129,11 +125,11 @@ define(['q'], function(Q) {
 	getInitFunc: function(state) {
 	    // recurses to build up the transition function for an arbitrarily nested set of init states.
 	    var self = this;
-            var tFunc = state.initialization + '\n';
+            var tFunc = state.Initialization + '\n';
 	    var init = self.getInitState(state);
 	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;
-		tFunc += init.transitions[0].function + '\n' + self.getInitFunc(dst);
+		tFunc += init.transitions[0].Function + '\n' + self.getInitFunc(dst);
 	    }
             return tFunc;	    
 	},
@@ -157,7 +153,7 @@ define(['q'], function(Q) {
 		var obj = model.objects[objPath];
 		if (obj.type == "State") {
 		    obj.transitions.map(function(trans) {
-			trans.transitionFunc = trans.function + '\n' + self.getInitFunc(trans.nextState);
+			trans.transitionFunc = trans.Function + '\n' + self.getInitFunc(trans.nextState);
 			// update the prefix for the transition function
 			trans.transitionFunc = trans.transitionFunc.replace(/^(\S|\s)/gm, '    $1');
 			trans.finalState = self.getStartState(trans.nextState);
