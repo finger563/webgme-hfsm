@@ -85,17 +85,21 @@
 	    "Documentation": {
 		"documentation": "gfm"
 	    },
+	    "Task": {
+		"Definitions": "cpp",
+		"Declarations": "cpp"
+	    },
 	    "State": {
-		"function": "cpp",
-		"initialization": "cpp",
-		"finalization": "cpp"
+		"Periodic Function": "cpp",
+		"Initialization": "cpp",
+		"Finalization": "cpp"
 	    },
 	    "Source Component": {
-		"definitions": "cpp",
-		"declarations": "cpp"
+		"Definitions": "cpp",
+		"Declarations": "cpp"
 	    },
 	    "Transition": {
-		"function": "cpp"
+		"Function": "cpp"
 	    }
 	}
     }

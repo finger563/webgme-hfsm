@@ -3,6 +3,13 @@
 define(['q'], function(Q) {
     'use strict';
     return {
+	sanitizeString: function(str) {
+	    return str.replace(/[ \-]/gi,'_');
+	},
+	isValidString: function(str) {
+	    var varDeclExp = new RegExp(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi);
+	    return varDeclExp.test(str);
+	},
 	processModel: function(model) {
 	    var self = this;
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
@@ -12,8 +19,15 @@ define(['q'], function(Q) {
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
+		// Make sure task is good
+		if (obj.type == 'Task') {
+		    var taskName = self.sanitizeString(obj.name);
+		    if (!self.isValidString(taskName))
+			throw new String("Task " + obj.path + " has invlaid task name: " + obj.name);
+		    obj.taskName = taskName;
+		}
 		// figure out transition destinations, functions, and guards
-		if (obj.type == 'Transition') {
+		else if (obj.type == 'Transition') {
 		    var src = model.objects[obj.pointers['src']],
 			dst = model.objects[obj.pointers['dst']];
 		    if ( src && dst ) {
@@ -33,13 +47,11 @@ define(['q'], function(Q) {
 		}
 		// make the state names for the variables and such
 		else if (obj.type == 'State') {
-		    var stateName = obj.name.replace(/[ \-]/gi,'_');
-		    var varDeclExp = new RegExp(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi);
-		    var isValid = varDeclExp.test(stateName);
-		    if (!isValid)
+		    var stateName = self.sanitizeString(obj.name);
+		    if (!self.isValidString(stateName))
 			throw new String("State " + obj.path + " has an invalid state name: " + obj.name);
 		    var parentObj = model.objects[obj.parentPath];
-		    // make sure the state has a ParentState that either exists or is null
+		    // make sure no direct siblings of this state share its name
 		    if (parentObj && parentObj.type != 'Project') {
 			obj.parentState = model.objects[obj.parentPath];
 			obj.parentState.State_list.map(function(child) {
@@ -55,7 +67,7 @@ define(['q'], function(Q) {
 		    }
 		    // make sure we have a relatively unique name for the state
 		    while (parentObj && parentObj.type == 'State') {
-			stateName = parentObj.name.replace(' ','_') + '_'+stateName;
+			stateName = self.sanitizeString(parentObj.name) + '_'+stateName;
 			parentObj = model.objects[parentObj.parentPath];
 		    }
 		    // set the state name

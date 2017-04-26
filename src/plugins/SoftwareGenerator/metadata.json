@@ -12,12 +12,40 @@
   "writeAccessRequired": false,
   "configStructure": [
     {
-      "name": "species",
-      "displayName": "Animal Species",
-      "regex": "^[a-zA-Z]+$",
-      "regexMessage": "Name can only contain English characters!",
-      "description": "Which species does the animal belong to.",
-      "value": "Horse",
+      "name": "language",
+      "displayName": "Language",
+      "description": "Select generated code language.",
+      "value": "c++",
+      "valueType": "string",
+      "valueItems": [
+        "c++",
+        "c"
+      ]
+    },
+    {
+      "name": "toolchain",
+      "displayName": "Build Toolchain",
+      "description": "Which toolchain files should be generated.",
+      "value": "eclipse",
+      "valueType": "string",
+      "valueItems": [
+        "eclipse",
+        "make"
+      ]
+    },
+    {
+      "name": "idfPath",
+      "displayName": "IDF Path",
+      "description": "Where is the ESP IDF installed?",
+      "value": "~/esp/esp-idf",
+      "valueType": "string",
+      "readOnly": false
+    },
+    {
+      "name": "portName",
+      "displayName": "Serial Port",
+      "description": "What serial port the ESP32 device is connected to.",
+      "value": "/dev/ttyUSB1",
       "valueType": "string",
       "readOnly": false
     },
@@ -39,18 +67,6 @@
       "value": false,
       "valueType": "boolean",
       "readOnly": false
-    },
-    {
-      "name": "classification",
-      "displayName": "Classification",
-      "description": "",
-      "value": "Vertebrates",
-      "valueType": "string",
-      "valueItems": [
-        "Vertebrates",
-        "Invertebrates",
-        "Unknown"
-      ]
     },
     {
       "name": "color",

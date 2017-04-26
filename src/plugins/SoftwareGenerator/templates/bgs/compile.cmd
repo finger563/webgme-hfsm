@@ -1,1 +1,0 @@
-bgbuild.exe project.bgproj

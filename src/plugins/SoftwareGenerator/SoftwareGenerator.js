@@ -88,8 +88,10 @@ define([
         self.result.success = false;
 
 	var currentConfig = self.getCurrentConfig();
-
-	self.language = 'c';
+	self.language = currentConfig.language;
+	self.toolchain = currentConfig.toolchain;
+	self.idfPath = currentConfig.idfPath;
+	self.portName = currentConfig.portName;
 
 	// the active node for this plugin is software -> project
 	var projectNode = self.activeNode;
@@ -126,9 +128,35 @@ define([
 		.done();
     };
 
+    SoftwareGenerator.prototype.getChildrenByType = function(obj, type) {
+	var self = this;
+	var children = [];
+	if (obj.childPaths) {
+	    obj.childPaths.map(function(childPath) {
+		var child = self.projectObjects[childPath];
+		if (child.type == type) {
+		    children.push(child);
+		    children = children.concat(self.getChildrenByType(child, type));
+		}
+	    });
+	}
+	return children;
+    };
+
+    SoftwareGenerator.prototype.getTaskData = function(task) {
+	var self = this;
+	var data = {
+	    'model': self.projectModel,
+	    'task': task,
+	    'states': self.getChildrenByType(task, 'State')
+	};
+	return data;
+    };
+
     SoftwareGenerator.prototype.generateArtifacts = function () {
 	var self = this;
 
+	// make sure we can figure out exactly where we generated from
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
     	    projectID: self.project.projectId,
             commitHash: self.commitHash,
@@ -137,26 +165,51 @@ define([
             pluginVersion: self.getVersion()
         }, null, 2);
 
-	var states = []
-	for (var objPath in self.projectObjects) {
-	    var obj = self.projectObjects[objPath];
-	    if (obj.type == 'State') {
-		states.push(obj);
-	    }
+	// for each task, render it out
+	if (self.projectModel.Task_list) {
+	    self.projectModel.Task_list.map(function(task) {
+		var taskData = self.getTaskData(task);
+		var baseKey = [
+		    self.toolchain,
+		    task.taskName, // component folder
+		    task.taskName  // component file base name
+		].join('/');
+		var headerSuffix = (self.language == 'c++') ? '.hpp' : '.h';
+		var sourceSuffix = (self.language == 'c++') ? '.cpp' : '.c';
+		var headerKey = baseKey + headerSuffix;
+		var sourceKey = baseKey + sourceSuffix;
+		// update key and get task specific render data
+		var headerTemplateKey = [
+		    self.language,
+		    'task' + headerSuffix
+		].join('/');
+		self.artifacts[headerKey] = ejs.render(TEMPLATES[headerTemplateKey], taskData);
+		// update key and get task specific render data
+		var sourceTemplateKey = [
+		    self.language,
+		    'task' + sourceSuffix
+		].join('/');
+		self.artifacts[sourceKey] = ejs.render(TEMPLATES[sourceTemplateKey], taskData);
+	    });
 	}
 
-	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(function(key) { return key.startsWith(self.language + '/'); });
+	// what data is needed by the templates
+	var renderData = {
+	    'model': self.projectModel,
+	    'serialPort': self.portName,
+	    'idfPath': self.idfPath
+	};
+
+	// figure our which artifacts we're actually rendering
+	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(
+	    function(key) { return key.startsWith(self.toolchain + '/'); }
+	);
 	
+	// render templates
 	selectedArtifactKeys.map(function(key) {
-	    self.artifacts[key] = ejs.render(TEMPLATES[key], {
-		'model': self.projectModel,
-		'states': states
-	    });
+	    self.artifacts[key] = ejs.render(TEMPLATES[key], renderData);
 	    // re-render so that users' templates are accounted for
-	    self.artifacts[key] = ejs.render(self.artifacts[key], {
-		'model': self.projectModel,
-		'states': states
-	    });
+	    self.artifacts[key] = ejs.render(self.artifacts[key], renderData);
 	});
 
 	// make sure to render all libraries
