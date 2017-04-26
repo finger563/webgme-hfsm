@@ -128,6 +128,11 @@ define([
 		.done();
     };
 
+    SoftwareGenerator.prototype.getStateDelay = function(timerPeriod) {
+	var defaultTimerPeriod = 1.0;
+	return parseInt(parseFloat(timerPeriod || defaultTimerPeriod) * 1000.0);
+    };
+
     SoftwareGenerator.prototype.getChildrenByType = function(obj, type) {
 	var self = this;
 	var children = [];
@@ -148,7 +153,8 @@ define([
 	var data = {
 	    'model': self.projectModel,
 	    'task': task,
-	    'states': self.getChildrenByType(task, 'State')
+	    'states': self.getChildrenByType(task, 'State'),
+	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
 	};
 	return data;
     };
@@ -165,40 +171,82 @@ define([
             pluginVersion: self.getVersion()
         }, null, 2);
 
+	var headerSuffix = (self.language == 'c++') ? '.hpp' : '.h';
+	var sourceSuffix = (self.language == 'c++') ? '.cpp' : '.c';
+
+	// what data is needed by the templates
+	var renderData = {
+	    'model': self.projectModel,
+	    'serialPort': self.portName,
+	    'idfPath': self.idfPath,
+	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
+	};
+
+	// render the main file out
+	var mainKey = [
+	    self.toolchain,
+	    'main',
+	    'main' + sourceSuffix
+	].join('/');
+	var mainTemplateKey = [
+	    self.language,
+	    'main' + sourceSuffix
+	].join('/');
+	self.artifacts[mainKey] = ejs.render(TEMPLATES[mainTemplateKey], renderData);
+	// make component.mk file for main component
+	var buildFileName = 'component.mk';
+	var componentKey = [
+	    self.toolchain,
+	    'main',
+	    buildFileName
+	].join('/');
+	var componentTemplateKey = [
+	    self.language,
+	    buildFileName
+	].join('/');
+	self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], renderData);
+
 	// for each task, render it out
 	if (self.projectModel.Task_list) {
 	    self.projectModel.Task_list.map(function(task) {
 		var taskData = self.getTaskData(task);
 		var baseKey = [
 		    self.toolchain,
-		    task.taskName, // component folder
-		    task.taskName  // component file base name
+		    task.taskName  // component folder
 		].join('/');
-		var headerSuffix = (self.language == 'c++') ? '.hpp' : '.h';
-		var sourceSuffix = (self.language == 'c++') ? '.cpp' : '.c';
-		var headerKey = baseKey + headerSuffix;
-		var sourceKey = baseKey + sourceSuffix;
-		// update key and get task specific render data
+		// Make header file
+		var headerKey = [
+		    baseKey,
+		    task.taskName + headerSuffix
+		].join('/');
 		var headerTemplateKey = [
 		    self.language,
 		    'task' + headerSuffix
 		].join('/');
 		self.artifacts[headerKey] = ejs.render(TEMPLATES[headerTemplateKey], taskData);
-		// update key and get task specific render data
+		// Make source file
+		var sourceKey = [
+		    baseKey,
+		    task.taskName + sourceSuffix
+		].join('/');
 		var sourceTemplateKey = [
 		    self.language,
 		    'task' + sourceSuffix
 		].join('/');
 		self.artifacts[sourceKey] = ejs.render(TEMPLATES[sourceTemplateKey], taskData);
+		// make component.mk file for the component
+		var buildFileName = 'component.mk';
+		var componentKey = [
+		    baseKey,
+		    buildFileName
+		].join('/');
+		var componentTemplateKey = [
+		    self.language,
+		    buildFileName
+		].join('/');
+		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], taskData);
 	    });
 	}
-
-	// what data is needed by the templates
-	var renderData = {
-	    'model': self.projectModel,
-	    'serialPort': self.portName,
-	    'idfPath': self.idfPath
-	};
 
 	// figure our which artifacts we're actually rendering
 	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(

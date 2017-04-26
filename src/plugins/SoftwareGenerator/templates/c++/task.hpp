@@ -7,6 +7,8 @@
 // Generated state functions and members for the task
 namespace <%- task.taskName %> {
 
+  void taskFunction ( void );
+
   extern uint32_t changeState;
   extern uint32_t stateDelay;
 <%

@@ -5,7 +5,7 @@ using namespace <%- task.taskName %>;
 // User definitions for the task
 <%- task.Definitions %>
 
-// generated state code for the task
+// Generated state variables
 uint32 changeState = 0;
 uint32 stateDelay = 0;
 <%
@@ -16,6 +16,34 @@ uint8  stateLevel_<%- i %>;
 }
 -%>
 
+// Generated task function
+void taskFunction ( void ) {
+  // initialize here
+  changeState = 0;
+  stateDelay = <%- stateDelay(task.initState.timerPeriod) %>;
+  <%- task.initState.stateName %>_setState();
+  // execute the init transition for the state
+  <%- task.initFunc %>
+  // now loop running the state code
+  while (true) {
+    // run the proper state function
+<%
+    if ( task.State_list ) {
+      task.State_list.map(function(state) {
+-%>
+    <%- state.stateName %>_execute();
+<%
+	});
+    }
+-%>
+    // now wait if we haven't changed state
+    if (!changeState) {
+      vTaskDelay(stateDelay / portTICK_PERIOD_MS);
+    }
+  }
+}
+
+// Generated state functions
 <%
 states.map(function(state) {
 -%>
@@ -39,7 +67,7 @@ if (state.State_list) {
 -%>
 
   if (changeState == 0) {
-<%- state.function %>
+<%- state['Periodic Function'] %>
   }
 }
 
@@ -61,14 +89,14 @@ void <%- state.stateName %>_transition( void ) {
 if (state.transitions) {
   state.transitions.map(function(transition) {
 -%>
-  else if ( <%- transition.guard %> ) {
+  else if ( <%- transition.Guard %> ) {
     changeState = 1;
     // run the current state's finalization function
     <%- state.stateName %>_finalization();
     // set the current state to the state we are transitioning to
     <%- transition.finalState.stateName %>_setState();
     // start state timer (@ next states period)
-    stateDelay = <%- parseInt(parseFloat(transition.finalState.timerPeriod)*32768.0) %>;
+    stateDelay = <%- stateDelay(transition.finalState.timerPeriod) %>;
     // execute the transition function
     <%- transition.transitionFunc %>
   }
@@ -79,7 +107,7 @@ if (state.transitions) {
 }
 
 void <%- state.stateName %>_finalization( void ) {
-  <%- state.finalization %>
+  <%- state.Finalization %>
 <%
  if (state.parentState) {
 -%>

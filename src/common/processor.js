@@ -26,6 +26,14 @@ define(['q'], function(Q) {
 			throw new String("Task " + obj.path + " has invlaid task name: " + obj.name);
 		    obj.taskName = taskName;
 		}
+		// Make sure source components are good
+		else if (obj.type == 'Source Component') {
+		    var compName = self.sanitizeString(obj.name);
+		    if (!self.isValidString(compName))
+			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
+		    obj.needsExtern = obj.Language == 'c';
+		    obj.includeName = compName + ((obj.Language == 'c++') ? '.hpp' : '.h');
+		}
 		// figure out transition destinations, functions, and guards
 		else if (obj.type == 'Transition') {
 		    var src = model.objects[obj.pointers['src']],
@@ -137,7 +145,9 @@ define(['q'], function(Q) {
 	getInitFunc: function(state) {
 	    // recurses to build up the transition function for an arbitrarily nested set of init states.
 	    var self = this;
-            var tFunc = state.Initialization + '\n';
+	    var tFunc = '';
+	    if (state.Initialization)
+		tFunc = state.Initialization + '\n';
 	    var init = self.getInitState(state);
 	    if (init != state && init.transitions.length) {
 		var dst = init.transitions[0].nextState;
@@ -158,12 +168,14 @@ define(['q'], function(Q) {
 	},
 	buildTransitionFuncs: function(model) {
 	    var self = this;
-	    model.root.initState = self.getStartState(model.root);
-	    model.root.initFunc = self.getInitFunc(model.root);
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
-		if (obj.type == "State") {
+		if (obj.type == "Task") {
+		    obj.initState = self.getStartState(obj);
+		    obj.initFunc = self.getInitFunc(obj);
+		}
+		else if (obj.type == "State") {
 		    obj.transitions.map(function(trans) {
 			trans.transitionFunc = trans.Function + '\n' + self.getInitFunc(trans.nextState);
 			// update the prefix for the transition function

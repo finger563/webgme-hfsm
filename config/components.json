@@ -10,6 +10,9 @@
 	    "gfm": {
 		"name": "gfm"
 	    },
+	    "bash": {
+		"name": "text/x-sh"
+	    },
 	    "bgs": {
 		"name":"text/x-python",
 		"version": 2,
@@ -93,6 +96,9 @@
 		"Periodic Function": "cpp",
 		"Initialization": "cpp",
 		"Finalization": "cpp"
+	    },
+	    "Library Component": {
+		"Includes": "bash"
 	    },
 	    "Source Component": {
 		"Definitions": "cpp",

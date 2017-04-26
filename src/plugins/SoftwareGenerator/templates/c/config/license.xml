@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<license>
-    <!-- Bluetooth address to use, insert address read using BLE Update tool -->
-    <address value="<%- model.address %>" />
-
-    <!-- BLE SDK license to use, insert license read using BLE Update tool -->
-    <license value="<%- model.license %>" />
-</license>
