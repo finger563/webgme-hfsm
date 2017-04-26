@@ -6,12 +6,12 @@ using namespace <%- task.taskName %>;
 <%- task.Definitions %>
 
 // Generated state variables
-uint32 changeState = 0;
-uint32 stateDelay = 0;
+uint32_t changeState = 0;
+uint32_t stateDelay = 0;
 <%
 for (var i=0; i<model.numHeirarchyLevels; i++) {
 -%>
-uint8  stateLevel_<%- i %>;
+uint8_t  stateLevel_<%- i %>;
 <%
 }
 -%>
@@ -47,7 +47,7 @@ void taskFunction ( void *pvParameter ) {
 <%
 states.map(function(state) {
 -%>
-const uint8 <%- state.stateName %> = <%- state.stateID %>;
+const uint8_t <%- state.stateName %> = <%- state.stateID %>;
 
 void <%- state.stateName %>_execute( void ) {
   if (changeState || stateLevel_<%- state.stateLevel %> != <%- state.stateName %>)

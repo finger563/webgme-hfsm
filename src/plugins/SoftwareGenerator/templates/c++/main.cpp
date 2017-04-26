@@ -27,7 +27,7 @@ extern "C" {
 <%
     }
 -%>
-#include "../<%- comp.compName %>/<%- comp.includeName %>"
+#include "<%- comp.includeName %>"
 <%
     if (comp.needsExtern) {
 -%>
@@ -45,7 +45,7 @@ extern "C" {
 if (model['Task_list']) {
   model['Task_list'].map(function(task) {
 -%>
-#include "../<%- task.taskName %>/<%- task.taskName %>.hpp"
+#include "<%- task.taskName %>.hpp"
 <%
   });
 }
