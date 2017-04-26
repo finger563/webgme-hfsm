@@ -17,7 +17,7 @@ uint8  stateLevel_<%- i %>;
 -%>
 
 // Generated task function
-void taskFunction ( void ) {
+void taskFunction ( void *pvParameter ) {
   // initialize here
   changeState = 0;
   stateDelay = <%- stateDelay(task.initState.timerPeriod) %>;

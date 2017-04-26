@@ -32,6 +32,7 @@ define(['q'], function(Q) {
 		    if (!self.isValidString(compName))
 			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
 		    obj.needsExtern = obj.Language == 'c';
+		    obj.compName = compName;
 		    obj.includeName = compName + ((obj.Language == 'c++') ? '.hpp' : '.h');
 		}
 		// figure out transition destinations, functions, and guards

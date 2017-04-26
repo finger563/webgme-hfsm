@@ -27,7 +27,7 @@ extern "C" {
 <%
     }
 -%>
-#include "<%- comp.includeName %>"
+#include "../<%- comp.compName %>/<%- comp.includeName %>"
 <%
     if (comp.needsExtern) {
 -%>
@@ -45,21 +45,21 @@ extern "C" {
 if (model['Task_list']) {
   model['Task_list'].map(function(task) {
 -%>
-#include "<%- task.taskName %>.hpp"
+#include "../<%- task.taskName %>/<%- task.taskName %>.hpp"
 <%
   });
 }
 -%>
 
 // now start the tasks that have been defined
-void app_main(void)
+extern "C" void app_main(void)
 {
 <%
 if (model['Task_list']) {
   var taskCounter = 0;
   model['Task_list'].map(function(task) {
 -%>
-  xtaskCreate(&<%- task.taskName %>::taskFunction, "taskFunction_<%- taskCounter %>", 2048, NULL, 5, NULL);
+  xTaskCreate(&<%- task.taskName %>::taskFunction, "taskFunction_<%- taskCounter %>", 2048, NULL, 5, NULL);
 <%
     taskCounter++;
   });

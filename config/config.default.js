@@ -3,7 +3,7 @@
 var config = require('./config.webgme'),
     validateConfig = require('webgme/config/validator');
 
-config.server.port = 8080;
+config.server.port = 8081;
 
 //config.seedProjects.defaultProject = 'FiniteStateMachine';
 config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
