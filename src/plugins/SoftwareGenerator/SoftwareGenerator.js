@@ -212,6 +212,7 @@ define([
 		var taskData = self.getTaskData(task);
 		var baseKey = [
 		    self.toolchain,
+		    'components',
 		    task.taskName  // component folder
 		].join('/');
 		// Make header file
