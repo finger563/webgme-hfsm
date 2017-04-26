@@ -217,6 +217,7 @@ define([
 		// Make header file
 		var headerKey = [
 		    baseKey,
+		    'include',
 		    task.taskName + headerSuffix
 		].join('/');
 		var headerTemplateKey = [
@@ -245,6 +246,19 @@ define([
 		    buildFileName
 		].join('/');
 		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], taskData);
+		/*
+		// make Kconfig file for the component
+		var buildFileName = 'Kconfig';
+		var componentKey = [
+		    baseKey,
+		    buildFileName
+		].join('/');
+		var componentTemplateKey = [
+		    self.language,
+		    buildFileName
+		].join('/');
+		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], taskData);
+		*/
 	    });
 	}
 
