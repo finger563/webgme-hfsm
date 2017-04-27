@@ -46,12 +46,12 @@
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-		<project id="<%- model.name %>.null.1713322551" name="<%- model.name %>"/>
+		<project id="<%- model.sanitizedName %>.null.1713322551" name="<%- model.sanitizedName %>"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
 		<configuration configurationName="Default">
-			<resource resourceType="PROJECT" workspacePath="/<%- model.name %>"/>
+			<resource resourceType="PROJECT" workspacePath="/<%- model.sanitizedName %>"/>
 		</configuration>
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration">

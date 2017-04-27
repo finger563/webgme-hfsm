@@ -1,6 +1,8 @@
-#include "<%- task.taskName %>.hpp"
+#include "<%- task.sanitizedName %>.hpp"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-using namespace <%- task.taskName %>;
+namespace <%- task.sanitizedName %> {
 
 // User definitions for the task
 <%- task.Definitions %>
@@ -9,7 +11,7 @@ using namespace <%- task.taskName %>;
 uint32_t changeState = 0;
 uint32_t stateDelay = 0;
 <%
-for (var i=0; i<model.numHeirarchyLevels; i++) {
+for (var i=0; i<task.numHeirarchyLevels; i++) {
 -%>
 uint8_t  stateLevel_<%- i %>;
 <%
@@ -120,4 +122,5 @@ void <%- state.stateName %>_finalization( void ) {
 <%
 });
 -%>
-   
+ 
+};

@@ -213,13 +213,13 @@ define([
 		var baseKey = [
 		    self.toolchain,
 		    'components',
-		    task.taskName  // component folder
+		    task.sanitizedName  // component folder
 		].join('/');
 		// Make header file
 		var headerKey = [
 		    baseKey,
 		    'include',
-		    task.taskName + headerSuffix
+		    task.sanitizedName + headerSuffix
 		].join('/');
 		var headerTemplateKey = [
 		    self.language,
@@ -229,7 +229,7 @@ define([
 		// Make source file
 		var sourceKey = [
 		    baseKey,
-		    task.taskName + sourceSuffix
+		    task.sanitizedName + sourceSuffix
 		].join('/');
 		var sourceTemplateKey = [
 		    self.language,

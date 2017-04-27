@@ -19,12 +19,12 @@ define(['q'], function(Q) {
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
-		// Make sure task is good
-		if (obj.type == 'Task') {
-		    var taskName = self.sanitizeString(obj.name);
-		    if (!self.isValidString(taskName))
-			throw new String("Task " + obj.path + " has invlaid task name: " + obj.name);
-		    obj.taskName = taskName;
+		// Make sure names are good
+		if (obj.type == 'Project' || obj.type == 'Task') {
+		    var sName = self.sanitizeString(obj.name);
+		    if (!self.isValidString(sName))
+			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
+		    obj.sanitizedName = sName;
 		}
 		// Make sure source components are good
 		else if (obj.type == 'Source Component') {
@@ -61,18 +61,19 @@ define(['q'], function(Q) {
 			throw new String("State " + obj.path + " has an invalid state name: " + obj.name);
 		    var parentObj = model.objects[obj.parentPath];
 		    // make sure no direct siblings of this state share its name
+		    obj.parentState = null;
 		    if (parentObj && parentObj.type != 'Project') {
-			obj.parentState = model.objects[obj.parentPath];
-			obj.parentState.State_list.map(function(child) {
+			parentObj.State_list.map(function(child) {
 			    if (child.path != obj.path && child.name == obj.name)
 				throw new String("States " + obj.path + " and " + child.path + " have the same name: " + obj.name);
 			});
+			if (parentObj.type == 'State')
+			    obj.parentState = parentObj;
 		    }
 		    else {
 			if (topLevelStateNames.indexOf(obj.name) > -1)
 			    throw new String("Two top-level states have the same name: " + obj.name);
 			topLevelStateNames.push(obj.name);
-			obj.parentState = null;
 		    }
 		    // make sure we have a relatively unique name for the state
 		    while (parentObj && parentObj.type == 'State') {
@@ -115,12 +116,16 @@ define(['q'], function(Q) {
 	},
 	makeStateIDs: function(model) {
 	    var self = this;
-	    var levels = [];
-	    if (model.root.State_list) {
-		model.root.State_list.map(function(state) {
-		    self.recurseStates(state, levels, 0);
+	    if (model.root.Task_list) {
+		model.root.Task_list.map(function(task) {
+		    var levels = [];
+		    if (task.State_list) {
+			task.State_list.map(function(state) {
+			    self.recurseStates(state, levels, 0);
+			});
+		    }
+		    task.numHeirarchyLevels = levels.length;
 		});
-		model.root.numHeirarchyLevels = levels.length;
 	    }
 	},
 	getInitState: function(state) {

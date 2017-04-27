@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := <%- model.name %>
+PROJECT_NAME := <%- model.sanitizedName %>
 
 include <%- idfPath %>/make/project.mk
 

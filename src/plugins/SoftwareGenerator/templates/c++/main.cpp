@@ -45,7 +45,7 @@ extern "C" {
 if (model['Task_list']) {
   model['Task_list'].map(function(task) {
 -%>
-#include "<%- task.taskName %>.hpp"
+#include "<%- task.sanitizedName %>.hpp"
 <%
   });
 }
@@ -59,7 +59,7 @@ if (model['Task_list']) {
   var taskCounter = 0;
   model['Task_list'].map(function(task) {
 -%>
-  xTaskCreate(&<%- task.taskName %>::taskFunction, "taskFunction_<%- taskCounter %>", 2048, NULL, 5, NULL);
+  xTaskCreate(&<%- task.sanitizedName %>::taskFunction, "taskFunction_<%- taskCounter %>", 2048, NULL, 5, NULL);
 <%
     taskCounter++;
   });
