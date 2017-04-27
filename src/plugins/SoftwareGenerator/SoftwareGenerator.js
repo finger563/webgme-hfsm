@@ -275,26 +275,54 @@ define([
 	    self.artifacts[key] = ejs.render(self.artifacts[key], renderData);
 	});
 
-	// make sure to render all libraries
-	if (self.projectModel.Library_list) {
-	    self.projectModel.Library_list.map(function(library) {
-		if ( self.language == 'c' ) {
-		    var prefix = 'c/src/';
-		    var headerFileName = library.name + '.h';
-		    var includeGuard = library.name.toUpperCase() + '_INCLUDE_GUARD_';
-		    self.artifacts[prefix+headerFileName] = "#ifndef " + includeGuard + "\n#define " + includeGuard +'\n';
-		    self.artifacts[prefix+headerFileName] += library.definitions;
-		    if (library.Event_list) {
-			library.Event_list.map(function(event) {
-			    self.artifacts[prefix+headerFileName] += '\n'+event.definition;
-			});
-		    }
-		    self.artifacts[prefix+headerFileName] += "\n#endif //"+includeGuard;
-
-		    var sourceFileName = library.name + '.c';
-		    self.artifacts[prefix+sourceFileName] = '#include "' + headerFileName + '"';
-		    self.artifacts[prefix+sourceFileName] += '\n' + library.code;
+	// make sure to render all source components
+	if (self.projectModel['Source Component_list']) {
+	    self.projectModel['Source Component_list'].map(function(comp) {
+		var prefix = [
+		    self.toolchain,
+		    'components',
+		    comp.compName ].join('/'),
+		    headerSuffix = '',
+		    sourceSuffix = '',
+		    compData = {};
+		if ( comp.Language == 'c' ) {
+		    headerSuffix = '.h';
+		    sourceSuffix = '.c';
 		}
+		else if ( comp.Language == 'c++' ) {
+		    headerSuffix = '.hpp';
+		    sourceSuffix = '.cpp';
+		}
+		// make the header file
+		var headerFileName = comp.compName + headerSuffix;
+		var includeGuard = comp.compName.toUpperCase() + '_INCLUDE_GUARD_';
+		var headerFile = [
+		    prefix,
+		    'include',
+		    headerFileName
+		].join('/');
+		self.artifacts[headerFile] = "#ifndef " + includeGuard + "\n#define " + includeGuard +'\n';
+		self.artifacts[headerFile] += comp.Declarations;
+		self.artifacts[headerFile] += "\n#endif //"+includeGuard;
+		// make the source file
+		var sourceFileName = comp.compName + sourceSuffix;
+		var sourceFile = [
+		    prefix,
+		    sourceFileName
+		].join('/');
+		self.artifacts[sourceFile] = '#include "' + headerFileName + '"';
+		self.artifacts[sourceFile] += '\n' + comp.Definitions;
+		// make component.mk file for the component
+		var buildFileName = 'component.mk';
+		var componentKey = [
+		    prefix,
+		    buildFileName
+		].join('/');
+		var componentTemplateKey = [
+		    self.language,
+		    buildFileName
+		].join('/');
+		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], compData);
 	    });
 	}
 

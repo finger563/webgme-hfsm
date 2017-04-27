@@ -59,7 +59,13 @@ if (model['Task_list']) {
   var taskCounter = 0;
   model['Task_list'].map(function(task) {
 -%>
-  xTaskCreate(&<%- task.sanitizedName %>::taskFunction, "taskFunction_<%- taskCounter %>", 2048, NULL, 5, NULL);
+  xTaskCreate(&<%- task.sanitizedName %>::taskFunction, // function the task runs
+	      "taskFunction_<%- taskCounter %>", // name of the task (should be short)
+	      <%- task['Stack Size'] %>, // stack size for the task
+	      NULL, // parameters to task
+	      <%- task.Priority %>, // priority of the task (higher -> higher priority)
+	      NULL // returned task object (don't care about storing it)
+	      );
 <%
     taskCounter++;
   });
