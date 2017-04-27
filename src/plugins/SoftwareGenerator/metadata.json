@@ -37,7 +37,7 @@
       "name": "idfPath",
       "displayName": "IDF Path",
       "description": "Where is the ESP IDF installed?",
-      "value": "~/esp/esp-idf",
+      "value": "/home/jeb/esp/esp-idf",
       "valueType": "string",
       "readOnly": false
     },
