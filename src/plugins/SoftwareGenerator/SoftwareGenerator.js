@@ -162,6 +162,10 @@ define([
     SoftwareGenerator.prototype.generateArtifacts = function () {
 	var self = this;
 
+	var baseDir = [
+	    self.projectModel.sanitizedName
+	].join('/');
+
 	// make sure we can figure out exactly where we generated from
         self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
     	    projectID: self.project.projectId,
@@ -184,7 +188,7 @@ define([
 
 	// render the main file out
 	var mainKey = [
-	    self.toolchain,
+	    baseDir,
 	    'main',
 	    'main' + sourceSuffix
 	].join('/');
@@ -196,7 +200,7 @@ define([
 	// make component.mk file for main component
 	var buildFileName = 'component.mk';
 	var componentKey = [
-	    self.toolchain,
+	    baseDir,
 	    'main',
 	    buildFileName
 	].join('/');
@@ -211,7 +215,7 @@ define([
 	    self.projectModel.Task_list.map(function(task) {
 		var taskData = self.getTaskData(task);
 		var baseKey = [
-		    self.toolchain,
+		    baseDir,
 		    'components',
 		    task.sanitizedName  // component folder
 		].join('/');
@@ -270,16 +274,18 @@ define([
 	
 	// render templates
 	selectedArtifactKeys.map(function(key) {
-	    self.artifacts[key] = ejs.render(TEMPLATES[key], renderData);
+	    var regexp = new RegExp(self.toolchain); // only replace the first
+	    var fileName = key.replace(regexp, self.projectModel.sanitizedName);
+	    self.artifacts[fileName] = ejs.render(TEMPLATES[key], renderData);
 	    // re-render so that users' templates are accounted for
-	    self.artifacts[key] = ejs.render(self.artifacts[key], renderData);
+	    self.artifacts[fileName] = ejs.render(self.artifacts[fileName], renderData);
 	});
 
 	// make sure to render all source components
 	if (self.projectModel['Source Component_list']) {
 	    self.projectModel['Source Component_list'].map(function(comp) {
 		var prefix = [
-		    self.toolchain,
+		    baseDir,
 		    'components',
 		    comp.compName ].join('/'),
 		    headerSuffix = '',
