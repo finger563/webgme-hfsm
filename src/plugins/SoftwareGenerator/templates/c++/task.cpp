@@ -1,6 +1,9 @@
 #include "<%- task.sanitizedName %>.hpp"
+#include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
+#define MS_TO_TICKS( xTimeInMs ) (uint32_t)( ( ( TickType_t ) xTimeInMs * configTICK_RATE_HZ ) / ( TickType_t ) 1000 )
 
 namespace <%- task.sanitizedName %> {
 
@@ -40,7 +43,7 @@ void taskFunction ( void *pvParameter ) {
 -%>
     // now wait if we haven't changed state
     if (!changeState) {
-      vTaskDelay(stateDelay / portTICK_PERIOD_MS);
+      vTaskDelay( MS_TO_TICKS(stateDelay) );
     }
   }
 }

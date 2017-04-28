@@ -45,7 +45,7 @@
       "name": "portName",
       "displayName": "Serial Port",
       "description": "What serial port the ESP32 device is connected to.",
-      "value": "/dev/ttyUSB1",
+      "value": "/dev/ttyUSB0",
       "valueType": "string",
       "readOnly": false
     },
