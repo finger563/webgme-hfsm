@@ -89,6 +89,7 @@
 		"documentation": "gfm"
 	    },
 	    "Task": {
+		"Includes": "cpp",
 		"Definitions": "cpp",
 		"Declarations": "cpp"
 	    },

@@ -3,14 +3,19 @@
 
 #include <cstdint>
 
-// Task Forward Declarations
-<%- task.Declarations %>
+// Task Includes
+<%- task.Includes %>
 
 // Generated state functions and members for the task
 namespace <%- task.sanitizedName %> {
 
+  // Task Forward Declarations
+<%- task.Declarations %>
+
+  // Generated task function
   void taskFunction ( void *pvParameter );
 
+  // Generated state functions
 <%
 states.map(function(state) {
 -%>
