@@ -25,12 +25,14 @@ uint8_t  stateLevel_<%- i %>;
 void taskFunction ( void *pvParameter ) {
   // initialize here
   changeState = 0;
-  stateDelay = <%- stateDelay(task.initState.timerPeriod) %>;
+  stateDelay = <%- stateDelay(task.initState['Timer Period']) %>;
   <%- task.initState.stateName %>_setState();
   // execute the init transition for the state
   <%- task.initFunc %>
   // now loop running the state code
   while (true) {
+    // reset changeState to 0
+    changeState = 0;
     // run the proper state function
 <%
     if ( task.State_list ) {
@@ -101,7 +103,7 @@ if (state.transitions) {
     // set the current state to the state we are transitioning to
     <%- transition.finalState.stateName %>_setState();
     // start state timer (@ next states period)
-    stateDelay = <%- stateDelay(transition.finalState.timerPeriod) %>;
+    stateDelay = <%- stateDelay(transition.finalState['Timer Period']) %>;
     // execute the transition function
     <%- transition.transitionFunc %>
   }
