@@ -50,7 +50,7 @@ for (var i=0; i<task.numHeirarchyLevels; i++) {
     }
   }
 
-// Generated state functions
+  // Generated state functions
 <%
 states.map(function(state) {
 -%>
