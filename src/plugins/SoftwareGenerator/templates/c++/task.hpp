@@ -13,16 +13,16 @@ namespace <%- task.sanitizedName %> {
 <%- task.Declarations %>
 
   // Generated task function
-  void taskFunction ( void *pvParameter );
+  void  taskFunction ( void *pvParameter );
 
   // Generated state functions
 <%
 states.map(function(state) {
 -%>
-  void          <%- state.stateName %>_execute      ( void );
-  void          <%- state.stateName %>_setState     ( void );
-  void          <%- state.stateName %>_transition   ( void );
-  void          <%- state.stateName %>_finalization ( void );
+  void  <%- state.stateName %>_execute      ( void );
+  void  <%- state.stateName %>_setState     ( void );
+  void  <%- state.stateName %>_transition   ( void );
+  void  <%- state.stateName %>_finalization ( void );
 <%
 });
 -%>
