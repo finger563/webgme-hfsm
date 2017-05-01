@@ -28,7 +28,7 @@ for (var i=0; i<task.numHeirarchyLevels; i++) {
     stateDelay = <%- stateDelay(task.initState['Timer Period']) %>;
     <%- task.initState.stateName %>_setState();
     // execute the init transition for the initial state and task
-    <%- task.initFunc %>
+<%- task.initFunc %>
     // now loop running the state code
     while (true) {
       // reset changeState to 0
@@ -45,7 +45,7 @@ for (var i=0; i<task.numHeirarchyLevels; i++) {
 -%>
       // now wait if we haven't changed state
       if (!changeState) {
-	vTaskDelay( MS_TO_TICKS(stateDelay) );
+        vTaskDelay( MS_TO_TICKS(stateDelay) );
       }
     }
   }
@@ -74,7 +74,7 @@ if (state.State_list) {
 -%>
 
     if (changeState == 0) {
-      <%- state['Periodic Function'] %>
+<%- state['Periodic Function'] %>
     }
   }
 
@@ -105,7 +105,7 @@ if (state.transitions) {
       // start state timer (@ next states period)
       stateDelay = <%- stateDelay(transition.finalState['Timer Period']) %>;
       // execute the transition function
-      <%- transition.transitionFunc %>
+<%- transition.transitionFunc %>
     }
 <%
   });
@@ -114,7 +114,7 @@ if (state.transitions) {
   }
 
   void <%- state.stateName %>_finalization( void ) {
-    <%- state.Finalization %>
+<%- state.Finalization %>
 <%
  if (state.parentState) {
 -%>

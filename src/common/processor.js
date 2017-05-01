@@ -91,7 +91,8 @@ define(['q'], function(Q) {
 			obj.State_list = null;
 		    }
 		    // update the prefix for the state function
-		    obj['Periodic Function'] = obj['Periodic Function'].replace(/^(\S|\s)/gm, "    $1");
+		    obj['Periodic Function'] = obj['Periodic Function'].replace(/^([^\n]+)/gm, "      $1");
+		    obj['Finalization'] = obj['Finalization'].replace(/^([^\n]+)/gm, "    $1");
 		}
 	    });
 	    // figure out heirarchy levels and assign state ids
@@ -159,6 +160,7 @@ define(['q'], function(Q) {
 		var dst = init.transitions[0].nextState;
 		tFunc += init.transitions[0].Function + '\n' + self.getInitFunc(dst);
 	    }
+	    tFunc = tFunc.replace(/^([^\n]+)/gm, '    $1');
             return tFunc;	    
 	},
 	getStartState: function(state) {
@@ -185,7 +187,7 @@ define(['q'], function(Q) {
 		    obj.transitions.map(function(trans) {
 			trans.transitionFunc = trans.Function + '\n' + self.getInitFunc(trans.nextState);
 			// update the prefix for the transition function
-			trans.transitionFunc = trans.transitionFunc.replace(/^(\S|\s)/gm, '    $1');
+			trans.transitionFunc = trans.transitionFunc.replace(/^([^\n]+)/gm, '      $1');
 			trans.finalState = self.getStartState(trans.nextState);
 		    });
 		}
