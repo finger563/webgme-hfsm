@@ -281,9 +281,9 @@ define([
 	    self.artifacts[fileName] = ejs.render(self.artifacts[fileName], renderData);
 	});
 
-	// make sure to render all source components
-	if (self.projectModel['Source Component_list']) {
-	    self.projectModel['Source Component_list'].map(function(comp) {
+	// make sure to render all components
+	if (self.projectModel['Component_list']) {
+	    self.projectModel['Component_list'].map(function(comp) {
 		var prefix = [
 		    baseDir,
 		    'components',

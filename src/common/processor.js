@@ -26,8 +26,8 @@ define(['q'], function(Q) {
 			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
 		    obj.sanitizedName = sName;
 		}
-		// Make sure source components are good
-		else if (obj.type == 'Source Component') {
+		// Make sure components are good
+		else if (obj.type == 'Component') {
 		    var compName = self.sanitizeString(obj.name);
 		    if (!self.isValidString(compName))
 			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);

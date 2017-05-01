@@ -2,44 +2,6 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 
-// include library components
-<%
-if (model['Library Component_list']) {
-  model['Library Component_list'].map(function(comp) {
-    comp.Includes.split('\n').map(function(inclFileName) {
--%>
-#include "<%- inclFileName %>"
-<%
-    });
-  });
-}
--%>
-
-// include source components
-<%
-if (model['Source Component_list']) {
-  model['Source Component_list'].map(function(comp) {
--%>
-<%
-    if (comp.needsExtern) {
--%>
-extern "C" {
-<%
-    }
--%>
-#include "<%- comp.includeName %>"
-<%
-    if (comp.needsExtern) {
--%>
-}
-<%
-    }
--%>
-<%
-  });
-}
--%>
-
 // include the task components
 <%
 if (model['Task_list']) {
