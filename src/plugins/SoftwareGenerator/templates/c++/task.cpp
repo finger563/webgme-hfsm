@@ -27,7 +27,7 @@ void taskFunction ( void *pvParameter ) {
   changeState = 0;
   stateDelay = <%- stateDelay(task.initState['Timer Period']) %>;
   <%- task.initState.stateName %>_setState();
-  // execute the init transition for the state
+  // execute the init transition for the initial state and task
   <%- task.initFunc %>
   // now loop running the state code
   while (true) {

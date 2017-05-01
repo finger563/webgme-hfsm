@@ -90,6 +90,7 @@
 	    },
 	    "Task": {
 		"Includes": "cpp",
+		"Initialization": "cpp",
 		"Definitions": "cpp",
 		"Declarations": "cpp"
 	    },
