@@ -8,7 +8,7 @@
 namespace <%- task.sanitizedName %> {
 
   // User definitions for the task
-  <%- task.Definitions %>
+<%- task.Definitions %>
 
   // Generated state variables
   uint32_t changeState = 0;

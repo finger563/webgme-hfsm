@@ -26,6 +26,12 @@ define(['q'], function(Q) {
 		    if (!self.isValidString(sName))
 			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
 		    obj.sanitizedName = sName;
+		    if (obj.Declarations) {
+			obj.Declarations = obj.Declarations.replace(self.stripRegex, "  $1");
+		    }
+		    if (obj.Definitions) {
+			obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
+		    }
 		}
 		// Make sure components are good
 		else if (obj.type == 'Component') {
