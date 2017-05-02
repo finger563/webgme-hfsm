@@ -3,6 +3,7 @@
 define(['q'], function(Q) {
     'use strict';
     return {
+	stripRegex: /^([^\n]+)/gm,
 	sanitizeString: function(str) {
 	    return str.replace(/[ \-]/gi,'_');
 	},
@@ -91,8 +92,8 @@ define(['q'], function(Q) {
 			obj.State_list = null;
 		    }
 		    // update the prefix for the state function
-		    obj['Periodic Function'] = obj['Periodic Function'].replace(/^([^\n]+)/gm, "      $1");
-		    obj['Finalization'] = obj['Finalization'].replace(/^([^\n]+)/gm, "    $1");
+		    obj['Periodic Function'] = obj['Periodic Function'].replace(self.stripRegex, "      $1");
+		    obj['Finalization'] = obj['Finalization'].replace(self.stripRegex, "    $1");
 		}
 	    });
 	    // figure out heirarchy levels and assign state ids
@@ -153,14 +154,16 @@ define(['q'], function(Q) {
 	    // recurses to build up the transition function for an arbitrarily nested set of init states.
 	    var self = this;
 	    var tFunc = '';
+	    var padStr = '    $1';
 	    if (state.Initialization)
-		tFunc = state.Initialization + '\n';
+		tFunc = state.Initialization.replace(self.stripRegex, padStr) + '\n';
 	    var init = self.getInitState(state);
 	    if (init != state && init.transitions.length) {
+		if (init.transitions[0].Function)
+		    tFunc += init.transitions[0].Function.replace(self.stripRegex, padStr) + '\n';
 		var dst = init.transitions[0].nextState;
-		tFunc += init.transitions[0].Function + '\n' + self.getInitFunc(dst);
+		tFunc += self.getInitFunc(dst);
 	    }
-	    tFunc = tFunc.replace(/^([^\n]+)/gm, '    $1');
             return tFunc;	    
 	},
 	getStartState: function(state) {
@@ -177,6 +180,7 @@ define(['q'], function(Q) {
 	buildTransitionFuncs: function(model) {
 	    var self = this;
 	    var objPaths = Object.keys(model.objects);
+	    var padStr = '      $1';
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
 		if (obj.type == "Task") {
@@ -185,9 +189,12 @@ define(['q'], function(Q) {
 		}
 		else if (obj.type == "State") {
 		    obj.transitions.map(function(trans) {
-			trans.transitionFunc = trans.Function + '\n' + self.getInitFunc(trans.nextState);
+			trans.transitionFunc = '';
+			if (trans.Function)
+			    trans.transitionFunc += trans.Function + '\n';
+			trans.transitionFunc += self.getInitFunc(trans.nextState);
 			// update the prefix for the transition function
-			trans.transitionFunc = trans.transitionFunc.replace(/^([^\n]+)/gm, '      $1');
+			trans.transitionFunc = trans.transitionFunc.replace(self.stripRegex, padStr);
 			trans.finalState = self.getStartState(trans.nextState);
 		    });
 		}
