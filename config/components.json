@@ -3,7 +3,7 @@
 	"theme": "default",
 	"keyBinding": "emacs",
         "autoSaveInterval": "2000",
-	"rootType": [
+	"rootTypes": [
 	    "Project"
 	],
 	"loadDepth": 10,
