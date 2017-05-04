@@ -3,7 +3,9 @@
 	"theme": "default",
 	"keyBinding": "emacs",
         "autoSaveInterval": "2000",
-	"rootType": "Project",
+	"rootType": [
+	    "Project"
+	],
 	"loadDepth": 10,
 	"defaultSyntax": "cpp",
 	"syntaxToModeMap": {
