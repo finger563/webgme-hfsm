@@ -96,6 +96,12 @@
 		"Definitions": "cpp",
 		"Declarations": "cpp"
 	    },
+	    "Timer": {
+		"Includes": "cpp",
+		"Initialization": "cpp",
+		"Definitions": "cpp",
+		"Declarations": "cpp"
+	    },
 	    "State": {
 		"Periodic Function": "cpp",
 		"Initialization": "cpp",

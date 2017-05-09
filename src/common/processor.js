@@ -21,7 +21,7 @@ define(['q'], function(Q) {
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
 		// Make sure names are good
-		if (obj.type == 'Project' || obj.type == 'Task') {
+		if (obj.type == 'Project' || obj.type == 'Task' || obj.type == 'Timer') {
 		    var sName = self.sanitizeString(obj.name);
 		    if (!self.isValidString(sName))
 			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
@@ -135,6 +135,17 @@ define(['q'], function(Q) {
 		    task.numHeirarchyLevels = levels.length;
 		});
 	    }
+	    if (model.root.Timer_list) {
+		model.root.Timer_list.map(function(timer) {
+		    var levels = [];
+		    if (timer.State_list) {
+			timer.State_list.map(function(state) {
+			    self.recurseStates(state, levels, 0);
+			});
+		    }
+		    timer.numHeirarchyLevels = levels.length;
+		});
+	    }
 	},
 	getInitState: function(state) {
 	    // does not recurse; simply gets the init state and does error checking
@@ -189,7 +200,7 @@ define(['q'], function(Q) {
 	    var padStr = '      $1';
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
-		if (obj.type == "Task") {
+		if (obj.type == "Task" || obj.type == "Timer") {
 		    obj.initState = self.getStartState(obj);
 		    obj.initFunc = self.getInitFunc(obj);
 		}

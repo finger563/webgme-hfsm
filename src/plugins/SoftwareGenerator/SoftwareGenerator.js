@@ -159,6 +159,17 @@ define([
 	return data;
     };
 
+    SoftwareGenerator.prototype.getTimerData = function(timer) {
+	var self = this;
+	var data = {
+	    'model': self.projectModel,
+	    'timer': timer,
+	    'states': self.getChildrenByType(timer, 'State'),
+	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
+	};
+	return data;
+    };
+
     SoftwareGenerator.prototype.generateArtifacts = function () {
 	var self = this;
 
@@ -251,9 +262,41 @@ define([
 		    buildFileName
 		].join('/');
 		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], taskData);
-		/*
-		// make Kconfig file for the component
-		var buildFileName = 'Kconfig';
+	    });
+	}
+
+	// for each timer, render it out
+	if (self.projectModel.Timer_list) {
+	    self.projectModel.Timer_list.map(function(timer) {
+		var timerData = self.getTimerData(timer);
+		var baseKey = [
+		    baseDir,
+		    'components',
+		    timer.sanitizedName  // component folder
+		].join('/');
+		// Make header file
+		var headerKey = [
+		    baseKey,
+		    'include',
+		    timer.sanitizedName + headerSuffix
+		].join('/');
+		var headerTemplateKey = [
+		    self.language,
+		    'timer' + headerSuffix
+		].join('/');
+		self.artifacts[headerKey] = ejs.render(TEMPLATES[headerTemplateKey], timerData);
+		// Make source file
+		var sourceKey = [
+		    baseKey,
+		    timer.sanitizedName + sourceSuffix
+		].join('/');
+		var sourceTemplateKey = [
+		    self.language,
+		    'timer' + sourceSuffix
+		].join('/');
+		self.artifacts[sourceKey] = ejs.render(TEMPLATES[sourceTemplateKey], timerData);
+		// make component.mk file for the component
+		var buildFileName = 'component.mk';
 		var componentKey = [
 		    baseKey,
 		    buildFileName
@@ -262,8 +305,7 @@ define([
 		    self.language,
 		    buildFileName
 		].join('/');
-		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], taskData);
-		*/
+		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], timerData);
 	    });
 	}
 
