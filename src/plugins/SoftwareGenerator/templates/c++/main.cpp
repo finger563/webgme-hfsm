@@ -57,13 +57,11 @@ if (model['Timer_list']) {
 -%>
   // variables to store timer handles
   TimerHandle_t xTimers [ <%- numTimers %> ];
-  // create the timers
 <%
   model['Timer_list'].map(function(timer) {
 -%>
-  // Call the init function for the timer
+  // create <%- timer.sanitizedName %>
   <%- timer.sanitizedName %>::timerInitialize();
-  // create the timer
   xTimers [ <%- timerCounter %> ] = xTimerCreate
     ("timerFunction_<%- timerCounter %>", // name of the timer (should be short)
      MS_TO_TICKS( <%- stateDelay(timer.initState['Timer Period']) %> ), // period of the timer in ticks
