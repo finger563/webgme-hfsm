@@ -15,7 +15,8 @@ namespace <%- timer.sanitizedName %> {
 <%- timer.Declarations %>
 
   // Generated timer function
-  void  timerFunction ( TimerHandle_t xTimer );
+  void  timerInitialize ( void );
+  void  timerFunction   ( TimerHandle_t xTimer );
 
   // Generated state functions
 <%

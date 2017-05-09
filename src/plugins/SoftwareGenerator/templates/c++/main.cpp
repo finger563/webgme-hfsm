@@ -30,10 +30,12 @@ if (model['Timer_list']) {
 // now start the tasks that have been defined
 extern "C" void app_main(void)
 {
-  // create the tasks
 <%
 if (model['Task_list']) {
   var taskCounter = 0;
+-%>
+  // create the tasks
+<%
   model['Task_list'].map(function(task) {
 -%>
   xTaskCreate(&<%- task.sanitizedName %>::taskFunction, // function the task runs
@@ -48,21 +50,35 @@ if (model['Task_list']) {
   });
 }
 -%>
-  // create the timers
 <%
 if (model['Timer_list']) {
   var timerCounter = 0;
+  var numTimers = model['Timer_list'].length;
+-%>
+  // variables to store timer handles
+  TimerHandle_t xTimers [ <%- numTimers %> ];
+  // create the timers
+<%
   model['Timer_list'].map(function(timer) {
 -%>
-  xTimerCreate("timerFunction_<%- timerCounter %>", // name of the timer (should be short)
-	       MS_TO_TICKS( <%- stateDelay(timer.initState['Timer Period']) %> ), // period of the timer in ticks
-	       pdTRUE, // auto-reload the timer function
-	       ( void * ) 0, // id of the timer (passed to the callback function)
-	       &<%- timer.sanitizedName %>::timerFunction // function the timer runs
-	       );
+  // Call the init function for the timer
+  <%- timer.sanitizedName %>::timerInitialize();
+  // create the timer
+  xTimers [ <%- timerCounter %> ] = xTimerCreate
+    ("timerFunction_<%- timerCounter %>", // name of the timer (should be short)
+     MS_TO_TICKS( <%- stateDelay(timer.initState['Timer Period']) %> ), // period of the timer in ticks
+     pdTRUE, // auto-reload the timer function
+     ( void * ) 0, // id of the timer (passed to the callback function)
+     &<%- timer.sanitizedName %>::timerFunction // function the timer runs
+     );
 <%
     timerCounter++;
   });
+-%>
+  // start all the timers
+  for (int i=0; i < <%- numTimers %>; i++)
+    xTimerStart( xTimers[ i ], 0 );
+<%
 }
 -%>
 }

@@ -21,34 +21,34 @@ for (var i=0; i<timer.numHeirarchyLevels; i++) {
 }
 -%>
 
-  // Generated timer function
-  void timerFunction ( TimerHandle_t xTimer ) {
+  void timerInitialize ( void ) {
     // initialize here
     __change_state__ = false;
     __state_delay__ = <%- stateDelay(timer.initState['Timer Period']) %>;
     <%- timer.initState.stateName %>_setState();
     // execute the init transition for the initial state and timer
 <%- timer.initFunc %>
-    // now loop running the state code
-    while (true) {
-      // reset __change_state__ to false
-      __change_state__ = false;
-      // run the proper state function
+  }
+
+  // Generated timer function
+  void timerFunction ( TimerHandle_t xTimer ) {
+    // reset __change_state__ to false
+    __change_state__ = false;
+    // run the proper state function
 <%
     if ( timer.State_list ) {
       timer.State_list.map(function(state) {
 -%>
-      <%- state.stateName %>_execute();
+    <%- state.stateName %>_execute();
 <%
       });
     }
 -%>
-      if ( __change_state__ ) {
-        // change the period of the timer if we're changing states
-        xTimerChangePeriod( xTimer,
-                            MS_TO_TICKS( __state_delay__ ),
-                            100);  // block for up to 100 ticks
-      }
+    if ( __change_state__ ) {
+      // change the period of the timer if we're changing states
+      xTimerChangePeriod( xTimer,
+                          MS_TO_TICKS( __state_delay__ ),
+                          100);  // block for up to 100 ticks
     }
   }
 
