@@ -24,7 +24,15 @@
         "src": "src/decorators/UMLStateMachineDecorator"
       }
     },
-    "visualizers": {}
+    "visualizers": {
+      "HFSMViz": {
+        "src": "panels/HFSMViz/HFSMVizPanel",
+        "title": "HFSMViz",
+        "panel": "src/visualizers/panels/HFSMViz",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/HFSMViz"
+      }
+    }
   },
   "dependencies": {
     "plugins": {},

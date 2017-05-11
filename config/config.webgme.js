@@ -13,6 +13,7 @@ config.visualization.decoratorPaths.push(__dirname + '/../src/decorators');
 
 
 config.visualization.panelPaths.push(__dirname + '/../node_modules/webgme-codeeditor/src/visualizers/panels');
+config.visualization.panelPaths.push(__dirname + '/../src/visualizers/panels');
 
 
 

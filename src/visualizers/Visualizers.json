@@ -4,5 +4,11 @@
     "title": "CodeEditor",
     "panel": "panels/CodeEditor/CodeEditorPanel",
     "DEBUG_ONLY": false
+  },
+  {
+    "id": "HFSMViz",
+    "title": "HFSMViz",
+    "panel": "panels/HFSMViz/HFSMVizPanel",
+    "DEBUG_ONLY": false
   }
 ]
