@@ -27,9 +27,8 @@ define([
         // Initialize core collections and variables
         this._widget = options.widget;
 
-        this._currentNodeId = null;
-        this._currentNodeParentId = undefined;
-
+        this.currentNodeInfo = {id: null, children: [], parentId: null};
+	
         this._initWidgetEventHandlers();
 
         this._logger.debug('ctor finished');
@@ -47,58 +46,74 @@ define([
     // defines the parts of the project that the visualizer is interested in
     // (this allows the browser to then only load those relevant parts).
     HFSMVizControl.prototype.selectedObjectChanged = function (nodeId) {
-        var desc = this._getObjectDescriptor(nodeId),
-            self = this;
+	var self = this,
+	    desc,
+	    nodeName;
 
-        self._logger.debug('activeObject nodeId \'' + nodeId + '\'');
+        if (nodeId && nodeId != this.currentNodeInfo.id) {
+            // Remove current territory patterns
+            if (self._territoryId) {
+		self._client.removeUI(self._territoryId);
+            }
+	    if (this.currentNodeInfo.id) {
+		this._widget._initialize();
+	    }
 
-        // Remove current territory patterns
-        if (self._currentNodeId) {
-            self._client.removeUI(self._territoryId);
-        }
-
-        self._currentNodeId = nodeId;
-        self._currentNodeParentId = undefined;
-
-        if (typeof self._currentNodeId === 'string') {
             // Put new node's info into territory rules
             self._selfPatterns = {};
-            self._selfPatterns[nodeId] = {children: 0};  // Territory "rule"
 
-            self._widget.setTitle(desc.name.toUpperCase());
+            this.currentNodeInfo.id = nodeId;
+            this.currentNodeInfo.parentId = undefined;
 
-            if (typeof desc.parentId === 'string') {
-                self.$btnModelHierarchyUp.show();
-            } else {
-                self.$btnModelHierarchyUp.hide();
+            desc = this._getObjectDescriptor(nodeId);
+	    if (!desc) {
+		self._client.updateTerritory(self._territoryId, self._selfPatterns);
+		return;
+	    }
+            nodeName = (desc && desc.name);
+            if (desc) {
+                this.currentNodeInfo.parentId = desc.parentId;
             }
 
-            self._currentNodeParentId = desc.parentId;
-
+            self._selfPatterns[nodeId] = {children: 10};  // Territory "rule"
             self._territoryId = self._client.addUI(self, function (events) {
                 self._eventCallback(events);
             });
 
             // Update the territory
             self._client.updateTerritory(self._territoryId, self._selfPatterns);
-
-            self._selfPatterns[nodeId] = {children: 1};
-            self._client.updateTerritory(self._territoryId, self._selfPatterns);
         }
     };
+
+    var rootTypes = ['Task','Timer'];
 
     // This next function retrieves the relevant node information for the widget
     HFSMVizControl.prototype._getObjectDescriptor = function (nodeId) {
         var node = this._client.getNode(nodeId),
-            objDescriptor;
+            objDescriptor = null;
         if (node) {
+	    var metaObj = this._client.getNode(node.getMetaTypeId()),
+		metaName = undefined;
+	    if (metaObj) {
+		metaName = metaObj.getAttribute(nodePropertyNames.Attributes.name);
+	    }
             objDescriptor = {
                 id: node.getId(),
+		type: metaName,
                 name: node.getAttribute(nodePropertyNames.Attributes.name),
                 childrenIds: node.getChildrenIds(),
                 parentId: node.getParentId(),
                 isConnection: GMEConcepts.isConnection(nodeId)
             };
+	    // add the node pointers if it's a connection
+	    if (objDescriptor.isConnection) {
+		objDescriptor.src = node.getPointer('src').to;
+		objDescriptor.dst = node.getPointer('dst').to;
+		objDescriptor.text = node.getAttribute('Guard');
+	    }
+	    // make sure the root level has no parentId
+	    if (rootTypes.indexOf(objDescriptor.type) > -1)
+		objDescriptor.parentId = null;
         }
 
         return objDescriptor;
@@ -157,7 +172,6 @@ define([
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     HFSMVizControl.prototype.destroy = function () {
         this._detachClientEventListeners();
-        this._removeToolbarItems();
     };
 
     HFSMVizControl.prototype._attachClientEventListeners = function () {
@@ -171,7 +185,6 @@ define([
 
     HFSMVizControl.prototype.onActivate = function () {
         this._attachClientEventListeners();
-        this._displayToolbarItems();
 
         if (typeof this._currentNodeId === 'string') {
             WebGMEGlobal.State.registerActiveObject(this._currentNodeId, {suppressVisualizerFromNode: true});
@@ -180,70 +193,6 @@ define([
 
     HFSMVizControl.prototype.onDeactivate = function () {
         this._detachClientEventListeners();
-        this._hideToolbarItems();
-    };
-
-    /* * * * * * * * * * Updating the toolbar * * * * * * * * * */
-    HFSMVizControl.prototype._displayToolbarItems = function () {
-
-        if (this._toolbarInitialized === true) {
-            for (var i = this._toolbarItems.length; i--;) {
-                this._toolbarItems[i].show();
-            }
-        } else {
-            this._initializeToolbar();
-        }
-    };
-
-    HFSMVizControl.prototype._hideToolbarItems = function () {
-
-        if (this._toolbarInitialized === true) {
-            for (var i = this._toolbarItems.length; i--;) {
-                this._toolbarItems[i].hide();
-            }
-        }
-    };
-
-    HFSMVizControl.prototype._removeToolbarItems = function () {
-
-        if (this._toolbarInitialized === true) {
-            for (var i = this._toolbarItems.length; i--;) {
-                this._toolbarItems[i].destroy();
-            }
-        }
-    };
-
-    HFSMVizControl.prototype._initializeToolbar = function () {
-        var self = this,
-            toolBar = WebGMEGlobal.Toolbar;
-
-        this._toolbarItems = [];
-
-        this._toolbarItems.push(toolBar.addSeparator());
-
-        /************** Go to hierarchical parent button ****************/
-        this.$btnModelHierarchyUp = toolBar.addButton({
-            title: 'Go to parent',
-            icon: 'glyphicon glyphicon-circle-arrow-up',
-            clickFn: function (/*data*/) {
-                WebGMEGlobal.State.registerActiveObject(self._currentNodeParentId);
-            }
-        });
-        this._toolbarItems.push(this.$btnModelHierarchyUp);
-        this.$btnModelHierarchyUp.hide();
-
-        /************** Checkbox example *******************/
-
-        this.$cbShowConnection = toolBar.addCheckBox({
-            title: 'toggle checkbox',
-            icon: 'gme icon-gme_diagonal-arrow',
-            checkChangedFn: function (data, checked) {
-                self._logger.debug('Checkbox has been clicked!');
-            }
-        });
-        this._toolbarItems.push(this.$cbShowConnection);
-
-        this._toolbarInitialized = true;
     };
 
     return HFSMVizControl;

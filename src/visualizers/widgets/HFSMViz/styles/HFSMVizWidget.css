@@ -8,3 +8,41 @@
 
 .h-f-s-m-viz {
   outline: none; }
+
+#cy {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+/*background: #fff;
+  active-bg-color: #fff;
+  active-bg-opacity: 0.333;
+*/
+}
+
+#re_layout,
+#reset,
+#filter {
+  width: 3em;
+  margin: 0.5em;
+  position: absolute;
+  top: 0;
+  z-index: 999;
+}
+
+#reset {
+  right: 0;
+}
+
+#filter {
+  right: 4em;
+}
+
+#re_layout {
+  right: 8em;
+}
+
+#reset i {
+  transform: rotate(45deg);
+}

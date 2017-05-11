@@ -1,0 +1,111 @@
+
+core {
+    active-bg-color: #fff;
+    active-bg-opacity: 0.333;
+}
+
+edge {
+    curve-style: haystack; /*bezier; /*haystack;*/
+    target-arrow-shape: triangle-backcurve;
+    /*haystack-radius: 0;*/
+    opacity: 0.333;
+    width: 2;
+    z-index: 0;
+    overlay-opacity: 0;
+}
+
+node {
+    width: 40;
+    height: 40;
+    font-size: 10;
+    font-weight: bold;
+    min-zoomed-font-size: 4;
+    content: data(name);
+    text-valign: center;
+    text-halign: center;
+    color: #000;
+    text-outline-width: 2;
+    text-outline-color: #fff;
+    text-outline-opacity: 1;
+    overlay-color: #fff;
+    target-arrow-color: #ffffff;
+}
+
+node[NodeType = "Timer"],
+node[NodeType = "Task"],{
+    content: data(label);
+    shape: roundrectangle;
+    text-wrap: wrap;
+    text-max-width: 90px;
+    padding-top: 10px;
+    padding-left: 10px;
+    padding-bottom: 10px;
+    padding-right: 10px;
+    text-valign: top;
+    text-halign: center;
+    font-weight: bold;
+}
+
+node[NodeType = "State"] {
+    content: data(label);
+    shape: roundrectangle;
+    text-wrap: wrap;
+    text-max-width: 90px;
+    padding-top: 10px;
+    padding-left: 10px;
+    padding-bottom: 10px;
+    padding-right: 10px;
+    text-valign: top;
+    text-halign: center;
+    font-weight: bold;
+}
+
+node[NodeType = "Initial"] {
+    content: data(label);
+    shape: ellipse;
+    background-color: black;
+    color: black;
+}
+
+edge[type = "Transition"] {
+    text-wrap: wrap;
+    text-max-width: 90px;
+    color: black;
+    opasity: 1.0;
+    line-color: black;
+}
+
+node.highlighted {
+    min-zoomed-font-size: 0;
+    font-size: 10;
+    text-outline-width: 2;
+    text-outline-opacity: 1;
+    z-index: 9999;
+}
+
+edge.highlighted {
+    opacity: 0.8;
+    width: 4;
+    z-index: 9999;
+}
+
+edge.faded {
+    opacity: 0.1;
+}
+
+node.faded {
+    opacity: 0.5;
+    text-opacity: 0;
+}
+
+node:selected {
+    /* width: 40; */
+    /* height: 40; */
+    border-color: rgb(187, 219, 247);
+    border-opacity: 0.5;
+    border-width: 10;
+}
+
+.filtered {
+    display: none;
+}
