@@ -37,17 +37,17 @@ node {
     shape: roundrectangle;
     text-wrap: wrap;
     text-max-width: 90px;
-    padding-top: 10px;
-    padding-left: 10px;
-    padding-bottom: 10px;
-    padding-right: 10px;
+    padding-top: 5px;
+    padding-left: 5px;
+    padding-bottom: 5px;
+    padding-right: 5px;
     text-valign: top;
     text-halign: center;
     font-weight: bold;
 
 
-    width: 40;
-    height: 40;
+    width: 5;
+    height: 5;
     font-size: 10;
     font-weight: bold;
     min-zoomed-font-size: 4;
