@@ -281,7 +281,7 @@ define([
 	};
 
 	HFSMVizWidget.prototype.onWidgetContainerResize = function (width, height) {
-            this._logger.debug('Widget is resizing...');
+	    this._cy.resize();
 	};
 
 	HFSMVizWidget.prototype.checkDependencies = function(desc) {
