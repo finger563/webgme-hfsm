@@ -425,8 +425,11 @@ define([
 
 	HFSMVizWidget.prototype.removeNode = function (gmeId) {
             var desc = this.nodes[gmeId];
-            this._logger.debug('Removing node ' + desc.name);
-	    this._cy.remove("[id == " + gmeId + "]");
+	    var idTag = gmeId.replace(/\//gm, "\\/");
+	    this._cy.remove("#" + idTag);
+	    // TODO: need to update the dependencies if this was a
+	    // node so that all edges coming into or out of this node
+	    // are added back to the dependencies list
             delete this.nodes[gmeId];
 	};
 
