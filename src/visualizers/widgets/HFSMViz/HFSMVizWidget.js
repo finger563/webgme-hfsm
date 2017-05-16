@@ -6,16 +6,16 @@
  */
 
 define([
+    'text!./HFSM.html',
     'cytoscape/cytoscape',
     'cytoscape-cose-bilkent/cytoscape-cose-bilkent',
     'text!./style2.css',
-    'handlebars/dist/handlebars',
     'q',
     'css!./styles/HFSMVizWidget.css'], function (
+	HFSMHtml,
 	cytoscape,
 	regCose,
 	styleText,
-	Handlebars,
 	Q) {
 	'use strict';
 
@@ -31,14 +31,8 @@ define([
 
             // set widget class
             this._el.addClass(WIDGET_CLASS);
-
-	    this._el.append('<div id="cy"></div>');
+            this._el.append(HFSMHtml);
 	    this._cy_container = this._el.find('#cy');
-
-	    // add reset and filter buttons
-	    this._el.append('<button id="reset" class="btn btn-default"><i class="fa fa-arrows-h"></i></button>');
-	    this._el.append('<button id="filter" class="btn btn-default" data-hasqtip="0"><i class="fa fa-filter"></i></button>');
-	    this._el.append('<button id="re_layout" class="btn btn-default"><i class="fa fa-align-justify"></i></button>');
 
             this._initialize();
 
@@ -147,15 +141,6 @@ define([
 	    this._cytoscape_options.layout = self._layout_options;
 	    this._cy = cytoscape(self._cytoscape_options);
 
-	    // copied from the wine and cheese demo
-	    var infoTemplate = Handlebars.compile([
-		'<p class="ac-name">{{name}}</p>',
-		'<p class="ac-node-type"><i class="fa fa-info-circle"></i> {{NodeTypeFormatted}} {{#if Type}}({{Type}}){{/if}}</p>',
-		'{{#if Milk}}<p class="ac-milk"><i class="fa fa-angle-double-right"></i> {{Milk}}</p>{{/if}}',
-		'{{#if Country}}<p class="ac-country"><i class="fa fa-map-marker"></i> {{Country}}</p>{{/if}}',
-		'<p class="ac-more"><i class="fa fa-external-link"></i> <a target="_blank" href="https://duckduckgo.com/?q={{name}}">More information</a></p>'
-	    ].join(''));
-	    
 	    var layoutPadding = 50;
 	    var layoutDuration = 500;
 
@@ -164,8 +149,7 @@ define([
 
 		self._cy.batch(function(){
 		    self._cy.elements("edge").not( nhood ).removeClass('highlighted').addClass('faded');
-		    self._cy.elements('[NodeType="State"]').not( nhood ).removeClass('highlighted').addClass('faded');
-		    self._cy.elements('[NodeType="Initial"]').not( nhood ).removeClass('highlighted').addClass('faded');
+		    self._cy.elements("node").not( nhood ).removeClass('highlighted').addClass('faded');
 		    nhood.removeClass('faded').addClass('highlighted');
 		    
 		    var npos = node.position();
@@ -220,15 +204,6 @@ define([
 		});
 	    }
 
-	    function showNodeInfo( node ){
-		$('#info').html( infoTemplate( node.data() ) ).show();
-	    }
-	    
-	    function hideNodeInfo(){
-		$('#info').hide();
-	    }
-
-	    
 	    self._cy.on('free', 'node', function( e ){
 		var n = e.cyTarget;
 		var p = n.position();
@@ -241,24 +216,18 @@ define([
 
 	    self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
 	    
-	    self._cy.on('tap', function(){
-		$('#search').blur();
-	    });
-
 	    self._cy.on('select', 'node', function(e){
 		var node = this;
 		if (node.id()) {
 		    WebGMEGlobal.State.registerActiveSelection([node.id()]);
 		}
 		highlight( node );
-		showNodeInfo( node );
 	    });
 
 	    self._cy.on('unselect', 'node', function(e){
 		var node = this;
 
 		clear();
-		hideNodeInfo();
 	    });
 
 	    self._el.find('#re_layout').on('click', function(){
@@ -273,9 +242,6 @@ define([
 		    },
 		    duration: layoutDuration
 		});
-	    });
-	    
-	    self._el.find('#filters').on('click', 'input', function(){
 	    });
 	};
 

@@ -22,8 +22,7 @@
 }
 
 #re_layout,
-#reset,
-#filter {
+#reset {
   width: 3em;
   margin: 0.5em;
   position: absolute;
@@ -35,12 +34,8 @@
   right: 0;
 }
 
-#filter {
-  right: 4em;
-}
-
 #re_layout {
-  right: 8em;
+  right: 4em;
 }
 
 #reset i {

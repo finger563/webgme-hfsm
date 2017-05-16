@@ -11,9 +11,8 @@ config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
 // requirejs config
 config.requirejsPaths.hfsm = "./src/common";
 config.requirejsPaths['webgme-to-json'] = "./node_modules/webgme-to-json";
-config.requirejsPaths['cytoscape'] = "./node_modules/cytoscape/dist"
-config.requirejsPaths['handlebars'] = "./node_modules/handlebars/"
-config.requirejsPaths['cytoscape-cose-bilkent'] = "./node_modules/cytoscape-cose-bilkent/"
+config.requirejsPaths['cytoscape'] = "./node_modules/cytoscape/dist";
+config.requirejsPaths['cytoscape-cose-bilkent'] = "./node_modules/cytoscape-cose-bilkent/";
 
 // Merging config
 config.storage.autoMerge.enable = true;
