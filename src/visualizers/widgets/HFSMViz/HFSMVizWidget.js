@@ -230,7 +230,6 @@ define([
 
 	    
 	    self._cy.on('free', 'node', function( e ){
-		self._logger.error(e);
 		var n = e.cyTarget;
 		var p = n.position();
 		
@@ -301,8 +300,11 @@ define([
 	    if (!depsMet) {
 		if (desc.isConnection)
 		    self.dependencies.edges[desc.id] = deps;
-		else
+		else 
 		    self.dependencies.nodes[desc.id] = deps;
+		self.waitingNodes[desc.id] = desc;
+		if (self.nodes[desc.id])
+		    delete self.nodes[desc.id];
 	    }
 	    return depsMet;
 	};
@@ -356,23 +358,45 @@ define([
             self._cy.layout(self._layout_options);
         };
 
-	HFSMVizWidget.prototype.createEdge = function(desc) {
+	HFSMVizWidget.prototype.getDescData = function(desc) {
 	    var self = this;
-	    var type = desc.type;
-	    var from = self.nodes[desc.src];
-	    var to   = self.nodes[desc.dst];
-	    if (from && to) {
-		self._cy.add({
-		    group: 'edges',
-		    data: {
-			id: from.id + to.id,
-			type: type,
-			interaction: type,
+	    var data = {};
+	    if (desc.isConnection) {
+		var from = self.nodes[desc.src];
+		var to = self.nodes[desc.dst];
+		if (from && to) {
+		    data = {
+			id: desc.id,
+			type: desc.type,
+			interaction: desc.type,
 			source: from.id,
 			target: to.id,
 			name: desc.name,
 			label: desc.text
-		    }
+		    };
+		}
+	    }
+	    else {
+		data = {
+		    id: desc.id,
+		    parent: desc.parentId,
+		    type: desc.type,
+		    NodeType: desc.type,
+		    name: desc.name,
+		    label: desc.name,
+		    orgPos: null
+		};
+	    }
+	    return data;
+	};
+
+	HFSMVizWidget.prototype.createEdge = function(desc) {
+	    var self = this;
+	    var data = self.getDescData(desc);
+	    if (data) {
+		self._cy.add({
+		    group: 'edges',
+		    data: data
 		});
 		self.nodes[desc.id] = desc;
 		self.updateDependencies();
@@ -381,17 +405,10 @@ define([
 
 	HFSMVizWidget.prototype.createNode = function(desc) {
 	    var self = this;
+	    var data = self.getDescData(desc);
 	    var node = {
 		group: 'nodes',
-		data: {
-		    id: desc.id,
-		    parent: desc.parentId,
-		    type: desc.type,
-		    NodeType: desc.type,
-		    name: desc.name,
-		    label: desc.name,
-		    orgPos: null
-		}
+		data: data
 	    };
 	    self._cy.add(node);
 	    self.nodes[desc.id] = desc;
@@ -408,34 +425,50 @@ define([
 		    if (depsMet) { // ready to make edge
 			self.createEdge(desc);
 		    }
-		    else { // missing some dependencies (either parentId or connection)
-			self.waitingNodes[desc.id] = desc;
-		    }
 		}
 		else {
 		    if (depsMet) { // ready to make node
 			self.createNode(desc);
-		    }
-		    else {
-			self.waitingNodes[desc.id] = desc;
 		    }
 		}
 	    }
 	};
 
 	HFSMVizWidget.prototype.removeNode = function (gmeId) {
-            var desc = this.nodes[gmeId];
+	    var self = this;
+            var desc = self.nodes[gmeId];
+            delete self.nodes[gmeId];
 	    var idTag = gmeId.replace(/\//gm, "\\/");
-	    this._cy.remove("#" + idTag);
+	    if (!desc.isConnection) {
+		//self._cy.filter('edge[source = "'+idTag+'"], edge[dest = "'+idTag+'"]'));
+		self._cy.$('#'+idTag).neighborhood(function(obj) {
+		    var ele = this;
+		    if (ele.isEdge()) {
+			var edgeId = ele.data( 'id' );
+			var edgeDesc = self.nodes[edgeId];
+			self.checkDependencies(edgeDesc);
+		    }
+		});
+	    }
+	    self._cy.remove("#" + idTag);
 	    // TODO: need to update the dependencies if this was a
 	    // node so that all edges coming into or out of this node
 	    // are added back to the dependencies list
-            delete this.nodes[gmeId];
+	    self.updateDependencies();
 	};
 
 	HFSMVizWidget.prototype.updateNode = function (desc) {
             if (desc) {
-		this._logger.debug('Updating node:', desc);
+		if (this.nodes[desc.id]) {
+		    var idTag = desc.id.replace(/\//gm, "\\/");
+		    if (desc.isConnection) {
+			this._cy.remove('#' + idTag);
+			this.createEdge(desc);
+		    }
+		    else {
+			this._cy.$('#'+idTag).data( this.getDescData(desc) );
+		    }
+		}
             }
 	};
 
