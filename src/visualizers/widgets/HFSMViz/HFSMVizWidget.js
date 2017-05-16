@@ -224,6 +224,26 @@ define([
 		highlight( node );
 	    });
 
+	    self._cy.on('cxttap', 'node', function(e) {
+		var node = this;
+		if (node.isParent()) {
+		    var childrenVisible = node.data( 'showChildren' );
+		    if ( childrenVisible ) {
+			// currently true, disable show children
+			node.children().map(function(child) {
+			    child.css('display', 'none');
+			});
+		    }
+		    else {
+			// currently false, reenable show children
+			node.children().map(function(child) {
+			    child.css('display', 'element');
+			});
+		    }
+		    node.data( 'showChildren', !childrenVisible );
+		}
+	    });
+
 	    self._cy.on('unselect', 'node', function(e){
 		var node = this;
 
@@ -350,6 +370,7 @@ define([
 		    NodeType: desc.type,
 		    name: desc.name,
 		    label: desc.name,
+		    showChildren: true,
 		    orgPos: null
 		};
 	    }
