@@ -45,6 +45,7 @@ define([
 		self = this;
 	    
             this.nodes = {};
+	    this.hiddenNodes = {};
 	    this.dependencies = {
 		'nodes': {},
 		'edges': {}
@@ -226,22 +227,28 @@ define([
 
 	    self._cy.on('cxttap', 'node', function(e) {
 		var node = this;
+		var hidden = self.hiddenNodes[node.id()];
+		var childrenVisible = node.data( 'showChildren' );
 		if (node.isParent()) {
-		    var childrenVisible = node.data( 'showChildren' );
 		    if ( childrenVisible ) {
 			// currently true, disable show children
-			node.children().map(function(child) {
-			    child.css('display', 'none');
-			});
+			var children = node.children();
+			self.hiddenNodes[node.id()] = {
+			    nodes: children,
+			    edges: children.connectedEdges()
+			};
+			self._cy.remove(children);
 		    }
 		    else {
-			// currently false, reenable show children
-			node.children().map(function(child) {
-			    child.css('display', 'element');
-			});
 		    }
-		    node.data( 'showChildren', !childrenVisible );
 		}
+		else if (hidden) {
+		    // currently false, reenable show children
+		    hidden.nodes.restore();
+		    hidden.edges.restore();
+		    delete self.hiddenNodes[node.id()];
+		}
+		node.data( 'showChildren', !childrenVisible );
 	    });
 
 	    self._cy.on('unselect', 'node', function(e){
@@ -358,6 +365,8 @@ define([
 			source: from.id,
 			target: to.id,
 			name: desc.name,
+			// source-label
+			// target-label
 			label: desc.text
 		    };
 		}
@@ -422,6 +431,7 @@ define([
 	};
 
 	HFSMVizWidget.prototype.removeNode = function (gmeId) {
+	    // TODO: need to have this take into account hidden nodes!
 	    var self = this;
             var desc = self.nodes[gmeId];
             delete self.nodes[gmeId];
@@ -438,13 +448,11 @@ define([
 		});
 	    }
 	    self._cy.remove("#" + idTag);
-	    // TODO: need to update the dependencies if this was a
-	    // node so that all edges coming into or out of this node
-	    // are added back to the dependencies list
 	    self.updateDependencies();
 	};
 
 	HFSMVizWidget.prototype.updateNode = function (desc) {
+	    // TODO: need to have this take into account hidden nodes!
             if (desc) {
 		if (this.nodes[desc.id]) {
 		    var idTag = desc.id.replace(/\//gm, "\\/");
