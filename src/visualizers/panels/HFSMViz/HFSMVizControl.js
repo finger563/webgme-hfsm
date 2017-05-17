@@ -86,6 +86,7 @@ define([
     };
 
     var rootTypes = ['Task','Timer'];
+    var excludeTypes = ['Documentation'];
 
     // This next function retrieves the relevant node information for the widget
     HFSMVizControl.prototype._getObjectDescriptor = function (nodeId) {
@@ -97,23 +98,25 @@ define([
 	    if (metaObj) {
 		metaName = metaObj.getAttribute(nodePropertyNames.Attributes.name);
 	    }
-            objDescriptor = {
-                id: node.getId(),
-		type: metaName,
-                name: node.getAttribute(nodePropertyNames.Attributes.name),
-                childrenIds: node.getChildrenIds(),
-                parentId: node.getParentId(),
-                isConnection: GMEConcepts.isConnection(nodeId)
-            };
-	    // add the node pointers if it's a connection
-	    if (objDescriptor.isConnection) {
-		objDescriptor.src = node.getPointer('src').to;
-		objDescriptor.dst = node.getPointer('dst').to;
-		objDescriptor.text = node.getAttribute('Guard');
+	    if (metaName && excludeTypes.indexOf(metaName) == -1) {
+		objDescriptor = {
+                    id: node.getId(),
+		    type: metaName,
+                    name: node.getAttribute(nodePropertyNames.Attributes.name),
+                    childrenIds: node.getChildrenIds(),
+                    parentId: node.getParentId(),
+                    isConnection: GMEConcepts.isConnection(nodeId)
+		};
+		// add the node pointers if it's a connection
+		if (objDescriptor.isConnection) {
+		    objDescriptor.src = node.getPointer('src').to;
+		    objDescriptor.dst = node.getPointer('dst').to;
+		    objDescriptor.text = node.getAttribute('Guard');
+		}
+		// make sure the root level has no parentId
+		if (rootTypes.indexOf(objDescriptor.type) > -1)
+		    objDescriptor.parentId = null;
 	    }
-	    // make sure the root level has no parentId
-	    if (rootTypes.indexOf(objDescriptor.type) > -1)
-		objDescriptor.parentId = null;
         }
 
         return objDescriptor;
@@ -149,12 +152,14 @@ define([
 
     HFSMVizControl.prototype._onLoad = function (gmeId) {
         var description = this._getObjectDescriptor(gmeId);
-        this._widget.addNode(description);
+	if (description)
+            this._widget.addNode(description);
     };
 
     HFSMVizControl.prototype._onUpdate = function (gmeId) {
         var description = this._getObjectDescriptor(gmeId);
-        this._widget.updateNode(description);
+	if (description)
+            this._widget.updateNode(description);
     };
 
     HFSMVizControl.prototype._onUnload = function (gmeId) {

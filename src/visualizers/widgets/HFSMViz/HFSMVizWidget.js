@@ -436,22 +436,24 @@ define([
 	HFSMVizWidget.prototype.removeNode = function (gmeId) {
 	    // TODO: need to have this take into account hidden nodes!
 	    var self = this;
-            var desc = self.nodes[gmeId];
-            delete self.nodes[gmeId];
 	    var idTag = gmeId.replace(/\//gm, "\\/");
-	    if (!desc.isConnection) {
-		//self._cy.filter('edge[source = "'+idTag+'"], edge[dest = "'+idTag+'"]'));
-		self._cy.$('#'+idTag).neighborhood(function(obj) {
-		    var ele = this;
-		    if (ele.isEdge()) {
-			var edgeId = ele.data( 'id' );
-			var edgeDesc = self.nodes[edgeId];
-			self.checkDependencies(edgeDesc);
-		    }
-		});
+            var desc = self.nodes[gmeId];
+	    if (desc) {
+		delete self.nodes[gmeId];
+		if (!desc.isConnection) {
+		    //self._cy.filter('edge[source = "'+idTag+'"], edge[dest = "'+idTag+'"]'));
+		    self._cy.$('#'+idTag).neighborhood(function(obj) {
+			var ele = this;
+			if (ele.isEdge()) {
+			    var edgeId = ele.data( 'id' );
+			    var edgeDesc = self.nodes[edgeId];
+			    self.checkDependencies(edgeDesc);
+			}
+		    });
+		}
+		self._cy.remove("#" + idTag);
+		self.updateDependencies();
 	    }
-	    self._cy.remove("#" + idTag);
-	    self.updateDependencies();
 	};
 
 	HFSMVizWidget.prototype.updateNode = function (desc) {
