@@ -228,27 +228,31 @@ define([
 	    self._cy.on('cxttap', 'node', function(e) {
 		var node = this;
 		var hidden = self.hiddenNodes[node.id()];
-		var childrenVisible = node.data( 'showChildren' );
 		if (node.isParent()) {
-		    if ( childrenVisible ) {
-			// currently true, disable show children
-			var children = node.children();
-			self.hiddenNodes[node.id()] = {
-			    nodes: children,
-			    edges: children.connectedEdges()
-			};
-			self._cy.remove(children);
+		    // currently true, disable show children
+		    var children, descendants, edges;
+		    children = node.children();
+		    if (self.hiddenNodes[node.id()]) {
+			descendants = self.hiddenNodes[node.id()].nodes;
+			edges = self.hiddenNodes[node.id()].edges;
 		    }
 		    else {
+			descendants = node.descendants();
+			edges = descendants.connectedEdges();
 		    }
+		    self._cy.remove(edges);
+		    self._cy.remove(descendants);
+		    self.hiddenNodes[node.id()] = {
+			nodes: descendants,
+			edges: edges,
+		    };
 		}
-		else if (hidden) {
+		else if (hidden.nodes && hidden.edges) {
 		    // currently false, reenable show children
 		    hidden.nodes.restore();
 		    hidden.edges.restore();
-		    delete self.hiddenNodes[node.id()];
+		    self.hiddenNodes[node.id()] = undefined;
 		}
-		node.data( 'showChildren', !childrenVisible );
 	    });
 
 	    self._cy.on('unselect', 'node', function(e){
@@ -379,7 +383,6 @@ define([
 		    NodeType: desc.type,
 		    name: desc.name,
 		    label: desc.name,
-		    showChildren: true,
 		    orgPos: null
 		};
 	    }
