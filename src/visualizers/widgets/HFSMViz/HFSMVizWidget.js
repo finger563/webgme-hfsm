@@ -89,7 +89,7 @@ define([
 		// Called on `layoutready`
 		ready: function () {
 		    self._cy.nodes().forEach(function(node) {
-			var p = node.position();
+			var p = node.position;
 			node.data('orgPos',{
 			    x: p.x,
 			    y: p.y
@@ -99,7 +99,7 @@ define([
 		// Called on `layoutstop`
 		stop: function () {
 		    self._cy.nodes().forEach(function(node) {
-			var p = node.position();
+			var p = node.position;
 			node.data('orgPos',{
 			    x: p.x,
 			    y: p.y
@@ -153,7 +153,7 @@ define([
 		    self._cy.elements("node").not( nhood ).removeClass('highlighted').addClass('faded');
 		    nhood.removeClass('faded').addClass('highlighted');
 		    
-		    var npos = node.position();
+		    var npos = node.position;
 		    var w = window.innerWidth;
 		    var h = window.innerHeight;
 
@@ -206,8 +206,8 @@ define([
 	    }
 
 	    self._cy.on('free', 'node', function( e ){
-		var n = e.cyTarget;
-		var p = n.position();
+		var n = e.target;
+		var p = n.position;
 		
 		n.data('orgPos', {
 		    x: p.x,
@@ -251,7 +251,7 @@ define([
 		    // currently false, reenable show children
 		    hidden.nodes.restore();
 		    hidden.edges.restore();
-		    self.hiddenNodes[node.id()] = undefined;
+		    delete self.hiddenNodes[node.id()];
 		}
 	    });
 
@@ -317,8 +317,8 @@ define([
 		    depPaths = depPaths.filter(function(objPath) { return self.nodes[objPath] == undefined; });
 		    if (!depPaths.length) {
 			var desc = self.waitingNodes[nodePath];
-			self.waitingNodes[nodePath] = undefined;
-			self.dependencies.nodes[nodePath] = undefined;
+			delete self.waitingNodes[nodePath];
+			delete self.dependencies.nodes[nodePath];
 			self.createNode(desc);
 		    }
 		    else {
@@ -326,7 +326,7 @@ define([
 		    }
 		}
 		else {
-		    self.dependencies.nodes[nodePath] = undefined;
+		    delete self.dependencies.nodes[nodePath];
 		}
 	    });
 	    // Create any edges whose dependencies are fulfilled now
@@ -336,8 +336,8 @@ define([
 		    depPaths = depPaths.filter(function(objPath) { return self.nodes[objPath] == undefined; });
 		    if (!depPaths.length) {
 			var connDesc = self.waitingNodes[edgePath];
-			self.waitingNodes[edgePath] = undefined;
-			self.dependencies.edges[edgePath] = undefined;
+			delete self.waitingNodes[edgePath];
+			delete self.dependencies.edges[edgePath];
 			self.createEdge(connDesc);
 		    }
 		    else {
@@ -345,14 +345,15 @@ define([
 		    }
 		}
 		else {
-		    self.dependencies.edges[edgePath] = undefined;
+		    delete self.dependencies.edges[edgePath];
 		}
 	    });
 	};
 
         HFSMVizWidget.prototype.reLayout = function() {
             var self = this;
-            self._cy.layout(self._layout_options);
+            var layout = self._cy.layout(self._layout_options);
+	    layout.run();
         };
 
 	HFSMVizWidget.prototype.getDescData = function(desc) {
@@ -391,14 +392,16 @@ define([
 
 	HFSMVizWidget.prototype.createEdge = function(desc) {
 	    var self = this;
-	    var data = self.getDescData(desc);
-	    if (data) {
-		self._cy.add({
-		    group: 'edges',
-		    data: data
-		});
-		self.nodes[desc.id] = desc;
-		self.updateDependencies();
+	    if (desc && desc.src && desc.dst) {
+		var data = self.getDescData(desc);
+		if (data) {
+		    self._cy.add({
+			group: 'edges',
+			data: data
+		    });
+		    self.nodes[desc.id] = desc;
+		    self.updateDependencies();
+		}
 	    }
 	};
 
@@ -439,36 +442,48 @@ define([
 	    var idTag = gmeId.replace(/\//gm, "\\/");
             var desc = self.nodes[gmeId];
 	    if (desc) {
-		delete self.nodes[gmeId];
 		if (!desc.isConnection) {
+		    delete self.dependencies.nodes[gmeId];
 		    //self._cy.filter('edge[source = "'+idTag+'"], edge[dest = "'+idTag+'"]'));
-		    self._cy.$('#'+idTag).neighborhood(function(obj) {
-			var ele = this;
-			if (ele.isEdge()) {
+		    self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
+			if (ele && ele.isEdge()) {
 			    var edgeId = ele.data( 'id' );
 			    var edgeDesc = self.nodes[edgeId];
 			    self.checkDependencies(edgeDesc);
 			}
 		    });
 		}
+		else
+		    delete self.dependencies.edges[gmeId];
+		delete self.nodes[gmeId];
+		delete self.waitingNodes[gmeId];
 		self._cy.remove("#" + idTag);
 		self.updateDependencies();
 	    }
 	};
 
 	HFSMVizWidget.prototype.updateNode = function (desc) {
+	    var self = this;
 	    // TODO: need to have this take into account hidden nodes!
             if (desc) {
-		if (this.nodes[desc.id]) {
+		var oldDesc = this.nodes[desc.id];
+		if (oldDesc) {
 		    var idTag = desc.id.replace(/\//gm, "\\/");
 		    if (desc.isConnection) {
-			this._cy.remove('#' + idTag);
-			this.createEdge(desc);
+			if (desc.src != oldDesc.src || desc.dst != oldDesc.dst) {
+			    this._cy.remove('#' + idTag);
+			    self.checkDependencies(desc);
+			    self.updateDependencies();
+			}
+			else {
+			    
+			}
 		    }
 		    else {
 			this._cy.$('#'+idTag).data( this.getDescData(desc) );
 		    }
 		}
+		this.nodes[desc.id] = desc;
             }
 	};
 
