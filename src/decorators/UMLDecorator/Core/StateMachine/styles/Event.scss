@@ -1,0 +1,37 @@
+@import "Colors";
+
+$event-width: 120px;
+$event-height: 55px;
+$event-border: 1px solid #000000;
+$event-name-padding: 5px;
+$event-background-color: #FFF0F0;
+$event-name-height: 16px;
+$event-svg-width: $event-width;
+$event-svg-height: 40px;
+
+@mixin Event {
+  .event {
+    min-width: 65px;
+    height: 40px;
+    border: $event-border;
+    padding: 3px;
+    background-color: $event-background-color;
+    text-align: center;
+    line-height: 40px;
+
+    .name {
+      > input {
+        font-size: 12px !important;
+        line-height: 16px !important;
+        height: 16px !important;
+      }
+    }
+  }
+}
+
+@mixin SelectedEvent {
+  .event {
+    background-color: $selected-background-color;
+    border-color: $selected-border-color;
+  }
+}

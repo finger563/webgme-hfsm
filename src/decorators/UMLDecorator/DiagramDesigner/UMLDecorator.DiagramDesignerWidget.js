@@ -13,12 +13,16 @@ define([
     'js/RegistryKeys',
     'js/Constants',
     'decorators/ModelDecorator/DiagramDesigner/ModelDecorator.DiagramDesignerWidget',
+    //'./../Core/ClassDiagram/ClassDiagramCore',
+    './../Core/StateMachine/StateMachineCore',
     'jquery',
     'underscore'
 ], function (
     REGISTRY_KEYS,
     CONSTANTS,
-    ModelDecoratorDiagramDesignerWidget) {
+    ModelDecoratorDiagramDesignerWidget,
+    //ClassDiagramCore,
+    StateMachineCore) {
 
     'use strict';
 
