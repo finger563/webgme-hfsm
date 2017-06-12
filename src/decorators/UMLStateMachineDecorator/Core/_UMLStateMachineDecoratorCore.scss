@@ -1,11 +1,10 @@
 @import "State";
 @import "InitialState";
+@import "ExtendedState";
 @import "EndState";
 @import "State";
 @import "Diagram";
 @import "Transition";
-@import "Library";
-@import "Event";
 
 @import "Colors";
 
@@ -14,12 +13,11 @@
     position: relative;
 
     @include InitialState;
+    @include ExtendedState;
     @include EndState;
     @include State;
     @include Diagram;
     @include Transition;
-    @include Library;
-    @include Event;
 
     &.default {
       min-width: 65px;
@@ -42,13 +40,12 @@
 
   .selected {
     .uml-state-machine {
+      @include SelectedExtendedState;
       @include SelectedInitialState;
       @include SelectedEndState;
       @include SelectedState;
       @include SelectedDiagram;
       @include SelectedTransition;
-      @include SelectedLibrary;
-      @include SelectedEvent;
 
       &.default {
         background-color: $selected-background-color;

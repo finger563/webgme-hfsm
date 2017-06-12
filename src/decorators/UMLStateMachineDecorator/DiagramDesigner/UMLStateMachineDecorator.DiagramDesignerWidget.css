@@ -39,6 +39,43 @@
       top: 16px;
       margin-left: -6px;
       left: 50%; }
+  .uml-state-machine .extended-state .icon {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #000000;
+    box-sizing: border-box; }
+  .uml-state-machine .extended-state .name {
+    white-space: nowrap;
+    position: absolute;
+    margin-left: 0px;
+    left: 50%; }
+  .uml-state-machine .extended-state .connector {
+    background-color: #FEFEFE;
+    height: 10px;
+    width: 10px;
+    position: absolute;
+    cursor: pointer;
+    border: 1px solid #0000FF;
+    z-index: 10; }
+    .uml-state-machine .extended-state .connector:hover {
+      border-color: rgba(82, 168, 236, 0.8);
+      -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+      -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6); }
+    .uml-state-machine .extended-state .connector.left {
+      top: 9px;
+      left: -2px; }
+    .uml-state-machine .extended-state .connector.right {
+      top: 9px;
+      left: 32px; }
+    .uml-state-machine .extended-state .connector.top {
+      top: -8px;
+      margin-left: -6px;
+      left: 50%; }
+    .uml-state-machine .extended-state .connector.bottom {
+      top: 26px;
+      margin-left: -6px;
+      left: 50%; }
   .uml-state-machine .end-state .icon {
     background-color: #FFFFFF;
     border: 1px solid #000000;
@@ -153,30 +190,6 @@
       line-height: 16px;
       padding-left: 5px;
       padding-right: 5px; }
-  .uml-state-machine .library {
-    min-width: 65px;
-    height: 40px;
-    border: 1px solid #000000;
-    padding: 3px;
-    background-color: #F0FFF0;
-    text-align: center;
-    line-height: 40px; }
-    .uml-state-machine .library .name > input {
-      font-size: 12px !important;
-      line-height: 16px !important;
-      height: 16px !important; }
-  .uml-state-machine .event {
-    min-width: 65px;
-    height: 40px;
-    border: 1px solid #000000;
-    padding: 3px;
-    background-color: #FFF0F0;
-    text-align: center;
-    line-height: 40px; }
-    .uml-state-machine .event .name > input {
-      font-size: 12px !important;
-      line-height: 16px !important;
-      height: 16px !important; }
   .uml-state-machine.default {
     min-width: 65px;
     height: 40px;
@@ -190,6 +203,8 @@
       line-height: 16px !important;
       height: 16px !important; }
 
+.selected .uml-state-machine .extended-state .icon {
+  border-color: #52A8EC; }
 .selected .uml-state-machine .initial-state .icon {
   border-color: #52A8EC; }
 .selected .uml-state-machine .end-state .icon {
@@ -203,12 +218,6 @@
   background-color: #DBEAFC;
   border-color: #52A8EC; }
 .selected .uml-state-machine .transition {
-  background-color: #DBEAFC;
-  border-color: #52A8EC; }
-.selected .uml-state-machine .library {
-  background-color: #DBEAFC;
-  border-color: #52A8EC; }
-.selected .uml-state-machine .event {
   background-color: #DBEAFC;
   border-color: #52A8EC; }
 .selected .uml-state-machine.default {

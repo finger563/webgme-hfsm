@@ -1,0 +1,59 @@
+@import "Colors";
+@import "Connector";
+
+$extended-state-background-color: #000000;
+$extended-state-size: 30px;
+$connector-diff: -2px;
+
+@mixin ExtendedState {
+  .extended-state {
+    .icon {
+      width: $extended-state-size;
+      height: $extended-state-size;
+      border: 2px solid $extended-state-background-color;
+      box-sizing: border-box;
+      transform: rotate(45deg);
+    }
+
+    .name {
+    	white-space: nowrap;
+        position: absolute;
+        margin-left: 0px;
+        left: 50%;
+    }
+
+    .connector {
+      @include connector_basics;
+
+      &.left {
+        top: ( $extended-state-size - $connector-size ) / 2;
+        left: $connector-diff;
+      }
+
+      &.right {
+        top: ( $extended-state-size - $connector-size ) / 2;
+        left: $extended-state-size - $connector-diff;
+      }
+
+      &.top {
+        top: $connector-size / -2 + $connector-diff;
+        margin-left: $connector-size / -2;
+        left: 50%;
+      }
+
+      &.bottom {
+        top: $extended-state-size - $connector-size / 2 - $connector-diff;
+        margin-left: $connector-size / -2;
+        left: 50%;
+      }
+    }
+  }
+}
+
+@mixin SelectedExtendedState {
+  .extended-state {
+    .icon {
+      border-color: $selected-border-color;
+    }
+  }
+}

@@ -13,6 +13,7 @@ define(['underscore'], function (_underscore) {
         End: 'End',
         FCO: 'FCO',
         Initial: 'Initial',
+        Extended: 'Extended State',
         Language: 'Language',
         Models: 'Models',
         State: 'State',
@@ -50,6 +51,9 @@ define(['underscore'], function (_underscore) {
     var _isInitial = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Initial]);
     };
+    var _isExtended = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Extended]);
+    };
     var _isLanguage = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Language]);
     };
@@ -81,6 +85,7 @@ define(['underscore'], function (_underscore) {
             isEnd: _isEnd,
             isFCO: _isFCO,
             isInitial: _isInitial,
+            isExtended: _isExtended,
             isLanguage: _isLanguage,
             isModels: _isModels,
             isState: _isState,

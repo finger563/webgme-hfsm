@@ -13,6 +13,7 @@ define([
     'js/Widgets/DiagramDesigner/DiagramDesignerWidget.Constants',
     'text!./Diagram.html',
     'text!./InitialState.html',
+    'text!./ExtendedState.html',
     'text!./EndState.html',
     'text!./State.html',
     'text!./Transition.html',
@@ -26,6 +27,7 @@ define([
              DiagramDesignerWidgetConstants,
              DiagramTemplate,
              InitialStateTemplate,
+             ExtendedStateTemplate,
              EndStateTemplate,
              StateTemplate,
              TransitionTemplate,
@@ -39,6 +41,7 @@ define([
         UMLStateMachineDecoratorClass = 'uml-state-machine',
         DEFAULT_CLASS = 'default',
         METATYPETEMPLATE_INTIAL = $(InitialStateTemplate),
+        METATYPETEMPLATE_EXTENDED = $(ExtendedStateTemplate),
         METATYPETEMPLATE_END = $(EndStateTemplate),
         METATYPETEMPLATE_UMLSTATEDIAGRAM = $(DiagramTemplate),
         METATYPETEMPLATE_STATE = $(StateTemplate),
@@ -165,6 +168,9 @@ define([
             if (UMLStateMachineMETA.TYPE_INFO.isInitial(this._gmeID)) {
                 this._metaType = META_TYPES.Initial;
                 this._metaTypeTemplate = METATYPETEMPLATE_INTIAL.clone();
+	    } else if (UMLStateMachineMETA.TYPE_INFO.isExtended(this._gmeID)) {
+                this._metaType = META_TYPES.Extended;
+                this._metaTypeTemplate = METATYPETEMPLATE_EXTENDED.clone();
             } else if (UMLStateMachineMETA.TYPE_INFO.isEnd(this._gmeID)) {
                 this._metaType = META_TYPES.End;
                 this._metaTypeTemplate = METATYPETEMPLATE_END.clone();
@@ -214,6 +220,8 @@ define([
                         });
                     }
                 }
+            } else if (UMLStateMachineMETA.TYPE_INFO.isExtended(this._gmeID)) {
+                this._metaTypeTemplate.css({'border-color': this.fillColor});
             } else if (UMLStateMachineMETA.TYPE_INFO.isState(this._gmeID)) {
                 this._metaTypeTemplate.css({'background-color': this.fillColor});
             } else if (UMLStateMachineMETA.TYPE_INFO.isLibrary(this._gmeID)) {
