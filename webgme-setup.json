@@ -1,18 +1,6 @@
 {
   "components": {
     "plugins": {
-      "FSMCodeGenerator": {
-        "src": "src/plugins/FSMCodeGenerator",
-        "test": "test/plugins/FSMCodeGenerator"
-      },
-      "FSMImporter": {
-        "src": "src/plugins/FSMImporter",
-        "test": "test/plugins/FSMImporter"
-      },
-      "GenerateBGS": {
-        "src": "src/plugins/GenerateBGS",
-        "test": "test/plugins/GenerateBGS"
-      },
       "SoftwareGenerator": {
         "src": "src/plugins/SoftwareGenerator",
         "test": "test/plugins/SoftwareGenerator"
@@ -22,6 +10,9 @@
     "decorators": {
       "UMLStateMachineDecorator": {
         "src": "src/decorators/UMLStateMachineDecorator"
+      },
+      "UMLDecorator": {
+        "src": "src/decorators/UMLDecorator"
       }
     },
     "visualizers": {
@@ -32,7 +23,10 @@
         "secondary": false,
         "widget": "src/visualizers/widgets/HFSMViz"
       }
-    }
+    },
+    "addons": {},
+    "layouts": {},
+    "routers": {}
   },
   "dependencies": {
     "plugins": {},
@@ -47,6 +41,9 @@
         "widget": "src/visualizers/widgets/CodeEditor",
         "project": "webgme-codeeditor"
       }
-    }
+    },
+    "addons": {},
+    "layouts": {},
+    "routers": {}
   }
 }
