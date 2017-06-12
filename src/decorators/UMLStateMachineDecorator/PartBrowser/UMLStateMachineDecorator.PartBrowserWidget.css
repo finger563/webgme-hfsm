@@ -44,7 +44,7 @@
     height: 30px;
     border: 2px solid #000000;
     box-sizing: border-box;
-    transform: rotate(45deg); }
+    transform: rotate(45deg) scale(0.7); }
   .uml-state-machine .extended-state .name {
     white-space: nowrap;
     position: absolute;

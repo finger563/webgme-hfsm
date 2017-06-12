@@ -12,7 +12,7 @@ $connector-diff: -2px;
       height: $extended-state-size;
       border: 2px solid $extended-state-background-color;
       box-sizing: border-box;
-      transform: rotate(45deg);
+      transform: rotate(45deg) scale(0.7);
     }
 
     .name {
