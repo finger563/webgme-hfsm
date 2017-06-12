@@ -13,7 +13,7 @@ define(['underscore'], function (_underscore) {
         End: 'End',
         FCO: 'FCO',
         Initial: 'Initial',
-        Extended: 'Extended State',
+        'Extended State': 'Extended State',
         Language: 'Language',
         Models: 'Models',
         State: 'State',
@@ -52,7 +52,7 @@ define(['underscore'], function (_underscore) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Initial]);
     };
     var _isExtended = function (objID) {
-        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Extended]);
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Extended State']]);
     };
     var _isLanguage = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Language]);

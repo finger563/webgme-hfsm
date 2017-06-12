@@ -165,12 +165,12 @@ define([
         var META_TYPES = UMLStateMachineMETA.getMetaTypes();
 
         if (META_TYPES) {
-            if (UMLStateMachineMETA.TYPE_INFO.isInitial(this._gmeID)) {
+	    if (UMLStateMachineMETA.TYPE_INFO.isExtended(this._gmeID)) {
+                this._metaType = META_TYPES['Extended State'];
+                this._metaTypeTemplate = METATYPETEMPLATE_EXTENDED.clone();
+	    } else if (UMLStateMachineMETA.TYPE_INFO.isInitial(this._gmeID)) {
                 this._metaType = META_TYPES.Initial;
                 this._metaTypeTemplate = METATYPETEMPLATE_INTIAL.clone();
-	    } else if (UMLStateMachineMETA.TYPE_INFO.isExtended(this._gmeID)) {
-                this._metaType = META_TYPES.Extended;
-                this._metaTypeTemplate = METATYPETEMPLATE_EXTENDED.clone();
             } else if (UMLStateMachineMETA.TYPE_INFO.isEnd(this._gmeID)) {
                 this._metaType = META_TYPES.End;
                 this._metaTypeTemplate = METATYPETEMPLATE_END.clone();
