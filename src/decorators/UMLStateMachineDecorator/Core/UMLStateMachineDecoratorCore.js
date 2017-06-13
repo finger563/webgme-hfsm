@@ -17,8 +17,10 @@ define([
     'text!./EndState.html',
     'text!./State.html',
     'text!./Transition.html',
+    './highlight.min',
     './Transition',
-    './UMLStateMachine.META'
+    './UMLStateMachine.META',
+    'css!./highlightjs.default.min.css'
 ], function (CONSTANTS,
              REGISTRY_KEYS,
              nodePropertyNames,
@@ -29,6 +31,7 @@ define([
              EndStateTemplate,
              StateTemplate,
              TransitionTemplate,
+	     hljs,
              Transition,
              UMLStateMachineMETA) {
     'use strict';
@@ -222,15 +225,15 @@ define([
 	    el = this.$el.find('.internal-transitions'),
 	    self = this,
 	    nodeObj = client.getNode(this._metaInfo[CONSTANTS.GME_ID]),
-	    entry = escapeHtml(nodeObj.getEditableAttribute('Entry')),
-	    exit = escapeHtml(nodeObj.getEditableAttribute('Exit')),
-	    tick = escapeHtml(nodeObj.getEditableAttribute('Tick')),
+	    entry = hljs.highlightAuto(nodeObj.getEditableAttribute('Entry'), ['cpp']).value,
+	    exit = hljs.highlightAuto(nodeObj.getEditableAttribute('Exit'), ['cpp']).value,
+	    tick = hljs.highlightAuto(nodeObj.getEditableAttribute('Tick'), ['cpp']).value,
 	    childIDs = nodeObj.getChildrenIds();
 
 	el.empty();
-	el.append('<li class="internal-transition">entry / <font color="blue">'+entry+'</font></li>');
-	el.append('<li class="internal-transition">exit / <font color="blue">'+exit+'</font></li>');
-	el.append('<li class="internal-transition">tick / <font color="blue">'+tick+'</font></li>');
+	el.append('<li class="internal-transition">entry / '+entry+'</li>');
+	el.append('<li class="internal-transition">exit / '+exit+'</li>');
+	el.append('<li class="internal-transition">tick / '+tick+'</li>');
 	childIDs.map(function(cid) {
 	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
 		self.childrenIDs[cid] = true;
@@ -238,17 +241,17 @@ define([
 
 		var child = client.getNode(cid);
 		self._control.registerComponentIDForPartID(cid, self._metaInfo[CONSTANTS.GME_ID]);
-		var action = escapeHtml(child.getEditableAttribute('Action')),
-		    event = escapeHtml(child.getEditableAttribute('Event')),
-		    guard = escapeHtml(child.getEditableAttribute('Guard'));
+		var event = escapeHtml(child.getEditableAttribute('Event')),
+		    action = child.getEditableAttribute('Action'),
+		    guard = child.getEditableAttribute('Guard');
 		var transText = '';
 		if (event) {
 		    transText += '<li class="internal-transition">'+event;
 		    if (guard)
-			transText += ' [<font color="gray">' + guard + '</font>]';
+			transText += ' ['+hljs.highlightAuto(guard, ['cpp']).value + ']';
 		    transText += ' / ';
 		    if (action)
-			transText += '<font color="blue">'+action+'</font>';
+			transText += hljs.highlightAuto(action, ['cpp']).value;
 		    transText += '</li>';
 		    el.append(transText);
 		}
