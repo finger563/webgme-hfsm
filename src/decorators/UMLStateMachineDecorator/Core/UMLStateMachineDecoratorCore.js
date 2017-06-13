@@ -165,6 +165,23 @@ define([
         }
     };
 
+    var entityMap = {
+	'&': '&amp;',
+	'<': '&lt;',
+	'>': '&gt;',
+	'"': '&quot;',
+	"'": '&#39;',
+	'/': '&#x2F;',
+	'`': '&#x60;',
+	'=': '&#x3D;'
+    };
+
+    function escapeHtml (string) {
+	return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+	    return entityMap[s];
+	});
+    }
+
     UMLStateMachineDecoratorCore.prototype._updateInternalTransitions = function() {
         var META_TYPES = UMLStateMachineMETA.getMetaTypes();
 
@@ -175,15 +192,15 @@ define([
 	    el = this._metaTypeTemplate.find('.internal-transitions'),
 	    self = this,
 	    nodeObj = client.getNode(this._gmeID),
-	    entry = nodeObj.getEditableAttribute('Entry'),
-	    exit = nodeObj.getEditableAttribute('Exit'),
-	    tick = nodeObj.getEditableAttribute('Tick'),
+	    entry = escapeHtml(nodeObj.getEditableAttribute('Entry')),
+	    exit = escapeHtml(nodeObj.getEditableAttribute('Exit')),
+	    tick = escapeHtml(nodeObj.getEditableAttribute('Tick')),
 	    childIDs = nodeObj.getChildrenIds();
 
 	el.empty();
-	el.append('<li class="internal-transition">entry / '+entry+'</li>');
-	el.append('<li class="internal-transition">exit / '+exit+'</li>');
-	el.append('<li class="internal-transition">tick / '+tick+'</li>');
+	el.append('<li class="internal-transition">entry / <font color="blue">'+entry+'</font></li>');
+	el.append('<li class="internal-transition">exit / <font color="blue">'+exit+'</font></li>');
+	el.append('<li class="internal-transition">tick / <font color="blue">'+tick+'</font></li>');
 	childIDs.map(function(cid) {
 	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
 		var territoryId = client.addUI(self, function (events) {
@@ -193,10 +210,20 @@ define([
 		client.updateTerritory(territoryId, t);
 
 		var child = client.getNode(cid);
-		var action = child.getEditableAttribute('Action'),
-		    event = child.getEditableAttribute('Event'),
-		    guard = child.getEditableAttribute('Guard');
-		el.append('<li class="internal-transition">'+event + ' [' + guard + '] / '+action+'</li>');
+		var action = escapeHtml(child.getEditableAttribute('Action')),
+		    event = escapeHtml(child.getEditableAttribute('Event')),
+		    guard = escapeHtml(child.getEditableAttribute('Guard'));
+		var transText = '';
+		if (event) {
+		    transText += '<li class="internal-transition">'+event;
+		    if (guard)
+			transText += ' [<font color="gray">' + guard + '</font>]';
+		    transText += ' / ';
+		    if (action)
+			transText += '<font color="blue">'+action+'</font>';
+		    transText += '</li>';
+		    el.append(transText);
+		}
 	    }
 	});
     };

@@ -68,6 +68,13 @@ node[NodeType = "Initial"] {
     color: black;
 }
 
+node[NodeType = "Extended State"] {
+    width: 1;
+    height: 1;
+    content: ;
+    shape: diamond;
+}
+
 node.highlighted {
     min-zoomed-font-size: 0;
     font-size: 10;

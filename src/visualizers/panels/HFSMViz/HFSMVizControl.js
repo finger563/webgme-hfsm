@@ -86,7 +86,7 @@ define([
     };
 
     var rootTypes = ['Task','Timer'];
-    var excludeTypes = ['Documentation'];
+    var excludeTypes = ['Documentation', 'Internal Transition'];
 
     // This next function retrieves the relevant node information for the widget
     HFSMVizControl.prototype._getObjectDescriptor = function (nodeId) {
