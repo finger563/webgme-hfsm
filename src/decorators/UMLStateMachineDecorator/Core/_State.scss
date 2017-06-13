@@ -2,7 +2,7 @@
 @import "Connector";
 
 $state-min-width: 120px;
-$state-max-width: 120px;
+$state-max-width: 300px;
 $state-min-height: 70px;
 $state-border: 1px solid #000000;
 $state-name-padding: 5px;
@@ -14,6 +14,7 @@ $state-border-radius: 13px;
   .state {
     min-width: $state-min-width;
     min-height: $state-min-height;
+    max-width: $state-max-width;
     overflow: visible;
     background-color: $state-background-color;
     border: $state-border;
@@ -40,7 +41,6 @@ $state-border-radius: 13px;
       text-align: left;
       overflow: hidden;
       text-overflow: ellipsis;
-      border-bottom: 1px solid #000000;
       line-height: 16px;
       padding-left: $state-name-padding;
       padding-right: $state-name-padding;

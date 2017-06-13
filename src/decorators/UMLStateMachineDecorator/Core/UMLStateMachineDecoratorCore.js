@@ -52,6 +52,7 @@ define([
 
     UMLStateMachineDecoratorCore.prototype._initializeDecorator = function (params) {
         this.$name = undefined;
+	this._childrenIDs = [];
 
         this._displayConnectors = false;
         if (params && params.connectors) {
@@ -61,7 +62,15 @@ define([
 
     /**** Override from *.WidgetDecoratorBase ****/
     UMLStateMachineDecoratorCore.prototype.getTerritoryQuery = function () {
-        return {};
+	var territoryRule = {},
+	    gmeID = this._metaInfo[CONSTANTS.GME_ID];
+	territoryRule[gmeID] = { children: 1 };
+	if (this._childrenIDs) {
+	    this._childrenIDs.map(function(cid) {
+		territoryRule[cid] = {};
+	    });
+	}
+        return territoryRule;
     };
 
 
@@ -141,6 +150,7 @@ define([
         this._updateName();
         this._updateMetaTypeSpecificParts();
         this._updateColors();
+	this._updateInternalTransitions();
     };
 
     /* TO BE OVERRIDDEN IN META TYPE SPECIFIC CODE */
@@ -155,6 +165,41 @@ define([
         }
     };
 
+    UMLStateMachineDecoratorCore.prototype._updateInternalTransitions = function() {
+        var META_TYPES = UMLStateMachineMETA.getMetaTypes();
+
+	if (this._metaType != META_TYPES.State)
+	    return;
+
+	var client = this._control._client,
+	    el = this._metaTypeTemplate.find('.internal-transitions'),
+	    self = this,
+	    nodeObj = client.getNode(this._gmeID),
+	    entry = nodeObj.getEditableAttribute('Entry'),
+	    exit = nodeObj.getEditableAttribute('Exit'),
+	    tick = nodeObj.getEditableAttribute('Tick'),
+	    childIDs = nodeObj.getChildrenIds();
+
+	el.empty();
+	el.append('<li class="internal-transition">entry / '+entry+'</li>');
+	el.append('<li class="internal-transition">exit / '+exit+'</li>');
+	el.append('<li class="internal-transition">tick / '+tick+'</li>');
+	childIDs.map(function(cid) {
+	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
+		var territoryId = client.addUI(self, function (events) {
+		});
+		var t = {};
+		t[cid] = {};
+		client.updateTerritory(territoryId, t);
+
+		var child = client.getNode(cid);
+		var action = child.getEditableAttribute('Action'),
+		    event = child.getEditableAttribute('Event'),
+		    guard = child.getEditableAttribute('Guard');
+		el.append('<li class="internal-transition">'+event + ' [' + guard + '] / '+action+'</li>');
+	    }
+	});
+    };
 
     UMLStateMachineDecoratorCore.prototype._instantiateMetaType = function () {
         var META_TYPES = UMLStateMachineMETA.getMetaTypes();

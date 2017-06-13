@@ -14,11 +14,13 @@ define(['underscore'], function (_underscore) {
         FCO: 'FCO',
         Initial: 'Initial',
         'Extended State': 'Extended State',
+        'Extended State': 'Extended State',
         Language: 'Language',
         Models: 'Models',
         State: 'State',
         StateBase: 'StateBase',
-        Transition: 'Transition',
+        'Internal Transition': 'Internal Transition',
+        'External Transition': 'External Transition',
         Library: 'Library',
         Event: 'Event',
         UMLStateDiagram: 'UMLStateDiagram'
@@ -67,7 +69,10 @@ define(['underscore'], function (_underscore) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.StateBase]);
     };
     var _isTransition = function (objID) {
-        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Transition]);
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['External Transition']]);
+    };
+    var _isInternalTransition = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Internal Transition']]);
     };
     var _isLibrary = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Library]);
@@ -91,6 +96,7 @@ define(['underscore'], function (_underscore) {
             isState: _isState,
             isStateBase: _isStateBase,
             isTransition: _isTransition,
+            isInternalTransition: _isInternalTransition,
             isLibrary: _isLibrary,
             isEvent: _isEvent,
             isUMLStateDiagram: _isUMLStateDiagram

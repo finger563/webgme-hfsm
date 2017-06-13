@@ -103,16 +103,21 @@
 		"Declarations": "cpp"
 	    },
 	    "State": {
-		"Periodic Function": "cpp",
-		"Initialization": "cpp",
-		"Finalization": "cpp"
+		"Entry": "cpp",
+		"Exit": "cpp",
+		"Tick": "cpp"
 	    },
 	    "Component": {
 		"Definitions": "cpp",
 		"Declarations": "cpp"
 	    },
-	    "Transition": {
-		"Function": "cpp"
+	    "External Transition": {
+		"Guard": "cpp",
+		"Action": "cpp"
+	    },
+	    "Internal Transition": {
+		"Guard": "cpp",
+		"Action": "cpp"
 	    }
 	}
     }
