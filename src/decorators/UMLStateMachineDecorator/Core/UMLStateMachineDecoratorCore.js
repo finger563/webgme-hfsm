@@ -13,7 +13,7 @@ define([
     'js/Widgets/DiagramDesigner/DiagramDesignerWidget.Constants',
     'text!./Diagram.html',
     'text!./InitialState.html',
-    'text!./ExtendedState.html',
+    'text!./PseudoState.html',
     'text!./EndState.html',
     'text!./State.html',
     'text!./Transition.html',
@@ -25,7 +25,7 @@ define([
              DiagramDesignerWidgetConstants,
              DiagramTemplate,
              InitialStateTemplate,
-             ExtendedStateTemplate,
+             PseudoStateTemplate,
              EndStateTemplate,
              StateTemplate,
              TransitionTemplate,
@@ -38,7 +38,7 @@ define([
         DEFAULT_CLASS = 'default',
         METATYPETEMPLATE_UMLSTATEDIAGRAM = $(DiagramTemplate),
         METATYPETEMPLATE_INTIAL = $(InitialStateTemplate),
-        METATYPETEMPLATE_EXTENDED = $(ExtendedStateTemplate),
+        METATYPETEMPLATE_PSEUDO = $(PseudoStateTemplate),
         METATYPETEMPLATE_END = $(EndStateTemplate),
         METATYPETEMPLATE_STATE = $(StateTemplate),
         METATYPETEMPLATE_TRANSITION = $(TransitionTemplate);
@@ -52,7 +52,6 @@ define([
 
     UMLStateMachineDecoratorCore.prototype._initializeDecorator = function (params) {
         this.$name = undefined;
-	this._childrenIDs = [];
 
         this._displayConnectors = false;
         if (params && params.connectors) {
@@ -100,6 +99,10 @@ define([
         }
 
         this._renderMetaTypeSpecificParts();
+    };
+
+    UMLStateMachineDecoratorCore.prototype.updateSubcomponent = function (subComponentID) {
+	console.error('subcomp update.');
     };
 
     /* TO BE OVERRIDDEN IN META TYPE SPECIFIC CODE */
@@ -186,7 +189,7 @@ define([
 	var client = this._control._client,
 	    el = this.$el.find('.internal-transitions'),
 	    self = this,
-	    nodeObj = client.getNode(this._gmeID),
+	    nodeObj = client.getNode(this._metaInfo[CONSTANTS.GME_ID]),
 	    entry = escapeHtml(nodeObj.getEditableAttribute('Entry')),
 	    exit = escapeHtml(nodeObj.getEditableAttribute('Exit')),
 	    tick = escapeHtml(nodeObj.getEditableAttribute('Tick')),
@@ -199,6 +202,7 @@ define([
 	childIDs.map(function(cid) {
 	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
 		var child = client.getNode(cid);
+		self._control.registerComponentIDForPartID(cid, self._metaInfo[CONSTANTS.GME_ID]);
 		var action = escapeHtml(child.getEditableAttribute('Action')),
 		    event = escapeHtml(child.getEditableAttribute('Event')),
 		    guard = escapeHtml(child.getEditableAttribute('Guard'));
@@ -221,9 +225,9 @@ define([
         var META_TYPES = UMLStateMachineMETA.getMetaTypes();
 
         if (META_TYPES) {
-	    if (UMLStateMachineMETA.TYPE_INFO.isExtended(this._gmeID)) {
-                this._metaType = META_TYPES['Extended State'];
-                this._metaTypeTemplate = METATYPETEMPLATE_EXTENDED.clone();
+	    if (UMLStateMachineMETA.TYPE_INFO.isPseudo(this._gmeID)) {
+                this._metaType = META_TYPES['Pseudo State'];
+                this._metaTypeTemplate = METATYPETEMPLATE_PSEUDO.clone();
 	    } else if (UMLStateMachineMETA.TYPE_INFO.isInitial(this._gmeID)) {
                 this._metaType = META_TYPES.Initial;
                 this._metaTypeTemplate = METATYPETEMPLATE_INTIAL.clone();
@@ -270,7 +274,7 @@ define([
                         });
                     }
                 }
-            } else if (UMLStateMachineMETA.TYPE_INFO.isExtended(this._gmeID)) {
+            } else if (UMLStateMachineMETA.TYPE_INFO.isPseudo(this._gmeID)) {
                 this._metaTypeTemplate.css({'border-color': this.fillColor});
             } else if (UMLStateMachineMETA.TYPE_INFO.isState(this._gmeID)) {
                 this._metaTypeTemplate.css({'background-color': this.fillColor});

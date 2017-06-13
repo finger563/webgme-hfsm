@@ -13,8 +13,7 @@ define(['underscore'], function (_underscore) {
         End: 'End',
         FCO: 'FCO',
         Initial: 'Initial',
-        'Extended State': 'Extended State',
-        'Extended State': 'Extended State',
+        'Pseudo State': 'Pseudo State',
         Language: 'Language',
         Models: 'Models',
         State: 'State',
@@ -53,8 +52,8 @@ define(['underscore'], function (_underscore) {
     var _isInitial = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Initial]);
     };
-    var _isExtended = function (objID) {
-        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Extended State']]);
+    var _isPseudo = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Pseudo State']]);
     };
     var _isLanguage = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Language]);
@@ -74,12 +73,6 @@ define(['underscore'], function (_underscore) {
     var _isInternalTransition = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Internal Transition']]);
     };
-    var _isLibrary = function (objID) {
-        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Library]);
-    };
-    var _isEvent = function (objID) {
-        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Event]);
-    };
     var _isUMLStateDiagram = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.UMLStateDiagram]);
     };
@@ -90,15 +83,13 @@ define(['underscore'], function (_underscore) {
             isEnd: _isEnd,
             isFCO: _isFCO,
             isInitial: _isInitial,
-            isExtended: _isExtended,
+            isPseudo: _isPseudo,
             isLanguage: _isLanguage,
             isModels: _isModels,
             isState: _isState,
             isStateBase: _isStateBase,
             isTransition: _isTransition,
             isInternalTransition: _isInternalTransition,
-            isLibrary: _isLibrary,
-            isEvent: _isEvent,
             isUMLStateDiagram: _isUMLStateDiagram
         }
     };

@@ -1,6 +1,6 @@
 @import "State";
 @import "InitialState";
-@import "ExtendedState";
+@import "PseudoState";
 @import "EndState";
 @import "State";
 @import "Diagram";
@@ -13,7 +13,7 @@
     position: relative;
 
     @include InitialState;
-    @include ExtendedState;
+    @include PseudoState;
     @include EndState;
     @include State;
     @include Diagram;
@@ -40,7 +40,7 @@
 
   .selected {
     .uml-state-machine {
-      @include SelectedExtendedState;
+      @include SelectedPseudoState;
       @include SelectedInitialState;
       @include SelectedEndState;
       @include SelectedState;

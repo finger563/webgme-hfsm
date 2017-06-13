@@ -1,16 +1,16 @@
 @import "Colors";
 @import "Connector";
 
-$extended-state-background-color: #000000;
-$extended-state-size: 30px;
+$pseudo-state-background-color: #000000;
+$pseudo-state-size: 30px;
 $connector-diff: -2px;
 
-@mixin ExtendedState {
-  .extended-state {
+@mixin PseudoState {
+  .pseudo-state {
     .icon {
-      width: $extended-state-size;
-      height: $extended-state-size;
-      border: 2px solid $extended-state-background-color;
+      width: $pseudo-state-size;
+      height: $pseudo-state-size;
+      border: 2px solid $pseudo-state-background-color;
       box-sizing: border-box;
       transform: rotate(45deg) scale(0.7);
     }
@@ -26,13 +26,13 @@ $connector-diff: -2px;
       @include connector_basics;
 
       &.left {
-        top: ( $extended-state-size - $connector-size ) / 2;
+        top: ( $pseudo-state-size - $connector-size ) / 2;
         left: $connector-diff;
       }
 
       &.right {
-        top: ( $extended-state-size - $connector-size ) / 2;
-        left: $extended-state-size - $connector-diff;
+        top: ( $pseudo-state-size - $connector-size ) / 2;
+        left: $pseudo-state-size - $connector-diff;
       }
 
       &.top {
@@ -42,7 +42,7 @@ $connector-diff: -2px;
       }
 
       &.bottom {
-        top: $extended-state-size - $connector-size / 2 - $connector-diff;
+        top: $pseudo-state-size - $connector-size / 2 - $connector-diff;
         margin-left: $connector-size / -2;
         left: 50%;
       }
@@ -50,8 +50,8 @@ $connector-diff: -2px;
   }
 }
 
-@mixin SelectedExtendedState {
-  .extended-state {
+@mixin SelectedPseudoState {
+  .pseudo-state {
     .icon {
       border-color: $selected-border-color;
     }

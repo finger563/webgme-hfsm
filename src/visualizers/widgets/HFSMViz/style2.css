@@ -68,7 +68,7 @@ node[NodeType = "Initial"] {
     color: black;
 }
 
-node[NodeType = "Extended State"] {
+node[NodeType = "Pseudo State"] {
     width: 1;
     height: 1;
     content: ;
