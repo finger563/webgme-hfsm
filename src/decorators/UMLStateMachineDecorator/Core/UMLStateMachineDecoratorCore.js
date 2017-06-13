@@ -53,6 +53,8 @@ define([
     UMLStateMachineDecoratorCore.prototype._initializeDecorator = function (params) {
         this.$name = undefined;
 
+	this.childrenIDs = {};
+
         this._displayConnectors = false;
         if (params && params.connectors) {
             this._displayConnectors = params.connectors;
@@ -101,7 +103,8 @@ define([
         this._renderMetaTypeSpecificParts();
     };
 
-    UMLStateMachineDecoratorCore.prototype.notifyCompoonentEvent = function (event) {
+    UMLStateMachineDecoratorCore.prototype.notifyCompoonentEvent = function (events) {
+	console.error(events);
     };
 
     /* TO BE OVERRIDDEN IN META TYPE SPECIFIC CODE */
@@ -153,6 +156,27 @@ define([
     };
 
     UMLStateMachineDecoratorCore.prototype._update = function () {
+	// children related
+	var self = this;
+	if (this._gmeID) {
+	    var nodeObj = this._control._client.getNode(this._gmeID);
+	    var newChildren = {};
+	    var self = this;
+            nodeObj.getChildrenIds().forEach(function (childId) {
+		newChildren[childId] = true;
+		if (!self.childrenIDs[childId]) {
+                    self.childrenIDs[childId] = true;
+                    self._control.registerComponentIDForPartID(childId, self._gmeID);
+		}
+            });
+
+            Object.keys(this.childrenIDs).forEach(function (oldId) {
+		if (newChildren.hasOwnProperty(oldId) === false) {
+                    self._control.unregisterComponentIDFromPartID(oldId, self._gmeID);
+                    delete self.childrenIDs[oldId];
+		}
+            });
+	}
         this._updateName();
         this._updateMetaTypeSpecificParts();
         this._updateColors();
@@ -209,6 +233,9 @@ define([
 	el.append('<li class="internal-transition">tick / <font color="blue">'+tick+'</font></li>');
 	childIDs.map(function(cid) {
 	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
+		self.childrenIDs[cid] = true;
+		self._control.registerComponentIDForPartID(cid, self._Gmeid);
+
 		var child = client.getNode(cid);
 		self._control.registerComponentIDForPartID(cid, self._metaInfo[CONSTANTS.GME_ID]);
 		var action = escapeHtml(child.getEditableAttribute('Action')),
