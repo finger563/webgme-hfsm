@@ -101,8 +101,9 @@ define([
         this._renderMetaTypeSpecificParts();
     };
 
-    UMLStateMachineDecoratorCore.prototype.updateSubcomponent = function (subComponentID) {
-	console.error('subcomp update.');
+    UMLStateMachineDecoratorCore.prototype.notifyCompoonentEvent = function (event) {
+	console.error('comp event');
+	console.error(event);
     };
 
     /* TO BE OVERRIDDEN IN META TYPE SPECIFIC CODE */
@@ -232,7 +233,7 @@ define([
                 this._metaType = META_TYPES.Initial;
                 this._metaTypeTemplate = METATYPETEMPLATE_INTIAL.clone();
             } else if (UMLStateMachineMETA.TYPE_INFO.isEnd(this._gmeID)) {
-                this._metaType = META_TYPES.End;
+                this._metaType = META_TYPES['End State'];
                 this._metaTypeTemplate = METATYPETEMPLATE_END.clone();
             } else if (UMLStateMachineMETA.TYPE_INFO.isState(this._gmeID)) {
                 this._metaType = META_TYPES.State;

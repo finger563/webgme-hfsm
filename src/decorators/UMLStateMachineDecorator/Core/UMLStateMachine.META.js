@@ -10,7 +10,7 @@ define(['underscore'], function (_underscore) {
     'use strict';
 
     var META_TYPES = {
-        End: 'End',
+        'End State': 'End State',
         FCO: 'FCO',
         Initial: 'Initial',
         'Pseudo State': 'Pseudo State',
@@ -44,7 +44,7 @@ define(['underscore'], function (_underscore) {
 
     //META ASPECT TYPE CHECKING
     var _isEnd = function (objID) {
-        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.End]);
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['End State']]);
     };
     var _isFCO = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.FCO]);
