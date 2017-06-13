@@ -65,11 +65,6 @@ define([
 	var territoryRule = {},
 	    gmeID = this._metaInfo[CONSTANTS.GME_ID];
 	territoryRule[gmeID] = { children: 1 };
-	if (this._childrenIDs) {
-	    this._childrenIDs.map(function(cid) {
-		territoryRule[cid] = {};
-	    });
-	}
         return territoryRule;
     };
 
@@ -189,7 +184,7 @@ define([
 	    return;
 
 	var client = this._control._client,
-	    el = this._metaTypeTemplate.find('.internal-transitions'),
+	    el = this.$el.find('.internal-transitions'),
 	    self = this,
 	    nodeObj = client.getNode(this._gmeID),
 	    entry = escapeHtml(nodeObj.getEditableAttribute('Entry')),
@@ -203,12 +198,6 @@ define([
 	el.append('<li class="internal-transition">tick / <font color="blue">'+tick+'</font></li>');
 	childIDs.map(function(cid) {
 	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
-		var territoryId = client.addUI(self, function (events) {
-		});
-		var t = {};
-		t[cid] = {};
-		client.updateTerritory(territoryId, t);
-
 		var child = client.getNode(cid);
 		var action = escapeHtml(child.getEditableAttribute('Action')),
 		    event = escapeHtml(child.getEditableAttribute('Event')),
