@@ -6,6 +6,11 @@
 	"rootTypes": [
 	    "Project"
 	],
+	"excludeTypes": [
+	    "Pseudo State",
+	    "Initial",
+	    "End State"
+	],
 	"loadDepth": 10,
 	"defaultSyntax": "cpp",
 	"syntaxToModeMap": {

@@ -111,7 +111,10 @@ define([
 		if (objDescriptor.isConnection) {
 		    objDescriptor.src = node.getPointer('src').to;
 		    objDescriptor.dst = node.getPointer('dst').to;
-		    objDescriptor.text = node.getAttribute('Guard');
+		    objDescriptor.text = node.getAttribute('Event');
+		    var guard = node.getAttribute('Guard');
+		    if (guard)
+			objDescriptor.text += ' [' + guard + ']';
 		}
 		// make sure the root level has no parentId
 		if (rootTypes.indexOf(objDescriptor.type) > -1)
