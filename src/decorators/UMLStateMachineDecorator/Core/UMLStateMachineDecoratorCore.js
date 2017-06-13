@@ -102,8 +102,6 @@ define([
     };
 
     UMLStateMachineDecoratorCore.prototype.notifyCompoonentEvent = function (event) {
-	console.error('comp event');
-	console.error(event);
     };
 
     /* TO BE OVERRIDDEN IN META TYPE SPECIFIC CODE */
@@ -117,8 +115,17 @@ define([
 
         if (nodeObj) {
             name = nodeObj.getAttribute(nodePropertyNames.Attributes.name) || name;
+	    if (UMLStateMachineMETA.TYPE_INFO.isTransition(this._gmeID)) {
+		// show event [ guard ]
+		name = '';
+		var event = nodeObj.getEditableAttribute('Event'),
+		    guard = nodeObj.getEditableAttribute('Guard');
+		if (event)
+		    name += event;
+		if (guard)
+		    name += ' ['+guard+']';
+	    }
         }
-
         return name;
     };
 
@@ -239,7 +246,7 @@ define([
                 this._metaType = META_TYPES.State;
                 this._metaTypeTemplate = METATYPETEMPLATE_STATE.clone();
             } else if (UMLStateMachineMETA.TYPE_INFO.isTransition(this._gmeID)) {
-                this._metaType = META_TYPES.Transition;
+                this._metaType = META_TYPES['External Transition'];
                 this._metaTypeTemplate = METATYPETEMPLATE_TRANSITION.clone();
                 _.extend(this, new Transition());
             } else if (UMLStateMachineMETA.TYPE_INFO.isUMLStateDiagram(this._gmeID)) {
