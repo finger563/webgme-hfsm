@@ -3,7 +3,7 @@
 
 $state-min-width: 120px;
 $state-max-width: 120px;
-$state-height: 55px;
+$state-min-height: 70px;
 $state-border: 1px solid #000000;
 $state-name-padding: 5px;
 $state-background-color: #FCFCFC;
@@ -13,7 +13,8 @@ $state-border-radius: 13px;
 @mixin State {
   .state {
     min-width: $state-min-width;
-    height: $state-height;
+    min-height: $state-min-height;
+    overflow: visible;
     background-color: $state-background-color;
     border: $state-border;
     border-radius: $state-border-radius;
@@ -30,6 +31,59 @@ $state-border-radius: 13px;
       line-height: 16px;
       padding-left: $state-name-padding;
       padding-right: $state-name-padding;
+    }
+
+    .internal-transitions {
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-bottom: 1px solid #000000;
+      line-height: 16px;
+      padding-left: $state-name-padding;
+      padding-right: $state-name-padding;
+    }
+
+    li {
+      list-style-type: none;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 14px;
+    }
+
+    .connector {
+      @include connector_basics;
+
+      &.top {
+        left: 50%;
+        top: $connector-size / -2;
+      }
+
+      &.bottom {
+        left: 50%;
+        bottom: $connector-size / -2;
+      }
+
+      &.left {
+        position: absolute;
+        margin-left: 0;
+        top: 50%;
+        left: $connector-size / -2;
+	right: 100%;
+      }
+
+      &.right {
+        position: absolute;
+        top: 50%;
+        right: $connector-size / -2;
+	left: 100%;
+      }
     }
   }
 
