@@ -221,22 +221,25 @@ define([
     }
 
     function getCode(nodeObj, codeAttr, doHighlight) {
-	var code = nodeObj.getEditableAttribute( codeAttr );
+	var originalCode = nodeObj.getEditableAttribute( codeAttr ),
+	    code = escapeHtml(originalCode);
 	var el = '';
-	if (code) {
-	    if (doHighlight) {
-		code = '<code class="cpp">'+escapeHtml(code)+'</code>';
-		code = htmlToElement(code);
-		hljs.highlightBlock(code)
-		$(code).css('text-overflow', 'ellipsis');
-		$(code).css('white-space', 'nowrap');
-		$(code).css('overflow', 'hidden');
-		//$(code).css('display', 'inline-block');
-		el = code.outerHTML;
-		//el = hljs.highlightAuto(code, ['cpp']).value;
+	if (doHighlight) {
+	    code = '<code class="cpp">'+code+'</code>';
+	    code = htmlToElement(code);
+	    hljs.highlightBlock(code);
+	    $(code).css('text-overflow', 'ellipsis');
+	    $(code).css('white-space', 'nowrap');
+	    $(code).css('overflow', 'hidden');
+	    if (originalCode) {
 	    }
-	    else 
-		el = code;
+	    else {
+		$(code).css('background-color','rgba(255,0,0,0.5)');
+	    }
+	    el = code.outerHTML;
+	}
+	else {
+	    el = code;
 	}
 	return el;
     }

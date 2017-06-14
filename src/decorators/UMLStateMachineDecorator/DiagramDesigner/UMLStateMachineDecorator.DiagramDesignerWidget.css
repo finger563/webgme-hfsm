@@ -130,7 +130,7 @@
       left: 50%; }
   .uml-state-machine .state {
     min-width: 120px;
-    min-height: 70px;
+    min-height: 100px;
     max-width: 300px;
     overflow: visible;
     background-color: #FCFCFC;
