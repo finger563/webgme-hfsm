@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20px" height="20px" viewBox="0 0 12 12" preserveAspectRatio="xMidYMid meet"  >
+  <defs id="svgEditorDefs">
+    <polygon id="svgEditorShapeDefs" fill="khaki" stroke="black" style="vector-effect: non-scaling-stroke; stroke-width: 1;"/>
+  </defs>
+  <circle id="e2_circle" cx="6" cy="6" stroke="black" style="stroke-width: 1px;" r="2" fill="black" transform="matrix(1 0 0 1 0 0)"/>
+  <circle id="e3_circle" cx="6" cy="6" stroke="black" style="stroke-width: 1px; fill: none;" r="5" transform="matrix(1 0 0 1 0 0)"/>
+</svg>

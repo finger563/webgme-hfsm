@@ -247,7 +247,7 @@ define([
 			edges: edges,
 		    };
 		}
-		else if (hidden.nodes && hidden.edges) {
+		else if (hidden && hidden.nodes && hidden.edges) {
 		    // currently false, reenable show children
 		    hidden.nodes.restore();
 		    hidden.edges.restore();

@@ -68,6 +68,16 @@ node[NodeType = "Initial"] {
     color: black;
 }
 
+node[NodeType = "End State"] {
+    background-image: assets/DecoratorSVG/svgs/endState.svg;
+    background-image-opacity: 1.0;
+    border-width: 0;
+    shape: ellipse;
+    width: 6;
+    height: 6;
+    content: ;
+}
+
 node[NodeType = "Pseudo State"] {
     width: 1;
     height: 1;
