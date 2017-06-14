@@ -10,12 +10,14 @@ define([
     'cytoscape/cytoscape',
     'cytoscape-cose-bilkent/cytoscape-cose-bilkent',
     'text!./style2.css',
+    'text!../../../decorators/UMLStateMachineDecorator/Core/highlightjs.default.min.css',
     'q',
     'css!./styles/HFSMVizWidget.css'], function (
 	HFSMHtml,
 	cytoscape,
 	regCose,
 	styleText,
+	hljsStyleText,
 	Q) {
 	'use strict';
 
@@ -52,9 +54,25 @@ define([
 	    };
 	    this.waitingNodes = {};
 
+	    var data = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">' +
+		'<foreignObject width="100%" height="100%">' +
+		'<div xmlns="http://www.w3.org/1999/xhtml" style="font-size:40px">' + '<div class="state"><div class="name">State 1</div><ul class="internal-transitions"><li class="internal-transition">entry / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-keyword">int</span> a = <span class="hljs-number">2</span>;<span class="hljs-built_in">printf</span>(<span class="hljs-string">"SerialTask :: initializing State 1\n"</span>);</code></li><li class="internal-transition">exit / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-built_in">printf</span>(<span class="hljs-string">"Exiting State 1\n"</span>);</code></li><li class="internal-transition">tick / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-built_in">printf</span>(<span class="hljs-string">"SerialTask::State 1::tick()\n"</span>);</code></li><li class="internal-transition">EVENT1 [<font color="gray">someNumber &lt; someValue</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-keyword">int</span> testVal = <span class="hljs-number">32</span>;<span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i=<span class="hljs-number">0</span>; i&lt;testVal; i++) {  <span class="hljs-keyword">do</span> {    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, i);  } <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>);}</code></li><li class="internal-transition">EVENT2 [<font color="gray">someNumber &gt; someValue</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden; background-color: rgba(255, 0, 0, 0.5);"></code></li></ul></div>'+
+		'<em>I</em> like ' + 
+		'<span style="color:white; text-shadow:0 0 2px blue;">' +
+		'cheese</span>' +
+		'</div>' +
+		'</foreignObject>' +
+		'</svg>';
+
+	    var DOMURL = window.URL || window.webkitURL || window;
+
+	    var img = new Image();
+	    var svg = new Blob([data], {type: 'image/svg+xml'});
+	    var url = DOMURL.createObjectURL(svg);
 	    this._cytoscape_options = {
 		container: this._cy_container,
-		style: styleText,
+		//style: styleText,
+		style: styleText, //+ 'node { background-image: '+url + ';}',
 		// interaction options:
 		minZoom: 1e-50,
 		maxZoom: 1e50,
@@ -79,7 +97,7 @@ define([
 		motionBlur: false,
 		motionBlurOpacity: 0.2,
 		wheelSensitivity: 1,
-		pixelRatio: 'auto'	    
+		pixelRatio: 'auto',
 	    };
 
 	    var self = this;
@@ -397,7 +415,8 @@ define([
 		if (data) {
 		    self._cy.add({
 			group: 'edges',
-			data: data
+			data: data,
+			
 		    });
 		    self.nodes[desc.id] = desc;
 		    self.updateDependencies();
