@@ -245,7 +245,7 @@ define([
 	if (event) {
 	    var txt = '<li class="internal-transition">'+event;
 	    if (guard)
-		txt += ' ['+guard+']';
+		txt += ' [<font color="gray">'+guard+'</font>]';
 	    txt += ' / ';
 	    if (action)
 		txt += action;
