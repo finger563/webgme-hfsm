@@ -46,7 +46,6 @@ define([
         METATYPETEMPLATE_STATE = $(StateTemplate),
         METATYPETEMPLATE_TRANSITION = $(TransitionTemplate);
 
-
     UMLStateMachineDecoratorCore = function () {
     };
 
@@ -215,6 +214,46 @@ define([
 	});
     }
 
+    function htmlToElement(html) {
+	var template = document.createElement('template');
+	template.innerHTML = html;
+	return template.content.firstChild;
+    }
+
+    function getCode(nodeObj, codeAttr, doHighlight) {
+	var code = nodeObj.getEditableAttribute( codeAttr );
+	var el = '';
+	if (code) {
+	    if (doHighlight) {
+		code = '<code class="cpp">'+escapeHtml(code)+'</code>';
+		code = htmlToElement(code);
+		hljs.highlightBlock(code)
+		$(code).css('text-overflow', 'ellipsis');
+		$(code).css('white-space', 'nowrap');
+		$(code).css('overflow', 'hidden');
+		//$(code).css('display', 'inline-block');
+		el = code.outerHTML;
+		//el = hljs.highlightAuto(code, ['cpp']).value;
+	    }
+	    else 
+		el = code;
+	}
+	return el;
+    }
+
+    function addCodeToList(el, event, guard, action) {
+	if (event) {
+	    var txt = '<li class="internal-transition">'+event;
+	    if (guard)
+		txt += ' ['+guard+']';
+	    txt += ' / ';
+	    if (action)
+		txt += action;
+	    txt += '</li>';
+	    el.append(txt);
+	}
+    }
+
     UMLStateMachineDecoratorCore.prototype._updateInternalTransitions = function() {
         var META_TYPES = UMLStateMachineMETA.getMetaTypes();
 
@@ -225,15 +264,15 @@ define([
 	    el = this.$el.find('.internal-transitions'),
 	    self = this,
 	    nodeObj = client.getNode(this._metaInfo[CONSTANTS.GME_ID]),
-	    entry = hljs.highlightAuto(nodeObj.getEditableAttribute('Entry'), ['cpp']).value,
-	    exit = hljs.highlightAuto(nodeObj.getEditableAttribute('Exit'), ['cpp']).value,
-	    tick = hljs.highlightAuto(nodeObj.getEditableAttribute('Tick'), ['cpp']).value,
+	    entry = getCode(nodeObj, 'Entry', true),
+	    exit = getCode(nodeObj, 'Exit', true),
+	    tick = getCode(nodeObj, 'Tick', true),
 	    childIDs = nodeObj.getChildrenIds();
 
 	el.empty();
-	el.append('<li class="internal-transition">entry / '+entry+'</li>');
-	el.append('<li class="internal-transition">exit / '+exit+'</li>');
-	el.append('<li class="internal-transition">tick / '+tick+'</li>');
+	addCodeToList(el, 'entry', null, entry);
+	addCodeToList(el, 'exit', null, exit);
+	addCodeToList(el, 'tick', null, tick);
 	childIDs.map(function(cid) {
 	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
 		self.childrenIDs[cid] = true;
@@ -241,20 +280,10 @@ define([
 
 		var child = client.getNode(cid);
 		self._control.registerComponentIDForPartID(cid, self._metaInfo[CONSTANTS.GME_ID]);
-		var event = escapeHtml(child.getEditableAttribute('Event')),
-		    action = child.getEditableAttribute('Action'),
-		    guard = child.getEditableAttribute('Guard');
-		var transText = '';
-		if (event) {
-		    transText += '<li class="internal-transition">'+event;
-		    if (guard)
-			transText += ' ['+hljs.highlightAuto(guard, ['cpp']).value + ']';
-		    transText += ' / ';
-		    if (action)
-			transText += hljs.highlightAuto(action, ['cpp']).value;
-		    transText += '</li>';
-		    el.append(transText);
-		}
+		var event = getCode(child, 'Event', false),
+		    guard = getCode(child, 'Guard', false),
+		    action = getCode(child, 'Action', true);
+		addCodeToList(el, event, guard, action);
 	    }
 	});
     };
