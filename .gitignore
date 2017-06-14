@@ -4,4 +4,5 @@ blob-local-storage/
 server.log
 server-error.log
 *~
-
+.sass*
+*.map
