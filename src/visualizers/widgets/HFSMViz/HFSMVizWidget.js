@@ -518,7 +518,7 @@ define([
 			    self.updateDependencies();
 			}
 			else {
-			    
+			    this._cy.$('#'+idTag).data( this.getDescData(desc) );
 			}
 		    }
 		    else {
