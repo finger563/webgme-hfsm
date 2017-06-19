@@ -6,3 +6,4 @@ server-error.log
 *~
 .sass*
 *.map
+bower_components/

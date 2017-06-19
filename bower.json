@@ -1,0 +1,28 @@
+{
+  "name": "webgme-hfsm",
+  "description": "UML StateChart Domain for WebGME",
+  "main": "app.js",
+  "authors": [
+    "William Emfinger"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "webgme",
+    "webgme-domain",
+    "domain"
+  ],
+  "homepage": "https://github.com/finger563/webgme-hfsm",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "cytoscape": "^3.1.2",
+    "cytoscape-edgehandles": "^2.12.2",
+    "cytoscape-cose-bilkent": "^1.6.10",
+    "cytoscape-qtip": "^2.7.1"
+  }
+}
