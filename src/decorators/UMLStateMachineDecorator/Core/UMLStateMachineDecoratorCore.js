@@ -13,7 +13,9 @@ define([
     'js/Widgets/DiagramDesigner/DiagramDesignerWidget.Constants',
     'text!./Diagram.html',
     'text!./InitialState.html',
-    'text!./PseudoState.html',
+    'text!./ChoicePseudostate.html',
+    'text!./DeepHistoryPseudostate.html',
+    'text!./ShallowHistoryPseudostate.html',
     'text!./EndState.html',
     'text!./State.html',
     'text!./Transition.html',
@@ -27,7 +29,9 @@ define([
              DiagramDesignerWidgetConstants,
              DiagramTemplate,
              InitialStateTemplate,
-             PseudoStateTemplate,
+             ChoicePseudostateTemplate,
+             DeepHistoryPseudostateTemplate,
+             ShallowHistoryPseudostateTemplate,
              EndStateTemplate,
              StateTemplate,
              TransitionTemplate,
@@ -41,7 +45,9 @@ define([
         DEFAULT_CLASS = 'default',
         METATYPETEMPLATE_UMLSTATEDIAGRAM = $(DiagramTemplate),
         METATYPETEMPLATE_INTIAL = $(InitialStateTemplate),
-        METATYPETEMPLATE_PSEUDO = $(PseudoStateTemplate),
+        METATYPETEMPLATE_CHOICE = $(ChoicePseudostateTemplate),
+        METATYPETEMPLATE_DEEPHISTORY = $(DeepHistoryPseudostateTemplate),
+        METATYPETEMPLATE_SHALLOWHISTORY = $(ShallowHistoryPseudostateTemplate),
         METATYPETEMPLATE_END = $(EndStateTemplate),
         METATYPETEMPLATE_STATE = $(StateTemplate),
         METATYPETEMPLATE_TRANSITION = $(TransitionTemplate);
@@ -295,9 +301,15 @@ define([
         var META_TYPES = UMLStateMachineMETA.getMetaTypes();
 
         if (META_TYPES) {
-	    if (UMLStateMachineMETA.TYPE_INFO.isPseudo(this._gmeID)) {
-                this._metaType = META_TYPES['Pseudo State'];
-                this._metaTypeTemplate = METATYPETEMPLATE_PSEUDO.clone();
+	    if (UMLStateMachineMETA.TYPE_INFO.isChoice(this._gmeID)) {
+                this._metaType = META_TYPES['Choice Pseudostate'];
+                this._metaTypeTemplate = METATYPETEMPLATE_CHOICE.clone();
+	    } else if (UMLStateMachineMETA.TYPE_INFO.isDeepHistory(this._gmeID)) {
+                this._metaType = META_TYPES['Deep History Pseudostate'];
+                this._metaTypeTemplate = METATYPETEMPLATE_DEEPHISTORY.clone();
+	    } else if (UMLStateMachineMETA.TYPE_INFO.isShallowHistory(this._gmeID)) {
+                this._metaType = META_TYPES['Shallow History Pseudostate'];
+                this._metaTypeTemplate = METATYPETEMPLATE_SHALLOWHISTORY.clone();
 	    } else if (UMLStateMachineMETA.TYPE_INFO.isInitial(this._gmeID)) {
                 this._metaType = META_TYPES.Initial;
                 this._metaTypeTemplate = METATYPETEMPLATE_INTIAL.clone();
@@ -344,7 +356,11 @@ define([
                         });
                     }
                 }
-            } else if (UMLStateMachineMETA.TYPE_INFO.isPseudo(this._gmeID)) {
+            } else if (UMLStateMachineMETA.TYPE_INFO.isChoice(this._gmeID)) {
+                this._metaTypeTemplate.css({'border-color': this.fillColor});
+            } else if (UMLStateMachineMETA.TYPE_INFO.isDeepHistory(this._gmeID)) {
+                this._metaTypeTemplate.css({'border-color': this.fillColor});
+            } else if (UMLStateMachineMETA.TYPE_INFO.isShallowHistory(this._gmeID)) {
                 this._metaTypeTemplate.css({'border-color': this.fillColor});
             } else if (UMLStateMachineMETA.TYPE_INFO.isState(this._gmeID)) {
                 this._metaTypeTemplate.css({'background-color': this.fillColor});

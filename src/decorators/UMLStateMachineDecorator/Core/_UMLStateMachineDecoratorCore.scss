@@ -1,6 +1,8 @@
 @import "State";
 @import "InitialState";
-@import "PseudoState";
+@import "ChoicePseudostate";
+@import "DeepHistoryPseudostate";
+@import "ShallowHistoryPseudostate";
 @import "EndState";
 @import "State";
 @import "Diagram";
@@ -13,7 +15,9 @@
     position: relative;
 
     @include InitialState;
-    @include PseudoState;
+    @include ChoicePseudostate;
+    @include DeepHistoryPseudostate;
+    @include ShallowHistoryPseudostate;
     @include EndState;
     @include State;
     @include Diagram;
@@ -40,7 +44,9 @@
 
   .selected {
     .uml-state-machine {
-      @include SelectedPseudoState;
+      @include SelectedChoicePseudostate;
+      @include SelectedDeepHistoryPseudostate;
+      @include SelectedShallowHistoryPseudostate;
       @include SelectedInitialState;
       @include SelectedEndState;
       @include SelectedState;

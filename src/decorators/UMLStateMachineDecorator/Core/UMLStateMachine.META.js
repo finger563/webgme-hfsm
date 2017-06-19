@@ -13,7 +13,9 @@ define(['underscore'], function (_underscore) {
         'End State': 'End State',
         FCO: 'FCO',
         Initial: 'Initial',
-        'Pseudo State': 'Pseudo State',
+        'Choice Pseudostate': 'Choice Pseudostate',
+        'Deep History Pseudostate': 'Deep History Pseudostate',
+        'Shallow History Pseudostate': 'Shallow History Pseudostate',
         Language: 'Language',
         Models: 'Models',
         State: 'State',
@@ -52,8 +54,14 @@ define(['underscore'], function (_underscore) {
     var _isInitial = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Initial]);
     };
-    var _isPseudo = function (objID) {
-        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Pseudo State']]);
+    var _isChoice = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Choice Pseudostate']]);
+    };
+    var _isDeepHistory = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Deep History Pseudostate']]);
+    };
+    var _isShallowHistory = function (objID) {
+        return client.isTypeOf(objID, _getMetaTypes()[META_TYPES['Shallow History Pseudostate']]);
     };
     var _isLanguage = function (objID) {
         return client.isTypeOf(objID, _getMetaTypes()[META_TYPES.Language]);
@@ -83,7 +91,9 @@ define(['underscore'], function (_underscore) {
             isEnd: _isEnd,
             isFCO: _isFCO,
             isInitial: _isInitial,
-            isPseudo: _isPseudo,
+            isChoice: _isChoice,
+            isDeepHistory: _isDeepHistory,
+            isShallowHistory: _isShallowHistory,
             isLanguage: _isLanguage,
             isModels: _isModels,
             isState: _isState,

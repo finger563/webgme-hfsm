@@ -78,11 +78,33 @@ node[NodeType = "End State"] {
     content: ;
 }
 
-node[NodeType = "Pseudo State"] {
+node[NodeType = "Choice Pseudostate"] {
     width: 1;
     height: 1;
     content: ;
     shape: diamond;
+}
+
+node[NodeType = "Shallow History Pseudostate"] {
+    shape: ellipse;
+    background-color: white;
+    color: black;
+    width: 5;
+    height: 5;
+    text-valign: center;
+    text-halign: center;
+    content: H;
+}
+
+node[NodeType = "Deep History Pseudostate"] {
+    shape: ellipse;
+    background-color: white;
+    color: black;
+    width: 5;
+    height: 5;
+    text-valign: center;
+    text-halign: center;
+    content: H*;
 }
 
 node.highlighted {

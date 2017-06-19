@@ -1,16 +1,16 @@
 @import "Colors";
 @import "Connector";
 
-$pseudo-state-background-color: #000000;
-$pseudo-state-size: 30px;
+$choice-pseudostate-background-color: #000000;
+$choice-pseudostate-size: 30px;
 $connector-diff: -2px;
 
-@mixin PseudoState {
-  .pseudo-state {
+@mixin ChoicePseudostate {
+  .choice-pseudostate {
     .icon {
-      width: $pseudo-state-size;
-      height: $pseudo-state-size;
-      border: 2px solid $pseudo-state-background-color;
+      width: $choice-pseudostate-size;
+      height: $choice-pseudostate-size;
+      border: 2px solid $choice-pseudostate-background-color;
       box-sizing: border-box;
       transform: rotate(45deg) scale(0.7);
     }
@@ -26,13 +26,13 @@ $connector-diff: -2px;
       @include connector_basics;
 
       &.left {
-        top: ( $pseudo-state-size - $connector-size ) / 2;
+        top: ( $choice-pseudostate-size - $connector-size ) / 2;
         left: $connector-diff;
       }
 
       &.right {
-        top: ( $pseudo-state-size - $connector-size ) / 2;
-        left: $pseudo-state-size - $connector-diff;
+        top: ( $choice-pseudostate-size - $connector-size ) / 2;
+        left: $choice-pseudostate-size - $connector-diff;
       }
 
       &.top {
@@ -42,7 +42,7 @@ $connector-diff: -2px;
       }
 
       &.bottom {
-        top: $pseudo-state-size - $connector-size / 2 - $connector-diff;
+        top: $choice-pseudostate-size - $connector-size / 2 - $connector-diff;
         margin-left: $connector-size / -2;
         left: 50%;
       }
@@ -50,8 +50,8 @@ $connector-diff: -2px;
   }
 }
 
-@mixin SelectedPseudoState {
-  .pseudo-state {
+@mixin SelectedChoicePseudostate {
+  .choice-pseudostate {
     .icon {
       border-color: $selected-border-color;
     }

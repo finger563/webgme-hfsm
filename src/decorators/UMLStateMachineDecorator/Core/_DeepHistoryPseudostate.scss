@@ -1,0 +1,63 @@
+@import "Colors";
+@import "Connector";
+
+$deep-history-pseudostate-background-color: #000000;
+$deep-history-pseudostate-size: 30px;
+$deep-history-pseudostate-border-radius: 25px;
+$connector-diff: -2px;
+
+@mixin DeepHistoryPseudostate {
+  .deep-history-pseudostate {
+
+    .icon {
+      border-radius: $deep-history-pseudostate-border-radius;
+      width: $deep-history-pseudostate-size;
+      height: $deep-history-pseudostate-size;
+      border: 2px solid $deep-history-pseudostate-background-color;
+      box-sizing: border-box;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .name {
+    	white-space: nowrap;
+        position: absolute;
+        margin-left: 0px;
+        left: 50%;
+    }
+
+    .connector {
+      @include connector_basics;
+
+      &.left {
+        top: ( $deep-history-pseudostate-size - $connector-size ) / 2;
+        left: $connector-diff;
+      }
+
+      &.right {
+        top: ( $deep-history-pseudostate-size - $connector-size ) / 2;
+        left: $deep-history-pseudostate-size - $connector-diff;
+      }
+
+      &.top {
+        top: $connector-size / -2 + $connector-diff;
+        margin-left: $connector-size / -2;
+        left: 50%;
+      }
+
+      &.bottom {
+        top: $deep-history-pseudostate-size - $connector-size / 2 - $connector-diff;
+        margin-left: $connector-size / -2;
+        left: 50%;
+      }
+    }
+  }
+}
+
+@mixin SelectedDeepHistoryPseudostate {
+  .deep-history-pseudostate {
+    .icon {
+      border-color: $selected-border-color;
+    }
+  }
+}

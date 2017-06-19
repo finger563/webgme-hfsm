@@ -1,0 +1,63 @@
+@import "Colors";
+@import "Connector";
+
+$shallow-history-pseudostate-background-color: #000000;
+$shallow-history-pseudostate-size: 30px;
+$shallow-history-pseudostate-border-radius: 25px;
+$connector-diff: -2px;
+
+@mixin ShallowHistoryPseudostate {
+  .shallow-history-pseudostate {
+
+    .icon {
+      border-radius: $shallow-history-pseudostate-border-radius;
+      width: $shallow-history-pseudostate-size;
+      height: $shallow-history-pseudostate-size;
+      border: 2px solid $shallow-history-pseudostate-background-color;
+      box-sizing: border-box;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .name {
+    	white-space: nowrap;
+        position: absolute;
+        margin-left: 0px;
+        left: 50%;
+    }
+
+    .connector {
+      @include connector_basics;
+
+      &.left {
+        top: ( $shallow-history-pseudostate-size - $connector-size ) / 2;
+        left: $connector-diff;
+      }
+
+      &.right {
+        top: ( $shallow-history-pseudostate-size - $connector-size ) / 2;
+        left: $shallow-history-pseudostate-size - $connector-diff;
+      }
+
+      &.top {
+        top: $connector-size / -2 + $connector-diff;
+        margin-left: $connector-size / -2;
+        left: 50%;
+      }
+
+      &.bottom {
+        top: $shallow-history-pseudostate-size - $connector-size / 2 - $connector-diff;
+        margin-left: $connector-size / -2;
+        left: 50%;
+      }
+    }
+  }
+}
+
+@mixin SelectedShallowHistoryPseudostate {
+  .shallow-history-pseudostate {
+    .icon {
+      border-color: $selected-border-color;
+    }
+  }
+}
