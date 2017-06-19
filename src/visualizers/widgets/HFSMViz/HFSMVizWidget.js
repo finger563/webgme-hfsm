@@ -9,7 +9,9 @@ define([
     'text!./HFSM.html',
     './bower_components/cytoscape/dist/cytoscape.min',
     './bower_components/cytoscape-edgehandles/cytoscape-edgehandles',
+    './bower_components/cytoscape-qtip/cytoscape-qtip',
     './bower_components/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
+    //'./bower_components/jquery/dist/jquery.min',
     'text!./style2.css',
     'text!../../../decorators/UMLStateMachineDecorator/Core/highlightjs.default.min.css',
     'q',
@@ -17,13 +19,16 @@ define([
 	HFSMHtml,
 	cytoscape,
 	edgehandles,
+	cyqtip,
 	regCose,
+	//jQuery2,
 	styleText,
 	hljsStyleText,
 	Q) {
 	'use strict';
 
 	edgehandles( cytoscape, _.debounce.bind( _ ), _.throttle.bind( _ ) );
+	//cyqtip(cytoscape, jQuery2);
 	regCose( cytoscape );
 
 	var HFSMVizWidget,
@@ -223,11 +228,22 @@ define([
 	    var layoutDuration = 500;
 
 	    function highlight( node ){
-		var nhood = node.closedNeighborhood();
-
 		self._cy.elements("edge").removeClass('highlighted');
 		self._cy.elements("node").removeClass('highlighted');
 		node.addClass('highlighted');
+		/*
+		node.qtip({
+		    hide: {
+			cyViewport: true // hide qtips on zoom / pan
+		    },
+		    position: {
+			adjust: {
+			    cyViewport: true // update qTip positions on zoom / pan
+			}
+		    }
+		});
+		var api = node.qtip('api');
+		*/
 	    }
 
 	    function clear(){
@@ -394,6 +410,7 @@ define([
             var self = this;
             var layout = self._cy.layout(self._layout_options);
 	    layout.run();
+	    //self._cy.nodes().qtip({ content: 'hi', position: { my: 'top center', at: 'bottom center' } })
         };
 
 	HFSMVizWidget.prototype.getDescData = function(desc) {
