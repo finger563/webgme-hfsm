@@ -22,7 +22,6 @@
   "dependencies": {
     "cytoscape": "^3.1.2",
     "cytoscape-edgehandles": "^2.12.2",
-    "cytoscape-cose-bilkent": "^1.6.10",
-    "cytoscape-qtip": "^2.7.1"
+    "cytoscape-cose-bilkent": "^1.6.10"
   }
 }

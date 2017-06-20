@@ -9,9 +9,7 @@ define([
     'text!./HFSM.html',
     './bower_components/cytoscape/dist/cytoscape.min',
     './bower_components/cytoscape-edgehandles/cytoscape-edgehandles',
-    './bower_components/cytoscape-qtip/cytoscape-qtip',
     './bower_components/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
-    //'./bower_components/jquery/dist/jquery.min',
     'text!./style2.css',
     'text!../../../decorators/UMLStateMachineDecorator/Core/highlightjs.default.min.css',
     'q',
@@ -19,17 +17,14 @@ define([
 	HFSMHtml,
 	cytoscape,
 	edgehandles,
-	cyqtip,
-	regCose,
-	//jQuery2,
+	coseBilkent,
 	styleText,
 	hljsStyleText,
 	Q) {
 	'use strict';
 
-	edgehandles( cytoscape, _.debounce.bind( _ ), _.throttle.bind( _ ) );
-	//cyqtip(cytoscape, jQuery2);
-	regCose( cytoscape );
+	cytoscape.use( edgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
+	cytoscape.use( coseBilkent );
 
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
@@ -260,6 +255,12 @@ define([
 
 	    //self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
 	    self.debouncedReLayout = _.debounce(self.reLayout.bind(self), 250);
+
+	    self._cy.on('mouseover', 'node', function(e) {
+		var node = this;
+		if (node.id()) {
+		}
+	    });
 	    
 	    self._cy.on('select', 'node', function(e){
 		var node = this;
