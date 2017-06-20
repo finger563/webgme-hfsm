@@ -7,18 +7,40 @@
  */
 
 .h-f-s-m-viz {
-  outline: none; }
+    outline: none;
+    padding: 0;
+}
 
 #cy {
   height: 100%;
   width: 100%;
+/*
   position: absolute;
   left: 0;
   top: 0;
-/*background: #fff;
+  background: #fff;
   active-bg-color: #fff;
   active-bg-opacity: 0.333;
 */
+}
+
+
+#hfsmVizHandle {
+    width: 2%;
+    height:100%;
+}
+
+#hfsmVizLeft, #hfsmVizRight {
+    float:left;
+    height:100%;
+}
+
+#hfsmVizRight {
+    width:69%;
+}
+
+#hfsmVizLeft {
+    width:29%;
 }
 
 #re_layout,

@@ -10,7 +10,11 @@ define([
     './bower_components/cytoscape/dist/cytoscape.min',
     './bower_components/cytoscape-edgehandles/cytoscape-edgehandles',
     './bower_components/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
+    './bower_components/popper.js/index',
+    './cytoscapejs-popper/cytoscape-popperjs',
     'text!./style2.css',
+    'text!./cytoscapejs-popper/popper.css',
+    'text!../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
     'text!../../../decorators/UMLStateMachineDecorator/Core/highlightjs.default.min.css',
     'q',
     'css!./styles/HFSMVizWidget.css'], function (
@@ -18,13 +22,19 @@ define([
 	cytoscape,
 	edgehandles,
 	coseBilkent,
+	Popper,
+	cyPopper,
 	styleText,
+	popperStyleText,
+	stateStyleText,
 	hljsStyleText,
 	Q) {
 	'use strict';
 
 	cytoscape.use( edgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
 	cytoscape.use( coseBilkent );
+	cytoscape.use( cyPopper, Popper );
+
 
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
@@ -38,6 +48,7 @@ define([
             this._el.addClass(WIDGET_CLASS);
             this._el.append(HFSMHtml);
 	    this._cy_container = this._el.find('#cy');
+	    this._cy_popper = this._el.find('#pop');
 
             this._initialize();
 
@@ -57,21 +68,79 @@ define([
 	    };
 	    this.waitingNodes = {};
 
-	    var data = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">' +
-		'<foreignObject width="100%" height="100%">' +
-		'<div xmlns="http://www.w3.org/1999/xhtml" style="font-size:40px">' + '<div class="state"><div class="name">State 1</div><ul class="internal-transitions"><li class="internal-transition">entry / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-keyword">int</span> a = <span class="hljs-number">2</span>;<span class="hljs-built_in">printf</span>(<span class="hljs-string">"SerialTask :: initializing State 1\n"</span>);</code></li><li class="internal-transition">exit / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-built_in">printf</span>(<span class="hljs-string">"Exiting State 1\n"</span>);</code></li><li class="internal-transition">tick / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-built_in">printf</span>(<span class="hljs-string">"SerialTask::State 1::tick()\n"</span>);</code></li><li class="internal-transition">EVENT1 [<font color="gray">someNumber &lt; someValue</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-keyword">int</span> testVal = <span class="hljs-number">32</span>;<span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i=<span class="hljs-number">0</span>; i&lt;testVal; i++) {  <span class="hljs-keyword">do</span> {    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, i);  } <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>);}</code></li><li class="internal-transition">EVENT2 [<font color="gray">someNumber &gt; someValue</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden; background-color: rgba(255, 0, 0, 0.5);"></code></li></ul></div>'+
-		'<em>I</em> like ' + 
-		'<span style="color:white; text-shadow:0 0 2px blue;">' +
-		'cheese</span>' +
-		'</div>' +
-		'</foreignObject>' +
-		'</svg>';
 
+            this._handle = this._el.find('#hfsmVizHandle');
+            this._left = this._el.find('#hfsmVizLeft');
+            this._right = this._el.find('#hfsmVizRight');
+
+            this._left.css('width', '19.5%');
+            this._right.css('width', '80%');
+
+            this.isDragging = false;
+
+            this._handle.mousedown(function(e) {
+		self.isDragging = true;
+		e.preventDefault();
+            });
+            this._containerTag = '#HFSM_VIZ_DIV';
+            this._container = this._el.find(this._containerTag).first();
+            this._container.mouseup(function() {
+		self.isDragging = false;
+		self._cy.resize();
+            }).mousemove(function(e) {
+		if (self.isDragging) {
+                    var selector = $(self._el).find(self._containerTag);
+		    var mousePosX = e.pageX;
+                    if (self._fullScreen) {
+			// now we're at the top of the document :)
+			selector = $(document).find(self._containerTag).first();
+                    }
+		    else {
+			// convert x position as needed
+			// get offset from split panel
+			mousePosX -= $(self._el).find(self._containerTag).parents('.panel-base-wh').parent().position().left;
+			// get offset from west panel
+			mousePosX -= $('.ui-layout-pane-center').position().left;
+			//var selector = self._fullScreen ? self._containerTag : '.ui-layout-pane-center';
+		    }
+                    var maxWidth = selector.width();
+                    var handlePercent = 0.5;
+                    var minX = 0;
+                    var maxX = selector.width() + minX;
+                    var leftWidth = mousePosX - minX;
+                    var leftPercent = Math.max(10, (leftWidth / maxWidth) * 100);
+                    var rightPercent = Math.max(10, 100 - leftPercent - handlePercent);
+                    leftPercent = 100 - rightPercent - handlePercent;
+                    self._left.css('width', leftPercent + '%');
+                    self._right.css('width', rightPercent + '%');
+		}
+            });
+
+	    var stateTemplate = [
+		'{{#if type == "State"}}',
+		'<div class="uml-state-diagram">',
+		'<div class="state">',
+		'<div class="name">{{name}}</div>',
+		'<ul class="internal-transitions">',
+		'<li class="internal-transition">entry / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Entry}}</code></li>',
+		'<li class="internal-transition">exit  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Exit}}</code></li>',
+		'<li class="internal-transition">tick  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Tick}}</code></li>',
+		'{{#InternalTransitions}}',
+		'<li class="internal-transition">{{Event}} [<font color="gray">{{Guard}}</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Action}}</code></li>',
+		'{{/InternalTransitions}}',
+		'</ul>',
+		'</div>',
+		'</div>',
+		'{{/if}}'
+	    ].join('');
+
+	    /*
 	    var DOMURL = window.URL || window.webkitURL || window;
-
 	    var img = new Image();
 	    var svg = new Blob([data], {type: 'image/svg+xml'});
 	    var url = DOMURL.createObjectURL(svg);
+	    */
+
 	    this._cytoscape_options = {
 		container: this._cy_container,
 		//style: styleText,
@@ -217,31 +286,28 @@ define([
 		}
 	    };
 
-	    this._cy.edgehandles( defaults );	    
+	    this._cy.edgehandles( defaults );
+
+	    $(self._cy_popper).css('display', 'none');
 
 	    var layoutPadding = 50;
 	    var layoutDuration = 500;
+
+	    function popup( node ) {
+		node.popperjs({
+		    
+		});
+		$(self._cy_popper).css('display', 'block');
+	    }
 
 	    function highlight( node ){
 		self._cy.elements("edge").removeClass('highlighted');
 		self._cy.elements("node").removeClass('highlighted');
 		node.addClass('highlighted');
-		/*
-		node.qtip({
-		    hide: {
-			cyViewport: true // hide qtips on zoom / pan
-		    },
-		    position: {
-			adjust: {
-			    cyViewport: true // update qTip positions on zoom / pan
-			}
-		    }
-		});
-		var api = node.qtip('api');
-		*/
 	    }
 
 	    function clear(){
+		$(self._cy_popper).css('display', 'none');
 		self._cy.batch(function(){
 		    self._cy.$('.highlighted').forEach(function(n){
 			n.animate({
@@ -268,6 +334,7 @@ define([
 		    WebGMEGlobal.State.registerActiveSelection([node.id()]);
 		}
 		highlight( node );
+		popup( node );
 	    });
 	    
 	    self._cy.on('select', 'edge', function(e){
