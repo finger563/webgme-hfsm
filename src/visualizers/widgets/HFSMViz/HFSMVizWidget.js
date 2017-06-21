@@ -9,6 +9,7 @@ define([
     'text!./HFSM.html',
     'bower/cytoscape/dist/cytoscape.min',
     'bower/cytoscape-edgehandles/cytoscape-edgehandles',
+    'bower/cytoscape-context-menus/cytoscape-context-menus',
     'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
     'bower/popper.js/index',
     'bower/highlightjs/highlight.pack.min',
@@ -17,12 +18,14 @@ define([
     'text!./style2.css',
     'text!./cytoscapejs-popper/popper.css',
     'q',
+    'css!bower/cytoscape-context-menus/cytoscape-context-menus.css',
     'css!../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
     'css!bower/highlightjs/styles/default.css',
     'css!./styles/HFSMVizWidget.css'], function (
 	HFSMHtml,
 	cytoscape,
 	edgehandles,
+	cyContext,
 	coseBilkent,
 	Popper,
 	hljs,
@@ -36,6 +39,7 @@ define([
 	'use strict';
 
 	cytoscape.use( edgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
+	cytoscape.use( cyContext, $ );
 	cytoscape.use( coseBilkent );
 	cytoscape.use( cyPopper, Popper );
 
@@ -247,22 +251,22 @@ define([
 	    var defaults = {
 		preview: true, // whether to show added edges preview before releasing selection
 		stackOrder: 4, // Controls stack order of edgehandles canvas element by setting it's z-index
-		handleSize: 1, // the size of the edge handle put on nodes
-		handleHitThreshold: 3, // a threshold for hit detection that makes it easier to grab the handle
+		handleSize: 5, // the size of the edge handle put on nodes
+		handleHitThreshold: 1, // a threshold for hit detection that makes it easier to grab the handle
 		handleIcon: false, // an image to put on the handle
-		handleColor: '#ff0000', // the colour of the handle and the line drawn from it
+		handleColor: '#00235b', //  the colour of the handle and the line drawn from it
 		handleLineType: 'ghost', // can be 'ghost' for real edge, 'straight' for a straight line, or 'draw' for a draw-as-you-go line
 		handleLineWidth: 1, // width of handle line in pixels
-		handleOutlineColor: '#000000', // the colour of the handle outline
-		handleOutlineWidth: 0, // the width of the handle outline in pixels
+		handleOutlineColor: '#ff0000', // the colour of the handle outline
+		handleOutlineWidth: 1, // the width of the handle outline in pixels
 		handleNodes: function( node ) { //'node', // selector/filter function
 		    var desc = self.nodes[node.id()];
 		    return self.isValidSource( desc );
 		},
 		handlePosition: 'middle top', // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
 		hoverDelay: 150, // time spend over a target node before it is considered a target selection
-		cxt: true, // whether cxt events trigger edgehandles (useful on touch)
-		enabled: false, // whether to start the plugin in the enabled state
+		cxt: false, // whether cxt events trigger edgehandles (useful on touch)
+		enabled: true, // whether to start the plugin in the enabled state
 		toggleOffOnLeave: true, // whether an edge is cancelled by leaving a node (true), or whether you need to go over again to cancel (false; allows multiple edges in one pass)
 		edgeType: function( sourceNode, targetNode ) {
 		    // can return 'flat' for flat edges between nodes or 'node' for intermediate node between them
@@ -309,7 +313,68 @@ define([
 		}
 	    };
 
+	    // EDGE HANDLES
 	    this._cy.edgehandles( defaults );
+
+	    // CONTEXT MENUS
+	    var options = {
+		// List of initial menu items
+		menuItems: [
+		    {
+			id: 'toggleCollapse',
+			content: '(Un-)Show Children',
+			tooltipText: 'Toggle the display of children.',
+			selector: 'node',
+			onClickFunction: function ( e ) {
+			    //var node = this;
+			    var node = e.target;
+			    if (node == self._cy) { }
+			    else
+				self.toggleShowChildren( node );
+			},
+			coreAsWell: false,
+			hasTrailingDivider: true, // Whether the item will have a trailing divider
+		    },
+		    {
+			id: 'add-node',
+			content: 'add node',
+			tooltipText: 'add node',
+			selector: 'node',
+			coreAsWell: true,
+			onClickFunction: function ( e ) {
+			    var node = e.target;
+			    if (node == self._cy) { }
+			    else
+				console.log('add node');
+			},
+			coreAsWell: false
+		    },
+		    {
+			id: 'remove',
+			content: 'remove',
+			tooltipText: 'remove',
+			selector: 'node, edge', 
+			onClickFunction: function ( e ) { // The function to be executed on click
+			    var node = e.target;
+			    if (node == self._cy) { }
+			    else
+				self.deleteNode( node.id() );
+			},
+			coreAsWell: false // Whether core instance have this item on cxttap
+		    },
+		],
+		// css classes that menu items will have
+		menuItemClasses: [
+		    // add class names to this list
+		],
+		// css classes that context menu will have
+		contextMenuClasses: [
+		    // add class names to this list
+		]
+	    };
+	    var ctxMenuInstance = this._cy.contextMenus( options );
+
+	    // layout such
 
 	    var layoutPadding = 50;
 	    var layoutDuration = 500;
@@ -369,34 +434,9 @@ define([
 	    });
 
 	    self._cy.on('cxttap', 'node', function(e) {
-		var node = this;
-		var hidden = self.hiddenNodes[node.id()];
-		if (node.isParent()) {
-		    // currently true, disable show children
-		    var children, descendants, edges;
-		    children = node.children();
-		    if (self.hiddenNodes[node.id()]) {
-			descendants = self.hiddenNodes[node.id()].nodes;
-			edges = self.hiddenNodes[node.id()].edges;
-		    }
-		    else {
-			descendants = node.descendants();
-			edges = descendants.connectedEdges();
-		    }
-		    self._cy.remove(edges);
-		    self._cy.remove(descendants);
-		    self.hiddenNodes[node.id()] = {
-			nodes: descendants,
-			edges: edges,
-		    };
-		}
-		else if (hidden && hidden.nodes && hidden.edges) {
-		    // currently false, reenable show children
-		    hidden.nodes.restore();
-		    hidden.edges.restore();
-		    delete self.hiddenNodes[node.id()];
-		}
 	    });
+
+	    // UNSELECT ON NODES AND EDGES
 
 	    self._cy.on('unselect', 'node', function(e){
 		var node = this;
@@ -407,6 +447,8 @@ define([
 		var node = this;
 		clear();
 	    });
+
+	    // LAYOUT AND RESET BUTTONS
 
 	    self._el.find('#re_layout').on('click', function(){
 		self.reLayout();
@@ -421,6 +463,51 @@ define([
 		    duration: layoutDuration
 		});
 	    });
+	};
+
+	HFSMVizWidget.prototype.getHiddenChildren = function( node ) {
+	    var self = this;
+	    return self.hiddenNodes[node.id()];
+	};
+
+	HFSMVizWidget.prototype.hasHiddenChildren = function( node ) {
+	    var self = this;
+	    return self.getHiddenChildren(node) != null;
+	};
+
+	HFSMVizWidget.prototype.isCompoundNode = function( node ) {
+	    var self = this;
+	    return node.isParent() || self.hasHiddenChildren( node );
+	};
+
+	HFSMVizWidget.prototype.toggleShowChildren = function ( node ) {
+	    var self = this;
+	    var hidden = self.getHiddenChildren( node );
+	    if (node.isParent()) {
+		// currently true, disable show children
+		var children, descendants, edges;
+		children = node.children();
+		if (self.hiddenNodes[node.id()]) {
+		    descendants = self.hiddenNodes[node.id()].nodes;
+		    edges = self.hiddenNodes[node.id()].edges;
+		}
+		else {
+		    descendants = node.descendants();
+		    edges = descendants.connectedEdges();
+		}
+		self._cy.remove(edges);
+		self._cy.remove(descendants);
+		self.hiddenNodes[node.id()] = {
+		    nodes: descendants,
+		    edges: edges,
+		};
+	    }
+	    else if (hidden && hidden.nodes && hidden.edges) {
+		// currently false, reenable show children
+		hidden.nodes.restore();
+		hidden.edges.restore();
+		delete self.hiddenNodes[node.id()];
+	    }
 	};
 
 	HFSMVizWidget.prototype.onWidgetContainerResize = function (width, height) {
@@ -639,6 +726,13 @@ define([
             }
 	};
 
+	/* * * * * * * * Context Menu Functions    * * * * * * * */
+
+	HFSMVizWidget.prototype.deleteNode = function( nodeId ) {
+	    var self = this;
+	    self._client.deleteNode( nodeId, "Removing " + nodeId );
+	};
+
 	/* * * * * * * * Edge Creation Functions   * * * * * * * */
 
 	HFSMVizWidget.prototype.draggedEdge = function( cySrc, cyDst, cyEdge ) {
@@ -663,15 +757,11 @@ define([
 
 	    var msg = 'Creating External Transition between ' + src.id + ' and '+dst.id;
 	    var newEdgePath = client.createChild( childCreationParams, msg);
-	    console.error(newEdgePath);
 	    if (newEdgePath) {
 		var node = client.getNode(newEdgePath);
-		console.error(node);
 		msg = 'Setting src pointer for ' + newEdgePath + ' to ' + src.id;
-		console.error(msg);
 		client.setPointer( newEdgePath, 'src', src.id, msg );
 		msg = 'Setting dst pointer for ' + newEdgePath + ' to ' + dst.id;
-		console.error(msg);
 		client.setPointer( newEdgePath, 'dst', dst.id, msg );
 	    }
 
@@ -747,6 +837,8 @@ define([
 		    dstType == 'Shallow History Pseudostate')
 		    valid = false;
 	    }
+	    else if (srcDesc.parentId == dstDesc.id)
+		valid = false;
 	    return valid;
 	};
 
