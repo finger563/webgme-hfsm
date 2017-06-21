@@ -1,21 +1,10 @@
 <div id="HFSM_VIZ_DIV" style="position:absolute; background-color: white; width: 100%; height: 100%; overflow: hidden">
   <div id="hfsmVizLeft" style="float:left; height:100%;padding: 0;" class="panel-body">
-    <div>
-      Theme: <select id="theme_select"> 
-        <option value="default">default</option>
-      </select>
+    <div class="hfsmVizLeftTitle">Simulator
     </div>
-    <div id="pop">
-      <div class="uml-state-machine" data-id="/3/c/Y"><div class="state">
-	  <div class="name">State 1</div>
-	  <ul class="internal-transitions"><li class="internal-transition">entry / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-keyword">int</span> a = <span class="hljs-number">2</span>;
-		<span class="hljs-built_in">printf</span>(<span class="hljs-string">"SerialTask :: initializing State 1\n"</span>);</code></li><li class="internal-transition">exit / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-built_in">printf</span>(<span class="hljs-string">"Exiting State 1\n"</span>);</code></li><li class="internal-transition">tick / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-built_in">printf</span>(<span class="hljs-string">"SerialTask::State 1::tick()\n"</span>);</code></li><li class="internal-transition">EVENT1 [<font color="gray">someNumber &lt; someValue</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><span class="hljs-keyword">int</span> testVal = <span class="hljs-number">32</span>;
-		<span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i=<span class="hljs-number">0</span>; i&lt;testVal; i++) {
-		<span class="hljs-keyword">do</span> {
-		<span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, i);
-		} <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>);
-		}</code></li><li class="internal-transition">EVENT2 [<font color="gray">someNumber &gt; someValue</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden; background-color: rgba(255, 0, 0, 0.5);"></code></li></ul>
-      </div></div>
+    <div id="eventButtons" class="col-md-1 eventButtons">
+    </div>
+    <div id="stateInfo" style="display:none">
     </div>
   </div>
   <div id="hfsmVizHandle" class="ui-layout-resizer ui-draggable-handle ui-layout-resizer-open" style="width:0.5%; height:100%;float: left; padding: 0px; margin: 0px; font-size: 1px; text-align: left; overflow: hidden; z-index: 2; cursor: w-resize">

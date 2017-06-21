@@ -7,27 +7,31 @@
 
 define([
     'text!./HFSM.html',
-    './bower_components/cytoscape/dist/cytoscape.min',
-    './bower_components/cytoscape-edgehandles/cytoscape-edgehandles',
-    './bower_components/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
-    './bower_components/popper.js/index',
+    'bower/cytoscape/dist/cytoscape.min',
+    'bower/cytoscape-edgehandles/cytoscape-edgehandles',
+    'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
+    'bower/popper.js/index',
+    'bower/highlightjs/highlight.pack.min',
+    'bower/mustache.js/mustache.min',
     './cytoscapejs-popper/cytoscape-popperjs',
     'text!./style2.css',
     'text!./cytoscapejs-popper/popper.css',
-    'text!../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
-    'text!../../../decorators/UMLStateMachineDecorator/Core/highlightjs.default.min.css',
     'q',
+    'css!../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
+    'css!bower/highlightjs/styles/default.css',
     'css!./styles/HFSMVizWidget.css'], function (
 	HFSMHtml,
 	cytoscape,
 	edgehandles,
 	coseBilkent,
 	Popper,
+	hljs,
+	mustache,
 	cyPopper,
 	styleText,
 	popperStyleText,
-	stateStyleText,
-	hljsStyleText,
+	//stateStyleText,
+	//hljsStyleText,
 	Q) {
 	'use strict';
 
@@ -48,7 +52,6 @@ define([
             this._el.addClass(WIDGET_CLASS);
             this._el.append(HFSMHtml);
 	    this._cy_container = this._el.find('#cy');
-	    this._cy_popper = this._el.find('#pop');
 
             this._initialize();
 
@@ -60,6 +63,7 @@ define([
 		height = this._el.height(),
 		self = this;
 	    
+	    // NODE RELATED DATA
             this.nodes = {};
 	    this.hiddenNodes = {};
 	    this.dependencies = {
@@ -68,10 +72,15 @@ define([
 	    };
 	    this.waitingNodes = {};
 
+	    // EVENT RELATED DATA
+            this._eventButtons = this._el.find('#eventButtons');
 
+	    // LAYOUT RELATED DATA
             this._handle = this._el.find('#hfsmVizHandle');
             this._left = this._el.find('#hfsmVizLeft');
             this._right = this._el.find('#hfsmVizRight');
+
+	    this._stateInfo = this._el.find('#stateInfo');
 
             this._left.css('width', '19.5%');
             this._right.css('width', '80%');
@@ -288,16 +297,16 @@ define([
 
 	    this._cy.edgehandles( defaults );
 
-	    $(self._cy_popper).css('display', 'none');
-
 	    var layoutPadding = 50;
 	    var layoutDuration = 500;
 
 	    function popup( node ) {
+		/*
 		node.popperjs({
 		    
 		});
-		$(self._cy_popper).css('display', 'block');
+		*/
+		$(self._stateInfo).css('display', 'block');
 	    }
 
 	    function highlight( node ){
@@ -307,7 +316,7 @@ define([
 	    }
 
 	    function clear(){
-		$(self._cy_popper).css('display', 'none');
+		$(self._stateInfo).css('display', 'none');
 		self._cy.batch(function(){
 		    self._cy.$('.highlighted').forEach(function(n){
 			n.animate({
@@ -526,6 +535,7 @@ define([
 			
 		    });
 		    self.nodes[desc.id] = desc;
+		    self.updateEventButtons(desc);
 		    self.updateDependencies();
 		}
 	    }
@@ -599,7 +609,7 @@ define([
 		    if (desc.isConnection) {
 			if (desc.src != oldDesc.src || desc.dst != oldDesc.dst) {
 			    this._cy.remove('#' + idTag);
-			    self.checkDependencies(desc);
+			    self.checkDependencies( desc );
 			    self.updateDependencies();
 			}
 			else {
@@ -611,7 +621,46 @@ define([
 		    }
 		}
 		this.nodes[desc.id] = desc;
+		self.updateEventButtons( );
             }
+	};
+
+	/* * * * * * * * Event Button Functions    * * * * * * * */
+
+	function uniq(a) {
+	    var seen = {};
+	    return a.filter(function(item) {
+		return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+	    });
+	}
+
+	HFSMVizWidget.prototype.getEventNames = function () {
+	    var self = this;
+	    var eventNames = Object.keys(self.nodes).map(function(k) {
+		var desc = self.nodes[k];
+		if (desc.isConnection && desc.event) {
+		    return desc.event;
+		}
+	    });
+	    eventNames = uniq(eventNames);
+	    return eventNames;
+	};
+
+	HFSMVizWidget.prototype.updateEventButtons = function () {
+	    var self = this;
+	    self.createEventButtons();
+	};
+
+	HFSMVizWidget.prototype.createEventButtons = function () {
+	    var self = this;
+	    self._eventButtons.empty();
+	    var eventNames = self.getEventNames().sort();
+	    eventNames.map(function (eventName) {
+		if (eventName)
+		    //self._eventButtons.append('<li class="eventButton"><button class="btn btn-default btn-primary">'+eventName+'</button></li>');
+		    //self._eventButtons.append('<button class="btn btn-default btn-primary eventButton">'+eventName+'</button>');
+		    self._eventButtons.append('<div class="row btn btn-default btn-primary btn-block eventButton"><span class="eventButtonText">'+eventName+'</span></div>');
+	    });
 	};
 
 	/* * * * * * * * Visualizer event handlers * * * * * * * */

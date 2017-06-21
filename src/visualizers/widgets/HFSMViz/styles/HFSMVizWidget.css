@@ -11,6 +11,41 @@
     padding: 0;
 }
 
+.hfsmVizLeftTitle {
+    position: relative;
+    top: 0;
+    left: 0;
+    text-shadow: 1.5px 1.5px 0 rgba(0, 0, 0, 0.15);
+    opacity: 0.85;
+    color: #00235b;    
+
+    font-size: 21px;
+    line-height: 21px;
+    font-weight: 400;
+    display: inline-block;
+    margin-right: 10px;
+    margin-left: 5px;
+    white-space: nowrap;
+    margin-top: 8px;
+}
+
+.eventButtons {
+    width: 100%;
+    padding-left: 20px;
+    padding-top: 10px;
+}
+
+.eventButton {
+    margin-left: 0;
+}
+
+.eventButtonText {
+  overflow: hidden;
+  white-space: nowrap;
+  display: block;
+  text-overflow: ellipsis;
+}
+
 #cy {
   height: 100%;
   width: 100%;

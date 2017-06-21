@@ -19,10 +19,10 @@ define([
     'text!./EndState.html',
     'text!./State.html',
     'text!./Transition.html',
-    './highlight.min',
+    'bower/highlightjs/highlight.pack.min',
     './Transition',
     './UMLStateMachine.META',
-    'css!./highlightjs.default.min.css'
+    'css!bower/highlightjs/styles/default.css'
 ], function (CONSTANTS,
              REGISTRY_KEYS,
              nodePropertyNames,

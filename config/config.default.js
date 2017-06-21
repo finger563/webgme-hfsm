@@ -11,6 +11,7 @@ config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
 // requirejs config
 config.requirejsPaths.hfsm = "./src/common";
 config.requirejsPaths['webgme-to-json'] = "./node_modules/webgme-to-json";
+config.requirejsPaths['bower'] = "./bower_components/";
 
 // Merging config
 config.storage.autoMerge.enable = true;

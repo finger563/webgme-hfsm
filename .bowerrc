@@ -1,4 +1,4 @@
 {
-  "directory": "src/visualizers/widgets/HFSMViz/bower_components",
+  "directory": "./bower_components",
   "allow_root": true
 }
