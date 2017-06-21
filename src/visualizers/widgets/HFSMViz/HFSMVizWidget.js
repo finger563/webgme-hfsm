@@ -691,12 +691,14 @@ define([
 			}
 		    });
 		}
-		else
+		else {
 		    delete self.dependencies.edges[gmeId];
+		}
 		delete self.nodes[gmeId];
 		delete self.waitingNodes[gmeId];
 		self._cy.remove("#" + idTag);
 		self.updateDependencies();
+		self.updateEventButtons();
 	    }
 	};
 
