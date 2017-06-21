@@ -11,12 +11,12 @@ define([
     'bower/cytoscape-edgehandles/cytoscape-edgehandles',
     'bower/cytoscape-context-menus/cytoscape-context-menus',
     'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
-    'bower/popper.js/index',
+    //'bower/popper.js/index',
     'bower/highlightjs/highlight.pack.min',
     'bower/mustache.js/mustache.min',
-    './cytoscapejs-popper/cytoscape-popperjs',
+    //'./cytoscapejs-popper/cytoscape-popperjs',
     'text!./style2.css',
-    'text!./cytoscapejs-popper/popper.css',
+    //'text!./cytoscapejs-popper/popper.css',
     'q',
     'css!bower/cytoscape-context-menus/cytoscape-context-menus.css',
     'css!../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
@@ -27,12 +27,12 @@ define([
 	edgehandles,
 	cyContext,
 	coseBilkent,
-	Popper,
+	//Popper,
 	hljs,
 	mustache,
-	cyPopper,
+	//cyPopper,
 	styleText,
-	popperStyleText,
+	//popperStyleText,
 	//stateStyleText,
 	//hljsStyleText,
 	Q) {
@@ -41,7 +41,7 @@ define([
 	cytoscape.use( edgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
 	cytoscape.use( cyContext, $ );
 	cytoscape.use( coseBilkent );
-	cytoscape.use( cyPopper, Popper );
+	//cytoscape.use( cyPopper, Popper );
 
 
 	var HFSMVizWidget,
