@@ -43,10 +43,12 @@ define([
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
 
-	HFSMVizWidget = function (logger, container) {
+	HFSMVizWidget = function (logger, container, client) {
             this._logger = logger.fork('Widget');
 
             this._el = container;
+
+	    this._client = client;
 
             // set widget class
             this._el.addClass(WIDGET_CLASS);
@@ -253,7 +255,10 @@ define([
 		handleLineWidth: 1, // width of handle line in pixels
 		handleOutlineColor: '#000000', // the colour of the handle outline
 		handleOutlineWidth: 0, // the width of the handle outline in pixels
-		handleNodes: 'node', // selector/filter function for whether edges can be made from a given node
+		handleNodes: function( node ) { //'node', // selector/filter function
+		    var desc = self.nodes[node.id()];
+		    return self.isValidSource( desc );
+		},
 		handlePosition: 'middle top', // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
 		hoverDelay: 150, // time spend over a target node before it is considered a target selection
 		cxt: true, // whether cxt events trigger edgehandles (useful on touch)
@@ -262,11 +267,18 @@ define([
 		edgeType: function( sourceNode, targetNode ) {
 		    // can return 'flat' for flat edges between nodes or 'node' for intermediate node between them
 		    // returning null/undefined means an edge can't be added between the two nodes
-		    return 'flat';
+		    var srcDesc = self.nodes[sourceNode.id()];
+		    var dstDesc = self.nodes[targetNode.id()];
+		    var isValid = self.validEdge( srcDesc, dstDesc );
+		    if (isValid)
+			return 'flat';
+		    else
+			return null;
 		},
 		loopAllowed: function( node ) {
 		    // for the specified node, return whether edges from itself to itself are allowed
-		    return true;
+		    var desc = self.nodes[node.id()];
+		    return self.validEdgeLoop( desc );
 		},
 		nodeLoopOffset: -50, // offset for edgeType: 'node' loops
 		nodeParams: function( sourceNode, targetNode ) {
@@ -285,6 +297,8 @@ define([
 		},
 		complete: function( sourceNode, targetNodes, addedEntities ) {
 		    // fired when edgehandles is done and entities are added
+		    if (sourceNode && targetNodes && addedEntities)
+			self.draggedEdge( sourceNode, targetNodes[0], addedEntities[0] );
 		},
 		stop: function( sourceNode ) {
 		    // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
@@ -623,6 +637,117 @@ define([
 		this.nodes[desc.id] = desc;
 		self.updateEventButtons( );
             }
+	};
+
+	/* * * * * * * * Edge Creation Functions   * * * * * * * */
+
+	HFSMVizWidget.prototype.draggedEdge = function( cySrc, cyDst, cyEdge ) {
+	    var self = this;
+	    var srcDesc = self.nodes[cySrc.id()];
+	    var dstDesc = self.nodes[cyDst.id()];
+	    var srcParentId = srcDesc.parentId;
+	    var newEdgePath = self.createNewEdge( srcParentId, srcDesc, dstDesc );
+	    cyEdge.remove();
+	};
+
+	HFSMVizWidget.prototype.createNewEdge = function( parentId, src, dst ) {
+	    var self = this;
+	    var client = self._client;
+	    var edgeMetaId = '/615025579/318746662';
+	    var childCreationParams = {
+		parentId: parentId,
+		baseId: edgeMetaId,  // should be META:External Transition
+	    };
+
+            client.startTransaction();
+
+	    var msg = 'Creating External Transition between ' + src.id + ' and '+dst.id;
+	    var newEdgePath = client.createChild( childCreationParams, msg);
+	    console.error(newEdgePath);
+	    if (newEdgePath) {
+		var node = client.getNode(newEdgePath);
+		console.error(node);
+		msg = 'Setting src pointer for ' + newEdgePath + ' to ' + src.id;
+		console.error(msg);
+		client.setPointer( newEdgePath, 'src', src.id, msg );
+		msg = 'Setting dst pointer for ' + newEdgePath + ' to ' + dst.id;
+		console.error(msg);
+		client.setPointer( newEdgePath, 'dst', dst.id, msg );
+	    }
+
+            client.completeTransaction();
+
+	    return newEdgePath;
+	};
+
+	HFSMVizWidget.prototype.getEdgesFromNode = function( desc ) {
+	    var self = this;
+	    var nodeEdges = Object.keys(self.nodes).map(function (k) {
+		var node = self.nodes[k];
+		if (node.isConnection && node.src == desc.id)
+		    return k;
+	    });
+	    return nodeEdges.filter(function (o) { return o; });
+	};
+
+	HFSMVizWidget.prototype.getEdgesToNode = function( desc ) {
+	    var self = this;
+	    var nodeEdges = Object.keys(self.nodes).map(function (k) {
+		var node = self.nodes[k];
+		if (node.isConnection && node.dst == desc.id)
+		    return k;
+	    });
+	    return nodeEdges.filter(function (o) { return o; });
+	};
+
+	HFSMVizWidget.prototype.isValidSource = function( desc ) {
+	    var self = this;
+	    if (desc.type == 'End State')
+		return false;
+	    else if (desc.type == 'Deep History Pseudostate')
+		return false;
+	    else if (desc.type == 'Shallow History Pseudostate')
+		return false;
+	    else if (desc.type == 'Initial') {
+		// if initial already has transition, don't allow more
+		var initialEdges = self.getEdgesFromNode(desc);
+		if (initialEdges.length)
+		    return false;
+	    }
+	    return true;
+	};
+
+	HFSMVizWidget.prototype.validEdgeLoop = function( desc ) {
+	    var self = this;
+	    if (desc.type == 'Initial' ||
+		desc.type == 'End State' ||
+		desc.type == 'Deep History Pseudostate' ||
+		desc.type == 'Shallow History Pseudostate' ||
+		desc.type == 'Choice Pseudostate')
+		return false;
+	    else
+		return true;
+	};
+
+	HFSMVizWidget.prototype.validEdge = function( srcDesc, dstDesc ) {
+	    var self = this;
+	    var valid = true;
+	    var srcType = srcDesc.type;
+	    var dstType = dstDesc.type;
+	    if (dstType == 'Initial')
+		valid = false;
+	    else if (srcType == 'End State')
+		valid = false;
+	    else if (srcType == 'Deep History Pseudostate')
+		valid = false;
+	    else if (srcType == 'Shallow History Pseudostate')
+		valid = false;
+	    else if (srcType == 'Initial') {
+		if (dstType == 'Deep History Pseudostate' ||
+		    dstType == 'Shallow History Pseudostate')
+		    valid = false;
+	    }
+	    return valid;
 	};
 
 	/* * * * * * * * Event Button Functions    * * * * * * * */
