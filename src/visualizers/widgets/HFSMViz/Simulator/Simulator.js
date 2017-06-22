@@ -26,12 +26,6 @@ define(['js/util',
 	       '<div class="state">',
 	       '<div class="name">{{name}}</div>',
 	       '<ul class="internal-transitions">',
-	       '<li class="internal-transition">Entry / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Entry}}</code></li>',
-	       '<li class="internal-transition">Exit  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Exit}}</code></li>',
-	       '<li class="internal-transition">Tick  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Tick}}</code></li>',
-	       '{{#InternalTransitions}}',
-	       '<li class="internal-transition">{{Event}} [<font color="gray">{{Guard}}</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Action}}</code></li>',
-	       '{{/InternalTransitions}}',
 	       '</ul>',
 	       '</div>',
 	       '</div>',
@@ -114,6 +108,66 @@ define(['js/util',
 
 	   /* * * * * * State Info Display Functions  * * * * * * * */
 
+	   var entityMap = {
+	       '&': '&amp;',
+	       '<': '&lt;',
+	       '>': '&gt;',
+	       '"': '&quot;',
+	       "'": '&#39;',
+	       '/': '&#x2F;',
+	       '`': '&#x60;',
+	       '=': '&#x3D;'
+	   };
+
+	   function escapeHtml (string) {
+	       return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+		   return entityMap[s];
+	       });
+	   }	   
+
+	   function htmlToElement(html) {
+	       var template = document.createElement('template');
+	       template.innerHTML = html;
+	       return template.content.firstChild;
+	   }
+
+	   function getCode(nodeObj, codeAttr, doHighlight) {
+	       var originalCode = nodeObj.getEditableAttribute( codeAttr ),
+		   code = escapeHtml(originalCode);
+	       var el = '';
+	       if (doHighlight) {
+		   code = '<code class="cpp">'+code+'</code>';
+		   code = htmlToElement(code);
+		   hljs.highlightBlock(code);
+		   $(code).css('text-overflow', 'ellipsis');
+		   $(code).css('white-space', 'nowrap');
+		   $(code).css('overflow', 'hidden');
+		   if (originalCode) {
+		   }
+		   else {
+		       $(code).css('background-color','rgba(255,0,0,0.5)');
+		   }
+		   el = code.outerHTML;
+	       }
+	       else {
+		   el = code;
+	       }
+	       return el;
+	   }
+
+	   function addCodeToList(el, event, guard, action) {
+	       if (event) {
+		   var txt = '<li class="internal-transition">'+event;
+		   if (guard)
+		       txt += ' [<font color="gray">'+guard+'</font>]';
+		   txt += ' / ';
+		   if (action)
+		       txt += action;
+		   txt += '</li>';
+		   el.append(txt);
+	       }
+	   }
+
 	   Simulator.prototype.renderState = function( gmeId ) {
 	       var self = this;
 	       var node = self._client.getNode( gmeId );
@@ -123,20 +177,24 @@ define(['js/util',
 		   var childType = self._client.getNode( child.getMetaTypeId() ).getAttribute( 'name' );
 		   if (childType == 'Internal Transition') {
 		       internalTransitions.push({
-			   Event: child.getAttribute('Event'),
-			   Guard: child.getAttribute('Guard'),
-			   Action: child.getAttribute('Action'),
+			   Event: getCode(child, 'Event', false),
+			   Guard: getCode(child, 'Guard', false),
+			   Action: getCode(child, 'Action', true),
 		       });
 		   }
 	       });
 	       var stateObj = {
-		   name: node.getAttribute('name'),
-		   Entry: node.getAttribute('Entry'),
-		   Exit: node.getAttribute('Exit'),
-		   Tick: node.getAttribute('Tick'),
-		   InternalTransitions: internalTransitions
+		   name: node.getAttribute('name')
 	       };
-	       return mustache.render( stateTemplate, stateObj );
+	       var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
+	       var el = $(text).find('.internal-transitions');
+	       addCodeToList( el, 'Entry', null, getCode(node, 'Entry', true) );
+	       addCodeToList( el, 'Exit', null, getCode(node, 'Exit', true) );
+	       addCodeToList( el, 'Tick', null, getCode(node, 'Tick', true) );
+	       internalTransitions.sort(function(a,b) { return a.Event.localeCompare(b.Event); }).map(function (i) {
+		   addCodeToList( el, i.Event, i.Guard, i.Action );
+	       });
+	       return text.outerHTML;
 	   };
 
 	   Simulator.prototype.displayStateInfo = function ( gmeId ) {
