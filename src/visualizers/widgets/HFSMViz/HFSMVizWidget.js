@@ -13,16 +13,10 @@ define([
     'bower/cytoscape-edgehandles/cytoscape-edgehandles',
     'bower/cytoscape-context-menus/cytoscape-context-menus',
     'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
-    //'bower/popper.js/index',
-    'bower/highlightjs/highlight.pack.min',
     'bower/mustache.js/mustache.min',
-    //'./cytoscapejs-popper/cytoscape-popperjs',
     'text!./style2.css',
-    //'text!./cytoscapejs-popper/popper.css',
     'q',
     'css!bower/cytoscape-context-menus/cytoscape-context-menus.css',
-    'css!../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
-    'css!bower/highlightjs/styles/default.css',
     'css!./styles/HFSMVizWidget.css'], function (
 	HFSMHtml,
 	Dialog,
@@ -31,14 +25,8 @@ define([
 	edgehandles,
 	cyContext,
 	coseBilkent,
-	//Popper,
-	hljs,
 	mustache,
-	//cyPopper,
 	styleText,
-	//popperStyleText,
-	//stateStyleText,
-	//hljsStyleText,
 	Q) {
 	'use strict';
 
@@ -92,7 +80,7 @@ define([
 
 	    // SIMULATOR
 	    this._simulator = new Simulator();
-	    this._simulator.initialize( this._left, this.nodes );
+	    this._simulator.initialize( this._left, this.nodes, this._client );
 
 	    // DRAGGING INFO
             this.isDragging = false;
@@ -134,24 +122,6 @@ define([
                     self._right.css('width', rightPercent + '%');
 		}
             });
-
-	    var stateTemplate = [
-		'{{#if type == "State"}}',
-		'<div class="uml-state-diagram">',
-		'<div class="state">',
-		'<div class="name">{{name}}</div>',
-		'<ul class="internal-transitions">',
-		'<li class="internal-transition">entry / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Entry}}</code></li>',
-		'<li class="internal-transition">exit  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Exit}}</code></li>',
-		'<li class="internal-transition">tick  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Tick}}</code></li>',
-		'{{#InternalTransitions}}',
-		'<li class="internal-transition">{{Event}} [<font color="gray">{{Guard}}</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Action}}</code></li>',
-		'{{/InternalTransitions}}',
-		'</ul>',
-		'</div>',
-		'</div>',
-		'{{/if}}'
-	    ].join('');
 
 	    /*
 	    var DOMURL = window.URL || window.webkitURL || window;
@@ -387,15 +357,6 @@ define([
 	    var layoutPadding = 50;
 	    var layoutDuration = 500;
 
-	    function popup( node ) {
-		/*
-		node.popperjs({
-		    
-		});
-		*/
-		$(self._stateInfo).css('display', 'block');
-	    }
-
 	    function highlight( node ){
 		self._cy.elements("edge").removeClass('highlighted');
 		self._cy.elements("node").removeClass('highlighted');
@@ -403,7 +364,7 @@ define([
 	    }
 
 	    function clear(){
-		$(self._stateInfo).css('display', 'none');
+		self._simulator.hideStateInfo();
 		self._cy.batch(function(){
 		    self._cy.$('.highlighted').forEach(function(n){
 			n.animate({
@@ -417,41 +378,22 @@ define([
 
 	    //self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
 	    self.debouncedReLayout = _.debounce(self.reLayout.bind(self), 250);
-
-	    self._cy.on('mouseover', 'node', function(e) {
-		var node = this;
-		if (node.id()) {
-		}
-	    });
 	    
-	    self._cy.on('select', 'node', function(e){
+	    self._cy.on('select', 'node, edge', function(e){
 		var node = this;
 		if (node.id()) {
 		    WebGMEGlobal.State.registerActiveSelection([node.id()]);
 		}
 		highlight( node );
-		popup( node );
+		self._simulator.displayStateInfo( node.id() );
 	    });
 	    
-	    self._cy.on('select', 'edge', function(e){
-		var node = this;
-		if (node.id()) {
-		    WebGMEGlobal.State.registerActiveSelection([node.id()]);
-		}
-		highlight( node );
-	    });
-
 	    self._cy.on('cxttap', 'node', function(e) {
 	    });
 
 	    // UNSELECT ON NODES AND EDGES
 
-	    self._cy.on('unselect', 'node', function(e){
-		var node = this;
-		clear();
-	    });
-
-	    self._cy.on('unselect', 'edge', function(e){
+	    self._cy.on('unselect', 'node, edge', function(e){
 		var node = this;
 		clear();
 	    });

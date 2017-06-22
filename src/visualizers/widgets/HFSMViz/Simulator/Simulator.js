@@ -4,10 +4,14 @@
 
 define(['js/util',
 	'bower/mustache.js/mustache.min',
+	'bower/highlightjs/highlight.pack.min',
 	'text!./Simulator.html',
+	'css!../../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
+	'css!bower/highlightjs/styles/default.css',
 	'css!./Simulator.css'],
        function(Util,
 		mustache,
+		hljs,
 		SimulatorHtml){
            'use strict';
 	   
@@ -16,6 +20,22 @@ define(['js/util',
 	   var eventTempl = ['<div class="row btn btn-default btn-primary btn-block eventButton">',
 			     '<span class="eventButtonText">{{eventName}}</span>',
 			     '</div>'].join('\n');
+	   
+	   var stateTemplate = [
+	       '<div class="uml-state-diagram">',
+	       '<div class="state">',
+	       '<div class="name">{{name}}</div>',
+	       '<ul class="internal-transitions">',
+	       '<li class="internal-transition">Entry / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Entry}}</code></li>',
+	       '<li class="internal-transition">Exit  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Exit}}</code></li>',
+	       '<li class="internal-transition">Tick  / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Tick}}</code></li>',
+	       '{{#InternalTransitions}}',
+	       '<li class="internal-transition">{{Event}} [<font color="gray">{{Guard}}</font>] / <code class="cpp hljs" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{Action}}</code></li>',
+	       '{{/InternalTransitions}}',
+	       '</ul>',
+	       '</div>',
+	       '</div>',
+	   ].join('\n');
 
            /**
             * Simulator Constructor
@@ -30,8 +50,10 @@ define(['js/util',
 	    * @param  {List of nodes}  nodes       The nodes describing the graph
             * @return {void}
             */
-           Simulator.prototype.initialize = function ( container, nodes ) {
+           Simulator.prototype.initialize = function ( container, nodes, client ) {
                var self = this;
+
+	       this._client = client;
 
 	       container.append( SimulatorHtml );
 	       this._container = container;
@@ -89,6 +111,47 @@ define(['js/util',
 		   }
                });
            };
+
+	   /* * * * * * State Info Display Functions  * * * * * * * */
+
+	   Simulator.prototype.renderState = function( gmeId ) {
+	       var self = this;
+	       var node = self._client.getNode( gmeId );
+	       var internalTransitions = [];
+	       node.getChildrenIds().map(function(cid) {
+		   var child = self._client.getNode( cid );
+		   var childType = self._client.getNode( child.getMetaTypeId() ).getAttribute( 'name' );
+		   if (childType == 'Internal Transition') {
+		       internalTransitions.push({
+			   Event: child.getAttribute('Event'),
+			   Guard: child.getAttribute('Guard'),
+			   Action: child.getAttribute('Action'),
+		       });
+		   }
+	       });
+	       var stateObj = {
+		   name: node.getAttribute('name'),
+		   Entry: node.getAttribute('Entry'),
+		   Exit: node.getAttribute('Exit'),
+		   Tick: node.getAttribute('Tick'),
+		   InternalTransitions: internalTransitions
+	       };
+	       return mustache.render( stateTemplate, stateObj );
+	   };
+
+	   Simulator.prototype.displayStateInfo = function ( gmeId ) {
+	       var self = this;
+	       self.hideStateInfo();
+	       var node = self._client.getNode( gmeId );
+	       var nodeType = self._client.getNode( node.getMetaTypeId() ).getAttribute( 'name' );
+	       if (nodeType == 'State')
+		   $(self._stateInfo).append( self.renderState( gmeId ) );
+	   };
+
+	   Simulator.prototype.hideStateInfo = function( ) {
+	       var self = this;
+	       $(self._stateInfo).empty();
+	   };
 
 	   /* * * * * * * * Event Button Functions    * * * * * * * */
 

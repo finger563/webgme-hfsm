@@ -32,7 +32,8 @@
 .simulator-bottom-panel {
 }
 
-.simulatorTitle {
+.simulatorTitle,
+.stateInfoTitle{
     position: relative;
     top: 0;
     left: 0;
@@ -65,4 +66,8 @@
   white-space: nowrap;
   display: block;
   text-overflow: ellipsis;
+}
+
+#stateInfo {
+    width: 100%;
 }
