@@ -88,14 +88,12 @@ define(['js/util',
 		   };
 		   var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
 		   var newChildPath = client.createChild( childCreationParams, msg );
-		   console.log(newChildPath);
 		   //var child = client.getNode( newChildPath );
 		   // save node data here dependent on the type of node
 		   Object.keys(attr).map(function( attrName ) {
 		       var attrVal = attr[attrName];
 		       if (attrVal) {
 			   msg = 'Setting "'+attrName+'" to "'+attrVal+'"';
-			   console.log(msg);
 			   client.setAttribute( newChildPath, attrName, attrVal, msg );
 		       }
 		   });
