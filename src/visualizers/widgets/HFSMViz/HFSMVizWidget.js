@@ -8,6 +8,7 @@
 define([
     'text!./HFSM.html',
     './Dialog/Dialog',
+    './Simulator/Simulator',
     'bower/cytoscape/dist/cytoscape.min',
     'bower/cytoscape-edgehandles/cytoscape-edgehandles',
     'bower/cytoscape-context-menus/cytoscape-context-menus',
