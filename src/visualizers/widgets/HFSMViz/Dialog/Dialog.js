@@ -171,32 +171,19 @@ define(['js/util',
 	       var node = client.getNode( desc.id );
 	       var validChildTypes = {};
 
-	       // create a map of each meta type to number of children of that type
-	       var currentChildTypes = {};
-	       node.getChildrenIds().forEach(function (childId) {
-		   var child = client.getNode( childId );
-		   var metaId = child.getMetaTypeId();
-		   if (currentChildTypes[metaId])
-		       currentChildTypes[metaId]++;
-		   else
-		       currentChildTypes[metaId] = 1;
-	       });
-
 	       // figure out what the allowable range is
-	       var validChildren = client.getChildrenMeta( desc.id );
-	       if (validChildren && validChildren.items) {
-		   validChildren.items.map(function(vc) {
-		       var child = client.getNode(vc.id);
-		       var childType = child.getAttribute('name');
-		       if ( !child.isAbstract() &&
-			    !child.isConnection() &&
-			    ignoreTypes.indexOf( childType ) == -1 &&
-			    (currentChildTypes[vc.id] == undefined ||
-			     vc.max == undefined ||
-			     currentChildTypes[vc.id] < vc.max) )
-			   validChildTypes[ childType ] = vc.id;
-		   });
-	       }
+	       var validChildren = node.getValidChildrenTypesDetailed( );
+	       console.log( validChildren );
+	       Object.keys( validChildren ).map(function( metaId ) {
+		   var child = client.getNode( metaId );
+		   var childType = child.getAttribute('name');
+		   var canCreateMore = validChildren[ metaId ];
+		   if ( canCreateMore &&
+			!child.isAbstract() &&
+			!child.isConnection() &&
+			ignoreTypes.indexOf( childType ) == -1 )
+		       validChildTypes[ childType ] = metaId;
+	       });
 
 	       return validChildTypes;
 	   };

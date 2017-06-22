@@ -761,7 +761,7 @@ define([
 		baseId: edgeMetaId,  // should be META:External Transition
 	    };
 
-            client.startTransction();
+            client.startTransaction();
 
 	    var msg = 'Creating External Transition between ' + src.id + ' and '+dst.id;
 	    var newEdgePath = client.createChild( childCreationParams, msg);
