@@ -19,13 +19,13 @@ define(['js/util',
         Dialog = function () {
             // Get Modal Template node for Editor Dialog and append it to body
             this._dialog = $(DialogTemplate);
-            this._dialog.appendTo($(document.body));
+            this._dialog.appendTo($(document.body))
 
             // Get element nodes
             this._el = this._dialog.find('.modal-body').first();
             this._btnSave = this._dialog.find('.btn-save').first();
-
-	    this._title = this._dialog.find('#title').first();
+            this._btnClose = this._dialog.find('.close').first();
+            this._btnCancel = this._dialog.find('.btn-cancel').first();
         };
 
         /**
@@ -34,27 +34,54 @@ define(['js/util',
          * EpicEditor is created but not loaded yet. The creation and loading of editor
          * are seperated due to the reason decorator component is not appended to DOM within
          * its own domain.
-         * @param  {String}     text           Text to be rendered in editor initially
-         * @param  {Function}   saveCallback   Callback function after click save button
+         * @param  {Object}     nodeDesc       Descriptor for the node that will be the parent
+         * @param  {Object}     client         Client object for creating nodes and setting attributes
          * @return {void}
          */
-        Dialog.prototype.initialize = function (title, text, saveCallback) {
+        Dialog.prototype.initialize = function ( desc, client) {
             var self = this;
 
             // Initialize Modal and append it to main DOM
             this._dialog.modal({ show: false});
 
-	    //this._title.find('#title').text(title);
-	    this._title.text(title);
+	    // can we add <option>Deep History Pseudotate</option>
+            // can we add <option>Shallow History Pseudostate</option>
+            // can we add <option>Initial</option>
+            // can we add <option>End State</option>
+	    var node = client.getNode( desc.id );
+	    var uniqueTypes = ['Shallow History Pseudostate', 'Deep History Pseudostate', 'Initial', 'End State'];
+	    node.getChildrenIds().forEach(function (childId) {
+		var child = client.getNode( childId );
+	    });
 
             // Event listener on click for SAVE button
             this._btnSave.on('click', function (event) {
                 // Invoke callback to deal with modified text, like save it in client.
-                if (saveCallback) {
-                    //saveCallback.call(null, self.editor.getValue());
-                }
-
+		/*
+		client.startTransaction();
+		// save node data here dependent on the type of node
+		client.completeTransaction();
+		*/
                 // Close dialog
+		self._dialog.modal({ show: false});
+                self._dialog.modal('hide');
+                event.stopPropagation();
+                event.preventDefault();
+            });
+
+            // Event listener on click for SAVE button
+            this._btnClose.on('click', function (event) {
+                // Close dialog
+		self._dialog.modal({ show: false});
+                self._dialog.modal('hide');
+                event.stopPropagation();
+                event.preventDefault();
+            });
+
+            // Event listener on click for SAVE button
+            this._btnCancel.on('click', function (event) {
+                // Close dialog
+		self._dialog.modal({ show: false});
                 self._dialog.modal('hide');
                 event.stopPropagation();
                 event.preventDefault();

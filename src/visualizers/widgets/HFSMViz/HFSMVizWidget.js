@@ -338,9 +338,9 @@ define([
 			hasTrailingDivider: true, // Whether the item will have a trailing divider
 		    },
 		    {
-			id: 'add-node',
-			content: 'add node',
-			tooltipText: 'add node',
+			id: 'newChild',
+			content: 'Add child...',
+			tooltipText: 'Create a new state, internal transition, etc.',
 			selector: 'node',
 			coreAsWell: true,
 			onClickFunction: function ( e ) {
@@ -349,8 +349,7 @@ define([
 			    else {
 				console.log('add node');
 				var dialog = new Dialog();
-				dialog.initialize('Add new node', '', function() {
-				});
+				dialog.initialize( self.nodes[ node.id() ], self._client );
 				dialog.show();
 			    }
 			},
@@ -762,7 +761,7 @@ define([
 		baseId: edgeMetaId,  // should be META:External Transition
 	    };
 
-            client.startTransaction();
+            client.startTransction();
 
 	    var msg = 'Creating External Transition between ' + src.id + ' and '+dst.id;
 	    var newEdgePath = client.createChild( childCreationParams, msg);
