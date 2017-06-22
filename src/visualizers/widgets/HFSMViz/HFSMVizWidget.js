@@ -805,6 +805,10 @@ define([
 		return false;
 	    else if (desc.type == 'Shallow History Pseudostate')
 		return false;
+	    else if (desc.type == 'Task')
+		return false;
+	    else if (desc.type == 'Timer')
+		return false;
 	    else if (desc.type == 'Initial') {
 		// if initial already has transition, don't allow more
 		var initialEdges = self.getEdgesFromNode(desc);
@@ -832,6 +836,10 @@ define([
 	    var srcType = srcDesc.type;
 	    var dstType = dstDesc.type;
 	    if (dstType == 'Initial')
+		valid = false;
+	    else if (dstType == 'Task')
+		valid = false;
+	    else if (dstType == 'Timer')
 		valid = false;
 	    else if (srcType == 'End State')
 		valid = false;
