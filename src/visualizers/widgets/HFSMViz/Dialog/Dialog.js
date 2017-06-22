@@ -1,5 +1,5 @@
 /**
- * @author Qishen Zhang  https://github.com/VictorCoder123
+ * @author William Emfinger  https://github.com/finger563
  */
 
 define(['js/util',
@@ -48,11 +48,7 @@ define(['js/util',
            };
 
            /**
-            * Initialize Dialog by creating EpicEditor in Bootstrap modal
-            * window and set event listeners on its subcomponents like save button. Notice
-            * EpicEditor is created but not loaded yet. The creation and loading of editor
-            * are seperated due to the reason decorator component is not appended to DOM within
-            * its own domain.
+            * Initialize Dialog
             * @param  {Object}     nodeDesc       Descriptor for the node that will be the parent
             * @param  {Object}     client         Client object for creating nodes and setting attributes
             * @return {void}

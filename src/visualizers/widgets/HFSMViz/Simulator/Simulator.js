@@ -1,5 +1,5 @@
 /**
- * @author Qishen Zhang  https://github.com/VictorCoder123
+ * @author William Emfinger  https://github.com/finger563
  */
 
 define(['js/util',
