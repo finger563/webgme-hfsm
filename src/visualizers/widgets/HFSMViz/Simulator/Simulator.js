@@ -6,7 +6,7 @@ define(['js/util',
 	'bower/mustache.js/mustache.min',
 	'bower/highlightjs/highlight.pack.min',
 	'text!./Simulator.html',
-	'css!../../../../decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
+	'css!decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
 	'css!bower/highlightjs/styles/default.css',
 	'css!./Simulator.css'],
        function(Util,
@@ -22,11 +22,13 @@ define(['js/util',
 			     '</div>'].join('\n');
 	   
 	   var stateTemplate = [
+	       '<div class="uml-state-machine">',
 	       '<div class="uml-state-diagram">',
 	       '<div class="state">',
 	       '<div class="name">{{name}}</div>',
 	       '<ul class="internal-transitions">',
 	       '</ul>',
+	       '</div>',
 	       '</div>',
 	       '</div>',
 	   ].join('\n');
@@ -102,6 +104,7 @@ define(['js/util',
                        topPercent = 100 - bottomPercent - handlePercent;
                        self._top.css('height', topPercent + '%');
                        self._bottom.css('height', bottomPercent + '%');
+		       self._handle.css('height', handlePercent + '%');
 		   }
                });
            };
