@@ -766,7 +766,6 @@ define([
 	    var msg = 'Creating External Transition between ' + src.id + ' and '+dst.id;
 	    var newEdgePath = client.createChild( childCreationParams, msg);
 	    if (newEdgePath) {
-		var node = client.getNode(newEdgePath);
 		msg = 'Setting src pointer for ' + newEdgePath + ' to ' + src.id;
 		client.setPointer( newEdgePath, 'src', src.id, msg );
 		msg = 'Setting dst pointer for ' + newEdgePath + ' to ' + dst.id;

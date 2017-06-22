@@ -65,24 +65,42 @@ define(['js/util',
                this._dialog.modal({ show: false});
 
 	       // add children types to selector
+	       this._childSelector.on('change', this.selectChild.bind(this));
 	       this._childTypes = {};
 	       this._childTypes = self.getValidChildrenTypes( desc, client );
 	       var typeNames = Object.keys(this._childTypes).sort().reverse();
 	       typeNames.map(function(t) {
 		   $(self._childSelector).append(new Option(t, t));
 	       });
-	       this.renderChildForm( typeNames[0] );
-	       $(this._childSelector).value = typeNames[0];
-	       this._childSelector.on('change', this.selectChild.bind(this));
+	       $(this._childSelector).val( typeNames[0] );
+	       this.renderChildForm();
 
                // Event listener on click for SAVE button
                this._btnSave.on('click', function (event) {
                    // Invoke callback to deal with modified text, like save it in client.
-		   /*
-		     client.startTransaction();
-		     // save node data here dependent on the type of node
-		     client.completeTransaction();
-		   */
+		   var attr = self.getAttributesFromForm();
+
+		   client.startTransaction();
+		   var type = self.getSelectedChildType();
+		   var childCreationParams = {
+		       parentId: desc.id,
+		       baseId:   self.getSelectedChildMetaId()
+		   };
+		   var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
+		   var newChildPath = client.createChild( childCreationParams, msg );
+		   console.log(newChildPath);
+		   //var child = client.getNode( newChildPath );
+		   // save node data here dependent on the type of node
+		   Object.keys(attr).map(function( attrName ) {
+		       var attrVal = attr[attrName];
+		       if (attrVal) {
+			   msg = 'Setting "'+attrName+'" to "'+attrVal+'"';
+			   console.log(msg);
+			   client.setAttribute( newChildPath, attrName, attrVal, msg );
+		       }
+		   });
+		   client.completeTransaction();
+
                    // Close dialog
 		   self._dialog.modal({ show: false});
                    self._dialog.modal('hide');
@@ -90,7 +108,7 @@ define(['js/util',
                    event.preventDefault();
                });
 
-               // Event listener on click for SAVE button
+               // Event listener on click for CLOSE button
                this._btnClose.on('click', function (event) {
                    // Close dialog
 		   self._dialog.modal({ show: false});
@@ -99,7 +117,7 @@ define(['js/util',
                    event.preventDefault();
                });
 
-               // Event listener on click for SAVE button
+               // Event listener on click for CANCEL button
                this._btnCancel.on('click', function (event) {
                    // Close dialog
 		   self._dialog.modal({ show: false});
@@ -123,20 +141,32 @@ define(['js/util',
 
 	   // CHILD RELATED FUNCTIONS
 
-	   Dialog.prototype.selectChild = function (event) {
+	   Dialog.prototype.getSelectedChildType = function () {
 	       var self = this;
-	       var childSelect = event.target;
-	       var newChildType = childSelect.options[ childSelect.selectedIndex ].textContent;
-	       self.renderChildForm( newChildType );
+	       return $(self._childSelector).val();
 	   };
 
-	   Dialog.prototype.renderChildForm = function( childType ) {
+	   Dialog.prototype.getSelectedChildMetaId = function () {
+	       var self = this;
+	       return self._childTypes[ self.getSelectedChildType() ];
+	   };
+
+	   Dialog.prototype.getCurrentMetaNode = function() {
+	       var self = this;
+	       return self.client.getNode( self.getSelectedChildMetaId() );
+	   };
+
+	   Dialog.prototype.selectChild = function (event) {
+	       var self = this;
+	       //var childSelect = event.target;
+	       //var newChildType = childSelect.options[ childSelect.selectedIndex ].textContent;
+	       self.renderChildForm();
+	   };
+
+	   Dialog.prototype.renderChildForm = function() {
 	       var self = this;
 	       self._attrForm.empty();
-	       if (childType) {
-		   // re-render rest of HTML for dialog here!
-		   self._attrForm.append( self.getForm( self._childTypes[ childType ], self.client ) );
-	       }
+	       self._attrForm.append( self.getForm() );
 	   };
 
 	   Dialog.prototype.getValidChildrenTypes = function( desc, client ) {
@@ -175,18 +205,32 @@ define(['js/util',
 
 	   // ATTRIBUTE RELATED FUNCTIONS
 
-	   Dialog.prototype.getForm = function ( metaId, client ) {
+	   Dialog.prototype.getCurrentAttributeNames = function () {
+	       var self = this;
+	       return self.getCurrentMetaNode().getAttributeNames().sort();
+	   };
+
+	   Dialog.prototype.getForm = function ( ) {
 	       var self = this;
 	       var form = '';
-	       var node = client.getNode( metaId );
-	       node.getAttributeNames().map( function(a) {
-		   form += self.getAttributeForm( a, node.getAttributeMeta(a).type );
+	       var node = self.getCurrentMetaNode();
+	       self.getCurrentAttributeNames().map( function(a) {
+		   form += self.renderAttributeForm( a, node.getAttributeMeta(a).type );
 	       });
 	       return form;
 	   };
 
-	   Dialog.prototype.getAttributeForm = function ( attr, type ) {
+	   Dialog.prototype.renderAttributeForm = function ( attr, type ) {
 	       return mustache.render( attrForm, { attr: attr, type: type } );
+	   };
+
+	   Dialog.prototype.getAttributesFromForm = function () {
+	       var self = this;
+	       var attr = {};
+	       self.getCurrentAttributeNames().map(function(a) {
+		   attr[a] = $(self._dialog).find('#'+a).first().val();
+	       });
+	       return attr;
 	   };
 
            /**
