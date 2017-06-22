@@ -7,6 +7,7 @@
 
 define([
     'text!./HFSM.html',
+    './Dialog/Dialog',
     'bower/cytoscape/dist/cytoscape.min',
     'bower/cytoscape-edgehandles/cytoscape-edgehandles',
     'bower/cytoscape-context-menus/cytoscape-context-menus',
@@ -23,6 +24,7 @@ define([
     'css!bower/highlightjs/styles/default.css',
     'css!./styles/HFSMVizWidget.css'], function (
 	HFSMHtml,
+	Dialog,
 	cytoscape,
 	edgehandles,
 	cyContext,
@@ -344,8 +346,13 @@ define([
 			onClickFunction: function ( e ) {
 			    var node = e.target;
 			    if (node == self._cy) { }
-			    else
+			    else {
 				console.log('add node');
+				var dialog = new Dialog();
+				dialog.initialize('Add new node', '', function() {
+				});
+				dialog.show();
+			    }
 			},
 			coreAsWell: false
 		    },
