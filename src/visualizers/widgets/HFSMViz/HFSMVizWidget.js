@@ -26,6 +26,7 @@ define([
     'css!./styles/HFSMVizWidget.css'], function (
 	HFSMHtml,
 	Dialog,
+	Simulator,
 	cytoscape,
 	edgehandles,
 	cyContext,
@@ -81,19 +82,19 @@ define([
 	    };
 	    this.waitingNodes = {};
 
-	    // EVENT RELATED DATA
-            this._eventButtons = this._el.find('#eventButtons');
-
 	    // LAYOUT RELATED DATA
             this._handle = this._el.find('#hfsmVizHandle');
             this._left = this._el.find('#hfsmVizLeft');
             this._right = this._el.find('#hfsmVizRight');
 
-	    this._stateInfo = this._el.find('#stateInfo');
-
             this._left.css('width', '19.5%');
             this._right.css('width', '80%');
 
+	    // SIMULATOR
+	    this._simulator = new Simulator();
+	    this._simulator.initialize( this._left, this.nodes );
+
+	    // DRAGGING INFO
             this.isDragging = false;
 
             this._handle.mousedown(function(e) {
@@ -643,7 +644,7 @@ define([
 			
 		    });
 		    self.nodes[desc.id] = desc;
-		    self.updateEventButtons(desc);
+		    self._simulator.updateEventButtons();
 		    self.updateDependencies();
 		}
 	    }
@@ -705,7 +706,7 @@ define([
 		delete self.waitingNodes[gmeId];
 		self._cy.remove("#" + idTag);
 		self.updateDependencies();
-		self.updateEventButtons();
+		self._simulator.updateEventButtons();
 	    }
 	};
 
@@ -731,7 +732,7 @@ define([
 		    }
 		}
 		this.nodes[desc.id] = desc;
-		self.updateEventButtons( );
+		self._simulator.updateEventButtons( );
             }
 	};
 
@@ -856,44 +857,6 @@ define([
 	    else if (srcDesc.parentId == dstDesc.id)
 		valid = false;
 	    return valid;
-	};
-
-	/* * * * * * * * Event Button Functions    * * * * * * * */
-
-	function uniq(a) {
-	    var seen = {};
-	    return a.filter(function(item) {
-		return seen.hasOwnProperty(item) ? false : (seen[item] = true);
-	    });
-	}
-
-	HFSMVizWidget.prototype.getEventNames = function () {
-	    var self = this;
-	    var eventNames = Object.keys(self.nodes).map(function(k) {
-		var desc = self.nodes[k];
-		if (desc.isConnection && desc.event) {
-		    return desc.event;
-		}
-	    });
-	    eventNames = uniq(eventNames);
-	    return eventNames;
-	};
-
-	HFSMVizWidget.prototype.updateEventButtons = function () {
-	    var self = this;
-	    self.createEventButtons();
-	};
-
-	HFSMVizWidget.prototype.createEventButtons = function () {
-	    var self = this;
-	    self._eventButtons.empty();
-	    var eventNames = self.getEventNames().sort();
-	    eventNames.map(function (eventName) {
-		if (eventName)
-		    //self._eventButtons.append('<li class="eventButton"><button class="btn btn-default btn-primary">'+eventName+'</button></li>');
-		    //self._eventButtons.append('<button class="btn btn-default btn-primary eventButton">'+eventName+'</button>');
-		    self._eventButtons.append('<div class="row btn btn-default btn-primary btn-block eventButton"><span class="eventButtonText">'+eventName+'</span></div>');
-	    });
 	};
 
 	/* * * * * * * * Visualizer event handlers * * * * * * * */
