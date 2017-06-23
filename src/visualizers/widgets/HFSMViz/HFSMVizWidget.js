@@ -35,6 +35,7 @@ define([
 	cytoscape.use( coseBilkent );
 	//cytoscape.use( cyPopper, Popper );
 
+	var hideTypes = ['Internal Transition'];
 
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
@@ -415,54 +416,8 @@ define([
 	    });
 	};
 
-	HFSMVizWidget.prototype.getHiddenChildren = function( node ) {
-	    var self = this;
-	    return self.hiddenNodes[node.id()];
-	};
+	/* * * * * * * * Graph Creation Functions  * * * * * * * */
 
-	HFSMVizWidget.prototype.hasHiddenChildren = function( node ) {
-	    var self = this;
-	    return self.getHiddenChildren(node) != null;
-	};
-
-	HFSMVizWidget.prototype.isCompoundNode = function( node ) {
-	    var self = this;
-	    return node.isParent() || self.hasHiddenChildren( node );
-	};
-
-	HFSMVizWidget.prototype.toggleShowChildren = function ( node ) {
-	    var self = this;
-	    var hidden = self.getHiddenChildren( node );
-	    if (node.isParent()) {
-		// currently true, disable show children
-		var children, descendants, edges;
-		children = node.children();
-		if (self.hiddenNodes[node.id()]) {
-		    descendants = self.hiddenNodes[node.id()].nodes;
-		    edges = self.hiddenNodes[node.id()].edges;
-		}
-		else {
-		    descendants = node.descendants();
-		    edges = descendants.connectedEdges();
-		}
-		self._cy.remove(edges);
-		self._cy.remove(descendants);
-		self.hiddenNodes[node.id()] = {
-		    nodes: descendants,
-		    edges: edges,
-		};
-	    }
-	    else if (hidden && hidden.nodes && hidden.edges) {
-		// currently false, reenable show children
-		hidden.nodes.restore();
-		hidden.edges.restore();
-		delete self.hiddenNodes[node.id()];
-	    }
-	};
-
-	HFSMVizWidget.prototype.onWidgetContainerResize = function (width, height) {
-	    this._cy.resize();
-	};
 
 	HFSMVizWidget.prototype.checkDependencies = function(desc) {
 	    var self = this;
@@ -575,18 +530,23 @@ define([
 	    return data;
 	};
 
+	HFSMVizWidget.prototype.isHidden = function(desc) {
+	    return hideTypes.indexOf( desc.type ) > -1;
+	};
+
 	HFSMVizWidget.prototype.createEdge = function(desc) {
 	    var self = this;
 	    if (desc && desc.src && desc.dst) {
 		var data = self.getDescData(desc);
 		if (data) {
-		    self._cy.add({
-			group: 'edges',
-			data: data,
-			
-		    });
+		    if (!self.isHidden( desc )) {
+			self._cy.add({
+			    group: 'edges',
+			    data: data,
+			    
+			});
+		    }
 		    self.nodes[desc.id] = desc;
-		    self._simulator.updateEventButtons();
 		    self.updateDependencies();
 		}
 	    }
@@ -595,11 +555,13 @@ define([
 	HFSMVizWidget.prototype.createNode = function(desc) {
 	    var self = this;
 	    var data = self.getDescData(desc);
-	    var node = {
-		group: 'nodes',
-		data: data
-	    };
-	    self._cy.add(node);
+	    if (!self.isHidden(desc)) {
+		var node = {
+		    group: 'nodes',
+		    data: data
+		};
+		self._cy.add(node);
+	    }
 	    self.nodes[desc.id] = desc;
 	    self.updateDependencies();
 	    self.debouncedReLayout();
@@ -621,6 +583,7 @@ define([
 			self.createNode(desc);
 		    }
 		}
+		self._simulator.updateEventButtons();
 	    }
 	};
 
@@ -632,21 +595,23 @@ define([
 	    if (desc) {
 		if (!desc.isConnection) {
 		    delete self.dependencies.nodes[gmeId];
-		    //self._cy.filter('edge[source = "'+idTag+'"], edge[dest = "'+idTag+'"]'));
-		    self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
-			if (ele && ele.isEdge()) {
-			    var edgeId = ele.data( 'id' );
-			    var edgeDesc = self.nodes[edgeId];
-			    self.checkDependencies(edgeDesc);
-			}
-		    });
+		    if (!self.isHidden( desc ) ) {
+			self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
+			    if (ele && ele.isEdge()) {
+				var edgeId = ele.data( 'id' );
+				var edgeDesc = self.nodes[edgeId];
+				self.checkDependencies(edgeDesc);
+			    }
+			});
+		    }
 		}
 		else {
 		    delete self.dependencies.edges[gmeId];
 		}
 		delete self.nodes[gmeId];
 		delete self.waitingNodes[gmeId];
-		self._cy.remove("#" + idTag);
+		if (!self.isHidden( desc ))
+		    self._cy.remove("#" + idTag);
 		self.updateDependencies();
 		self._simulator.updateEventButtons();
 	    }
@@ -685,6 +650,51 @@ define([
 	    self._client.deleteNode( nodeId, "Removing " + nodeId );
 	};
 
+	HFSMVizWidget.prototype.getHiddenChildren = function( node ) {
+	    var self = this;
+	    return self.hiddenNodes[node.id()];
+	};
+
+	HFSMVizWidget.prototype.hasHiddenChildren = function( node ) {
+	    var self = this;
+	    return self.getHiddenChildren(node) != null;
+	};
+
+	HFSMVizWidget.prototype.isCompoundNode = function( node ) {
+	    var self = this;
+	    return node.isParent() || self.hasHiddenChildren( node );
+	};
+
+	HFSMVizWidget.prototype.toggleShowChildren = function ( node ) {
+	    var self = this;
+	    var hidden = self.getHiddenChildren( node );
+	    if (node.isParent()) {
+		// currently true, disable show children
+		var children, descendants, edges;
+		children = node.children();
+		if (self.hiddenNodes[node.id()]) {
+		    descendants = self.hiddenNodes[node.id()].nodes;
+		    edges = self.hiddenNodes[node.id()].edges;
+		}
+		else {
+		    descendants = node.descendants();
+		    edges = descendants.connectedEdges();
+		}
+		self._cy.remove(edges);
+		self._cy.remove(descendants);
+		self.hiddenNodes[node.id()] = {
+		    nodes: descendants,
+		    edges: edges,
+		};
+	    }
+	    else if (hidden && hidden.nodes && hidden.edges) {
+		// currently false, reenable show children
+		hidden.nodes.restore();
+		hidden.edges.restore();
+		delete self.hiddenNodes[node.id()];
+	    }
+	};
+
 	/* * * * * * * * Edge Creation Functions   * * * * * * * */
 
 	HFSMVizWidget.prototype.draggedEdge = function( cySrc, cyDst, cyEdge ) {
@@ -721,26 +731,6 @@ define([
 	    return newEdgePath;
 	};
 
-	HFSMVizWidget.prototype.getEdgesFromNode = function( desc ) {
-	    var self = this;
-	    var nodeEdges = Object.keys(self.nodes).map(function (k) {
-		var node = self.nodes[k];
-		if (node.isConnection && node.src == desc.id)
-		    return k;
-	    });
-	    return nodeEdges.filter(function (o) { return o; });
-	};
-
-	HFSMVizWidget.prototype.getEdgesToNode = function( desc ) {
-	    var self = this;
-	    var nodeEdges = Object.keys(self.nodes).map(function (k) {
-		var node = self.nodes[k];
-		if (node.isConnection && node.dst == desc.id)
-		    return k;
-	    });
-	    return nodeEdges.filter(function (o) { return o; });
-	};
-
 	HFSMVizWidget.prototype.isValidSource = function( desc ) {
 	    var self = this;
 	    if (desc.type == 'End State')
@@ -755,7 +745,7 @@ define([
 		return false;
 	    else if (desc.type == 'Initial') {
 		// if initial already has transition, don't allow more
-		var initialEdges = self.getEdgesFromNode(desc);
+		var initialEdges = self._simulator.getEdgesFromNode(desc);
 		if (initialEdges.length)
 		    return false;
 	    }
@@ -802,6 +792,10 @@ define([
 	};
 
 	/* * * * * * * * Visualizer event handlers * * * * * * * */
+
+	HFSMVizWidget.prototype.onWidgetContainerResize = function (width, height) {
+	    this._cy.resize();
+	};
 
 	HFSMVizWidget.prototype.onNodeClick = function (/*id*/) {
             // This currently changes the active node to the given id and

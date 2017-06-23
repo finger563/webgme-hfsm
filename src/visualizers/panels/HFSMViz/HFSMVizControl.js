@@ -86,7 +86,7 @@ define([
     };
 
     var rootTypes = ['Task','Timer'];
-    var excludeTypes = ['Documentation', 'Internal Transition'];
+    var excludeTypes = ['Documentation'];
 
     // This next function retrieves the relevant node information for the widget
     HFSMVizControl.prototype._getObjectDescriptor = function (nodeId) {
@@ -102,21 +102,20 @@ define([
 		objDescriptor = {
                     id: node.getId(),
 		    type: metaName,
-                    name: node.getAttribute(nodePropertyNames.Attributes.name),
                     childrenIds: node.getChildrenIds(),
                     parentId: node.getParentId(),
                     isConnection: GMEConcepts.isConnection(nodeId)
 		};
+		node.getAttributeNames().map(function(a) {
+		    objDescriptor[a] = node.getAttribute(a);
+		});
 		// add the node pointers if it's a connection
 		if (objDescriptor.isConnection) {
 		    objDescriptor.src = node.getPointer('src').to;
 		    objDescriptor.dst = node.getPointer('dst').to;
-		    objDescriptor.text = node.getAttribute('Event');
-		    objDescriptor.event = objDescriptor.text;
-		    var guard = node.getAttribute('Guard');
-		    if (guard) {
-			objDescriptor.guard = guard;
-			objDescriptor.text += ' [' + guard + ']';
+		    objDescriptor.text = objDescriptor.Event;
+		    if (objDescriptor.Guard) {
+			objDescriptor.text += ' [' + objDescriptor.Guard + ']';
 		    }
 		}
 		// make sure the root level has no parentId

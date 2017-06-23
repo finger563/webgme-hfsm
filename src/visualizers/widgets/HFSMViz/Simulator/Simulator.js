@@ -59,7 +59,7 @@ define(['js/util',
 	       this._handle = $(container).find('#simulatorHandle').first();
 
 	       // NODE RELATED DATA
-	       this._nodes = nodes;
+	       this.nodes = nodes;
 
 	       // EVENT RELATED DATA
                this._eventButtons = this._el.find('#eventButtons').first();
@@ -108,6 +108,42 @@ define(['js/util',
 		   }
                });
            };
+
+	   /* * * * * *      Simulation Functions     * * * * * * * */
+
+	   Simulator.prototype.getEdgesFromNode = function( gmeId ) {
+	       var self = this;
+	       var nodeEdges = Object.keys(self.nodes).map(function (k) {
+		   var node = self.nodes[k];
+		   if (node.isConnection && node.src == gmeId)
+		       return k;
+	       });
+	       return nodeEdges.filter(function (o) { return o; });
+	   };
+
+	   Simulator.prototype.getEdgesToNode = function( gmeId ) {
+	       var self = this;
+	       var nodeEdges = Object.keys(self.nodes).map(function (k) {
+		   var node = self.nodes[k];
+		   if (node.isConnection && node.dst == gmeId)
+		       return k;
+	       });
+	       return nodeEdges.filter(function (o) { return o; });
+	   };
+
+	   Simulator.prototype.getParentState = function( gmeId ) {
+	       var self = this;
+	       var parentState = null;
+	       var node = self.nodes[ gmeId ];
+	       if (node) {
+		   var parentId = node.parentId;
+		   var parentNode = self.nodes[ parentId ];
+		   if (parentNode && parentNode.type == 'State') {
+		       parentState = parentNode;
+		   }
+	       }
+	       return parentState;
+	   };
 
 	   /* * * * * * State Info Display Functions  * * * * * * * */
 
@@ -225,10 +261,13 @@ define(['js/util',
 
 	   Simulator.prototype.getEventNames = function () {
 	       var self = this;
-	       var eventNames = Object.keys(self._nodes).map(function(k) {
-		   var desc = self._nodes[k];
-		   if (desc.isConnection && desc.event) {
-		       return desc.event;
+	       var eventNames = Object.keys(self.nodes).map(function(k) {
+		   var desc = self.nodes[k];
+		   if (desc.isConnection && desc.Event) {
+		       return desc.Event;
+		   }
+		   else if (desc.type == 'Internal Transition') {
+		       return desc.Event;
 		   }
 	       });
 	       eventNames = uniq(eventNames);
@@ -238,7 +277,7 @@ define(['js/util',
 	   Simulator.prototype.createEventButtons = function () {
 	       var self = this;
 	       self._eventButtons.empty();
-	       var eventNames = self.getEventNames().sort();
+	       var eventNames = ['Tick'].concat(self.getEventNames().sort());
 	       eventNames.map(function (eventName) {
 		   if (eventName) {
 		       var buttonHtml = mustache.render(eventTempl, { eventName: eventName });
