@@ -745,7 +745,7 @@ define([
 		return false;
 	    else if (desc.type == 'Initial') {
 		// if initial already has transition, don't allow more
-		var initialEdges = self._simulator.getEdgesFromNode(desc);
+		var initialEdges = self._simulator.getEdgesFromNode( desc.id );
 		if (initialEdges.length)
 		    return false;
 	    }
