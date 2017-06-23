@@ -490,9 +490,11 @@ define(['js/util',
 	       var self = this;
 	       self.hideStateInfo();
 	       var node = self._client.getNode( gmeId );
-	       var nodeType = self._client.getNode( node.getMetaTypeId() ).getAttribute( 'name' );
-	       if (nodeType == 'State')
-		   $(self._stateInfo).append( self.renderState( gmeId ) );
+	       if (node) {
+		   var nodeType = self._client.getNode( node.getMetaTypeId() ).getAttribute( 'name' );
+		   if (nodeType == 'State')
+		       $(self._stateInfo).append( self.renderState( gmeId ) );
+	       }
 	   };
 
 	   Simulator.prototype.hideStateInfo = function( ) {

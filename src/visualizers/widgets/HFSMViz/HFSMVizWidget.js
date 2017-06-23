@@ -639,7 +639,24 @@ define([
 
 	HFSMVizWidget.prototype.deleteNode = function( nodeId ) {
 	    var self = this;
+	    var edgesTo = self._simulator.getEdgesToNode( nodeId );
+	    var edgesFrom = self._simulator.getEdgesFromNode( nodeId );
+
+	    self._client.startTransaction();
+
+	    if (edgesTo) {
+		edgesTo.map(function(eid) {
+		    self._client.deleteNode( eid, "Removing depenent (dst) transition: " + eid );
+		});
+	    }
+	    if (edgesFrom) {
+		edgesFrom.map(function(eid) {
+		    self._client.deleteNode( eid, "Removing depenent (src) transition: " + eid );
+		});
+	    }
 	    self._client.deleteNode( nodeId, "Removing " + nodeId );
+
+	    self._client.completeTransaction();
 	};
 
 	HFSMVizWidget.prototype.getHiddenChildren = function( node ) {
