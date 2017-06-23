@@ -82,6 +82,7 @@ define([
 	    // SIMULATOR
 	    this._simulator = new Simulator();
 	    this._simulator.initialize( this._left, this.nodes, this._client );
+	    this._simulator.onStateChanged( this.showActiveState.bind(this) );
 
 	    // DRAGGING INFO
             this.isDragging = false;
@@ -613,6 +614,25 @@ define([
 		this.nodes[desc.id] = desc;
 		self._simulator.update( );
             }
+	};
+
+	/* * * * * * * * Active State Display      * * * * * * * */
+
+	HFSMVizWidget.prototype.showActiveState = function( stateId ) {
+	    var self = this;
+	    var previousActiveState = self._cy.nodes('[ActiveState]');
+	    if (previousActiveState.length) {
+		var data = previousActiveState.data();
+		data.ActiveState = undefined;
+		previousActiveState.data( data );
+	    }
+	    var idTag = stateId.replace(/\//gm, "\\/");
+	    var node = self._cy.$('#'+idTag);
+	    if (node.length) {
+		var data = node.data();
+		data.ActiveState = true;
+		node.data( data );
+	    }
 	};
 
 	/* * * * * * * * Context Menu Functions    * * * * * * * */

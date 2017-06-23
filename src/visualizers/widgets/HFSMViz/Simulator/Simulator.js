@@ -113,6 +113,16 @@ define(['js/util',
 	   Simulator.prototype.update = function() {
 	       this.updateEventButtons();
 	       this.updateActiveState();
+	       if (self._activeState)
+		   this._stateChangedCallback( self._activeState.id );
+	   };
+
+	   Simulator.prototype.onStateChanged = function(stateChangedCallback) {
+	       var self = this;
+	       // call func when state is changed; func should take an
+	       // argument that is the gmeId of the current active
+	       // state
+	       self._stateChangedCallback = stateChangedCallback;
 	   };
 
 	   /* * * * * *      Simulation Functions     * * * * * * * */
@@ -121,6 +131,12 @@ define(['js/util',
 	       var self = this;
 	       this._historyStates = {};
 	       this._activeState = self.getInitialState( self.getTopLevelId() );
+	       // display info
+	       if (self._activeState) {
+		   self.displayStateInfo( self._activeState.id );
+		   if (self._stateChangedCallback)
+		       self._stateChangedCallback( self._activeState.id );
+	       }
 	   };
 
 	   Simulator.prototype.updateActiveState = function( ) {
@@ -252,7 +268,7 @@ define(['js/util',
 			   if (!intTrans.Guard) {
 			   }
 			   else {
-			       console.log('Assuming '+edge.Guard + ' evaluates to true!');
+			       console.log('Assuming '+intTrans.Guard + ' evaluates to true!');
 			   }
 			   return;
 		       }
@@ -521,7 +537,7 @@ define(['js/util',
 	   Simulator.prototype.createEventButtons = function () {
 	       var self = this;
 	       self._eventButtons.empty();
-	       var eventNames = ['Tick'].concat(self.getEventNames().sort());
+	       var eventNames = ['RESTART-HFSM','Tick'].concat(self.getEventNames().sort());
 	       eventNames.map(function (eventName) {
 		   if (eventName) {
 		       var buttonHtml = mustache.render(eventTempl, { eventName: eventName });
@@ -545,9 +561,16 @@ define(['js/util',
 	   Simulator.prototype.onEventButtonClick = function (e) {
 	       var self = this;
 	       var eventName = self.getEventButtonText( e.target ).trim();
-	       self.updateActiveState();
-	       self.handleEvent( eventName, self._activeState.id );
-	       console.log( self._activeState );
+	       if (eventName == 'RESTART-HFSM') {
+		   self.initActiveState();
+	       }
+	       else {
+		   self.updateActiveState();
+		   self.handleEvent( eventName, self._activeState.id );
+		   self.displayStateInfo( self._activeState.id );
+		   if (self._stateChangedCallback)
+		       self._stateChangedCallback( self._activeState.id );
+	       }
 	   };
 
            return Simulator;
