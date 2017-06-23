@@ -345,9 +345,12 @@ define([
 	    var layoutDuration = 500;
 
 	    function highlight( node ){
+		node.select();
+		self._simulator.displayStateInfo( node.id() );
 	    }
 
 	    function clear(){
+		self._cy.$(':selected').unselect();
 		self._simulator.hideStateInfo();
 	    }
 
@@ -360,10 +363,15 @@ define([
 		    WebGMEGlobal.State.registerActiveSelection([node.id()]);
 		}
 		highlight( node );
-		self._simulator.displayStateInfo( node.id() );
 	    });
 	    
-	    self._cy.on('cxttap', 'node', function(e) {
+	    self._cy.on('cxttap', 'node, edge', function(e) {
+		clear();
+		var node = this;
+		if (node.id()) {
+		    WebGMEGlobal.State.registerActiveSelection([node.id()]);
+		}
+		highlight( node );
 	    });
 
 	    // UNSELECT ON NODES AND EDGES
@@ -794,6 +802,10 @@ define([
 	    else if (srcType == 'Initial') {
 		if (dstType == 'Deep History Pseudostate' ||
 		    dstType == 'Shallow History Pseudostate')
+		    valid = false;
+	    }
+	    else if (srcType == 'Choice Pseudostate') {
+		if (dstType == 'Choice Pseudostate')
 		    valid = false;
 	    }
 	    else if (srcDesc.parentId == dstDesc.id)

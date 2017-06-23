@@ -3,6 +3,8 @@
  */
 
 define(['js/util',
+	'q',
+	'./Choice',
 	'bower/mustache.js/mustache.min',
 	'bower/highlightjs/highlight.pack.min',
 	'text!./Simulator.html',
@@ -10,6 +12,8 @@ define(['js/util',
 	'css!bower/highlightjs/styles/default.css',
 	'css!./Simulator.css'],
        function(Util,
+		Q,
+		Choice,
 		mustache,
 		hljs,
 		SimulatorHtml){
@@ -193,7 +197,7 @@ define(['js/util',
 	       var historyStateId = self._historyStates[ stateId ];
 	       if (historyStateId == undefined) // set to parent if we haven't been here before
 		   historyStateId = self.nodes[ stateId ].parentId;
-	       self._activeState = self.getInitialState( historyStateId );
+	       return self.getInitialState( historyStateId );
 	   };
 
 	   Simulator.prototype.handleDeepHistory = function( stateId ) {
@@ -204,15 +208,33 @@ define(['js/util',
 	       if (historyStateId == undefined) {
 		   // set to parent if we havent' been here before
 		   historyStateId = self.nodes[ stateId ].parentId;
-		   self._activeState = self.getInitialState( historyStateId );
+		   return self.getInitialState( historyStateId );
 	       }
 	       else {
 		   self._activeState = self.nodes[ historyStateId ];
 		   if (self._activeState == undefined ) {
 		       alert('History state no longer valid, reinitailizing.');
-		       self.initActiveState();
+		       return self.getInitialState( self.getTopLevelId() );
 		   }
 	       }
+	   };
+
+	   Simulator.prototype.selectGuard = function( transitionIds ) {
+	       var self = this;
+	       if (!transitionIds.length)
+		   return new Q.Promise(function(resolve, reject) { resolve(); });
+	       var choiceToEdgeId = self.getChoices( transitionIds );
+	       var choice = new Choice();
+	       choice.initialize( Object.keys(choiceToEdgeId) );
+	       choice.show();
+	       return choice.waitForChoice()
+		   .then(function(choice) {
+		       var retObj = {
+			   choice: choice,
+			   transitionId: choiceToEdgeId[ choice ]
+		       };
+		       return new Q.Promise(function(resolve, reject) { resolve(retObj); });
+		   })
 	   };
 
 	   Simulator.prototype.handleChoice = function( stateId ) {
@@ -220,7 +242,15 @@ define(['js/util',
 	       // find the transitions out of the choice state and
 	       // prompt the user for which guard condition should
 	       // evaluate to true.
-	       var choices = self.getEdgesFromNode( stateId );
+	       var edgeIds = self.getEdgesFromNode( stateId );
+	       return self.selectGuard( edgeIds )
+		   .then(function(selectedEdge) {
+		       var nextState = null;
+		       if (selectedEdge) {
+			   nextState = self.getNextState( selectedEdge.transitionId );
+		       }
+		       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+		   });
 	   };
 
 	   Simulator.prototype.handleEnd = function( stateId ) {
@@ -231,21 +261,34 @@ define(['js/util',
 	       //
 	       // If that condition is not satisfied, stay in the end
 	       // state.
+	       return self.nodes[ stateId ];
 	   };
 
 	   Simulator.prototype.handleSpecialStates = function( stateId ) {
 	       var self = this;
 	       var state = self.nodes[ stateId ];
+	       var nextState = state;
 	       if (state) {
 		   if (state.type == 'Shallow History Pseudostate')
-		       self.handleShallowHistory( state.id );
+		       nextState = self.handleShallowHistory( state.id );
 		   else if (state.type == 'Deep History Pseudostate')
-		       self.handleDeepHistory( state.id );
-		   else if (state.type == 'Choice Pseudostate')
-		       self.handleChoice( state.id );
+		       nextState = self.handleDeepHistory( state.id );
 		   else if (state.type == 'End State')
-		       self.handleEnd( state.id );
+		       nextState = self.handleEnd( state.id );
+		   else if (state.type == 'Choice Pseudostate')
+		       return self.handleChoice( state.id );
 	       }
+	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+	   };
+
+	   Simulator.prototype.getChoices = function( transitionIds ) {
+	       var self = this;
+	       var choiceToTransitionId = {};
+	       transitionIds.map(function(tid) {
+		   var choice = self.nodes[ tid ].Guard;
+		   choiceToTransitionId[ choice ] = tid;
+	       });
+	       return choiceToTransitionId;
 	   };
 
 	   function transitionSort(aId, bId) {
@@ -256,55 +299,102 @@ define(['js/util',
 	       return 0;
 	   }
 
+	   Simulator.prototype.resolveInternalTransitions = function( transitionIds ) {
+	       var self = this;
+	       var resolved = false;
+	       // check transitions with no guard
+	       var guardless = transitionIds.filter(function(eid) {
+		   var edge = self.nodes[ eid ];
+		   return edge.Guard == null || !edge.Guard.trim();
+	       });
+	       if (guardless.length == 1) {
+		   resolved = true;
+	       }
+	       else if (guardless.length > 1) {
+		   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
+	       }
+	       else {
+		   // now check transitions with guard
+		   resolved = self.selectGuard( transitionIds );
+	       }
+	       return new Q.Promise(function(resolve, reject) { resolve(resolved); });
+	   };
+
+	   Simulator.prototype.resolveExternalTransitions = function( transitionIds ) {
+	       var self = this;
+	       var nextState = null;
+	       // check transitions with no guard
+	       var guardless = transitionIds.filter(function(eid) {
+		   var edge = self.nodes[ eid ];
+		   return edge.Guard == null || !edge.Guard.trim();
+	       });
+	       if (guardless.length == 1) {
+		   nextState = self.getNextState( guardless[0] );
+	       }
+	       else if (guardless.length > 1) {
+		   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
+	       }
+	       else {
+		   // now check transitions with guard
+		   self.selectGuard( transitionIds )
+		       .then(function(selectedEdge) {
+			   var nextState = null;
+			   if (selectedEdge) {
+			       nextState = self.getNextState( selectedEdge.transitionId );
+			   }
+			   return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+		       });
+	       }
+	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+	   };
+
 	   Simulator.prototype.handleEvent = function( eventName, stateId ) {
 	       var self = this;
 	       if (stateId) {
 		   // handle internal transitions
+		   // TODO: HANDLE GUARD CONDITIONS ON INTERNAL TRANSITIONS
 		   var intIds = self.getInternalTransitionIds( eventName, stateId );
-		   if (intIds.length) {
-		       for (var i in intIds) {
-			   var intId = intIds[ i ];
-			   var intTrans = self.nodes[ intId ];
-			   if (!intTrans.Guard) {
+		   return self.resolveInternalTransitions( intIds )
+		       .then(function(resolved) {
+			   console.log(resolved);
+			   if (resolved) { // internal transition occured
 			   }
 			   else {
-			       console.log('Assuming '+intTrans.Guard + ' evaluates to true!');
+			       // no internal occurred, now check external
+			       var edgeIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
+				   return self.nodes[ eId ].Event == eventName;
+			       }).sort( transitionSort );
+			       if (edgeIds.length) {
+				   // update history states here for all states we're leaving
+				   self.updateHistory( self._activeState.id );
+				   return self.resolveExternalTransitions( edgeIds )
+				       .then(function(nextState) {
+					   if (nextState) {
+					       console.log('got next state');
+					       console.log(nextState);
+					       // if we've gotten a new state, see if we have gone to a special state
+					       return self.handleSpecialStates( nextState.id )
+						   .then(function(state) {
+						       if (state) {
+							   console.log('got special state');
+							   console.log(state);
+							   self._activeState = state;
+						       }
+						   });
+					   }
+				       });
+			       }
+			       else {
+				   // bubble up to see if parent handles event
+				   var parentState = self.getParentState( stateId );
+				   if (parentState) {
+				       return self.handleEvent( eventName, parentState.id );
+				   }
+			       }
 			   }
-			   return;
-		       }
-		   }
-		   // now handle edges
-		   var edgeIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
-		       return self.nodes[ eId ].Event == eventName;
-		   }).sort( transitionSort );
-		   if (edgeIds.length) {
-		       // update history states here for all states we're leaving
-		       self.updateHistory( self._activeState.id );
-		       // actually update active state based on edge
-		       for (var i in edgeIds) {
-			   var eid = edgeIds[ i ];
-			   var edge = self.nodes[ eid ];
-			   if (!edge.Guard) {
-			       self._activeState = self.getNextState( eid );
-			   }
-			   else {
-			       self._activeState = self.getNextState( eid );
-			       console.log('Assuming ' + edge.Guard + ' evaluates to true!');
-			   }
-			   // special state handling here:
-			   self.handleSpecialStates( self._activeState.id );
-			   return;
-		       }
-		   }
-		   else {
-		       // bubble up to see if parent handles event
-		       var parentState = self.getParentState( stateId );
-		       if (parentState) {
-			   self.handleEvent( eventName, parentState.id );
-			   return;
-		       }
-		   }
+		       });
 	       }
+	       return new Q.Promise(function(resolve, reject) { resolve(); });
 	   };
 
 	   Simulator.prototype.getInternalTransitionIds = function( eventName, gmeId ) {
@@ -568,10 +658,12 @@ define(['js/util',
 	       }
 	       else {
 		   self.updateActiveState();
-		   self.handleEvent( eventName, self._activeState.id );
-		   self.displayStateInfo( self._activeState.id );
-		   if (self._stateChangedCallback)
-		       self._stateChangedCallback( self._activeState.id );
+		   self.handleEvent( eventName, self._activeState.id )
+		       .then(function() {
+			   self.displayStateInfo( self._activeState.id );
+			   if (self._stateChangedCallback)
+			       self._stateChangedCallback( self._activeState.id );
+		       });
 	       }
 	   };
 
