@@ -70,8 +70,9 @@ define(['js/util',
 	       // Active state information
 	       this._activeState = null;
 
-	       /*
-		*/
+	       // History state information
+	       this._historyStates = {}; // map from history state ID to remembered state
+	       
 	       // DRAGGING INFO
                this.isDragging = false;
 
@@ -118,6 +119,7 @@ define(['js/util',
 
 	   Simulator.prototype.initActiveState = function( ) {
 	       var self = this;
+	       this._historyStates = {};
 	       this._activeState = self.getInitialState( self.getTopLevelId() );
 	   };
 
@@ -138,6 +140,98 @@ define(['js/util',
 	       return self._activeState.id;
 	   };
 
+	   Simulator.prototype.updateHistory = function( childId, deepId ) {
+	       var self = this;
+	       // recurse from stateId to the top, updating shallow
+	       // and deep history states along the way
+	       //
+	       // uses the passed state ID to set as a parent
+	       if (deepId == undefined)
+		   deepId = childId;
+	       var parentId = self.nodes[ childId ].parentId;
+	       var parent = self.nodes[ parentId ];
+	       if (parent && parent.type == 'State') {
+		   // update deep
+		   var deepHistoryIds = parent.childrenIds.filter(function(cid) {
+		       return self.nodes[ cid ].type == 'Deep History Pseudostate';
+		   });
+		   if (deepHistoryIds.length) {
+		       self._historyStates [ deepHistoryIds[0] ] = deepId;
+		   }
+		   // update shallow
+		   var shallowHistoryIds = parent.childrenIds.filter(function(cid) {
+		       return self.nodes[ cid ].type == 'Shallow History Pseudostate';
+		   });
+		   if (shallowHistoryIds.length) {
+		       self._historyStates [ shallowHistoryIds[0] ] = childId;
+		   }
+
+		   self.updateHistory( parent.id, deepId );
+	       }
+	   };
+
+	   Simulator.prototype.handleShallowHistory = function( stateId ) {
+	       var self = this;
+	       // set the active state to the state stored in the
+	       // history state.
+	       var historyStateId = self._historyStates[ stateId ];
+	       if (historyStateId == undefined) // set to parent if we haven't been here before
+		   historyStateId = self.nodes[ stateId ].parentId;
+	       self._activeState = self.getInitialState( historyStateId );
+	   };
+
+	   Simulator.prototype.handleDeepHistory = function( stateId ) {
+	       var self = this;
+	       // set the active state to the state stored in the
+	       // history state.
+	       var historyStateId = self._historyStates[ stateId ];
+	       if (historyStateId == undefined) {
+		   // set to parent if we havent' been here before
+		   historyStateId = self.nodes[ stateId ].parentId;
+		   self._activeState = self.getInitialState( historyStateId );
+	       }
+	       else {
+		   self._activeState = self.nodes[ historyStateId ];
+		   if (self._activeState == undefined ) {
+		       alert('History state no longer valid, reinitailizing.');
+		       self.initActiveState();
+		   }
+	       }
+	   };
+
+	   Simulator.prototype.handleChoice = function( stateId ) {
+	       var self = this;
+	       // find the transitions out of the choice state and
+	       // prompt the user for which guard condition should
+	       // evaluate to true.
+	       var choices = self.getEdgesFromNode( stateId );
+	   };
+
+	   Simulator.prototype.handleEnd = function( stateId ) {
+	       var self = this;
+	       // see if the parent state has an external transition
+	       // which does not have an event or a guard; make sure
+	       // there's only one of them and then take it.
+	       //
+	       // If that condition is not satisfied, stay in the end
+	       // state.
+	   };
+
+	   Simulator.prototype.handleSpecialStates = function( stateId ) {
+	       var self = this;
+	       var state = self.nodes[ stateId ];
+	       if (state) {
+		   if (state.type == 'Shallow History Pseudostate')
+		       self.handleShallowHistory( state.id );
+		   else if (state.type == 'Deep History Pseudostate')
+		       self.handleDeepHistory( state.id );
+		   else if (state.type == 'Choice Pseudostate')
+		       self.handleChoice( state.id );
+		   else if (state.type == 'End State')
+		       self.handleEnd( state.id );
+	       }
+	   };
+
 	   Simulator.prototype.handleEvent = function( eventName, stateId ) {
 	       var self = this;
 	       if (stateId) {
@@ -151,26 +245,30 @@ define(['js/util',
 		       return 0;
 		   });
 		   if (edgeIds.length) {
+		       // update history states here for all states we're leaving
+		       self.updateHistory( self._activeState.id );
 		       // actually update active state based on edge
 		       for (var i in edgeIds) {
 			   var eid = edgeIds[ i ];
 			   var edge = self.nodes[ eid ];
 			   if (!edge.Guard) {
 			       self._activeState = self.getNextState( eid );
-			       return;
 			   }
 			   else {
 			       self._activeState = self.getNextState( eid );
 			       console.log('Assuming ' + edge.Guard + ' evaluates to true!');
-			       return;
 			   }
+			   // special state handling here:
+			   self.handleSpecialStates( self._activeState.id );
+			   return;
 		       }
 		   }
 		   else {
 		       // bubble up to see if parent handles event
 		       var parentState = self.getParentState( stateId );
 		       if (parentState) {
-			   return self.handleEvent( eventName, parentState.id );
+			   self.handleEvent( eventName, parentState.id );
+			   return;
 		       }
 		   }
 	       }
