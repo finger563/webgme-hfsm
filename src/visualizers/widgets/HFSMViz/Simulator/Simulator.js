@@ -22,7 +22,7 @@ define(['js/util',
 			     '</div>'].join('\n');
 	   
 	   var stateTemplate = [
-	       '<div class="uml-state-machine">',
+	       '<div id="{{id}}" class="uml-state-machine">',
 	       '<div class="uml-state-diagram">',
 	       '<div class="state">',
 	       '<div class="name">{{name}}</div>',
@@ -232,18 +232,35 @@ define(['js/util',
 	       }
 	   };
 
+	   function transitionSort(aId, bId) {
+	       var a = self.nodes[aId].Guard;
+	       var b = self.nodes[bId].Guard;
+	       if (!a && b) return -1;
+	       if (a && !b) return 1;
+	       return 0;
+	   }
+
 	   Simulator.prototype.handleEvent = function( eventName, stateId ) {
 	       var self = this;
 	       if (stateId) {
+		   // handle internal transitions
+		   var intIds = self.getInternalTransitionIds( eventName, stateId );
+		   if (intIds.length) {
+		       for (var i in intIds) {
+			   var intId = intIds[ i ];
+			   var intTrans = self.nodes[ intId ];
+			   if (!intTrans.Guard) {
+			   }
+			   else {
+			       console.log('Assuming '+edge.Guard + ' evaluates to true!');
+			   }
+			   return;
+		       }
+		   }
+		   // now handle edges
 		   var edgeIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
 		       return self.nodes[ eId ].Event == eventName;
-		   }).sort(function(aId, bId) {
-		       var a = self.nodes[aId].Guard;
-		       var b = self.nodes[bId].Guard;
-		       if (!a && b) return -1;
-		       if (a && !b) return 1;
-		       return 0;
-		   });
+		   }).sort( transitionSort );
 		   if (edgeIds.length) {
 		       // update history states here for all states we're leaving
 		       self.updateHistory( self._activeState.id );
@@ -272,6 +289,18 @@ define(['js/util',
 		       }
 		   }
 	       }
+	   };
+
+	   Simulator.prototype.getInternalTransitionIds = function( eventName, gmeId ) {
+	       var self = this;
+	       var node = self.nodes[ gmeId ];
+	       var intTransIds = [];
+	       if (node)
+		   intTransIds = node.childrenIds.filter(function(cid) {
+		       var child = self.nodes[ cid ];
+		       return child.type == 'Internal Transition' && child.Event == eventName;
+		   }).sort( transitionSort );
+	       return intTransIds;
 	   };
 
 	   Simulator.prototype.getEdgesFromNode = function( gmeId ) {
@@ -427,7 +456,8 @@ define(['js/util',
 		   }
 	       });
 	       var stateObj = {
-		   name: node.getAttribute('name')
+		   name: node.getAttribute('name'),
+		   id: gmeId
 	       };
 	       var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
 	       var el = $(text).find('.internal-transitions');
@@ -452,6 +482,16 @@ define(['js/util',
 	   Simulator.prototype.hideStateInfo = function( ) {
 	       var self = this;
 	       $(self._stateInfo).empty();
+	   };
+
+	   Simulator.prototype.updateStateInfo = function() {
+	       var self = this;
+	       var el = $(self._stateInfo).find('.uml-state-machine');
+	       if (el) {
+		   var id = el.attr('id');
+		   if (id)
+		       self.displayStateInfo( el.attr('id') );
+	       }
 	   };
 
 	   /* * * * * * * * Event Button Functions    * * * * * * * */
@@ -495,6 +535,7 @@ define(['js/util',
 	   Simulator.prototype.updateEventButtons = function () {
 	       var self = this;
 	       self.createEventButtons();
+	       self.updateStateInfo();
 	   };
 
 	   Simulator.prototype.getEventButtonText = function ( btnEl ) {
