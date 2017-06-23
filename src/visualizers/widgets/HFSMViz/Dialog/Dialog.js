@@ -169,7 +169,6 @@ define(['js/util',
 
 	       // figure out what the allowable range is
 	       var validChildren = node.getValidChildrenTypesDetailed( );
-	       console.log( validChildren );
 	       Object.keys( validChildren ).map(function( metaId ) {
 		   var child = client.getNode( metaId );
 		   var childType = child.getAttribute('name');

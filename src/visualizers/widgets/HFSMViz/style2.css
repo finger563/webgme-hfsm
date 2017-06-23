@@ -108,37 +108,14 @@ node[NodeType = "Deep History Pseudostate"] {
     content: H*;
 }
 
-node.highlighted {
-    min-zoomed-font-size: 0;
-    font-size: 10;
-    text-outline-width: 1;
-    text-outline-opacity: 1;
-    z-index: 9999;
-}
-
-edge.highlighted {
-    min-zoomed-font-size: 0;
-    font-size: 8;
-    text-outline-width: 1;
-    text-outline-opacity: 1;
-    z-index: 9999;
-}
-
-edge.faded {
-    opacity: 0.1;
-    z-index: 0;
-}
-
-node.faded {
-    opacity: 0.5;
-    text-opacity: 0;
+.activeState {
 }
 
 node:selected {
     /* width: 40; */
     /* height: 40; */
     border-color: rgb(187, 219, 247);
-    border-opacity: 0.5;
+    border-opacity: 1.0;
     border-width: 2;
 }
 
@@ -147,6 +124,14 @@ edge:selected {
     /* height: 40; */
     line-color: rgb(187, 219, 247);/*#000;*/
     target-arrow-color: rgb(187, 219, 247);/*#000;*/
+}
+
+node[ActiveState] {
+    /* width: 40; */
+    /* height: 40; */
+    border-color: rgb(255, 0, 0);
+    border-opacity: 1.0;
+    border-width: 2;
 }
 
 .filtered {

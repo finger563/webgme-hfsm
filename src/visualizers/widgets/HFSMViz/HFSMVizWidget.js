@@ -168,23 +168,9 @@ define([
 		'name': 'cose-bilkent',
 		// Called on `layoutready`
 		ready: function () {
-		    self._cy.nodes().forEach(function(node) {
-			var p = node.position;
-			node.data('orgPos',{
-			    x: p.x,
-			    y: p.y
-			});
-		    });
 		},
 		// Called on `layoutstop`
 		stop: function () {
-		    self._cy.nodes().forEach(function(node) {
-			var p = node.position;
-			node.data('orgPos',{
-			    x: p.x,
-			    y: p.y
-			});
-		    });
 		},
 		// Whether to fit the network view after when done
 		fit: true,
@@ -320,7 +306,6 @@ define([
 			    var node = e.target;
 			    if (node == self._cy) { }
 			    else {
-				console.log('add node');
 				var dialog = new Dialog();
 				dialog.initialize( self.nodes[ node.id() ], self._client );
 				dialog.show();
@@ -359,22 +344,10 @@ define([
 	    var layoutDuration = 500;
 
 	    function highlight( node ){
-		self._cy.elements("edge").removeClass('highlighted');
-		self._cy.elements("node").removeClass('highlighted');
-		node.addClass('highlighted');
 	    }
 
 	    function clear(){
 		self._simulator.hideStateInfo();
-		self._cy.batch(function(){
-		    self._cy.$('.highlighted').forEach(function(n){
-			n.animate({
-			    position: n.data('orgPos')
-			});
-		    });
-		    
-		    self._cy.elements().removeClass('highlighted').removeClass('faded');
-		});
 	    }
 
 	    //self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
@@ -524,7 +497,6 @@ define([
 		    NodeType: desc.type,
 		    name: desc.name,
 		    label: desc.name,
-		    orgPos: null
 		};
 	    }
 	    return data;
@@ -583,7 +555,7 @@ define([
 			self.createNode(desc);
 		    }
 		}
-		self._simulator.updateEventButtons();
+		self._simulator.update( );
 	    }
 	};
 
@@ -613,7 +585,7 @@ define([
 		if (!self.isHidden( desc ))
 		    self._cy.remove("#" + idTag);
 		self.updateDependencies();
-		self._simulator.updateEventButtons();
+		self._simulator.update( );
 	    }
 	};
 
@@ -639,7 +611,7 @@ define([
 		    }
 		}
 		this.nodes[desc.id] = desc;
-		self._simulator.updateEventButtons( );
+		self._simulator.update( );
             }
 	};
 
@@ -709,10 +681,11 @@ define([
 	HFSMVizWidget.prototype.createNewEdge = function( parentId, src, dst ) {
 	    var self = this;
 	    var client = self._client;
-	    var edgeMetaId = '/615025579/318746662';
+	    // should be META:External Transition
+	    var edgeMetaId = '/615025579/318746662'; // need to not hardcode the edgeId
 	    var childCreationParams = {
 		parentId: parentId,
-		baseId: edgeMetaId,  // should be META:External Transition
+		baseId: edgeMetaId,
 	    };
 
             client.startTransaction();

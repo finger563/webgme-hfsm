@@ -17,7 +17,7 @@ define(['js/util',
 	   
            var Simulator;
 
-	   var eventTempl = ['<div class="row btn btn-default btn-primary btn-block eventButton">',
+	   var eventTempl = ['<div id="{{eventName}}" class="row btn btn-default btn-primary btn-block eventButton">',
 			     '<span class="eventButtonText">{{eventName}}</span>',
 			     '</div>'].join('\n');
 	   
@@ -109,7 +109,72 @@ define(['js/util',
                });
            };
 
+	   Simulator.prototype.update = function() {
+	       this.updateEventButtons();
+	       this.updateActiveState();
+	   };
+
 	   /* * * * * *      Simulation Functions     * * * * * * * */
+
+	   Simulator.prototype.initActiveState = function( ) {
+	       var self = this;
+	       this._activeState = self.getInitialState( self.getTopLevelId() );
+	   };
+
+	   Simulator.prototype.updateActiveState = function( ) {
+	       var self = this;
+	       if (self._activeState == null ||
+		   self.nodes[ self._activeState.id ] == undefined) {
+		   self.initActiveState();
+	       }
+	       else {
+		   var activeId = self._activeState.id;
+		   self._activeState = self.getInitialState( activeId );
+	       }
+	   };
+
+	   Simulator.prototype.getActiveStateId = function( ) {
+	       var self = this;
+	       return self._activeState.id;
+	   };
+
+	   Simulator.prototype.handleEvent = function( eventName, stateId ) {
+	       var self = this;
+	       if (stateId) {
+		   var edgeIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
+		       return self.nodes[ eId ].Event == eventName;
+		   }).sort(function(aId, bId) {
+		       var a = self.nodes[aId].Guard;
+		       var b = self.nodes[bId].Guard;
+		       if (!a && b) return -1;
+		       if (a && !b) return 1;
+		       return 0;
+		   });
+		   if (edgeIds.length) {
+		       // actually update active state based on edge
+		       for (var i in edgeIds) {
+			   var eid = edgeIds[ i ];
+			   var edge = self.nodes[ eid ];
+			   if (!edge.Guard) {
+			       self._activeState = self.getNextState( eid );
+			       return;
+			   }
+			   else {
+			       self._activeState = self.getNextState( eid );
+			       console.log('Assuming ' + edge.Guard + ' evaluates to true!');
+			       return;
+			   }
+		       }
+		   }
+		   else {
+		       // bubble up to see if parent handles event
+		       var parentState = self.getParentState( stateId );
+		       if (parentState) {
+			   return self.handleEvent( eventName, parentState.id );
+		       }
+		   }
+	       }
+	   };
 
 	   Simulator.prototype.getEdgesFromNode = function( gmeId ) {
 	       var self = this;
@@ -131,6 +196,14 @@ define(['js/util',
 	       return nodeEdges.filter(function (o) { return o; });
 	   };
 
+	   Simulator.prototype.getTopLevelId = function( ) {
+	       var self = this;
+	       var top = Object.keys(self.nodes).filter(function(k) {
+		   return self.nodes[k].type == 'Task' || self.nodes[k].type == 'Timer';
+	       });
+	       return top.length == 1 ? top[0] : null;
+	   };
+
 	   Simulator.prototype.getParentState = function( gmeId ) {
 	       var self = this;
 	       var parentState = null;
@@ -143,6 +216,39 @@ define(['js/util',
 		   }
 	       }
 	       return parentState;
+	   };
+
+	   Simulator.prototype.getInitialState = function( stateId ) {
+	       var self = this;
+	       var state = self.nodes[ stateId ];
+	       var initState = state;
+	       if (state) {
+		   var init = state.childrenIds.filter(function (cid) {
+		       var child = self.nodes[ cid ];
+		       if (child)
+			   return child.type == 'Initial';
+		   });
+		   if (init.length == 1) {
+		       var initId = init[0];
+		       var initEdgeIds = self.getEdgesFromNode( initId );
+		       if (initEdgeIds.length == 1) {
+			   var edge = self.nodes[ initEdgeIds[0] ];
+			   var childInitId = edge.dst;
+			   initState = self.getInitialState( childInitId );
+		       }
+		   }
+	       }
+	       return initState;
+	   };
+
+	   Simulator.prototype.getNextState = function( edgeId ) {
+	       var self = this;
+	       var nextState = null;
+	       var dstId = self.nodes[ edgeId ].dst;
+	       if (dstId) {
+		   nextState = self.getInitialState( dstId ); // will recurse
+	       }
+	       return nextState;
 	   };
 
 	   /* * * * * * State Info Display Functions  * * * * * * * */
@@ -282,6 +388,8 @@ define(['js/util',
 		   if (eventName) {
 		       var buttonHtml = mustache.render(eventTempl, { eventName: eventName });
 		       self._eventButtons.append( buttonHtml );
+		       var eventButton = $(self._eventButtons).find('#'+eventName).first();
+		       eventButton.on('click', self.onEventButtonClick.bind(self));
 		   }
 	       });
 	   };
@@ -289,6 +397,18 @@ define(['js/util',
 	   Simulator.prototype.updateEventButtons = function () {
 	       var self = this;
 	       self.createEventButtons();
+	   };
+
+	   Simulator.prototype.getEventButtonText = function ( btnEl ) {
+	       return $(btnEl).text() || $(btnEl).find('.eventButtonText').first().text();
+	   };
+
+	   Simulator.prototype.onEventButtonClick = function (e) {
+	       var self = this;
+	       var eventName = self.getEventButtonText( e.target ).trim();
+	       self.updateActiveState();
+	       self.handleEvent( eventName, self._activeState.id );
+	       console.log( self._activeState );
 	   };
 
            return Simulator;
