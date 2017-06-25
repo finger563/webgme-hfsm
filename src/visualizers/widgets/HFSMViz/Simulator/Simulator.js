@@ -219,6 +219,16 @@ define(['js/util',
 	       }
 	   };
 
+	   Simulator.prototype.getChoices = function( transitionIds ) {
+	       var self = this;
+	       var choiceToTransitionId = {};
+	       transitionIds.map(function(tid) {
+		   var choice = self.nodes[ tid ].Guard;
+		   choiceToTransitionId[ choice ] = tid;
+	       });
+	       return choiceToTransitionId;
+	   };
+
 	   Simulator.prototype.selectGuard = function( transitionIds ) {
 	       var self = this;
 	       if (!transitionIds.length)
@@ -246,7 +256,9 @@ define(['js/util',
 	       return self.selectGuard( edgeIds )
 		   .then(function(selectedEdge) {
 		       var nextState = null;
-		       if (selectedEdge.choice) {
+		       console.log('choice: ');
+		       console.log(selectedEdge);
+		       if (selectedEdge && selectedEdge.transitionId) {
 			   nextState = self.getNextState( selectedEdge.transitionId );
 		       }
 		       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
@@ -279,16 +291,6 @@ define(['js/util',
 		       return self.handleChoice( state.id );
 	       }
 	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
-	   };
-
-	   Simulator.prototype.getChoices = function( transitionIds ) {
-	       var self = this;
-	       var choiceToTransitionId = {};
-	       transitionIds.map(function(tid) {
-		   var choice = self.nodes[ tid ].Guard;
-		   choiceToTransitionId[ choice ] = tid;
-	       });
-	       return choiceToTransitionId;
 	   };
 
 	   function transitionSort(aId, bId) {
@@ -344,7 +346,7 @@ define(['js/util',
 		   self.selectGuard( transitionIds )
 		       .then(function(selection) {
 			   var nextState = null;
-			   if (selection && selection.choice) {
+			   if (selection && selection.transitionId) {
 			       nextState = self.getNextState( selectedEdge.transitionId );
 			   }
 			   return new Q.Promise(function(resolve, reject) { resolve(nextState); });
@@ -361,8 +363,9 @@ define(['js/util',
 		   console.log('checking internal transitions');
 		   return self.resolveInternalTransitions( intIds )
 		       .then(function(resolution) {
+			   console.log('internal transition resolution:');
 			   console.log(resolution);
-			   if (resolution && resolution.choice) { // internal transition occured
+			   if (resolution && resolution.transitionId) { // internal transition occured
 			       console.log('resolved internal transition!');
 			       console.log(resolution);
 			       throw new String("internal resolution resolved event!");
@@ -492,9 +495,12 @@ define(['js/util',
 	   Simulator.prototype.getNextState = function( edgeId ) {
 	       var self = this;
 	       var nextState = null;
-	       var dstId = self.nodes[ edgeId ].dst;
-	       if (dstId) {
-		   nextState = self.getInitialState( dstId ); // will recurse
+	       var edge = self.nodes[ edgeId ];
+	       if (true) {  // edge) {
+		   var dstId = edge.dst;
+		   if (dstId) {
+		       nextState = self.getInitialState( dstId ); // will recurse
+		   }
 	       }
 	       return nextState;
 	   };

@@ -16,7 +16,7 @@ define(['js/util',
            var Choice;
 
 	   var choiceTempl = ['<div class="row btn btn-default btn-primary btn-block choice">',
-			      '<span class="choiceText">{{choice}}</span>',
+			      '<span class="choiceText">{{{choice}}}</span>',
 			      '</div>'
 			     ].join('\n');
 
@@ -60,7 +60,7 @@ define(['js/util',
 
 	       this._el.find('.choice').on('click', function (event) {
 		   // get text
-		   var text = self.getButtonText( event.target );
+		   var text = self.getButtonText( event.target ).trim();
 		   
                    // Close dialog
 		   self._dialog.modal({ show: false});
