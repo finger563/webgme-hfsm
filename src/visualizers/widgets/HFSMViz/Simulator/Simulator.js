@@ -115,6 +115,7 @@ define(['js/util',
            };
 
 	   Simulator.prototype.update = function() {
+	       var self = this;
 	       this.updateEventButtons();
 	       this.updateActiveState();
 	       if (self._activeState)
@@ -127,6 +128,12 @@ define(['js/util',
 	       // argument that is the gmeId of the current active
 	       // state
 	       self._stateChangedCallback = stateChangedCallback;
+	   };
+
+	   Simulator.prototype.setActiveState = function( gmeId ) {
+	       var self = this;
+	       self._activeState = self.getInitialState( gmeId );
+	       self.update();
 	   };
 
 	   /* * * * * *      Simulation Functions     * * * * * * * */

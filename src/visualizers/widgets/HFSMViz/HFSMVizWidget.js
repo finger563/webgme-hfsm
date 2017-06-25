@@ -298,10 +298,25 @@ define([
 			hasTrailingDivider: true, // Whether the item will have a trailing divider
 		    },
 		    {
+			id: 'setActive',
+			content: 'Set Active',
+			tooltipText: 'Set as the active state.',
+			selector: 'node[NodeType = "State"]',
+			coreAsWell: true,
+			onClickFunction: function ( e ) {
+			    var node = e.target;
+			    if (node == self._cy) { }
+			    else {
+				self._simulator.setActiveState( node.id() );
+			    }
+			},
+			coreAsWell: false
+		    },
+		    {
 			id: 'newChild',
 			content: 'Add child...',
 			tooltipText: 'Create a new state, internal transition, etc.',
-			selector: 'node',
+			selector: 'node[NodeType = "State"]',
 			coreAsWell: true,
 			onClickFunction: function ( e ) {
 			    var node = e.target;

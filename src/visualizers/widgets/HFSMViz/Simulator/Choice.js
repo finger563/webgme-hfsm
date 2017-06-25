@@ -15,7 +15,7 @@ define(['js/util',
 	   
            var Choice;
 
-	   var choiceTempl = ['<div class="row btn btn-default btn-primary btn-block choice">',
+	   var choiceTempl = ['<div class="row btn btn-default btn-primary btn-block choice" style="min-height: 40px">',
 			      '<span class="choiceText">{{{choice}}}</span>',
 			      '</div>'
 			     ].join('\n');
