@@ -561,9 +561,12 @@ define(['js/util',
 	       return el;
 	   }
 
-	   function addCodeToList(el, event, guard, action) {
+	   function addCodeToList(el, id, event, guard, action) {
 	       if (event) {
-		   var txt = '<li class="internal-transition">'+event;
+		   var txt = '<li ';
+		   if (id)
+		       txt += 'id="'+id+'" ';
+		   txt += 'class="internal-transition">'+event;
 		   if (guard)
 		       txt += ' [<font color="gray">'+guard+'</font>]';
 		   txt += ' / ';
@@ -574,6 +577,20 @@ define(['js/util',
 	       }
 	   }
 
+	   Simulator.prototype.onClickInternalTransition = function( e ) {
+	       var self = this;
+	       var el = e.target;
+	       var classList = el.className.split(/\s+/g);
+	       if (classList.indexOf( 'internal-transition' ) == -1) {
+		   // we clicked on the code
+		   el = $(el).parent();
+	       }
+	       var id = $(el).attr('id');
+	       if (id) {
+		    WebGMEGlobal.State.registerActiveSelection([id]);
+	       }
+	   };
+
 	   Simulator.prototype.renderState = function( gmeId ) {
 	       var self = this;
 	       var node = self._client.getNode( gmeId );
@@ -583,6 +600,7 @@ define(['js/util',
 		   var childType = self._client.getNode( child.getMetaTypeId() ).getAttribute( 'name' );
 		   if (childType == 'Internal Transition') {
 		       internalTransitions.push({
+			   id: cid,
 			   Event: getCode(child, 'Event', false),
 			   Guard: getCode(child, 'Guard', false),
 			   Action: getCode(child, 'Action', true),
@@ -595,11 +613,11 @@ define(['js/util',
 	       };
 	       var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
 	       var el = $(text).find('.internal-transitions');
-	       addCodeToList( el, 'Entry', null, getCode(node, 'Entry', true) );
-	       addCodeToList( el, 'Exit', null, getCode(node, 'Exit', true) );
-	       addCodeToList( el, 'Tick', null, getCode(node, 'Tick', true) );
+	       addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true) );
+	       addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true) );
+	       addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true) );
 	       internalTransitions.sort(function(a,b) { return a.Event.localeCompare(b.Event); }).map(function (i) {
-		   addCodeToList( el, i.Event, i.Guard, i.Action );
+		   addCodeToList( el, i.id, i.Event, i.Guard, i.Action );
 	       });
 	       return text.outerHTML;
 	   };
@@ -610,8 +628,11 @@ define(['js/util',
 	       var node = self._client.getNode( gmeId );
 	       if (node) {
 		   var nodeType = self._client.getNode( node.getMetaTypeId() ).getAttribute( 'name' );
-		   if (nodeType == 'State')
+		   if (nodeType == 'State') {
 		       $(self._stateInfo).append( self.renderState( gmeId ) );
+		       $(self._stateInfo).find('.internal-transition')
+			   .on('click', self.onClickInternalTransition.bind(self) );
+		   }
 	       }
 	   };
 
