@@ -286,12 +286,13 @@ define(['js/util',
 	       var self = this;
 	       // don't transition unless we get a valid end state
 	       var nextState = self._activeState;
-	       // see if the parent state has an external transition
-	       // which does not have an event or a guard; make sure
-	       // there's only one of them and then take it.
+	       // see if any of the parent states have an external
+	       // transition which does not have an event or a guard;
+	       // make sure there's only one of them and then take it.
 	       //
-	       // If that condition is not satisfied, stay in the end
-	       // state.
+	       // If that condition is not satisfied, stay in the
+	       // current state
+
 	       // get all external transitions for this event
 	       var endState = self.nodes[ stateId ];
 	       var parentState = self.nodes [ endState.parentId ];
