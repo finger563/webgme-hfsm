@@ -284,13 +284,45 @@ define(['js/util',
 
 	   Simulator.prototype.handleEnd = function( stateId ) {
 	       var self = this;
+	       var nextState = self.nodes[ stateId ];
 	       // see if the parent state has an external transition
 	       // which does not have an event or a guard; make sure
 	       // there's only one of them and then take it.
 	       //
 	       // If that condition is not satisfied, stay in the end
 	       // state.
-	       return self.nodes[ stateId ];
+	       // get all external transitions for this event
+	       var endState = self.nodes[ stateId ];
+	       var parentState = self.nodes [ endState.parentId ];
+	       while (parentState) {
+		   var parentType = parentState.type;
+		   if (parentType == 'State') {
+		       // get all transitions that don't have an event
+		       var transitionIds = self.getEdgesFromNode( parentState.id ).filter(function(eId) {
+			   var edge = self.nodes[ eId ];
+			   return edge.Event == null || !edge.Event.trim();
+		       }).sort( self.transitionSort.bind(self) );
+		       // now check them
+		       // check transitions with no guard
+		       var guardless = transitionIds.filter(function(eid) {
+			   var edge = self.nodes[ eid ];
+			   return edge.Guard == null || !edge.Guard.trim();
+		       });
+		       if (guardless.length == 1) {
+			   var msg = 'EXTERNAL TRANSITION on '+
+			       stateId + ' through transition ' + guardless[0];
+			   console.log(msg);
+			   nextState = self.getNextState( guardless[0] );
+			   break;
+		       }
+		       else if (guardless.length > 1) {
+			   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
+			   break;
+		       }
+		       parentState = self.nodes [ parentState.parentId ];
+		   }
+	       }
+	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
 	   };
 
 	   Simulator.prototype.handleSpecialStates = function( stateId ) {
