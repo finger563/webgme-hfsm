@@ -305,7 +305,8 @@ define(['js/util',
 	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
 	   };
 
-	   function transitionSort(aId, bId) {
+	   Simulator.prototype.transitionSort = function(aId, bId) {
+	       var self = this;
 	       var a = self.nodes[aId].Guard;
 	       var b = self.nodes[bId].Guard;
 	       if (!a && b) return -1;
@@ -348,7 +349,7 @@ define(['js/util',
 	       // get all external transitions for this event
 	       var transitionIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
 		   return self.nodes[ eId ].Event == eventName;
-	       }).sort( transitionSort );
+	       }).sort( self.transitionSort.bind(self) );
 	       // now check them
 	       // check transitions with no guard
 	       var guardless = transitionIds.filter(function(eid) {
@@ -384,7 +385,7 @@ define(['js/util',
 			   if (resolution && resolution.transitionId) { // internal transition occured
 			       console.log('resolved internal transition!');
 			       console.log(resolution);
-			       throw new String("internal resolution resolved event!");
+			       throw "Internal resolution resolved event!";
 			   }
 		       })
 		       .then(function() {
@@ -403,7 +404,7 @@ define(['js/util',
 						   console.log('got special state');
 						   console.log(state);
 						   self._activeState = state;
-						   throw new String("External resolution resolved event!");
+						   throw "External resolution resolved event!";
 					       }
 					   });
 				   }
@@ -418,7 +419,12 @@ define(['js/util',
 			   }
 		       })
 		       .catch(function(err) {
-			   console.log(''+err);
+			   if (typeof err === "string")
+			       console.log(''+err);
+			   else {
+			       console.log(err);
+			       throw err;
+			   }
 		       });
 	       }
 	       return new Q.Promise(function(resolve, reject) { resolve(); });
@@ -432,7 +438,7 @@ define(['js/util',
 		   intTransIds = node.childrenIds.filter(function(cid) {
 		       var child = self.nodes[ cid ];
 		       return child.type == 'Internal Transition' && child.Event == eventName;
-		   }).sort( transitionSort );
+		   }).sort( self.transitionSort.bind(self) );
 	       return intTransIds;
 	   };
 
