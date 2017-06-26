@@ -60,7 +60,7 @@ define(['js/util',
 
 	       this._el.find('.choice').on('click', function (event) {
 		   // get text
-		   var text = self.getButtonText( event.target ).trim();
+		   var text = self.getButtonText( event.target )
 		   
                    // Close dialog
 		   self._dialog.modal({ show: false});
@@ -103,7 +103,7 @@ define(['js/util',
 	   // CHOICE RELATED FUNCTIONS
 
 	   Choice.prototype.getButtonText = function ( btnEl ) {
-	       return $(btnEl).text() || $(btnEl).find('.choiceButtonText').first().text();
+	       return ( $(btnEl).text() || $(btnEl).find('.choiceButtonText').first().text() ).trim();
 	   };
 
 	   Choice.prototype.getForm = function ( choices ) {

@@ -321,8 +321,9 @@ define(['js/util',
 	       });
 	       // now check
 	       if (guardless.length == 1) {
-		   resolution.choice = guardless[0].Guard;
-		   resolution.transitionId = guardless[0].id;
+		   var intTrans = self.nodes[ guardless[0] ];
+		   resolution.choice = intTrans.Guard;
+		   resolution.transitionId = intTrans.id;
 	       }
 	       else if (guardless.length > 1) {
 		   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
@@ -350,13 +351,14 @@ define(['js/util',
 	       }
 	       else {
 		   // now check transitions with guard
-		   self.selectGuard( transitionIds )
+		   nextState = self.selectGuard( transitionIds )
 		       .then(function(selection) {
-			   var nextState = null;
-			   if (selection && selection.transitionId) {
-			       nextState = self.getNextState( selectedEdge.transitionId );
-			   }
-			   return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+			   console.log('external got selection: ');
+			   console.log(selection);
+			   if (selection && selection.transitionId)
+			       return self.getNextState( selection.transitionId );
+			   else 
+			       return null;
 		       });
 	       }
 	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
@@ -370,8 +372,6 @@ define(['js/util',
 		   console.log('checking internal transitions');
 		   return self.resolveInternalTransitions( intIds )
 		       .then(function(resolution) {
-			   console.log('internal transition resolution:');
-			   console.log(resolution);
 			   if (resolution && resolution.transitionId) { // internal transition occured
 			       console.log('resolved internal transition!');
 			       console.log(resolution);
