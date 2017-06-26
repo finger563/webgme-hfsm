@@ -362,6 +362,9 @@ define(['js/util',
 		   return edge.Guard == null || !edge.Guard.trim();
 	       });
 	       if (guardless.length == 1) {
+		   var msg = 'Event: ' + eventName + ': EXTERNAL TRANSITION on '+
+		       stateId + ' through transition ' + guardless[0];
+		   console.log(msg);
 		   nextState = self.getNextState( guardless[0] );
 	       }
 	       else if (guardless.length > 1) {
