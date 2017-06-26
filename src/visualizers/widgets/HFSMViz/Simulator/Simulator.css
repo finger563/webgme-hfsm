@@ -1,6 +1,6 @@
 
 #hfsmSimulator {
-    overflow: hidden;
+    overflow: auto;
     width: 100%;
     height: 100%;
 }
@@ -19,14 +19,13 @@
 .simulator-top-panel,
 .simulator-bottom-panel {
     width: 100%;
-    height: 48%;
+    height: 49.75%;
     vertical-align: top;
     overflow: auto;
 }
 
 
 .simulator-top-panel {
-    height: 60%;
 }
 
 .simulator-bottom-panel {
@@ -62,10 +61,10 @@
 }
 
 .eventButtonText {
-  overflow: hidden;
-  white-space: nowrap;
-  display: block;
-  text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: block;
+    text-overflow: ellipsis;
 }
 
 #stateInfo {

@@ -240,13 +240,13 @@ define(['js/util',
 	       return choiceToTransitionId;
 	   };
 
-	   Simulator.prototype.selectGuard = function( transitionIds ) {
+	   Simulator.prototype.selectGuard = function( transitionIds, title ) {
 	       var self = this;
 	       if (!transitionIds.length)
 		   return new Q.Promise(function(resolve, reject) { resolve(); });
 	       var choiceToEdgeId = self.getChoices( transitionIds );
 	       var choice = new Choice();
-	       choice.initialize( Object.keys(choiceToEdgeId) );
+	       choice.initialize( Object.keys(choiceToEdgeId), title );
 	       choice.show();
 	       return choice.waitForChoice()
 		   .then(function(choice) {
@@ -264,7 +264,8 @@ define(['js/util',
 	       // prompt the user for which guard condition should
 	       // evaluate to true.
 	       var edgeIds = self.getEdgesFromNode( stateId );
-	       return self.selectGuard( edgeIds )
+	       var title = 'Choice Pseudostate '+stateId+':';
+	       return self.selectGuard( edgeIds, title )
 		   .then(function(selectedEdge) {
 		       var nextState = null;
 		       console.log('choice: ');
@@ -312,12 +313,13 @@ define(['js/util',
 	       return 0;
 	   }
 
-	   Simulator.prototype.resolveInternalTransitions = function( transitionIds ) {
+	   Simulator.prototype.resolveInternalTransitions = function( eventName, stateId ) {
 	       var self = this;
 	       var resolution = {
 		   choice: null,
 		   transitionId: null
 	       };
+	       var transitionIds = self.getInternalTransitionIds( eventName, stateId );
 	       // get all transitions with no guard
 	       var guardless = transitionIds.filter(function(eid) {
 		   var edge = self.nodes[ eid ];
@@ -334,14 +336,20 @@ define(['js/util',
 	       }
 	       else {
 		   // now check transitions with guard
-		   resolution = self.selectGuard( transitionIds );
+		   var title = 'State '+stateId+' Internal Transition Guards for '+eventName+':';
+		   resolution = self.selectGuard( transitionIds, title );
 	       }
 	       return new Q.Promise(function(resolve, reject) { resolve(resolution); });
 	   };
 
-	   Simulator.prototype.resolveExternalTransitions = function( transitionIds ) {
+	   Simulator.prototype.resolveExternalTransitions = function( eventName, stateId ) {
 	       var self = this;
 	       var nextState = null;
+	       // get all external transitions for this event
+	       var transitionIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
+		   return self.nodes[ eId ].Event == eventName;
+	       }).sort( transitionSort );
+	       // now check them
 	       // check transitions with no guard
 	       var guardless = transitionIds.filter(function(eid) {
 		   var edge = self.nodes[ eid ];
@@ -355,10 +363,9 @@ define(['js/util',
 	       }
 	       else {
 		   // now check transitions with guard
-		   nextState = self.selectGuard( transitionIds )
+		   var title = 'State '+stateId+' External Transition Guards for '+eventName+':';
+		   nextState = self.selectGuard( transitionIds, title )
 		       .then(function(selection) {
-			   console.log('external got selection: ');
-			   console.log(selection);
 			   if (selection && selection.transitionId)
 			       return self.getNextState( selection.transitionId );
 			   else 
@@ -372,9 +379,7 @@ define(['js/util',
 	       var self = this;
 	       if (stateId) {
 		   // handle internal transitions
-		   var intIds = self.getInternalTransitionIds( eventName, stateId );
-		   console.log('checking internal transitions');
-		   return self.resolveInternalTransitions( intIds )
+		   return self.resolveInternalTransitions( eventName, stateId )
 		       .then(function(resolution) {
 			   if (resolution && resolution.transitionId) { // internal transition occured
 			       console.log('resolved internal transition!');
@@ -383,16 +388,9 @@ define(['js/util',
 			   }
 		       })
 		       .then(function() {
-			   console.log('checking external transitions');
 			   // no internal occurred, now check external
-			   // get all external transitions for this event
-			   var edgeIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
-			       return self.nodes[ eId ].Event == eventName;
-			   }).sort( transitionSort );
-			   // now check them
-			   return self.resolveExternalTransitions( edgeIds )
+			   return self.resolveExternalTransitions( eventName, stateId )
 			       .then(function(nextState) {
-				   console.log('checked external!');
 				   if (nextState) {
 				       // update history states here for all states we're leaving
 				       self.updateHistory( self._activeState.id );
@@ -420,7 +418,7 @@ define(['js/util',
 			   }
 		       })
 		       .catch(function(err) {
-			   console.log(err);
+			   console.log(''+err);
 		       });
 	       }
 	       return new Q.Promise(function(resolve, reject) { resolve(); });

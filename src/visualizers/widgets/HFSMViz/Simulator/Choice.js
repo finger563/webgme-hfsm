@@ -33,6 +33,9 @@ define(['js/util',
                // Get element nodes
                this._el = this._dialog.find('.modal-body').first();
 
+               // Get title
+               this._title = this._dialog.find('#choiceTitle').first();
+
 	       // forms
 	       this._choiceForm = this._dialog.find('#choiceForm').first();
 
@@ -45,10 +48,14 @@ define(['js/util',
             * @param  {Array}     choices       Array of string choices to choose from
             * @return {void}
             */
-           Choice.prototype.initialize = function ( choices ) {
+           Choice.prototype.initialize = function ( choices, title ) {
                var self = this;
 
                // Initialize Modal and append it to main DOM
+	       if (title == undefined) {
+		   title = 'Select choice:';
+	       }
+	       $(this._title).text(title);
                //this._dialog.modal({ show: false});
                this._dialog.modal({
 		   show: false,
