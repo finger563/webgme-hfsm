@@ -316,7 +316,7 @@ define([
 			id: 'newChild',
 			content: 'Add child...',
 			tooltipText: 'Create a new state, internal transition, etc.',
-			selector: 'node[NodeType = "State"]',
+			selector: 'node[NodeType = "State"],node[NodeType ="Timer"],node[NodeType = "Task"]',
 			coreAsWell: true,
 			onClickFunction: function ( e ) {
 			    var node = e.target;
