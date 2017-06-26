@@ -361,6 +361,7 @@ define([
 
 	    function highlight( node ){
 		node.select();
+		self._simulator.hideStateInfo();
 		self._simulator.displayStateInfo( node.id() );
 	    }
 

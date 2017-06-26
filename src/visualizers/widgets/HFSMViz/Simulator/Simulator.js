@@ -21,6 +21,9 @@ define(['js/util',
 	   
            var Simulator;
 
+	   var parentTempl = ['<div class="simulatorTitle">Child of:',
+			      '</div>'].join('\n');
+
 	   var eventTempl = ['<div id="{{eventName}}" class="row btn btn-default btn-primary btn-block eventButton">',
 			     '<span class="eventButtonText">{{eventName}}</span>',
 			     '</div>'].join('\n');
@@ -144,6 +147,7 @@ define(['js/util',
 	       this._activeState = self.getInitialState( self.getTopLevelId() );
 	       // display info
 	       if (self._activeState) {
+		   self.hideStateInfo();
 		   self.displayStateInfo( self._activeState.id );
 		   if (self._stateChangedCallback)
 		       self._stateChangedCallback( self._activeState.id );
@@ -580,14 +584,37 @@ define(['js/util',
 	   Simulator.prototype.onClickInternalTransition = function( e ) {
 	       var self = this;
 	       var el = e.target;
-	       var classList = el.className.split(/\s+/g);
-	       if (classList.indexOf( 'internal-transition' ) == -1) {
-		   // we clicked on the code
-		   el = $(el).parent();
+	       var classList = $(el).attr('class');
+	       if (classList) {
+		   classList = classList.split(/\s+/g);
+		   while (classList.indexOf( 'internal-transition' ) == -1) {
+		       // we clicked on the code
+		       el = $(el).parent();
+		       classList = $(el).attr('class').split(/\s+/g);
+		   }
+		   var id = $(el).attr('id');
+		   if (id) {
+		       WebGMEGlobal.State.registerActiveSelection([id]);
+		       e.stopPropagation();
+		       e.preventDefault();
+		   }
 	       }
-	       var id = $(el).attr('id');
-	       if (id) {
-		    WebGMEGlobal.State.registerActiveSelection([id]);
+	   };
+
+	   Simulator.prototype.onClickStateInfo = function( e ) {
+	       var self = this;
+	       var el = e.target;
+	       var classList = $(el).attr('class');
+	       if( classList ) {
+		   classList = classList.split(/\s+/g);
+		   while (classList.indexOf( 'uml-state-machine' ) == -1) {
+		       el = $(el).parent();
+		       classList = $(el).attr('class').split(/\s+/g);
+		   }
+		   var id = $(el).attr('id');
+		   if (id) {
+		       WebGMEGlobal.State.registerActiveSelection([id]);
+		   }
 	       }
 	   };
 
@@ -624,14 +651,22 @@ define(['js/util',
 
 	   Simulator.prototype.displayStateInfo = function ( gmeId ) {
 	       var self = this;
-	       self.hideStateInfo();
+	       //self.hideStateInfo();
 	       var node = self._client.getNode( gmeId );
 	       if (node) {
 		   var nodeType = self._client.getNode( node.getMetaTypeId() ).getAttribute( 'name' );
 		   if (nodeType == 'State') {
+		       if ( $(self._stateInfo).find('.uml-state-machine').length ) {
+			   $(self._stateInfo).append(parentTempl);
+		       }
 		       $(self._stateInfo).append( self.renderState( gmeId ) );
 		       $(self._stateInfo).find('.internal-transition')
 			   .on('click', self.onClickInternalTransition.bind(self) );
+		       $(self._stateInfo).find('.uml-state-machine')
+			   .on('click', self.onClickStateInfo.bind(self) );
+		       if (node.getParentId()) {
+			   self.displayStateInfo( node.getParentId() );
+		       }
 		   }
 	       }
 	   };
@@ -646,8 +681,10 @@ define(['js/util',
 	       var el = $(self._stateInfo).find('.uml-state-machine');
 	       if (el) {
 		   var id = el.attr('id');
-		   if (id)
+		   if (id) {
+		       self.hideStateInfo();
 		       self.displayStateInfo( el.attr('id') );
+		   }
 	       }
 	   };
 
@@ -709,6 +746,7 @@ define(['js/util',
 		   self.updateActiveState();
 		   self.handleEvent( eventName, self._activeState.id )
 		       .then(function() {
+			   self.hideStateInfo();
 			   self.displayStateInfo( self._activeState.id );
 			   if (self._stateChangedCallback)
 			       self._stateChangedCallback( self._activeState.id );
