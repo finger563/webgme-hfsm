@@ -284,7 +284,8 @@ define(['js/util',
 
 	   Simulator.prototype.handleEnd = function( stateId ) {
 	       var self = this;
-	       var nextState = self.nodes[ stateId ];
+	       // don't transition unless we get a valid end state
+	       var nextState = self._activeState;
 	       // see if the parent state has an external transition
 	       // which does not have an event or a guard; make sure
 	       // there's only one of them and then take it.
@@ -303,7 +304,6 @@ define(['js/util',
 			   return edge.Event == null || !edge.Event.trim();
 		       }).sort( self.transitionSort.bind(self) );
 		       // now check them
-		       // check transitions with no guard
 		       var guardless = transitionIds.filter(function(eid) {
 			   var edge = self.nodes[ eid ];
 			   return edge.Guard == null || !edge.Guard.trim();
@@ -315,8 +315,13 @@ define(['js/util',
 			   nextState = self.getNextState( guardless[0] );
 			   break;
 		       }
-		       else if (guardless.length > 1) {
-			   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
+		       else if (guardless.length > 1 || (guardless.length != transitionIds.length)) {
+			   alert('Warning!\nCannot have more than one END transition\nNOT TRANSITIONING!');
+			   break;
+		       }
+		       else if (transitionIds.length) {
+			   // we have event-less transitions but they have guards this is illegal!
+			   alert('Warning!\nEND transitions cannot have guards!\nNOT TRANSITIONING!');
 			   break;
 		       }
 		       parentState = self.nodes [ parentState.parentId ];
