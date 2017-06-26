@@ -103,7 +103,7 @@ define(['js/util',
 	   // CHOICE RELATED FUNCTIONS
 
 	   Choice.prototype.getButtonText = function ( btnEl ) {
-	       return ( $(btnEl).text() || $(btnEl).find('.choiceButtonText').first().text() ).trim();
+	       return ( $(btnEl).text() || $(btnEl).find('.choiceButtonText').first().text() ).replace(/\n/g,'');
 	   };
 
 	   Choice.prototype.getForm = function ( choices ) {
