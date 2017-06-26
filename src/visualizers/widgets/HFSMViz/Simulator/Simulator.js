@@ -213,21 +213,25 @@ define(['js/util',
 
 	   Simulator.prototype.handleDeepHistory = function( stateId ) {
 	       var self = this;
+	       var histState = null;
 	       // set the active state to the state stored in the
 	       // history state.
 	       var historyStateId = self._historyStates[ stateId ];
 	       if (historyStateId == undefined) {
 		   // set to parent if we havent' been here before
 		   historyStateId = self.nodes[ stateId ].parentId;
-		   return self.getInitialState( historyStateId );
+		   histState = self.getInitialState( historyStateId );
 	       }
 	       else {
-		   self._activeState = self.nodes[ historyStateId ];
-		   if (self._activeState == undefined ) {
+		   // we've been here, get the state it pointed to
+		   histState = self.nodes[ historyStateId ];
+		   if (histState == undefined ) {
+		       // State stored in history must have been moved / deleted
 		       alert('History state no longer valid, reinitailizing.');
-		       return self.getInitialState( self.getTopLevelId() );
+		       histState = self.getInitialState( self.getTopLevelId() );
 		   }
 	       }
+	       return histState;
 	   };
 
 	   Simulator.prototype.getChoices = function( transitionIds ) {
@@ -268,9 +272,10 @@ define(['js/util',
 	       return self.selectGuard( edgeIds, title )
 		   .then(function(selectedEdge) {
 		       var nextState = null;
-		       console.log('choice: ');
-		       console.log(selectedEdge);
 		       if (selectedEdge && selectedEdge.transitionId) {
+			   var msg = title + ' selected choice [ ' + selectedEdge.choice + ' ] on transition ' +
+			       selectedEdge.transitionId;
+			   console.log(msg);
 			   nextState = self.getNextState( selectedEdge.transitionId );
 		       }
 		       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
@@ -367,8 +372,12 @@ define(['js/util',
 		   var title = 'State '+stateId+' External Transition Guards for '+eventName+':';
 		   nextState = self.selectGuard( transitionIds, title )
 		       .then(function(selection) {
-			   if (selection && selection.transitionId)
+			   if (selection && selection.transitionId) {
+			       var msg = 'Event: '+eventName+': EXTERNAL TRANSITION on '+stateId+': [ ' +
+				   selection.choice + ' ] was TRUE on ' + selection.transitionId;
+			       console.log(msg);
 			       return self.getNextState( selection.transitionId );
+			   }
 			   else 
 			       return null;
 		       });
@@ -383,9 +392,9 @@ define(['js/util',
 		   return self.resolveInternalTransitions( eventName, stateId )
 		       .then(function(resolution) {
 			   if (resolution && resolution.transitionId) { // internal transition occured
-			       console.log('resolved internal transition!');
-			       console.log(resolution);
-			       throw "Internal resolution resolved event!";
+			       var msg = 'Event: '+eventName+': INTERNAL TRANSITION in '+stateId+': [ ' +
+				   resolution.choice + ' ] was TRUE on ' + resolution.transitionId;
+			       throw msg;
 			   }
 		       })
 		       .then(function() {
@@ -395,23 +404,24 @@ define(['js/util',
 				   if (nextState) {
 				       // update history states here for all states we're leaving
 				       self.updateHistory( self._activeState.id );
-				       console.log('got next state');
-				       console.log(nextState);
 				       // if we've gotten a new state, see if we have gone to a special state
 				       return self.handleSpecialStates( nextState.id )
 					   .then(function(state) {
 					       if (state) {
-						   console.log('got special state');
-						   console.log(state);
+						   var msg = 'STATE TRANSITION: ' + self._activeState.id +
+						       ' -> ' + state.id;
 						   self._activeState = state;
-						   throw "External resolution resolved event!";
+						   throw msg;
+					       }
+					       else {
+						   var msg = 'Special States canceled state transition!';
+						   console.log(msg);
 					       }
 					   });
 				   }
 			       })
 		       })
 		       .then(function() {
-			   console.log('checking parent state');
 			   // bubble up to see if parent handles event
 			   var parentState = self.getParentState( stateId );
 			   if (parentState) {
