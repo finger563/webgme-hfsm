@@ -1,7 +1,9 @@
 {
     "CodeEditor": {
 	"theme": "default",
+	"enableThemeSelection": true,
 	"keyBinding": "emacs",
+	"enableKeybindingSelection": true,
         "autoSaveInterval": "2000",
 	"rootTypes": [
 	    "Project"
