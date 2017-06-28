@@ -279,9 +279,9 @@ define([
 	    childIDs = nodeObj.getChildrenIds();
 
 	el.empty();
-	addCodeToList(el, 'entry', null, entry);
-	addCodeToList(el, 'exit', null, exit);
-	addCodeToList(el, 'tick', null, tick);
+	addCodeToList(el, 'Entry', null, entry);
+	addCodeToList(el, 'Exit', null, exit);
+	addCodeToList(el, 'Tick', null, tick);
 	childIDs.map(function(cid) {
 	    if (UMLStateMachineMETA.TYPE_INFO.isInternalTransition(cid)) {
 		self.childrenIDs[cid] = true;
