@@ -35,12 +35,18 @@ Events.map(function(e) {
      * @brief Spawn the event. This sets the event's spawn time.
      */
     void spawn ( void ) {
+      _spawnTime = std::chrono::system_clock::now();
     }
 
     /**
      * @brief Consume the event. This sets the event's consume time.
      */
     void consume ( void ) {
+      _consumeTime = std::chrono::system_clock::now();
+    }
+
+    double waitTime ( void ) {
+      return (_consumeTime - _spawnTime).count();
     }
 
     /**
@@ -70,6 +76,10 @@ Events.map(function(e) {
     Type                                               _t;
   };
   
+  /**
+   * @brief Class handling all Event creation, memory management, and
+   *  ordering.
+   */
   class EventFactory {
   public:
     /**
@@ -99,6 +109,7 @@ Events.map(function(e) {
      */
     void                 consumeEvent ( StateMachine::Event* e ) {
       delete e;
+      e = nullptr;
     }
 
     /**

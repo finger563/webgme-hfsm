@@ -21,19 +21,31 @@ namespace StateMachine {
   class StateBase {
   public:
     /**
-     * @brief Will be generated to call _activeState->tick() and then
-     *  run the tick() function defined in the model.
+     * @brief Will be generated to run the entry() function defined in
+     *  the model and then call _activeState->entry().
+     */
+    virtual void                     entry ( void );
+
+    /**
+     * @brief Will be generated to run the exit() function defined in
+     *  the model and then call _activeState->exit().
+     */
+    virtual void                     exit ( void );
+
+    /**
+     * @brief Will be generated to run the tick() function defined in
+     *  the model and then call _activeState->tick().
      */
     virtual void                     tick ( void );
 
     /**
      * @brief Calls _activeState->handleEvent( event ), then if the
-     *  event is not nullptr, iteratively calls handleEvent( event )
-     *  on all internal transitions until either there are no more
-     *  internal transitions or the event pointer is set to nullptr.
-     *  If the event still exists after all internal transitions have
-     *  been checked, then it calls handleEvent( event ) on all
-     *  external transitions.
+     *  event is not nullptr (meaning the event was not consumed by
+     *  the child subtree), it checks the event against all internal
+     *  transitions associated with that Event.  If the event is still
+     *  not a nullptr (meaning the event was not consumed by the
+     *  internal transitions), then it checks the event against all
+     *  external transitions associated with that Event.
      *
      * @return true if event is consumed, falsed otherwise
      */
@@ -45,7 +57,7 @@ namespace StateMachine {
      *  quickly propagating special events
      *
      * @return true if the state has external transitions without
-     * events and guards.
+     *  events and guards.
      */
     virtual bool                     handlesEnd ( void );
 
@@ -78,41 +90,57 @@ namespace StateMachine {
 
     /**
      * @brief Will return the _activeState substate's initial state;
-     *  calls _activeState->getInitial()
+     *  calls _lastActiveState->getInitial()
      *
      * @return StateBase*  Pointer to last active substate
      */
-    virtual StateMachine::StateBase* getShallowHistory ( void );
+    StateMachine::StateBase* getShallowHistory ( void ) {
+      return _lastActiveState->getInitial();
+    }
 
     /**
-     * @brief Will set the _activeState substate's initial state;
-     *  calls _activeState->setInitial()
+     * @brief Sets the currentlyActive state to the last
      */
-    virtual void                     setShallowHistory ( void );
+    void                     setShallowHistory ( void ) {
+      _activeState = _lastActiveState;
+      _activeState->setInitial();
+    }
 
     /**
      * @brief Will return the _activeState substate's history state;
-     *  calls _activeState->getDeepHistory()
+     *  calls _lastActiveState->getDeepHistory()
      */
-    virtual StateMachine::StateBase* getDeepHistory ( void );
+    StateMachine::StateBase* getDeepHistory ( void ) {
+      return _lastActiveState->getDeepHistory();
+    }
 
     /**
      * @brief Will set the _activeState substate's history state;
-     *  calls _activeState->setDeepHistory()
+     *  calls _lastActiveState->setDeepHistory()
      */
-    virtual void                     setDeepHistory ( void );
+    void                     setDeepHistory ( void ) {
+      _activeState = _lastActiveState;
+      _activeState->setDeepHistory();
+    }
 
     
 
   protected:
     /**
-     * Pointer to the last active substate of this state.
+     * Pointer to the currently active substate of this state.
      */
     *StateMachine::StateBase                           _activeState;
+
+    /**
+     * Pointer to the last active substate of this state.
+     */
+    *StateMachine::StateBase                           _lastActiveState;
+
     /**
      * Pointer to the parent state of this state.
      */
     *StateMachine::StateBase                           _parentState;
+
     /**
      * List of pointers to all the child states.
      */
