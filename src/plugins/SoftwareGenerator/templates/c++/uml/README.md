@@ -61,6 +61,18 @@ consumed.
 
 # Transitions
 
+Transitions are generated as a sequence of conditionals on the Event
+itself, followed by the conditionals of the guards on any of the
+transitions that have that event.
+
 ## Internal Transitions
 
+Internal transitions will be checked in the state before any external
+transitions.
+
 ## External Transitions
+
+External transitions are the last transitions of a state to be
+checked; if the Event has not been handled by the external
+transitions, then the event propagates to the parent state and
+continues evaluation.
