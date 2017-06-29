@@ -59,6 +59,16 @@ up to the root until they reach a state which has internal or external
 transitions that handle that event at which point the event will be
 consumed.
 
+## Event Factory
+
+Events are managed in a FIFO Queue by the Event Factory, which is the
+only place that spawns or consumes event objects. All states have
+access to the Event Factory singleton and can call `spawnEvent(
+Event::Type t )` which will create a new Event object of that type and
+add it to the Event Factory's queue. The next event in the Queue can
+be accessed by calling `getNextEvent( )`, and the event returned can
+be
+
 # Transitions
 
 Transitions are generated as a sequence of conditionals on the Event

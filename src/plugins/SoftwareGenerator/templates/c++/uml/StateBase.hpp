@@ -21,88 +21,101 @@ namespace StateMachine {
   class StateBase {
   public:
     /**
-     * Will be generated to call _activeState->tick() and then run the
-     * tick() function defined in the model.
+     * @brief Will be generated to call _activeState->tick() and then
+     *  run the tick() function defined in the model.
      */
-    void                     tick ( void );
+    virtual void                     tick ( void );
 
     /**
-     * Calls _activeState->handleEvent( event ), then if the event is
-     * not nullptr, iteratively calls handleEvent( event ) on all
-     * internal transitions until either there are no more internal
-     * transitions or the event pointer is set to nullptr.  If the
-     * event still exists after all internal transitions have been
-     * checked, then it calls handleEvent( event ) on all external
-     * transitions.
+     * @brief Calls _activeState->handleEvent( event ), then if the
+     *  event is not nullptr, iteratively calls handleEvent( event )
+     *  on all internal transitions until either there are no more
+     *  internal transitions or the event pointer is set to nullptr.
+     *  If the event still exists after all internal transitions have
+     *  been checked, then it calls handleEvent( event ) on all
+     *  external transitions.
      *
      * @return true if event is consumed, falsed otherwise
      */
-    bool                     handleEvent ( StateMachine::Event* event );
+    virtual bool                     handleEvent ( StateMachine::Event* event );
 
     /**
-     *  Will be known from the model so will be generated in derived
-     *  classes to immediately return either true or false for quickly
-     *  propagating special events
+     * @brief Will be known from the model so will be generated in
+     *  derived classes to immediately return either true or false for
+     *  quickly propagating special events
      *
      * @return true if the state has external transitions without
      * events and guards.
      */
-    bool                     handlesEnd ( void );
+    virtual bool                     handlesEnd ( void );
 
     /**
-     * Called when an End State is reached that is a child of this
-     * state. Checks to see if this state directly handles the end
-     * state, and if so, then directly transitions to the known state
-     * from the model that will be the next state. If this is the
-     * final end state (i.e. we have no state to transition to) then
-     * the state machine ends.
+     * @brief Called when an End State is reached that is a child of
+     *  this state. Checks to see if this state directly handles the
+     *  end state, and if so, then directly transitions to the known
+     *  state from the model that will be the next state. If this is
+     *  the final end state (i.e. we have no state to transition to)
+     *  then the state machine ends.
      */
-    void                     handleEnd ( void );
+    virtual void                     handleEnd ( void );
 
     /**
-     *  Will be known from the model so will be generated in derived
-     *  classes to immediately return the correct initial state
-     *  pointer for quickly transitioning to the proper state during
-     *  external transition handling.
+     * @brief Will be known from the model so will be generated in
+     *  derived classes to immediately return the correct initial
+     *  state pointer for quickly transitioning to the proper state
+     *  during external transition handling.
+     *
+     * @return StateBase*  Pointer to initial substate
      */
-    *StateMachine::StateBase getInitial ( void );
+    virtual StateMachine::StateBase* getInitial ( void );
 
     /**
-     *  Will be known from the model so will be generated in derived
-     *  classes to immediately set the _activeState to the proper
-     *  state, after calling the state's Entry action.
+     * @brief Will be known from the model so will be generated in
+     *  derived classes to immediately set the _activeState to the
+     *  proper state, after calling the state's Entry action.
      */
-    *StateMachine::StateBase setInitial ( void );
+    virtual void                     setInitial ( void );
 
     /**
-     * Will return the _activeState substate's initial state; calls
-     * _activeState->getInitial()
+     * @brief Will return the _activeState substate's initial state;
+     *  calls _activeState->getInitial()
+     *
+     * @return StateBase*  Pointer to last active substate
      */
-    *StateMachine::StateBase getShallowHistory ( void );
+    virtual StateMachine::StateBase* getShallowHistory ( void );
 
     /**
-     * Will set the _activeState substate's initial state; calls
-     * _activeState->setInitial()
+     * @brief Will set the _activeState substate's initial state;
+     *  calls _activeState->setInitial()
      */
-    *StateMachine::StateBase setShallowHistory ( void );
+    virtual void                     setShallowHistory ( void );
 
     /**
-     * Will return the _activeState substate's history state; calls
-     * _activeState->getDeepHistory()
+     * @brief Will return the _activeState substate's history state;
+     *  calls _activeState->getDeepHistory()
      */
-    *StateMachine::StateBase getDeepHistory ( void );
+    virtual StateMachine::StateBase* getDeepHistory ( void );
 
     /**
-     * Will set the _activeState substate's history state; calls
-     * _activeState->setDeepHistory()
+     * @brief Will set the _activeState substate's history state;
+     *  calls _activeState->setDeepHistory()
      */
-    *StateMachine::StateBase getDeepHistory ( void );
+    virtual void                     setDeepHistory ( void );
 
     
 
   protected:
+    /**
+     * Pointer to the last active substate of this state.
+     */
     *StateMachine::StateBase                           _activeState;
+    /**
+     * Pointer to the parent state of this state.
+     */
     *StateMachine::StateBase                           _parentState;
+    /**
+     * List of pointers to all the child states.
+     */
     std::vector<StateMachine::StateBase*>              _childStates;
   };
   

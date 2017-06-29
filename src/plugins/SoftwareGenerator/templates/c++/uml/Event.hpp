@@ -9,22 +9,124 @@ namespace StateMachine {
 
   class Event {
   public:
-    enum class Type { }; // ENUMS GENERATED FROM MODEL
+    enum class Type {
+      _StateMachineTick_,
+<%
+Events.map(function(e) {
+-%>
+      <%- e %>,
+<%
+});
+-%>
+    }; // ENUMS GENERATED FROM MODEL
 
     /**
-     * Will return stringified form of the event type for debugging
+     * @brief Default Constructor, defaults type to
+     * Type::StateMachineTick.
      */
-    std::string toString ( void );
+    Event ( void ) : _t(_Type::_StateMachineTick_) { }
+
+    /**
+     * @brief Constructor for initializing the type.
+     */
+    Event ( Type t ) : _t(t) { }
+
+    /**
+     * @brief Spawn the event. This sets the event's spawn time.
+     */
+    void spawn ( void ) {
+    }
+
+    /**
+     * @brief Consume the event. This sets the event's consume time.
+     */
+    void consume ( void ) {
+    }
+
+    /**
+     * Will return stringified form of the event for debugging
+     */
+    static std::string toString ( Event& e ) {
+      std::string eventString = "";
+      switch ( e._t ) {
+<%
+Events.map(function(e) {
+-%>
+      case <%- e %>:
+	eventString = "<%- e %>";
+	break;
+<%
+});
+-%>
+      default:
+	break;
+      }
+      return eventString;
+    }
 
   protected:
     std::chrono::time_point<std::chrono::system_clock> _spawnTime;
     std::chrono::time_point<std::chrono::system_clock> _consumeTime;
+    Type                                               _t;
   };
   
   class EventFactory {
   public:
-    StateMachine::Event *spawnEvent   ( StateMachine::Event::Type t );
-    void                 consumeEvent ( StateMachine::Event* e );
+    /**
+     * @brief Destructor; ensures all memory for all Events is
+     * deallocated.
+     */
+    ~EventFactory( void ) {
+      clearEvents();
+    }
+
+    /**
+     * @brief Allocates new memory for a new Event of type t and adds
+     * it to the Q.
+     *
+     * @param[in]  Event::Type  t  The type of the event to create
+     */
+    void                 spawnEvent   ( StateMachine::Event::Type t ) {
+      StateMachine::Event* newEvent = new Event( t );
+      newEvent->spawn();
+      _eventQ.push( newEvent );
+    }
+
+    /**
+     * @brief Frees the memory associated with the Event.
+     *
+     * @param[in]  Event*       e  Pointer to the event to consume
+     */
+    void                 consumeEvent ( StateMachine::Event* e ) {
+      delete e;
+    }
+
+    /**
+     * @brief Retrieves the pointer to the next event in the queue, or
+     * nullptr if the Q is empty.
+     *
+     * @return     Event*          Oldest Event that was in the Queue
+     */
+    StateMachine::Event *getNextEvent ( void ) {
+      StateMachine::Event* ptr = nullptr;
+      if (_eventQ.size()) {
+	ptr = _eventQ.front();
+	_eventQ.pop(); // remove the event from the Q
+      }
+      return ptr;
+    }
+
+    /**
+     * @brief Clears the event queue and frees all memory associated
+     * with the events.
+     */
+    void                clearEvents ( void ) {
+      StateMachine::Event* ptr = getNextEvent();
+      while (ptr != nullptr) {
+	consumeEvent( ptr );
+	ptr = getNextEvent();
+      }
+    }
 
   protected:
     std::queue<StateMachine::Event*> _eventQ;
