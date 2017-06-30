@@ -9,6 +9,8 @@ define([
     'text!./HFSM.html',
     './Dialog/Dialog',
     './Simulator/Simulator',
+    'js/DragDrop/DropTarget',
+    'js/DragDrop/DragConstants',
     'bower/cytoscape/dist/cytoscape.min',
     'bower/cytoscape-edgehandles/cytoscape-edgehandles',
     'bower/cytoscape-context-menus/cytoscape-context-menus',
@@ -21,6 +23,8 @@ define([
 	HFSMHtml,
 	Dialog,
 	Simulator,
+	dropTarget,
+	DROP_CONSTANTS,
 	cytoscape,
 	edgehandles,
 	cyContext,
@@ -49,12 +53,40 @@ define([
 
             // set widget class
             this._el.addClass(WIDGET_CLASS);
+	    // add html to element
             this._el.append(HFSMHtml);
+
+	    // container
+            this._containerTag = '#HFSM_VIZ_DIV';
+            this._container = this._el.find(this._containerTag).first();
+
 	    this._cy_container = this._el.find('#cy');
 
             this._initialize();
+	    this._makeDroppable();
 
             this._logger.debug('ctor finished');
+	};
+
+	HFSMVizWidget.prototype._getContainerPosFromEvent = function( e ) {
+	    var self = this;
+	    var x = e.pageX,
+		y = e.pageY;
+            var selector = $(self._el).find(self._containerTag);
+	    var splitPos = $(self._container).parents('.panel-base-wh').parent().position();
+	    var centerPanelPos = $('.ui-layout-pane-center').position();
+	    // X OFFSET
+	    x -= splitPos.left;
+	    x -= centerPanelPos.left;
+
+	    // Y OFFSET
+	    y -= splitPos.top;
+	    y -= centerPanelPos.top;
+
+	    return {
+		x: x,
+		y: y
+	    };
 	};
 
 	HFSMVizWidget.prototype._initialize = function () {
@@ -91,27 +123,13 @@ define([
 		self.isDragging = true;
 		e.preventDefault();
             });
-            this._containerTag = '#HFSM_VIZ_DIV';
-            this._container = this._el.find(this._containerTag).first();
             this._container.mouseup(function() {
 		self.isDragging = false;
 		self._cy.resize();
             }).mousemove(function(e) {
 		if (self.isDragging) {
                     var selector = $(self._el).find(self._containerTag);
-		    var mousePosX = e.pageX;
-                    if (self._fullScreen) {
-			// now we're at the top of the document :)
-			selector = $(document).find(self._containerTag).first();
-                    }
-		    else {
-			// convert x position as needed
-			// get offset from split panel
-			mousePosX -= $(self._el).find(self._containerTag).parents('.panel-base-wh').parent().position().left;
-			// get offset from west panel
-			mousePosX -= $('.ui-layout-pane-center').position().left;
-			//var selector = self._fullScreen ? self._containerTag : '.ui-layout-pane-center';
-		    }
+		    var mousePosX = self._getContainerPosFromEvent( e ).x;
                     var maxWidth = selector.width();
                     var handlePercent = 0.5;
                     var minX = 0;
@@ -278,6 +296,8 @@ define([
 	    // EDGE HANDLES
 	    this._cy.edgehandles( defaults );
 
+	    var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="Timer"],node[NodeType = "Task"]';
+
 	    // CONTEXT MENUS
 	    var options = {
 		// List of initial menu items
@@ -316,7 +336,7 @@ define([
 			id: 'newChild',
 			content: 'Add child...',
 			tooltipText: 'Create a new state, internal transition, etc.',
-			selector: 'node[NodeType = "State"],node[NodeType ="Timer"],node[NodeType = "Task"]',
+			selector: childAvailableSelector,
 			coreAsWell: true,
 			onClickFunction: function ( e ) {
 			    var node = e.target;
@@ -372,6 +392,16 @@ define([
 
 	    //self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
 	    self.debouncedReLayout = _.debounce(self.reLayout.bind(self), 250);
+
+	    // USED FOR DRAG ABILITY
+	    self._hoveredNodeId = null;
+	    self._cy.on('mouseover', childAvailableSelector, function(e) {
+		var node = this;
+		self._hoveredNodeId = node.id();
+	    });
+	    self._cy.on('mouseout', childAvailableSelector, function(e) {
+		self._hoveredNodeId = null;
+	    });
 	    
 	    self._cy.on('select', 'node, edge', function(e){
 		var node = this;
@@ -726,6 +756,114 @@ define([
 		hidden.edges.restore();
 		delete self.hiddenNodes[node.id()];
 	    }
+	};
+
+	/* * * * * * * Drag & Drop Related Functions * * * * * * */
+
+	function getValidChildrenTypes( desc, client ) {
+	    var node = client.getNode( desc.id );
+	    var validChildTypes = {};
+
+	    // figure out what the allowable range is
+	    var validChildren = node.getValidChildrenTypesDetailed( );
+	    Object.keys( validChildren ).map(function( metaId ) {
+		var child = client.getNode( metaId );
+		var childType = child.getAttribute('name');
+		var canCreateMore = validChildren[ metaId ];
+		if ( canCreateMore &&
+		     !child.isAbstract() &&
+		     !child.isConnection() )
+		    validChildTypes[ childType ] = metaId;
+	    });
+
+	    return validChildTypes;
+	};
+
+	HFSMVizWidget.prototype._isValidDrop = function (event, dragInfo) {
+	    if (!dragInfo)
+		return false;
+	    var self = this;
+            var result = false,
+		validChildrenTypes,
+		draggedNodePath,
+		nodeObj,
+		nodeName,
+		metaObj,
+		metaName;
+
+	    var nodeId = self._hoveredNodeId;
+	    if (nodeId) {
+		validChildrenTypes = getValidChildrenTypes(
+		    self.nodes[ nodeId ],
+		    self._client
+		);
+	    }
+
+            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length === 1) {
+		draggedNodePath = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0];
+		nodeObj = self._client.getNode(draggedNodePath);
+		nodeName = nodeObj.getAttribute('name');
+		metaObj = self._client.getNode(nodeObj.getMetaTypeId());
+		if (metaObj) {
+		    metaName = metaObj.getAttribute('name');
+		}
+            }
+	    result = validChildrenTypes && metaName && draggedNodePath &&
+		( validChildrenTypes[ metaName ] == draggedNodePath ||
+		  validChildrenTypes[ metaName ] == nodeObj.getMetaTypeId() );
+
+            return result;
+	};
+
+	HFSMVizWidget.prototype._createChild = function( nodeId, parentId ) {
+	    var self = this,
+		client = self._client,
+		node = client.getNode(nodeId);
+
+	    if (node.isAbstract()) {
+		// do nothing!
+	    }
+	    else if (node.isMetaNode()) {
+		var childCreationParams = {
+		    parentId: parentId,
+		    baseId: nodeId,
+		};
+		client.createChild(childCreationParams, 'Creating new child');
+	    }
+	    else {
+		var params = {parentId: parentId};
+		params[nodeId] = {};
+		client.startTransaction();
+		client.copyMoreNodes(params);
+		client.completeTransaction();
+	    }
+	};
+
+	HFSMVizWidget.prototype._makeDroppable = function () {
+	    var self = this,
+		desc;
+            self._right.addClass('drop-area');
+            //self._div.append(self.__iconAssignNullPointer);
+
+            dropTarget.makeDroppable(self._right, {
+		over: function (event, dragInfo) {
+                    if (self._isValidDrop(event, dragInfo)) {
+			self._right.addClass('accept-drop');
+                    } else {
+			self._right.addClass('reject-drop');
+                    }
+		},
+		out: function (/*event, dragInfo*/) {
+                    self._right.removeClass('accept-drop reject-drop');
+		},
+		drop: function (event, dragInfo) {
+                    if (self._isValidDrop(event, dragInfo)) {
+			self._createChild( dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0],
+					   self._hoveredNodeId );
+                    }
+                    self._right.removeClass('accept-drop reject-drop');
+		}
+            });
 	};
 
 	/* * * * * * * * Edge Creation Functions   * * * * * * * */
