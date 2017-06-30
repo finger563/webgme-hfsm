@@ -74,6 +74,21 @@ define([
         this.widget.onWidgetContainerResize(width, height);
     };
 
+    /* * * * * * * * Tells part browser what to show * * * * * * * */
+    HFSMVizPanel.prototype.getValidTypesInfo = function( nodeId ) {
+	var node = this._client.getNode( nodeId );
+	if (node) {
+	    var detailedTypes = node.getValidChildrenTypesDetailed( );
+	    Object.keys(detailedTypes).map(function(k) {
+		detailedTypes[k] = true;
+	    });
+	    return detailedTypes;
+	}
+	else {
+	    return {};
+	}
+    };
+    
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     HFSMVizPanel.prototype.destroy = function () {
         this.control.destroy();
