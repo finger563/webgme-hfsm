@@ -24,12 +24,18 @@ namespace StateMachine {
   class <%- state.name %> : public StateBase {
   public:
     /**
-     * @brief Runs the entry() function defined in the model and then
-     *  calls _activeState->entry().
+     * @brief Runs
+     *  1. The entry() function defined in the model,
+     *  2. The intial transition action for the child substate, and
+     *  3. Calls the entry() function for the child substate
      */
     void                     entry ( void ) {
+      // Call the Action on the intial transition to this state
+<%- state.initialTransition.Action %>
+      // Now call the Entry action for this state
 <%- state.Entry %>
-      _activeState->entry();
+      if ( _activeState )
+        _activeState->entry();
     }
 
     /**
@@ -38,7 +44,8 @@ namespace StateMachine {
      */
     void                     exit ( void ) {
 <%- state.Exit %>
-      _activeState->exit();
+      if ( _activeState )
+        _activeState->exit();
     }
 
     /**
@@ -47,7 +54,8 @@ namespace StateMachine {
      */
     void                     tick ( void ) {
 <%- state.Tick %>
-      _activeState->tick();
+      if ( _activeState )
+        _activeState->tick();
     }
 
     /**
@@ -92,6 +100,18 @@ state.ExternalTransitions.map(function(trans) {
           if ( <%- trans.Guard %> ) {
 	    // run transition action
 <%- trans.Action %>
+            // how to get the common parent? cannot just get it from
+            // the model since it may not be constant depending on
+            // final state of the transition. E.g. if it is a choice
+            // pseudostate we do not know where it will go and its
+            // edges may lead to different parts of the tree.
+	    //
+            // run all the exit functions we need to (from the common parent down)
+            <%- trans.commonParent %>->getActive()->exit();
+	    // set the new active state
+	    <%- trans.finalState %>->makeActive();
+	    // run all the entry functions we need to (from the common parent down)
+            <%- trans.commonParent %>->getActive()->entry();
             // make sure nothing else handles this event
 	    handled = true;
 	  }

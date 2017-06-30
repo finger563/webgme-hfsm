@@ -65,66 +65,88 @@ namespace StateMachine {
     virtual StateMachine::StateBase* getInitial ( void );
 
     /**
+     * @brief Will return _activeState if it exists, otherwise
+     *  will return nullptr.
+     *
+     * @return StateBase*  Pointer to last active substate
+     */
+    StateMachine::StateBase*  getActive ( void ) {
+      return _activeState;
+    }
+
+    /**
+     * @brief Will return _activeState if it exists, otherwise
+     *  will return the initial state.
+     *
+     * @return StateBase*  Pointer to last active substate
+     */
+    StateMachine::StateBase*  getHistory ( void ) {
+      StateMachine::StateBase* history = _activeState;
+      if (history == nullptr)
+	history = getInitial();
+      return history;
+    }
+
+    /**
+     * @brief Make this state the active substate of its parent and
+     *  then recurse up through the tree to the root. 
+     *
+     *  *Should only be called on leaf nodes!*
+     */
+    void                      makeActive ( ) {
+      if (_parentState) {
+	_parentState.setActiveChild( this );
+	_parentState.makeActive();
+      }
+    }
+
+    /**
+     * @brief Update the active child state.
+     */
+    void                      setActiveChild ( StateMachine::StateBase* childState ) {
+      _activeState = childState;
+    }
+
+    /**
      * @brief Executes the entry() action, sets the activeState to the
      * initial state, and calls set initial on the child active state.
      */
-    void                     setInitial ( void ) {
-      entry();
-      _activeState = getInitial();
+    void                      setInitial ( void ) {
+      setActiveChild( getInitial() );
       if (_activeState)
 	_activeState->setInitial();
     }
 
     /**
-     * @brief Will return the _activeState substate's initial state;
-     *  calls _lastActiveState->getInitial()
-     *
-     * @return StateBase*  Pointer to last active substate
-     */
-    StateMachine::StateBase*         getShallowHistory ( void ) {
-      return _lastActiveState->getInitial();
-    }
-
-    /**
      * @brief Sets the currentlyActive state to the last
      */
-    void                             setShallowHistory ( void ) {
-      _activeState = _lastActiveState;
-      _activeState->setInitial();
-    }
-
-    /**
-     * @brief Will return the _activeState substate's history state;
-     *  calls _lastActiveState->getDeepHistory()
-     */
-    StateMachine::StateBase*         getDeepHistory ( void ) {
-      return _lastActiveState->getDeepHistory();
+    void                      setShallowHistory ( void ) {
+      setActiveChild( getHistory() );
+      if (_activeState)
+	_activeState->setInitial();
     }
 
     /**
      * @brief Will set the _activeState substate's history state;
      *  calls _lastActiveState->setDeepHistory()
      */
-    void                             setDeepHistory ( void ) {
-      _activeState = _lastActiveState;
-      _activeState->setDeepHistory();
+    void                      setDeepHistory ( void ) {
+      setActiveChild( getHistory() );
+      if (_activeState)
+	_activeState->setDeepHistory();
     }
 
   protected:
     /**
-     * Pointer to the currently active substate of this state.
+     * Pointer to the currently or most recently active substate of
+     * this state.
      */
-    *StateMachine::StateBase                           _activeState      = nullptr;
-
-    /**
-     * Pointer to the last active substate of this state.
-     */
-    *StateMachine::StateBase                           _lastActiveState  = nullptr;
+    StateMachine::StateBase  *_activeState      = nullptr;
 
     /**
      * Pointer to the parent state of this state.
      */
-    *StateMachine::StateBase                           _parentState      = nullptr;
+    StateMachine::StateBase  *_parentState      = nullptr;
   };
   
 };
