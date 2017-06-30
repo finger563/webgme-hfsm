@@ -5,7 +5,22 @@ executable C++ code.
 
 # TODO:
 
-* Properly handling transitions into history pseudostates
+* Properly handling transitions into history pseudostates,
+  specifically how to make sure we go up the tree and call the exit
+  actions properly until we reach the proper parent state and then
+  call all the entry actions down the proper child subtree.
+* Determine the right way to end the state machine, e.g. what do we do
+  when the top-level end state is reached?
+* How will the tick events be generated and handled?
+
+# IDEAS:
+
+* For the history substates, we know exactly at model transformation
+  time what the root parent for the transition is, so we can call the
+  exit actions on the parent which will recursively call exit down to
+  the leaf active state. We then just need a method for setting the
+  proper state that we will be transitioning to and calling all the
+  right entry actions.
 
 # States
 
@@ -30,9 +45,9 @@ constant since the initial state is known directly from the model.
 
 Directly transition to the state defined by the model and if no state
 exists, we must be in the final end state for the state machine and
-should end the state machine.
-
-NEED TO DETERMINE WHAT THE RIGHT WAY TO END THE STATE MACHINE IS
+should end the state machine. Easy to generate because we know from
+the model what the ultimate state will be. Just need to properly call
+exit / entry actions.
 
 ### Choice Pseudostates
 

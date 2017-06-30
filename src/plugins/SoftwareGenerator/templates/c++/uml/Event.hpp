@@ -22,7 +22,7 @@ Events.map(function(e) {
 
     /**
      * @brief Default Constructor, defaults type to
-     * Type::StateMachineTick.
+     * Type::_StateMachineTick_.
      */
     Event ( void ) : _t(_Type::_StateMachineTick_) { }
 
@@ -30,6 +30,10 @@ Events.map(function(e) {
      * @brief Constructor for initializing the type.
      */
     Event ( Type t ) : _t(t) { }
+
+    Type type ( void ) {
+      return _t;
+    }
 
     /**
      * @brief Spawn the event. This sets the event's spawn time.

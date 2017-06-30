@@ -17,6 +17,9 @@ namespace StateMachine {
    * There is also a different kind of Event, the tick event, which is
    * not consumed, but instead executes from the top-level state all
    * the way to the curently active leaf state.
+   *
+   * Entry and Exit actions also occur whenever a state is entered or
+   * exited, respectively.
    */
   class StateBase {
   public:
@@ -53,26 +56,6 @@ namespace StateMachine {
 
     /**
      * @brief Will be known from the model so will be generated in
-     *  derived classes to immediately return either true or false for
-     *  quickly propagating special events
-     *
-     * @return true if the state has external transitions without
-     *  events and guards.
-     */
-    virtual bool                     handlesEnd ( void );
-
-    /**
-     * @brief Called when an End State is reached that is a child of
-     *  this state. Checks to see if this state directly handles the
-     *  end state, and if so, then directly transitions to the known
-     *  state from the model that will be the next state. If this is
-     *  the final end state (i.e. we have no state to transition to)
-     *  then the state machine ends.
-     */
-    virtual void                     handleEnd ( void );
-
-    /**
-     * @brief Will be known from the model so will be generated in
      *  derived classes to immediately return the correct initial
      *  state pointer for quickly transitioning to the proper state
      *  during external transition handling.
@@ -82,11 +65,15 @@ namespace StateMachine {
     virtual StateMachine::StateBase* getInitial ( void );
 
     /**
-     * @brief Will be known from the model so will be generated in
-     *  derived classes to immediately set the _activeState to the
-     *  proper state, after calling the state's Entry action.
+     * @brief Executes the entry() action, sets the activeState to the
+     * initial state, and calls set initial on the child active state.
      */
-    virtual void                     setInitial ( void );
+    void                     setInitial ( void ) {
+      entry();
+      _activeState = getInitial();
+      if (_activeState)
+	_activeState->setInitial();
+    }
 
     /**
      * @brief Will return the _activeState substate's initial state;
@@ -94,14 +81,14 @@ namespace StateMachine {
      *
      * @return StateBase*  Pointer to last active substate
      */
-    StateMachine::StateBase* getShallowHistory ( void ) {
+    StateMachine::StateBase*         getShallowHistory ( void ) {
       return _lastActiveState->getInitial();
     }
 
     /**
      * @brief Sets the currentlyActive state to the last
      */
-    void                     setShallowHistory ( void ) {
+    void                             setShallowHistory ( void ) {
       _activeState = _lastActiveState;
       _activeState->setInitial();
     }
@@ -110,7 +97,7 @@ namespace StateMachine {
      * @brief Will return the _activeState substate's history state;
      *  calls _lastActiveState->getDeepHistory()
      */
-    StateMachine::StateBase* getDeepHistory ( void ) {
+    StateMachine::StateBase*         getDeepHistory ( void ) {
       return _lastActiveState->getDeepHistory();
     }
 
@@ -118,33 +105,26 @@ namespace StateMachine {
      * @brief Will set the _activeState substate's history state;
      *  calls _lastActiveState->setDeepHistory()
      */
-    void                     setDeepHistory ( void ) {
+    void                             setDeepHistory ( void ) {
       _activeState = _lastActiveState;
       _activeState->setDeepHistory();
     }
-
-    
 
   protected:
     /**
      * Pointer to the currently active substate of this state.
      */
-    *StateMachine::StateBase                           _activeState;
+    *StateMachine::StateBase                           _activeState      = nullptr;
 
     /**
      * Pointer to the last active substate of this state.
      */
-    *StateMachine::StateBase                           _lastActiveState;
+    *StateMachine::StateBase                           _lastActiveState  = nullptr;
 
     /**
      * Pointer to the parent state of this state.
      */
-    *StateMachine::StateBase                           _parentState;
-
-    /**
-     * List of pointers to all the child states.
-     */
-    std::vector<StateMachine::StateBase*>              _childStates;
+    *StateMachine::StateBase                           _parentState      = nullptr;
   };
   
 };
