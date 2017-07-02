@@ -621,19 +621,17 @@ define(['js/util',
 	   }
 
 	   function addCodeToList(el, id, event, guard, action) {
-	       if (event) {
-		   var txt = '<li ';
-		   if (id)
-		       txt += 'id="'+id+'" ';
-		   txt += 'class="internal-transition">'+event;
-		   if (guard)
-		       txt += ' [<font color="gray">'+guard+'</font>]';
-		   txt += ' / ';
-		   if (action)
-		       txt += action;
-		   txt += '</li>';
-		   el.append(txt);
-	       }
+	       var txt = '<li ';
+	       if (id)
+		   txt += 'id="'+id+'" ';
+	       txt += 'class="internal-transition">'+event;
+	       if (guard)
+		   txt += ' [<font color="gray">'+guard+'</font>]';
+	       txt += ' / ';
+	       if (action)
+		   txt += action;
+	       txt += '</li>';
+	       el.append(txt);
 	   }
 
 	   Simulator.prototype.onClickInternalTransition = function( e ) {
@@ -698,7 +696,7 @@ define(['js/util',
 	       addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true) );
 	       addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true) );
 	       addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true) );
-	       internalTransitions.sort(function(a,b) { return a.Event.localeCompare(b.Event); }).map(function (i) {
+	       internalTransitions.sort(function(a,b) { return a.Event.localeCompare(b.Event); }).map(function(i) {
 		   addCodeToList( el, i.id, i.Event, i.Guard, i.Action );
 	       });
 	       return text.outerHTML;
@@ -772,7 +770,7 @@ define(['js/util',
 	       self._eventButtons.empty();
 	       var eventNames = ['RESTART-HFSM','Tick'].concat(self.getEventNames().sort());
 	       eventNames.map(function (eventName) {
-		   if (eventName) {
+		   if (eventName && eventName.trim()) {
 		       var buttonHtml = mustache.render(eventTempl, { eventName: eventName });
 		       self._eventButtons.append( buttonHtml );
 		       var eventButton = $(self._eventButtons).find('#'+eventName).first();
