@@ -82,6 +82,9 @@ define([
 	    Object.keys(detailedTypes).map(function(k) {
 		detailedTypes[k] = true;
 	    });
+	    // add internal transition - is there a way to not have to
+	    // hard-code this?
+	    detailedTypes[ '/615025579/x' ] = true;
 	    return detailedTypes;
 	}
 	else {
