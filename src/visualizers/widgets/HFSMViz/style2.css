@@ -111,6 +111,14 @@ node[NodeType = "Deep History Pseudostate"] {
 .activeState {
 }
 
+node[ValidDrop] {
+    background-color: green;
+}
+
+node[InvalidDrop] {
+    background-color: red;
+}
+
 node:selected {
     /* width: 40; */
     /* height: 40; */

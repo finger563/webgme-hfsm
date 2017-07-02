@@ -398,9 +398,17 @@ define([
 	    self._cy.on('mouseover', childAvailableSelector, function(e) {
 		var node = this;
 		self._hoveredNodeId = node.id();
+		if (self._isDropping)
+		    self.showDropStatus();
+		else
+		    self.clearDropStatus();
 	    });
 	    self._cy.on('mouseout', childAvailableSelector, function(e) {
 		self._hoveredNodeId = null;
+		if (self._isDropping)
+		    self.showDropStatus();
+		else
+		    self.clearDropStatus();
 	    });
 	    
 	    self._cy.on('select', 'node, edge', function(e){
@@ -783,36 +791,45 @@ define([
 	    if (!dragInfo)
 		return false;
 	    var self = this;
-            var result = false,
-		validChildrenTypes,
-		draggedNodePath,
+
+	    var parentId = self._hoveredNodeId;
+	    var nodeId = null;
+
+            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length === 1) {
+		nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0];
+            }
+
+	    return self._canCreateChild( nodeId, parentId );
+	};
+
+	HFSMVizWidget.prototype._canCreateChild = function( nodeId, parentId ) {
+	    var self = this;
+	    var canCreate = false;
+
+            var validChildrenTypes,
 		nodeObj,
 		nodeName,
 		metaObj,
 		metaName;
 
-	    var nodeId = self._hoveredNodeId;
-	    if (nodeId) {
+	    if (parentId && nodeId) {
 		validChildrenTypes = getValidChildrenTypes(
-		    self.nodes[ nodeId ],
+		    self.nodes[ parentId ],
 		    self._client
 		);
-	    }
 
-            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length === 1) {
-		draggedNodePath = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0];
-		nodeObj = self._client.getNode(draggedNodePath);
+		nodeObj = self._client.getNode(nodeId);
 		nodeName = nodeObj.getAttribute('name');
 		metaObj = self._client.getNode(nodeObj.getMetaTypeId());
 		if (metaObj) {
 		    metaName = metaObj.getAttribute('name');
 		}
-            }
-	    result = validChildrenTypes && metaName && draggedNodePath &&
-		( validChildrenTypes[ metaName ] == draggedNodePath ||
-		  validChildrenTypes[ metaName ] == nodeObj.getMetaTypeId() );
 
-            return result;
+		canCreate = validChildrenTypes && metaName &&
+		    ( validChildrenTypes[ metaName ] == nodeId ||
+		      validChildrenTypes[ metaName ] == nodeObj.getMetaTypeId() );
+	    }
+	    return canCreate;
 	};
 
 	HFSMVizWidget.prototype._createChild = function( nodeId, parentId ) {
@@ -839,29 +856,64 @@ define([
 	    }
 	};
 
+	HFSMVizWidget.prototype.showDropStatus = function () {
+	    var self = this;
+	    self.clearDropStatus();
+	    if (self._isDropping && self._hoveredNodeId && self._dropId) {
+		var canDrop = self._canCreateChild( self._dropId, self._hoveredNodeId );
+		var selector = '#' + self._hoveredNodeId.replace(/\//gm, "\\/");
+		var node = self._cy.$( selector );
+		if (node.length) {
+		    var data = node.data();
+		    if (canDrop)
+			data.ValidDrop = true;
+		    else
+			data.InvalidDrop = true;
+		    node.data( data );
+		}
+	    }
+	};
+
+	HFSMVizWidget.prototype.clearDropStatus = function () {
+	    var self = this;
+	    var invalidDrops = self._cy.nodes('[InvalidDrop]');
+	    if (invalidDrops.length) {
+		var data = invalidDrops.data();
+		data.InvalidDrop = undefined;
+		invalidDrops.data( data );
+	    }
+	    var validDrops = self._cy.nodes('[ValidDrop]');
+	    if (validDrops.length) {
+		var data = validDrops.data();
+		data.ValidDrop = undefined;
+		validDrops.data( data );
+	    }
+	};
+
 	HFSMVizWidget.prototype._makeDroppable = function () {
 	    var self = this,
 		desc;
+	    self._isDropping = false;
             self._right.addClass('drop-area');
             //self._div.append(self.__iconAssignNullPointer);
 
             dropTarget.makeDroppable(self._right, {
 		over: function (event, dragInfo) {
-                    if (self._isValidDrop(event, dragInfo)) {
-			self._right.addClass('accept-drop');
-                    } else {
-			self._right.addClass('reject-drop');
-                    }
+		    self._isDropping = true;
+		    self._dropId = (dragInfo && dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length === 1) ?
+			dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0] : null;
 		},
 		out: function (/*event, dragInfo*/) {
-                    self._right.removeClass('accept-drop reject-drop');
+		    self._isDropping = false;
+		    self._dropId = null;
 		},
 		drop: function (event, dragInfo) {
                     if (self._isValidDrop(event, dragInfo)) {
 			self._createChild( dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0],
 					   self._hoveredNodeId );
                     }
-                    self._right.removeClass('accept-drop reject-drop');
+		    self._isDropping = false;
+		    self._dropId = null;
 		}
             });
 	};
