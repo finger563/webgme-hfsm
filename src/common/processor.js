@@ -4,7 +4,7 @@
  *   * Build transition functions properly
  *   * Get common parent properly for all state transitions
  *   * Get default transition for choice pseudostates
- *   * Make sure all transitions have originalState and finalState
+ *   * Make sure _ALL_ states have 'VariableName'
  * MODEL CHECKS:
  *   * Default transitions on choice pseudostates
  *   * Choice pseudostate transitions should not have events
@@ -33,7 +33,8 @@ define(['q'], function(Q) {
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
-		// Make sure names are good
+		// Make sure top-level Project / Task / Timer names
+		// are good and code attributes are properly prefixed.
 		if (obj.type == 'Project' || obj.type == 'Task' || obj.type == 'Timer') {
 		    var sName = self.sanitizeString(obj.name);
 		    if (!self.isValidString(sName))
@@ -46,7 +47,8 @@ define(['q'], function(Q) {
 			obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
 		    }
 		}
-		// Make sure components are good
+		// Make sure component names are good and generation
+		// information exists
 		else if (obj.type == 'Component') {
 		    var compName = self.sanitizeString(obj.name);
 		    if (!self.isValidString(compName))
@@ -55,8 +57,9 @@ define(['q'], function(Q) {
 		    obj.compName = compName;
 		    obj.includeName = compName + ((obj.Language == 'c++') ? '.hpp' : '.h');
 		}
-		// figure out transition destinations, functions, and guards
-		else if (obj.type == 'Transition') {
+		// Process External Transition Data into convenience
+		// members of source State
+		else if (obj.type == 'External Transition') {
 		    var src = model.objects[obj.pointers['src']],
 			dst = model.objects[obj.pointers['dst']];
 		    if ( src && dst ) {
@@ -65,14 +68,59 @@ define(['q'], function(Q) {
 			    src.transitions = []
 			}
 			src.transitions.push({
+			    'Event' : obj.Event,
 			    'Guard' : obj.Guard,
-			    'Function' : obj.Function,
+			    'Action' : obj.Action,
 			    'prevState' : model.objects[src.path],
 			    'nextState' : model.objects[dst.path],
 			    'finalState': null,
 			    'transitionFunc': ''
 			});
 		    }
+		}
+		// Process Internal Transition Data into convenience
+		// members of parent State
+		else if (obj.type == 'Internal Transition') {
+		    var parent = model.objects[ obj.parentPath ];
+		    if (parent) {
+			if (!parent.InternalTransitions) {
+			    parent.InternalTransitions = []
+			}
+			parent.InternalTransitions.push({
+			    'Event' : obj.Event,
+			    'Guard' : obj.Guard,
+			    'Action': obj.Action,
+			});
+		    }
+		}
+		// Process End State Data
+		else if (obj.type == 'End State') {
+		    var parent = model.objects[ obj.parentPath ];
+		    if (parent) {
+			if (!parent.InternalTransitions) {
+			    parent.InternalTransitions = []
+			}
+			parent.InternalTransitions.push({
+			    'Event' : obj.Event,
+			    'Guard' : obj.Guard,
+			    'Action': obj.Action,
+			});
+		    }
+		}
+		// Process Choice Pseudostate Data
+		else if (obj.type == 'Choice Pseudostate') {
+		    // shouldn't need to do anything special here,
+		    // just treat it like a normal state
+		}
+		// Process Process Deep History Pseudostate Data
+		else if (obj.type == 'Deep History Pseudostate') {
+		    // shouldn't need to do anything special here,
+		    // just treat it like a normal state
+		}
+		// Process Process Shallow History Pseudostate Data
+		else if (obj.type == 'Shallow History Pseudostate') {
+		    // shouldn't need to do anything special here,
+		    // just treat it like a normal state
 		}
 		// make the state names for the variables and such
 		else if (obj.type == 'State') {

@@ -120,9 +120,9 @@ state.ExternalTransitions.map(function(trans) {
 -%>
 	    else if ( <%- choiceTrans.Guard %> ) {
 	      // set the new active state
-	      <%- choiceTrans.finalState %>->makeActive();
+	      <%- choiceTrans.finalState.VariableName %>->makeActive();
 	      // call the exit() function for the old state
-	      <%- trans.originalState %>->exit();
+	      <%- trans.prevState.VariableName %>->exit();
 	      // run the transition function (s)
 <%- trans.transitionFunc %>
 <%- choiceTrans.transitionFunc %>
@@ -140,9 +140,9 @@ state.ExternalTransitions.map(function(trans) {
 -%>
 	    else {
 	      // set the new active state
-	      <%- trans.finalState.defaultTransition.finalState %>->makeActive();
+	      <%- trans.finalState.defaultTransition.finalState.VariableName %>->makeActive();
 	      // call the exit() function for the old state
-	      <%- trans.originalState %>->exit();
+	      <%- trans.prevState.VariableName %>->exit();
 	      // run the transition function (s)
 <%- trans.transitionFunc %>
 <%- trans.finalState.defaultTransition.transitionFunc %>
@@ -163,9 +163,9 @@ state.ExternalTransitions.map(function(trans) {
 	    // Actions, exit()s, and entry()s.
 
 	    // set the new active state
-	    <%- trans.finalState %>->makeActive();
+	    <%- trans.finalState.VariableName %>->makeActive();
             // call the exit() function for the old state
-	    <%- trans.originalState %>->exit();
+	    <%- trans.prevState.VariableName %>->exit();
             // run the transition function (s)
 <%- trans.transitionFunc %>
             // call the entry() function for the new state from the
@@ -182,9 +182,9 @@ state.ExternalTransitions.map(function(trans) {
 	    // entry()s
 
 	    // set the new active state
-	    <%- trans.finalState %>->makeActive();
+	    <%- trans.finalState.VariableName %>->makeActive();
             // call the exit() function for the old state
-	    <%- trans.originalState %>->exit();
+	    <%- trans.prevState.VariableName %>->exit();
             // run the transition function (s)
 <%- trans.transitionFunc %>
             // call the entry() function for the new state from the
