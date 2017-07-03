@@ -24,11 +24,19 @@ define(['q'], function(Q) {
 	    var varDeclExp = new RegExp(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi);
 	    return varDeclExp.test(str);
 	},
+	checkName: function( obj ) {
+	    var self = this;
+	    if (!self.isValidString( obj.name ))
+		throw "ERROR: "+obj.path+" has invalid name: "+obj.name;
+	},
+	addVariableName: function(obj) {
+	    var self = this;
+	    obj.VariableName = self.sanitizeString(obj.name).toUpperCase();
+	},
 	processModel: function(model) {
 	    var self = this;
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
-	    // get state outgoing transition guards
 	    var topLevelStateNames = [];
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
@@ -37,8 +45,7 @@ define(['q'], function(Q) {
 		// are good and code attributes are properly prefixed.
 		if (obj.type == 'Project' || obj.type == 'Task' || obj.type == 'Timer') {
 		    var sName = self.sanitizeString(obj.name);
-		    if (!self.isValidString(sName))
-			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
+		    self.checkName( obj );
 		    obj.sanitizedName = sName;
 		    if (obj.Declarations) {
 			obj.Declarations = obj.Declarations.replace(self.stripRegex, "  $1");
@@ -51,8 +58,7 @@ define(['q'], function(Q) {
 		// information exists
 		else if (obj.type == 'Component') {
 		    var compName = self.sanitizeString(obj.name);
-		    if (!self.isValidString(compName))
-			throw new String(obj.type + " " + obj.path + " has invlaid name: " + obj.name);
+		    self.checkName( obj );
 		    obj.needsExtern = obj.Language == 'c';
 		    obj.compName = compName;
 		    obj.includeName = compName + ((obj.Language == 'c++') ? '.hpp' : '.h');
@@ -125,8 +131,7 @@ define(['q'], function(Q) {
 		// make the state names for the variables and such
 		else if (obj.type == 'State') {
 		    var stateName = self.sanitizeString(obj.name);
-		    if (!self.isValidString(stateName))
-			throw new String("State " + obj.path + " has an invalid state name: " + obj.name);
+		    self.checkName( obj );
 		    var parentObj = model.objects[obj.parentPath];
 		    // make sure no direct siblings of this state share its name
 		    obj.parentState = null;
@@ -167,6 +172,8 @@ define(['q'], function(Q) {
 	    self.makeStateIDs(model);
 	    // make sure all state.transitions have valid .transitionFunc attributes
 	    self.buildTransitionFuncs(model);
+	    // make sure all transitions have valid .commonParent attributes
+	    self.findCommonParents(model);
 	},
 	recurseStates: function(state, levels, level) {
 	    var self = this;
@@ -256,6 +263,29 @@ define(['q'], function(Q) {
             return start;
 	},
 	buildTransitionFuncs: function(model) {
+	    var self = this;
+	    var objPaths = Object.keys(model.objects);
+	    var padStr = '      $1';
+	    objPaths.map(function(objPath) {
+		var obj = model.objects[objPath];
+		if (obj.type == "Task" || obj.type == "Timer") {
+		    obj.initState = self.getStartState(obj);
+		    obj.initFunc = self.getInitFunc(obj);
+		}
+		else if (obj.type == "State") {
+		    obj.transitions.map(function(trans) {
+			trans.transitionFunc = '';
+			if (trans.Function)
+			    trans.transitionFunc += trans.Function + '\n';
+			trans.transitionFunc += self.getInitFunc(trans.nextState);
+			// update the prefix for the transition function
+			trans.transitionFunc = trans.transitionFunc.replace(self.stripRegex, padStr);
+			trans.finalState = self.getStartState(trans.nextState);
+		    });
+		}
+	    });
+	},
+	findCommonParents: function(model) {
 	    var self = this;
 	    var objPaths = Object.keys(model.objects);
 	    var padStr = '      $1';
