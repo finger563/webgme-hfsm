@@ -24,28 +24,34 @@ namespace StateMachine {
   class <%- state.name %> : public StateBase {
   public:
     /**
-     * @brief Runs
-     *  1. The entry() function defined in the model,
-     *  2. The intial transition action for the child substate, and
-     *  3. Calls the entry() function for the child substate
+     * @brief Runs the entry() function defined in the model and then
+     *  calls the active child's entry() as _activeState->entry().
      */
     void                     entry ( void ) {
-      // Call the Action on the intial transition to this state
-<%- state.initialTransition.Action %>
       // Now call the Entry action for this state
 <%- state.Entry %>
+      // Now call the entry function down the active branch to the
+      // leaf
       if ( _activeState )
         _activeState->entry();
     }
 
     /**
      * @brief Runs the exit() function defined in the model and then
-     *  calls _activeState->exit().
+     *  calls the parent's _parentState->exit() if the parent's active
+     *  child state has changed. If the parent's active child state
+     *  has not changed, upwards tree traversal stops.
      */
     void                     exit ( void ) {
+      if ( _parentState && _parentState->getActive() != this ) {
+	// we are no longer the active state of the parent
 <%- state.Exit %>
-      if ( _activeState )
-        _activeState->exit();
+        _parentState->exit();
+      }
+      else if ( _parentState == nullptr ) {
+	// we are a top level state, just call exit
+<%- state.Exit %>
+      }
     }
 
     /**
@@ -67,7 +73,9 @@ namespace StateMachine {
      *  internal transitions), then it checks the event against all
      *  external transitions associated with that Event.
      *
-     * @return true if event is consumed, falsed otherwise
+     * @param[in] StateMachine::Event* Event needing to be handled
+     *
+     * @return true if event is consumed, false otherwise
      */
     bool                     handleEvent ( StateMachine::Event* event ) {
       bool handled = false;
@@ -98,22 +106,76 @@ state.ExternalTransitions.map(function(trans) {
 -%>
         case <%- trans.Event %>:
           if ( <%- trans.Guard %> ) {
-	    // run transition action
-<%- trans.Action %>
-            // how to get the common parent? cannot just get it from
-            // the model since it may not be constant depending on
-            // final state of the transition. E.g. if it is a choice
-            // pseudostate we do not know where it will go and its
-            // edges may lead to different parts of the tree.
-	    //
-            // run all the exit functions we need to (from the common parent down)
-            <%- trans.commonParent %>->getActive()->exit();
+<%
+  if ( trans.finalState.type == 'Choice Pseudostate' ) {
+-%>
+	    // We are going into a choice state, need to make sure we
+	    // check all the outgoing transitions' guards and decide
+	    // which state to go into, and run all the proper Actions,
+	    // exit()s and entry()s.
+
+            if ( false ) { }
+<%
+    trans.finalState.ExternalTransitions.map(function(choiceTrans) {
+-%>
+	    else if ( <%- choiceTrans.Guard %> ) {
+	      <%- choieTrans.finalState %>->makeActive();
+	      // set the new active state
+	      <%- choiceTrans.finalState %>->makeActive();
+	      // call the exit() function for the old state
+	      <%- trans.originalState %>->exit();
+	      // run the transition function (s)
+<%- trans.transitionFunc %>
+<%- choiceTrans.transitionFunc %>
+              // call the entry() function for the new state from the
+	      // common parent
+	      <%- choiceTrans.commonParent %>->entry();
+	      // make sure nothing else handles this event
+	      handled = true;
+	    }
+<%
+    });
+-%>
+<%
+  } else if ( trans.finalState.type == 'End State' ) {
+-%>
+	    // We are going into an end state, need to make sure we go
+	    // to the correct final state and run all the proper
+	    // Actions, exit()s, and entry()s.
+
 	    // set the new active state
 	    <%- trans.finalState %>->makeActive();
-	    // run all the entry functions we need to (from the common parent down)
-            <%- trans.commonParent %>->getActive()->entry();
+            // call the exit() function for the old state
+	    <%- trans.originalState %>->exit();
+            // run the transition function (s)
+<%- trans.transitionFunc %>
+            // call the entry() function for the new state from the
+            // common parent
+            <%- trans.commonParent %>->entry();
             // make sure nothing else handles this event
 	    handled = true;
+<%
+  } else {
+-%>
+	    // We are going into either a regular state, deep history
+	    // state, or a shallow history state, just need to make
+	    // the right state active, run the exit()s, Action, and
+	    // entry()s
+
+	    // set the new active state
+	    <%- trans.finalState %>->makeActive();
+            // call the exit() function for the old state
+	    <%- trans.originalState %>->exit();
+            // run the transition function (s)
+<%- trans.transitionFunc %>
+            // call the entry() function for the new state from the
+            // common parent
+            <%- trans.commonParent %>->entry();
+            // make sure nothing else handles this event
+	    handled = true;
+<%
+  } // End if (trans.finalState.type) else if (...) else 
+-%>
 	  }
 	  break;
 <%
@@ -125,7 +187,7 @@ state.ExternalTransitions.map(function(trans) {
       }
       if (!handled) {
 	// now check parent states
-	_parentState->handleEvent( event );
+	handled = _parentState->handleEvent( event );
       }
       return handled;
     }

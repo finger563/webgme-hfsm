@@ -50,6 +50,8 @@ namespace StateMachine {
      *  internal transitions), then it checks the event against all
      *  external transitions associated with that Event.
      *
+     * @param[in] StateMachine::Event* Event needing to be handled
+     *
      * @return true if event is consumed, falsed otherwise
      */
     virtual bool                     handleEvent ( StateMachine::Event* event );
@@ -70,7 +72,7 @@ namespace StateMachine {
      *
      * @return StateBase*  Pointer to last active substate
      */
-    StateMachine::StateBase*  getActive ( void ) {
+    StateMachine::StateBase*  getActiveChild ( void ) {
       return _activeState;
     }
 
@@ -93,7 +95,7 @@ namespace StateMachine {
      *
      *  *Should only be called on leaf nodes!*
      */
-    void                      makeActive ( ) {
+    void                      makeActive ( void ) {
       if (_parentState) {
 	_parentState.setActiveChild( this );
 	_parentState.makeActive();
@@ -134,6 +136,20 @@ namespace StateMachine {
       setActiveChild( getHistory() );
       if (_activeState)
 	_activeState->setDeepHistory();
+    }
+
+    /**
+     * @brief Will set the parent state.
+     */
+    void                      setParentState ( StateMachine::StateBase* parent ) {
+      _parentState = parent;
+    }
+
+    /**
+     * @brief Will return the parent state.
+     */
+    StateMachine::StateBase*  getParentState ( void ) {
+      return _parentState;
     }
 
   protected:
