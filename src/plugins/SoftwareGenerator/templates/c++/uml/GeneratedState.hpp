@@ -114,12 +114,11 @@ state.ExternalTransitions.map(function(trans) {
 	    // which state to go into, and run all the proper Actions,
 	    // exit()s and entry()s.
 
-            if ( false ) { }
+            if ( false ) { } // just to have easier code generation :)
 <%
     trans.finalState.ExternalTransitions.map(function(choiceTrans) {
 -%>
 	    else if ( <%- choiceTrans.Guard %> ) {
-	      <%- choieTrans.finalState %>->makeActive();
 	      // set the new active state
 	      <%- choiceTrans.finalState %>->makeActive();
 	      // call the exit() function for the old state
@@ -135,6 +134,26 @@ state.ExternalTransitions.map(function(trans) {
 	    }
 <%
     });
+-%>
+<%
+    if (trans.finalState.defaultTransition) {
+-%>
+	    else {
+	      // set the new active state
+	      <%- trans.finalState.defaultTransition.finalState %>->makeActive();
+	      // call the exit() function for the old state
+	      <%- trans.originalState %>->exit();
+	      // run the transition function (s)
+<%- trans.transitionFunc %>
+<%- trans.finalState.defaultTransition.transitionFunc %>
+              // call the entry() function for the new state from the
+	      // common parent
+	      <%- trans.finalState.defaultTransition.commonParent %>->entry();
+	      // make sure nothing else handles this event
+	      handled = true;
+	    }
+<%
+    }
 -%>
 <%
   } else if ( trans.finalState.type == 'End State' ) {

@@ -1,4 +1,17 @@
 
+/*
+ * TODO:
+ *   * Build transition functions properly
+ *   * Get common parent properly for all state transitions
+ *   * Get default transition for choice pseudostates
+ *   * Make sure all transitions have originalState and finalState
+ * MODEL CHECKS:
+ *   * Default transitions on choice pseudostates
+ *   * Choice pseudostate transitions should not have events
+ *   * Cannot have multiple or guarded end transitions 
+ *   * Multiple transitions with same event / guard
+ *   * Multiple events with similar names (only change would be capitalization)
+ */
 
 define(['q'], function(Q) {
     'use strict';

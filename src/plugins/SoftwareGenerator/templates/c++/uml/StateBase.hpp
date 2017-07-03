@@ -96,7 +96,7 @@ namespace StateMachine {
      *  *Should only be called on leaf nodes!*
      */
     void                      makeActive ( void ) {
-      if (_parentState) {
+      if (_parentState != nullptr) {
 	_parentState.setActiveChild( this );
 	_parentState.makeActive();
       }
@@ -115,7 +115,7 @@ namespace StateMachine {
      */
     void                      setInitial ( void ) {
       setActiveChild( getInitial() );
-      if (_activeState)
+      if (_activeState != nullptr)
 	_activeState->setInitial();
     }
 
@@ -124,7 +124,7 @@ namespace StateMachine {
      */
     void                      setShallowHistory ( void ) {
       setActiveChild( getHistory() );
-      if (_activeState)
+      if (_activeState != nullptr)
 	_activeState->setInitial();
     }
 
@@ -134,7 +134,7 @@ namespace StateMachine {
      */
     void                      setDeepHistory ( void ) {
       setActiveChild( getHistory() );
-      if (_activeState)
+      if (_activeState != nullptr)
 	_activeState->setDeepHistory();
     }
 
