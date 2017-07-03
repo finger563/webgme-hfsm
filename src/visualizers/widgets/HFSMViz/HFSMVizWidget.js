@@ -306,7 +306,7 @@ define([
 			id: 'toggleCollapse',
 			content: '(Un-)Show Children',
 			tooltipText: 'Toggle the display of children.',
-			selector: 'node',
+			selector: childAvailableSelector,
 			onClickFunction: function ( e ) {
 			    //var node = this;
 			    var node = e.target;
@@ -350,9 +350,9 @@ define([
 			coreAsWell: false
 		    },
 		    {
-			id: 'remove',
-			content: 'remove',
-			tooltipText: 'remove',
+			id: 'Remove',
+			content: 'Remove',
+			tooltipText: 'Remove',
 			selector: 'node, edge', 
 			onClickFunction: function ( e ) { // The function to be executed on click
 			    var node = e.target;
