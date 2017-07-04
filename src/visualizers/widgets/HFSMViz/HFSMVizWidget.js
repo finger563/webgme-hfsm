@@ -736,6 +736,17 @@ define([
 	    return node.isParent() || self.hasHiddenChildren( node );
 	};
 
+	HFSMVizWidget.prototype.forceShowChildren = function ( node ) {
+	    var self = this;
+	    var hidden = self.getHiddenChildren( node );
+	    if (hidden && hidden.nodes && hidden.edges) {
+		// currently false, reenable show children
+		hidden.nodes.restore();
+		hidden.edges.restore();
+		delete self.hiddenNodes[node.id()];
+	    }
+	};
+
 	HFSMVizWidget.prototype.toggleShowChildren = function ( node ) {
 	    var self = this;
 	    var hidden = self.getHiddenChildren( node );
@@ -837,6 +848,9 @@ define([
 		client = self._client,
 		node = client.getNode(nodeId);
 
+	    var selector = '#' + parentId.replace(/\//gm, "\\/");
+	    var cyNode = self._cy.$(selector);
+
 	    if (node.isAbstract()) {
 		// do nothing!
 	    }
@@ -845,9 +859,11 @@ define([
 		    parentId: parentId,
 		    baseId: nodeId,
 		};
+		self.forceShowChildren( cyNode );
 		client.createChild(childCreationParams, 'Creating new child');
 	    }
 	    else {
+		self.forceShowChildren( cyNode );
 		var params = {parentId: parentId};
 		params[nodeId] = {};
 		client.startTransaction();
