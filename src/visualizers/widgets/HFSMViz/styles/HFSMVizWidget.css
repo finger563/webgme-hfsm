@@ -42,6 +42,7 @@
     width:29%;
 }
 
+#print,
 #re_layout,
 #reset {
   width: 3em;
@@ -57,6 +58,10 @@
 
 #re_layout {
   right: 4em;
+}
+
+#print {
+  right: 8em;
 }
 
 #reset i {

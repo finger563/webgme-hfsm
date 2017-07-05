@@ -109,13 +109,20 @@ define([
 		node.getAttributeNames().map(function(a) {
 		    objDescriptor[a] = node.getAttribute(a);
 		});
+		objDescriptor.LABEL = objDescriptor.name;
 		// add the node pointers if it's a connection
 		if (objDescriptor.isConnection) {
 		    objDescriptor.src = node.getPointer('src').to;
 		    objDescriptor.dst = node.getPointer('dst').to;
-		    objDescriptor.text = objDescriptor.Event;
+		    objDescriptor.LABEL = objDescriptor.Event;
 		    if (objDescriptor.Guard) {
-			objDescriptor.text += ' [' + objDescriptor.Guard + ']';
+			objDescriptor.LABEL += ' [' + objDescriptor.Guard + ']';
+		    }
+		}
+		else if (objDescriptor.type == 'Internal Transition') {
+		    objDescriptor.LABEL = objDescriptor.Event;
+		    if (objDescriptor.Guard) {
+			objDescriptor.LABEL += ' [' + objDescriptor.Guard + ']';
 		    }
 		}
 		// make sure the root level has no parentId

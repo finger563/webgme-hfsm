@@ -11,12 +11,22 @@
  *   * Cannot have multiple or guarded end transitions 
  *   * Multiple transitions with same event / guard
  *   * Multiple events with similar names (only change would be capitalization)
+ *   * Choice states chained together (not allowed)
  */
 
 define(['q'], function(Q) {
     'use strict';
     return {
 	stripRegex: /^([^\n]+)/gm,
+	uniq: function(a) {
+	    var seen = {};
+	    return a.filter(function(item) {
+		return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+	    });
+	},
+	addEvent: function(model, eventName) {
+	    model.eventNames.push( eventName.toUpperCase().trim() );
+	},
 	sanitizeString: function(str) {
 	    return str.replace(/[ \-]/gi,'_');
 	},
@@ -33,10 +43,27 @@ define(['q'], function(Q) {
 	    var self = this;
 	    obj.VariableName = self.sanitizeString(obj.name).toUpperCase();
 	},
+	processTopLevel: function(obj) {
+	    var self = this;
+	    var sName = self.sanitizeString(obj.name);
+	    self.checkName( obj );
+	    obj.sanitizedName = sName;
+	    if (obj.Declarations) {
+		obj.Declarations = obj.Declarations.replace(self.stripRegex, "  $1");
+	    }
+	    if (obj.Definitions) {
+		obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
+	    }
+	},
 	processModel: function(model) {
 	    var self = this;
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
+
+	    // Keep track of all the events in the model and which
+	    // transitions occur from them
+	    model.eventNames = [];
+
 	    var topLevelStateNames = [];
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
@@ -44,15 +71,7 @@ define(['q'], function(Q) {
 		// Make sure top-level Project / Task / Timer names
 		// are good and code attributes are properly prefixed.
 		if (obj.type == 'Project' || obj.type == 'Task' || obj.type == 'Timer') {
-		    var sName = self.sanitizeString(obj.name);
-		    self.checkName( obj );
-		    obj.sanitizedName = sName;
-		    if (obj.Declarations) {
-			obj.Declarations = obj.Declarations.replace(self.stripRegex, "  $1");
-		    }
-		    if (obj.Definitions) {
-			obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
-		    }
+		    self.processTopLevel( obj );
 		}
 		// Make sure component names are good and generation
 		// information exists
@@ -66,6 +85,8 @@ define(['q'], function(Q) {
 		// Process External Transition Data into convenience
 		// members of source State
 		else if (obj.type == 'External Transition') {
+		    // SHOULD UPDATE THESE DATA DEPENDING ON WHAT THE SRC / DST ARE!
+		    // need function to get final state that doesn't terminate on end states
 		    var src = model.objects[obj.pointers['src']],
 			dst = model.objects[obj.pointers['dst']];
 		    if ( src && dst ) {
@@ -73,15 +94,21 @@ define(['q'], function(Q) {
 			if (!src.transitions) {
 			    src.transitions = []
 			}
+			// add the event to a global list of events
+			self.addEvent( model, obj.Event );
+			// add the external transition to the source
 			src.transitions.push({
 			    'Event' : obj.Event,
 			    'Guard' : obj.Guard,
 			    'Action' : obj.Action,
 			    'prevState' : model.objects[src.path],
 			    'nextState' : model.objects[dst.path],
+			    'commonParent': null,
+			    'originalState': null,
 			    'finalState': null,
 			    'transitionFunc': ''
 			});
+			
 		    }
 		}
 		// Process Internal Transition Data into convenience
@@ -92,6 +119,9 @@ define(['q'], function(Q) {
 			if (!parent.InternalTransitions) {
 			    parent.InternalTransitions = []
 			}
+			// add the event to a global list of events
+			self.addEvent( model, obj.Event );
+			// add the internal transition to the parent
 			parent.InternalTransitions.push({
 			    'Event' : obj.Event,
 			    'Guard' : obj.Guard,
@@ -115,8 +145,12 @@ define(['q'], function(Q) {
 		}
 		// Process Choice Pseudostate Data
 		else if (obj.type == 'Choice Pseudostate') {
-		    // shouldn't need to do anything special here,
-		    // just treat it like a normal state
+		    // Need to add:
+		    // * defaultTransition
+
+		    // Need to figure out if this goes to another
+		    // choice pseudostate or an end state, and update
+		    // accordingly - how?
 		}
 		// Process Process Deep History Pseudostate Data
 		else if (obj.type == 'Deep History Pseudostate') {
@@ -175,6 +209,21 @@ define(['q'], function(Q) {
 	    // make sure all transitions have valid .commonParent attributes
 	    self.findCommonParents(model);
 	},
+	getFinalState: function( transitionId ) {
+	    var self = this;
+	    // follows transitions recursively through select
+	    //  pseudostates to return the final state to which this
+	    //  path goes.
+	    // Should not terminate in:
+	    //   * End States
+	    //   * Initial States
+	    // Should terminate in:
+	    //   * States
+	    //   * Choice Pseudostates
+	    //   * Deep History Pseudostates
+	    //   * Shallow History Pseudostates
+	    var transition = 
+	};
 	recurseStates: function(state, levels, level) {
 	    var self = this;
 	    if (levels.length <= level) {
