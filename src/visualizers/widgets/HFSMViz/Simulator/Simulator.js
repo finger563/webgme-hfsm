@@ -21,6 +21,8 @@ define(['js/util',
 	   
            var Simulator;
 
+	   var rootTypes = ['Task','Timer'];
+
 	   var parentTempl = ['<div class="simulatorTitle">Child of:',
 			      '</div>'].join('\n');
 
@@ -262,7 +264,7 @@ define(['js/util',
 		   })
 	   };
 
-	   Simulator.prototype.handleChoice = function( stateId ) {
+	   Simulator.prototype.handleChoice = function( stateId, callback ) {
 	       var self = this;
 	       // find the transitions out of the choice state and
 	       // prompt the user for which guard condition should
@@ -278,7 +280,7 @@ define(['js/util',
 			   console.log(msg);
 			   nextState = self.getNextState( selectedEdge.transitionId );
 		       }
-		       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+		       callback( nextState );
 		   });
 	   };
 
@@ -297,65 +299,51 @@ define(['js/util',
 	       var endState = self.nodes[ stateId ];
 	       var parentState = self.nodes [ endState.parentId ];
 	       while (parentState) {
-		   var parentType = parentState.type;
-		   if (parentType == 'State') {
-		       // get all transitions that don't have an event
-		       var transitionIds = self.getEdgesFromNode( parentState.id ).filter(function(eId) {
-			   var edge = self.nodes[ eId ];
-			   return edge.Event == null || !edge.Event.trim();
-		       }).sort( self.transitionSort.bind(self) );
-		       // now check them
-		       var guardless = transitionIds.filter(function(eid) {
-			   var edge = self.nodes[ eid ];
-			   return edge.Guard == null || !edge.Guard.trim();
-		       });
-		       if (guardless.length == 1) {
-			   var msg = 'EXTERNAL TRANSITION on '+
-			       stateId + ' through transition ' + guardless[0];
-			   console.log(msg);
-			   nextState = self.getNextState( guardless[0] );
-			   break;
-		       }
-		       else if (guardless.length > 1 || (guardless.length != transitionIds.length)) {
-			   alert('Warning!\n'+
-				 'Cannot have more than one END transition!\n'+
-				 'NOT TRANSITIONING!');
-			   break;
-		       }
-		       else if (transitionIds.length) {
-			   // we have event-less transitions but they have guards this is illegal!
-			   alert('Warning!\n'+
-				 'END transitions cannot have guards!\n'+
-				 'NOT TRANSITIONING!');
-			   break;
-		       }
-		       else if (transitionIds.length == 0) {
-			   alert('Warning!\n'+
-				 'END states must be followed by END transitions in non-root states!\n'+
-				 'NOT TRANSITIONING!');
-			   break;
-		       }
-		       parentState = self.nodes [ parentState.parentId ];
+		   // get all transitions that don't have an event
+		   var transitionIds = self.getEdgesFromNode( parentState.id ).filter(function(eId) {
+		       var edge = self.nodes[ eId ];
+		       return edge.Event == null || !edge.Event.trim();
+		   }).sort( self.transitionSort.bind(self) );
+		   // now check them
+		   var guardless = transitionIds.filter(function(eid) {
+		       var edge = self.nodes[ eid ];
+		       return edge.Guard == null || !edge.Guard.trim();
+		   });
+		   if (guardless.length == 1) {
+		       var msg = 'END TRANSITION on '+
+			   stateId + ' through transition ' + guardless[0];
+		       console.log(msg);
+		       nextState = self.getNextState( guardless[0] );
+		       break;
 		   }
+		   else if (guardless.length > 1 || (guardless.length != transitionIds.length)) {
+		       alert('Warning!\n'+
+			     'Cannot have more than one END TRANSITION!\n'+
+			     'NOT TRANSITIONING!');
+		       break;
+		   }
+		   else if (transitionIds.length) {
+		       // we have event-less transitions but they have guards this is illegal!
+		       alert('Warning!\n'+
+			     'END TRANSITIONS cannot have guards!\n'+
+			     'NOT TRANSITIONING!');
+		       break;
+		   }
+		   else if ( rootTypes.indexOf( parentState.type ) > -1 ) {
+		       nextState = endState;
+		       // THIS IS THE END OF THE STATE MACHINE
+		       console.log('END OF HFSM');
+		       break;
+		   }
+		   else if (transitionIds.length == 0) {
+		       alert('Warning!\n'+
+			     'END states must be followed by END TRANSITIONS in non-root states!\n'+
+			     'NOT TRANSITIONING!');
+		       break;
+		   }
+		   parentState = self.nodes [ parentState.parentId ];
 	       }
-	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
-	   };
-
-	   Simulator.prototype.handleSpecialStates = function( stateId ) {
-	       var self = this;
-	       var state = self.nodes[ stateId ];
-	       var nextState = state;
-	       if (state) {
-		   if (state.type == 'Shallow History Pseudostate')
-		       nextState = self.handleShallowHistory( state.id );
-		   else if (state.type == 'Deep History Pseudostate')
-		       nextState = self.handleDeepHistory( state.id );
-		   else if (state.type == 'End State')
-		       nextState = self.handleEnd( state.id );
-		   else if (state.type == 'Choice Pseudostate')
-		       return self.handleChoice( state.id );
-	       }
-	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+	       return nextState;
 	   };
 
 	   Simulator.prototype.transitionSort = function(aId, bId) {
@@ -367,13 +355,8 @@ define(['js/util',
 	       return 0;
 	   }
 
-	   Simulator.prototype.resolveInternalTransitions = function( eventName, stateId ) {
+	   Simulator.prototype.resolveTransitions = function( eventName, transitionIds, stateId, nextStateCallback ) {
 	       var self = this;
-	       var resolution = {
-		   choice: null,
-		   transitionId: null
-	       };
-	       var transitionIds = self.getInternalTransitionIds( eventName, stateId );
 	       // get all transitions with no guard
 	       var guardless = transitionIds.filter(function(eid) {
 		   var edge = self.nodes[ eid ];
@@ -381,126 +364,121 @@ define(['js/util',
 	       });
 	       // now check
 	       if (guardless.length == 1) {
-		   var intTrans = self.nodes[ guardless[0] ];
-		   resolution.choice = intTrans.Guard;
-		   resolution.transitionId = intTrans.id;
-	       }
-	       else if (guardless.length > 1) {
-		   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
-	       }
-	       else {
-		   // now check transitions with guard
-		   var title = 'State '+stateId+' Internal Transition Guards for '+eventName+':';
-		   resolution = self.selectGuard( transitionIds, title );
-	       }
-	       return new Q.Promise(function(resolve, reject) { resolve(resolution); });
-	   };
-
-	   Simulator.prototype.resolveExternalTransitions = function( eventName, stateId ) {
-	       var self = this;
-	       var nextState = null;
-	       // get all external transitions for this event
-	       var transitionIds = self.getEdgesFromNode( stateId ).filter(function(eId) {
-		   return self.nodes[ eId ].Event == eventName;
-	       }).sort( self.transitionSort.bind(self) );
-	       // now check them
-	       // check transitions with no guard
-	       var guardless = transitionIds.filter(function(eid) {
-		   var edge = self.nodes[ eid ];
-		   return edge.Guard == null || !edge.Guard.trim();
-	       });
-	       if (guardless.length == 1) {
-		   var msg = 'Event: ' + eventName + ': EXTERNAL TRANSITION on '+
-		       stateId + ' through transition ' + guardless[0];
+		   var trans = self.nodes[ guardless[0] ];
+		   var msg = 'Event: '+ eventName + ' ' + trans.type.toUpperCase() + ': on ' + trans.id;
 		   console.log(msg);
-		   nextState = self.getNextState( guardless[0] );
+		   nextStateCallback( self.getNextState( trans.id ) );
 	       }
 	       else if (guardless.length > 1) {
 		   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
+		   nextStateCallback( null );
 	       }
-	       else {
+	       else if (transitionIds.length) {
 		   // now check transitions with guard
-		   var title = 'State '+stateId+' External Transition Guards for '+eventName+':';
-		   nextState = self.selectGuard( transitionIds, title )
+		   var state = self.nodes[ stateId ];
+		   var title = '<b>'+state.name+'</b> transition\'s guard for <b>'+eventName+'</b>:';
+		   self.selectGuard( transitionIds, title )
 		       .then(function(selection) {
 			   if (selection && selection.transitionId) {
-			       var msg = 'Event: '+eventName+': EXTERNAL TRANSITION on '+stateId+': [ ' +
-				   selection.choice + ' ] was TRUE on ' + selection.transitionId;
+			       var trans = self.nodes[ selection.transitionId ];
+			       var msg = eventName + '::' + trans.type.toUpperCase() + ': [ ' +
+				   selection.choice + ' ] was TRUE on ' + trans.id;
 			       console.log(msg);
-			       return self.getNextState( selection.transitionId );
+			       nextStateCallback( self.getNextState( trans.id ) );
 			   }
 			   else 
-			       return null;
+			       nextStateCallback( null );
 		       });
 	       }
-	       return new Q.Promise(function(resolve, reject) { resolve(nextState); });
+	       else {
+		   nextStateCallback( null );
+	       }
+	   };
+
+	   Simulator.prototype.handleNextState = function ( state ) {
+	       var self = this;
+	       if ( state ) {
+		   // update history states here for all states we're leaving
+		   self.updateHistory( self._activeState.id );
+		   if ( state.type == 'Choice Pseudostate' ) {
+		       self.handleChoice( state.id, self.handleNextState.bind(self) );
+		   }
+		   else if (state.type == 'End State' && state.parentId != self.getTopLevelId()) {
+		       self.handleNextState( self.handleEnd( state.id ) );
+		   }
+		   else {
+		       if (state.type == 'Shallow History Pseudostate')
+			   state = self.handleShallowHistory( state.id );
+		       else if (state.type == 'Deep History Pseudostate')
+			   state = self.handleDeepHistory( state.id );
+		       // now transition!
+		       if ( state.id != self._activeState.id ) {
+			   var msg = 'STATE TRANSITION: ' + self._activeState.id + ' -> ' + state.id;
+			   console.log( msg );
+			   if (state.type == 'End State') {
+			       // THIS IS THE TOP LEVEL END STATE!
+			       console.log('HFSM HAS TERMINATED!');
+			   }
+		       }
+		       // update active state!
+		       self._activeState = state;
+		       // update all rendering!
+		       self.hideStateInfo();
+		       self.displayStateInfo( self._activeState.id );
+		       if (self._stateChangedCallback)
+			   self._stateChangedCallback( self._activeState.id );
+		   }
+	       }
 	   };
 
 	   Simulator.prototype.handleEvent = function( eventName, stateId ) {
 	       var self = this;
+	       var deferred = Q.defer();
 	       if (stateId) {
+		   var internalTransitionIds = self.getInternalTransitionIds( eventName, stateId );
+		   var externalTransitionIds = self.getExternalTransitionIds( eventName, stateId );
 		   // handle internal transitions
-		   return self.resolveInternalTransitions( eventName, stateId )
-		       .then(function(resolution) {
-			   if (resolution && resolution.transitionId) { // internal transition occured
-			       var msg = 'Event: '+eventName+': INTERNAL TRANSITION in '+stateId+': [ ' +
-				   resolution.choice + ' ] was TRUE on ' + resolution.transitionId;
-			       throw msg;
+		   self.resolveTransitions( eventName, internalTransitionIds, stateId, function(nextState) {
+		       if (nextState) {
+			   deferred.resolve();
+			   return;
+		       }
+		       // handle external transitions
+		       self.resolveTransitions( eventName, externalTransitionIds, stateId, function(nextState) {
+			   if (nextState) {
+			       deferred.resolve( self.handleNextState( nextState ) );
+			       return;
 			   }
-		       })
-		       .then(function() {
-			   // no internal occurred, now check external
-			   return self.resolveExternalTransitions( eventName, stateId )
-			       .then(function(nextState) {
-				   if (nextState) {
-				       // update history states here for all states we're leaving
-				       self.updateHistory( self._activeState.id );
-				       // if we've gotten a new state, see if we have gone to a special state
-				       return self.handleSpecialStates( nextState.id )
-					   .then(function(state) {
-					       if (state) {
-						   var msg = 'STATE TRANSITION: ' + self._activeState.id +
-						       ' -> ' + state.id;
-						   self._activeState = state;
-						   throw msg;
-					       }
-					       else {
-						   var msg = 'Special States canceled state transition!';
-						   console.log(msg);
-					       }
-					   });
-				   }
-			       })
-		       })
-		       .then(function() {
 			   // bubble up to see if parent handles event
 			   var parentState = self.getParentState( stateId );
 			   if (parentState) {
-			       return self.handleEvent( eventName, parentState.id );
+			       deferred.resolve( self.handleEvent( eventName, parentState.id ) );
 			   }
-		       })
-		       .catch(function(err) {
-			   if (typeof err === "string")
-			       console.log(''+err);
-			   else {
-			       console.log(err);
-			       throw err;
-			   }
+			   else 
+			       deferred.resolve();
 		       });
+		   });
 	       }
-	       return new Q.Promise(function(resolve, reject) { resolve(); });
+	       return deferred.promise;
 	   };
 
 	   Simulator.prototype.getInternalTransitionIds = function( eventName, gmeId ) {
 	       var self = this;
 	       var node = self.nodes[ gmeId ];
-	       var intTransIds = [];
+	       var transIds = [];
 	       if (node)
-		   intTransIds = node.childrenIds.filter(function(cid) {
+		   transIds = node.childrenIds.filter(function(cid) {
 		       var child = self.nodes[ cid ];
 		       return child.type == 'Internal Transition' && child.Event == eventName;
 		   }).sort( self.transitionSort.bind(self) );
-	       return intTransIds;
+	       return transIds;
+	   };
+
+	   Simulator.prototype.getExternalTransitionIds = function( eventName, gmeId ) {
+	       var self = this;
+	       return self.getEdgesFromNode( gmeId ).filter(function(eid) {
+		   return self.nodes[ eid ].Event == eventName;
+	       }).sort( self.transitionSort.bind(self) );
 	   };
 
 	   Simulator.prototype.getEdgesFromNode = function( gmeId ) {
@@ -526,7 +504,7 @@ define(['js/util',
 	   Simulator.prototype.getTopLevelId = function( ) {
 	       var self = this;
 	       var top = Object.keys(self.nodes).filter(function(k) {
-		   return self.nodes[k].type == 'Task' || self.nodes[k].type == 'Timer';
+		   return rootTypes.indexOf( self.nodes[k].type ) > -1;
 	       });
 	       return top.length == 1 ? top[0] : null;
 	   };
@@ -568,14 +546,19 @@ define(['js/util',
 	       return initState;
 	   };
 
-	   Simulator.prototype.getNextState = function( edgeId ) {
+	   Simulator.prototype.getNextState = function( transId ) {
 	       var self = this;
 	       var nextState = null;
-	       var edge = self.nodes[ edgeId ];
-	       if (true) {  // edge) {
-		   var dstId = edge.dst;
-		   if (dstId) {
-		       nextState = self.getInitialState( dstId ); // will recurse
+	       var trans = self.nodes[ transId ];
+	       if (trans) {
+		   if (trans.type == 'External Transition') {
+		       var dstId = trans.dst;
+		       if (dstId) { // exte
+			   nextState = self.getInitialState( dstId ); // will recurse
+		       }
+		   }
+		   else if (trans.type == 'Internal Transition') {
+		       nextState = self.nodes[ trans.parentId ];
 		   }
 	       }
 	       return nextState;
@@ -805,15 +788,12 @@ define(['js/util',
 	       if (eventName == 'RESTART-HFSM') {
 		   self.initActiveState();
 	       }
+	       else if (eventName == 'Tick') {
+		   self.updateActiveState();
+	       }
 	       else {
 		   self.updateActiveState();
-		   self.handleEvent( eventName, self._activeState.id )
-		       .then(function() {
-			   self.hideStateInfo();
-			   self.displayStateInfo( self._activeState.id );
-			   if (self._stateChangedCallback)
-			       self._stateChangedCallback( self._activeState.id );
-		       });
+		   self.handleEvent( eventName, self._activeState.id );
 	       }
 	   };
 

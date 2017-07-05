@@ -55,7 +55,7 @@ define(['js/util',
 	       if (title == undefined) {
 		   title = 'Select choice:';
 	       }
-	       $(this._title).text(title);
+	       $(this._title).html(title);
                //this._dialog.modal({ show: false});
                this._dialog.modal({
 		   show: false,

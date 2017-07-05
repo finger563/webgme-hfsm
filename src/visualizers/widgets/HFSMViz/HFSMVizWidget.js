@@ -1050,12 +1050,6 @@ define([
 		    dstType == 'Shallow History Pseudostate')
 		    valid = false;
 	    }
-	    else if (srcType == 'Choice Pseudostate') {
-		if (dstType == 'Choice Pseudostate')
-		    valid = false;
-	    }
-	    else if (srcDesc.parentId == dstDesc.id)
-		valid = false;
 	    return valid;
 	};
 
