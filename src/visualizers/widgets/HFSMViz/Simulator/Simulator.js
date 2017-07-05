@@ -317,12 +317,22 @@ define(['js/util',
 			   break;
 		       }
 		       else if (guardless.length > 1 || (guardless.length != transitionIds.length)) {
-			   alert('Warning!\nCannot have more than one END transition\nNOT TRANSITIONING!');
+			   alert('Warning!\n'+
+				 'Cannot have more than one END transition!\n'+
+				 'NOT TRANSITIONING!');
 			   break;
 		       }
 		       else if (transitionIds.length) {
 			   // we have event-less transitions but they have guards this is illegal!
-			   alert('Warning!\nEND transitions cannot have guards!\nNOT TRANSITIONING!');
+			   alert('Warning!\n'+
+				 'END transitions cannot have guards!\n'+
+				 'NOT TRANSITIONING!');
+			   break;
+		       }
+		       else if (transitionIds.length == 0) {
+			   alert('Warning!\n'+
+				 'END states must be followed by END transitions in non-root states!\n'+
+				 'NOT TRANSITIONING!');
 			   break;
 		       }
 		       parentState = self.nodes [ parentState.parentId ];

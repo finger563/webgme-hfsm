@@ -69,6 +69,20 @@ node[NodeType = "Initial"] {
     color: black;
 }
 
+node[NodeType = "Internal Transition"] {
+    content: data(label);
+    width: 2;
+    height: 2;
+    shape: vee;
+
+    font-size: 8;
+    text-outline-width: 1;
+    text-outline-color: #fff;
+    text-outline-opacity: 1;
+    text-wrap: wrap;
+    text-max-width: 90px;
+}
+
 node[NodeType = "End State"] {
     background-image: assets/DecoratorSVG/svgs/endState.svg;
     background-image-opacity: 1.0;

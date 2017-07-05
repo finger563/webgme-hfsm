@@ -39,7 +39,8 @@ define([
 	cytoscape.use( coseBilkent );
 	//cytoscape.use( cyPopper, Popper );
 
-	var hideTypes = ['Internal Transition'];
+	var rootTypes = ['Task','Timer'];
+	var hideTypes = [];
 
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
@@ -94,6 +95,9 @@ define([
 		height = this._el.height(),
 		self = this;
 	    
+	    // Root Info
+	    this.HFSMName = '';
+
 	    // NODE RELATED DATA
             this.nodes = {};
 	    this.hiddenNodes = {};
@@ -435,7 +439,7 @@ define([
 		clear();
 	    });
 
-	    // LAYOUT AND RESET BUTTONS
+	    // BUTTON EVENT HANDLERS
 
 	    self._el.find('#re_layout').on('click', function(){
 		self.reLayout();
@@ -449,6 +453,29 @@ define([
 		    },
 		    duration: layoutDuration
 		});
+	    });
+
+	    function download(filename, text) {
+		var element = document.createElement('a');
+		element.setAttribute('href', text);
+		//element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+		element.setAttribute('download', filename);
+
+		element.style.display = 'none';
+		document.body.appendChild(element);
+
+		element.click();
+
+		document.body.removeChild(element);
+	    }
+
+	    self._el.find('#print').on('click', function(){
+		var png = self._cy.png({
+		    full: true,
+		    scale: 6,
+		    bg: 'white'
+		});
+		download( self.HFSMName + '-HFSM.png', png );
 	    });
 	};
 
@@ -548,7 +575,7 @@ define([
 			name: desc.name,
 			// source-label
 			// target-label
-			label: desc.text
+			label: desc.LABEL
 		    };
 		}
 	    }
@@ -559,7 +586,7 @@ define([
 		    type: desc.type,
 		    NodeType: desc.type,
 		    name: desc.name,
-		    label: desc.name,
+		    label: desc.LABEL,
 		};
 	    }
 	    return data;
@@ -606,6 +633,9 @@ define([
 	HFSMVizWidget.prototype.addNode = function (desc) {
 	    var self = this;
             if (desc) {
+		if ( rootTypes.indexOf( desc.type ) > -1 ) {
+		    self.HFSMName = desc.name;
+		}
 		var depsMet = self.checkDependencies(desc);
 		// Add node to a table of nodes
 		if (desc.isConnection) {  // if this is an edge
@@ -656,6 +686,9 @@ define([
 	    var self = this;
 	    // TODO: need to have this take into account hidden nodes!
             if (desc) {
+		if ( rootTypes.indexOf( desc.type ) > -1 ) {
+		    self.HFSMName = desc.name;
+		}
 		var oldDesc = this.nodes[desc.id];
 		if (oldDesc) {
 		    var idTag = desc.id.replace(/\//gm, "\\/");
@@ -959,6 +992,8 @@ define([
 	    var self = this;
 	    if (desc.type == 'End State')
 		return false;
+	    else if (desc.type == 'Internal Transition')
+		return false;
 	    else if (desc.type == 'Deep History Pseudostate')
 		return false;
 	    else if (desc.type == 'Shallow History Pseudostate')
@@ -980,6 +1015,7 @@ define([
 	    var self = this;
 	    if (desc.type == 'Initial' ||
 		desc.type == 'End State' ||
+		desc.type == 'Internal Transition' ||
 		desc.type == 'Deep History Pseudostate' ||
 		desc.type == 'Shallow History Pseudostate' ||
 		desc.type == 'Choice Pseudostate')
@@ -998,6 +1034,10 @@ define([
 	    else if (dstType == 'Task')
 		valid = false;
 	    else if (dstType == 'Timer')
+		valid = false;
+	    else if (dstType == 'Internal Transition')
+		valid = false;
+	    else if (srcType == 'Internal Transition')
 		valid = false;
 	    else if (srcType == 'End State')
 		valid = false;
