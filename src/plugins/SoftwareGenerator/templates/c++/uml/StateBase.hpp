@@ -67,8 +67,8 @@ namespace StateMachine {
     virtual StateMachine::StateBase* getInitial ( void );
 
     /**
-     * @brief Will return _activeState if it exists, otherwise
-     *  will return nullptr.
+     * @brief Will return _activeState if it exists, otherwise will
+     *  return nullptr.
      *
      * @return StateBase*  Pointer to last active substate
      */
@@ -76,6 +76,19 @@ namespace StateMachine {
       return _activeState;
     }
 
+    /**
+     * @brief Will return the active leaf state, otherwise will return
+     *  nullptr.
+     *
+     * @return StateBase*  Pointer to last active leaf state.
+     */
+    StateMachine::StateBase*  getActiveLeaf ( void ) {
+      if (_activeState != nullptr)
+	return _activeState->getActiveLeaf();
+      else
+	return this;
+    }
+    
     /**
      * @brief Will return _activeState if it exists, otherwise
      *  will return the initial state.

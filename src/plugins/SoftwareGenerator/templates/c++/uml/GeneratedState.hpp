@@ -79,6 +79,10 @@ namespace StateMachine {
      */
     bool                     handleEvent ( StateMachine::Event* event ) {
       bool handled = false;
+
+      // Get the currently active leaf state
+      StateMachine::StateBase* activeLeaf = getActiveLeaf();
+
       // handle internal transitions first
       switch ( event->type() ) {
 <%
@@ -109,70 +113,9 @@ state.ExternalTransitions.map(function(trans) {
 <%
   if ( trans.finalState.type == 'Choice Pseudostate' ) {
 -%>
-	    // We are going into a choice state, need to make sure we
-	    // check all the outgoing transitions' guards and decide
-	    // which state to go into, and run all the proper Actions,
-	    // exit()s and entry()s.
-
-            if ( false ) { } // just to have easier code generation :)
-<%
-    trans.finalState.ExternalTransitions.map(function(choiceTrans) {
--%>
-	    else if ( <%- choiceTrans.Guard %> ) {
-	      // set the new active state
-	      <%- choiceTrans.finalState.VariableName %>->makeActive();
-	      // call the exit() function for the old state
-	      <%- trans.prevState.VariableName %>->exit();
-	      // run the transition function (s)
-<%- trans.transitionFunc %>
-<%- choiceTrans.transitionFunc %>
-              // call the entry() function for the new state from the
-	      // common parent
-	      <%- choiceTrans.commonParent %>->entry();
-	      // make sure nothing else handles this event
-	      handled = true;
-	    }
-<%
-    });
--%>
-<%
-    if (trans.finalState.defaultTransition) {
--%>
-	    else {
-	      // set the new active state
-	      <%- trans.finalState.defaultTransition.finalState.VariableName %>->makeActive();
-	      // call the exit() function for the old state
-	      <%- trans.prevState.VariableName %>->exit();
-	      // run the transition function (s)
-<%- trans.transitionFunc %>
-<%- trans.finalState.defaultTransition.transitionFunc %>
-              // call the entry() function for the new state from the
-	      // common parent
-	      <%- trans.finalState.defaultTransition.commonParent %>->entry();
-	      // make sure nothing else handles this event
-	      handled = true;
-	    }
-<%
-    }
--%>
-<%
-  } else if ( trans.finalState.type == 'End State' ) {
--%>
-	    // We are going into an end state, need to make sure we go
-	    // to the correct final state and run all the proper
-	    // Actions, exit()s, and entry()s.
-
-	    // set the new active state
-	    <%- trans.finalState.VariableName %>->makeActive();
-            // call the exit() function for the old state
-	    <%- trans.prevState.VariableName %>->exit();
-            // run the transition function (s)
-<%- trans.transitionFunc %>
-            // call the entry() function for the new state from the
-            // common parent
-            <%- trans.commonParent %>->entry();
-            // make sure nothing else handles this event
-	    handled = true;
+            // Going into a choice pseudo-state, let it handle its
+            // guards and perform the state transition
+            handled = <%- trans.finalState.VariableName %>->handleChoice();
 <%
   } else {
 -%>
@@ -184,12 +127,12 @@ state.ExternalTransitions.map(function(trans) {
 	    // set the new active state
 	    <%- trans.finalState.VariableName %>->makeActive();
             // call the exit() function for the old state
-	    <%- trans.prevState.VariableName %>->exit();
+	    <%- trans.originalState.VariableName %>->exit();
             // run the transition function (s)
 <%- trans.transitionFunc %>
-            // call the entry() function for the new state from the
-            // common parent
-            <%- trans.commonParent %>->entry();
+            // call the entry() function for the new branch from the
+            // common parent's new active child
+            <%- trans.newBranchState %>->entry();
             // make sure nothing else handles this event
 	    handled = true;
 <%
