@@ -214,13 +214,13 @@ define([
 		// Maximum number of iterations to perform
 		numIter: 2500,
 		// For enabling tiling
-		tile: false,   // true
+		tile: true,   // true
 		// Type of layout animation. The option set is {'during', 'end', false}
 		animate: 'end',
 		// Represents the amount of the vertical space to put between the zero degree members during the tiling operation(can also be a function)
 		tilingPaddingVertical: 10,
 		// Represents the amount of the horizontal space to put between the zero degree members during the tiling operation(can also be a function)
-		tilingPaddingHorizontal: 10,
+		tilingPaddingHorizontal: 50,
 		// Gravity range (constant) for compounds
 		gravityRangeCompound: 1.5,
 		// Gravity force (constant) for compounds
