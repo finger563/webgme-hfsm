@@ -1,4 +1,5 @@
 define(['mustache/mustache',
+	'./uml/Templates',
 	'text!./component.mk',
 	'text!./main.cpp',
 	'text!./Task.cpp',
@@ -8,6 +9,7 @@ define(['mustache/mustache',
 	'text!./Comp.cpp',
 	'text!./Comp.hpp'],
        function(mustache,
+		UMLTemplates,
 		compMk,
 		mainCppTempl,
 		TaskCppTempl,
@@ -38,6 +40,14 @@ define(['mustache/mustache',
 		   "main": {
 		       "{{base}}/main.cpp": mainCppTempl,
 		   },
+	       },
+	       renderEnd: function( obj ) {
+	       },
+	       renderDeepHistory: function( obj ) {
+	       },
+	       renderShallowHistory: function( obj ) {
+	       },
+	       renderChoice: function( obj ) {
 	       },
 	       renderState: function( obj ) {
 	       },
