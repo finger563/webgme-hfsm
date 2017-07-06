@@ -40,7 +40,6 @@ define([
 	//cytoscape.use( cyPopper, Popper );
 
 	var rootTypes = ['Task','Timer'];
-	var hideTypes = [];
 
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
@@ -592,22 +591,16 @@ define([
 	    return data;
 	};
 
-	HFSMVizWidget.prototype.isHidden = function(desc) {
-	    return hideTypes.indexOf( desc.type ) > -1;
-	};
-
 	HFSMVizWidget.prototype.createEdge = function(desc) {
 	    var self = this;
 	    if (desc && desc.src && desc.dst) {
+		self.forceShowBranch( desc.parentId );
 		var data = self.getDescData(desc);
 		if (data) {
-		    if (!self.isHidden( desc )) {
-			self._cy.add({
-			    group: 'edges',
-			    data: data,
-			    
-			});
-		    }
+		    self._cy.add({
+			group: 'edges',
+			data: data,
+		    });
 		    self.nodes[desc.id] = desc;
 		    self.updateDependencies();
 		}
@@ -616,14 +609,13 @@ define([
 
 	HFSMVizWidget.prototype.createNode = function(desc) {
 	    var self = this;
+	    self.forceShowBranch( desc.parentId );
 	    var data = self.getDescData(desc);
-	    if (!self.isHidden(desc)) {
-		var node = {
-		    group: 'nodes',
-		    data: data
-		};
-		self._cy.add(node);
-	    }
+	    var node = {
+		group: 'nodes',
+		data: data
+	    };
+	    self._cy.add(node);
 	    self.nodes[desc.id] = desc;
 	    self.updateDependencies();
 	    self.debouncedReLayout();
@@ -658,25 +650,23 @@ define([
 	    var idTag = gmeId.replace(/\//gm, "\\/");
             var desc = self.nodes[gmeId];
 	    if (desc) {
+		self.forceShowBranch( gmeId );
 		if (!desc.isConnection) {
 		    delete self.dependencies.nodes[gmeId];
-		    if (!self.isHidden( desc ) ) {
-			self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
-			    if (ele && ele.isEdge()) {
-				var edgeId = ele.data( 'id' );
-				var edgeDesc = self.nodes[edgeId];
-				self.checkDependencies(edgeDesc);
-			    }
-			});
-		    }
+		    self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
+			if (ele && ele.isEdge()) {
+			    var edgeId = ele.data( 'id' );
+			    var edgeDesc = self.nodes[edgeId];
+			    self.checkDependencies(edgeDesc);
+			}
+		    });
 		}
 		else {
 		    delete self.dependencies.edges[gmeId];
 		}
 		delete self.nodes[gmeId];
 		delete self.waitingNodes[gmeId];
-		if (!self.isHidden( desc ))
-		    self._cy.remove("#" + idTag);
+		self._cy.remove("#" + idTag);
 		self.updateDependencies();
 		self._simulator.update( );
 	    }
@@ -754,35 +744,39 @@ define([
 	    self._client.completeTransaction();
 	};
 
-	HFSMVizWidget.prototype.getHiddenChildren = function( node ) {
+	HFSMVizWidget.prototype.getHiddenChildren = function( nodeId ) {
 	    var self = this;
-	    return self.hiddenNodes[node.id()];
+	    return self.hiddenNodes[ nodeId ];
 	};
 
-	HFSMVizWidget.prototype.hasHiddenChildren = function( node ) {
+	HFSMVizWidget.prototype.hasHiddenChildren = function( nodeId ) {
 	    var self = this;
-	    return self.getHiddenChildren(node) != null;
+	    return self.getHiddenChildren( nodeId ) != null;
 	};
 
-	HFSMVizWidget.prototype.isCompoundNode = function( node ) {
+	HFSMVizWidget.prototype.forceShowBranch = function ( nodeId ) {
 	    var self = this;
-	    return node.isParent() || self.hasHiddenChildren( node );
+	    var node = self.nodes[ nodeId ];
+	    if ( node && node.parentId ) {
+		self.forceShowBranch( node.parentId );
+	    }
+	    self.forceShowChildren( nodeId );
 	};
 
-	HFSMVizWidget.prototype.forceShowChildren = function ( node ) {
+	HFSMVizWidget.prototype.forceShowChildren = function ( nodeId ) {
 	    var self = this;
-	    var hidden = self.getHiddenChildren( node );
+	    var hidden = self.getHiddenChildren( nodeId );
 	    if (hidden && hidden.nodes && hidden.edges) {
 		// currently false, reenable show children
 		hidden.nodes.restore();
 		hidden.edges.restore();
-		delete self.hiddenNodes[node.id()];
+		delete self.hiddenNodes[nodeId];
 	    }
 	};
 
 	HFSMVizWidget.prototype.toggleShowChildren = function ( node ) {
 	    var self = this;
-	    var hidden = self.getHiddenChildren( node );
+	    var hidden = self.getHiddenChildren( node.id() );
 	    if (node.isParent()) {
 		// currently true, disable show children
 		var children, descendants, edges;
@@ -892,11 +886,11 @@ define([
 		    parentId: parentId,
 		    baseId: nodeId,
 		};
-		self.forceShowChildren( cyNode );
+		self.forceShowChildren( cyNode.id() );
 		client.createChild(childCreationParams, 'Creating new child');
 	    }
 	    else {
-		self.forceShowChildren( cyNode );
+		self.forceShowChildren( cyNode.id() );
 		var params = {parentId: parentId};
 		params[nodeId] = {};
 		client.startTransaction();
