@@ -5,6 +5,10 @@ bool {{{fullyQualifiedName}}}::handleChoice ( StateMachine::StateBase* activeLea
   // check all the outgoing transitions' guards and decide
   // which state to go into, and run all the proper Actions,
   // exit()s and entry()s.
+  // 
+  // need to figure out how to gett the active branch properly, how to
+  // call all the right transition actions, and how to call all the
+  // right exit / entry actions
   switch ( event->type() ) {
   {{#ExternalEvents}}
   {{> ExternalEventTempl }}

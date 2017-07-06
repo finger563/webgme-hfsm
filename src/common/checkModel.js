@@ -39,7 +39,6 @@ define([], function() {
 	     *   * Cannot have multiple or guarded end transitions 
 	     *   * Multiple transitions with same event / guard
 	     *   * Multiple events with similar names (only change would be capitalization)
-	     *   * Choice states chained together (not allowed)
 	     */
 	    var self = this;
 	    var topLevelStateNames = [];
@@ -104,6 +103,7 @@ define([], function() {
 		    // checks:
 		    // * name is good,
 		    // * name is unique within siblings
+		    // * only one 'Initial'
 		    // * only one end transition with no guard / event,
 		    self.checkName( obj );
 		    var parentObj = model.objects[obj.parentPath];
@@ -120,18 +120,30 @@ define([], function() {
 			    self.error(obj, "Two top-level states have the same name: " + obj.name);
 			topLevelStateNames.push(obj.name);
 		    }
-		    var extTrans = self.getTransitionsOutOf( obj, model.objects ).filter(function(t) {
-			return !self.hasEvent( t );
-		    });
+		    // only one Initial
+		    if (obj.Initial_list) {
+			if (obj.Initial_list > 1)
+			    self.error(obj, "State cannot have more than one initial state!");
+			var initTrans = self.getTransitionsOutOf( obj.Initial_list[0], model.objects );
+			if (initTrans.length != 1)
+			    self.error(obj, "State must have an initial sub state selected!");
+		    }
 		    // only one END TRANSITION and it has no guard
-		    if (extTrans.length > 1)
+		    var endTrans = self.getEndTransitions( obj, model.objects );
+		    if (endTrans.length > 1)
 			self.error(obj, "State cannot have more than one END TRANSITION!");
-		    else if (extTrans.length == 1 && self.hasGuard( extTrans[0] ))
+		    else if (endTrans.length == 1 && self.hasGuard( endTrans[0] ))
 			self.error(obj, "END TRANSITION cannot have gaurd!");
 		}
 	    });
 	},
 	// MODEL TRAVERSAL
+	getEndTransitions: function( stateObj, objDict ) {
+	    var self = this;
+	    return self.getTransitionsOutOf( stateObj, objDict ).filter(function(t) {
+		return !self.hasEvent( t );
+	    });
+	},
 	getTransitionsOutOf: function( srcObj, objDict ) {
 	    return Object.keys( objDict ).filter(function(path) {
 		var obj = objDict[path];

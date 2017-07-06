@@ -5,8 +5,7 @@ define(['mustache/mustache',
 	'text!./StateTempl.hpp',
 	'text!./StateTempl.cpp',
 	'text!./GeneratedStates.hpp',
-	'text!./GeneratedStates.cpp',
-	'text!./ChoiceStateTempl.hpp'],
+	'text!./GeneratedStates.cpp'],
        function(mustache,
 		EventTempl,
 		InternalEventTempl,
@@ -14,8 +13,7 @@ define(['mustache/mustache',
 		StateTemplHpp,
 		StateTemplCpp,
 		GeneratedStatesTemplHpp,
-		GeneratedStatesTemplCpp,
-		ChoiceTempl) {
+		GeneratedStatesTemplCpp) {
 	   'use strict';
 
 	   var Partials = {
@@ -26,7 +24,6 @@ define(['mustache/mustache',
 	       StateTemplCpp: StateTemplCpp,
 	       GeneratedStatesTemplHpp: GeneratedStatesTemplHpp,
 	       GeneratedStatesTemplCpp: GeneratedStatesTemplCpp,
-	       ChoiceTempl: ChoiceTempl,
 	   };
 
 	   var rootTemplates = ["GeneratedStatesTemplHpp",
@@ -49,13 +46,20 @@ define(['mustache/mustache',
 	       return mustache.render( keyTempl, root );
 	   };
 
+	   function getContext( templName, root ) {
+	       var key = getKey( templName );
+	       return Object.assign({
+		   key: key,
+		   dependencies: (dependencies[templName] || []).map(function(dep) { return getKey( dep, root ); })
+	       }, root);
+	   };
+
 	   return {
 	       renderEvents: function(root) {
 		   var templName = "EventTempl";
 		   var retObj = {};
 		   var key = getKey( templName, root );
-		   var context = Object.assign({ key: key }, root);
-		   console.log(context);
+		   var context = getContext( templName, root );
 		   retObj[ key ] = mustache.render(
 		       Partials[ templName ],
 		       context,
@@ -67,10 +71,7 @@ define(['mustache/mustache',
 		   var rendered = {};
 		   rootTemplates.map(function(rootTemplName) {
 		       var key = getKey( rootTemplName, root );
-		       var context = Object.assign({
-			   key: key,
-			   dependencies: (dependencies[rootTemplName] || []).map(function(dep) { return getKey( dep, root ); })
-		       }, root);
+		       var context = getContext( rootTemplName, root );
 		       rendered[ key ] = mustache.render(
 			   Partials[ rootTemplName ],
 			   context,

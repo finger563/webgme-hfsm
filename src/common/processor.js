@@ -84,11 +84,11 @@ define(['./checkModel'], function(checkModel) {
 		    if ( src && dst ) {
 			// valid transition with source and destination pointers in the tree
 			// add new data to the object
-			obj.prevState = model.objects[src.path];
-			obj.nextState = model.objects[dst.path];
+			obj.prevState = src;
+			obj.nextState = dst;
 			obj.commonParent = null;
 			obj.originalState =  null;
-			obj.finalState = null;
+			obj.finalState = self.getFinalState( model, obj.path );
 			obj.transitionFunc = '';
 
 			if (obj.Event) {
@@ -202,6 +202,35 @@ define(['./checkModel'], function(checkModel) {
 	    //self.findCommonParents(model);
 	},
 	// MAKE CONVENIENCE FOR WHAT EVENTS ARE HANDLED BY WHICH STATES
+	makeEndConvenience: function( obj, objDict ) {
+	    // Make sure we know where the end state will go so that
+	    // we can directly render it
+	    var self = this;
+	},
+	makeInitialConvenience: function( obj, objDict ) {
+	    // Make sure we know where the initial state will go so
+	    // that we can directly render it
+	    var self = this;
+	},
+	makeChoiceConvenience: function( obj, objDict ) {
+	    // makes sure we know which state we came from, what
+	    // transitions we used to get here, and what the possible
+	    // states we are going to are. Need to be able to figure
+	    // these out statically in the model so that we can
+	    // generate all the possibilities directly into
+	    // conditionals and then properly perform the exit,
+	    // transition, and entry actions
+	    var self = this;
+	    // Need to make sure we fully follow the path until we
+	    // terminate in one of:
+	    //  * Leaf State
+	    //  * Final End State
+	    //  * Deep History Pseudostate
+	    //  * Shallow History Pseudostate
+	    //
+	    // Should replace the 'finalState' that the transition
+	    // pionting to this state goes to?
+	},
 	makeSubstate: function(obj, objDict) {
 	    var parent = objDict[ obj.parentPath ];
 	    if (parent) {
@@ -228,11 +257,21 @@ define(['./checkModel'], function(checkModel) {
 		    obj.fullyQualifiedName = self.getFullyQualifiedName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
+		    // make convenience members for choice pseudostates
+		    self.makeChoiceConvenience( obj, model.objects );
 		}
 		else if (obj.type == 'State') {
 		    obj.fullyQualifiedName = self.getFullyQualifiedName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
+		}
+		else if (obj.type == 'End State') {
+		    // make convenience members for choice pseudostates
+		    self.makeEndConvenience( obj, model.objects );
+		}
+		else if (obj.type == 'Initial') {
+		    // make convenience members for choice pseudostates
+		    self.makeInitialConvenience( obj, model.objects );
 		}
 	    });
 	},
@@ -282,6 +321,29 @@ define(['./checkModel'], function(checkModel) {
 	},
 	// END CONVENIENCE
 	// MODEL TRAVERSAL
+	getNewBranchRoot: function( model, transitionId ) {
+	    var self = this;
+	    // figures out for a given transition, what the new branch
+	    // root will be (i.e. the new active child of the common
+	    // parent of oldActive and newActive
+	},
+	getEndState: function( model, endStateId ) {
+	    var self = this;
+	    // Starting from an actual end state, (i.e. one whose type
+	    // is 'End State'), go up through parent follow all end
+	    // transitions to retun the actual ending state.
+	    var endState = model.objects[ endStateId ];
+	    var endParent = model.objects[ endState.parentPath ];
+	    while (endParent.type == 'State') {
+		var endTrans = checkModel.getEndTransitions( endParent, model.objects );
+		if (endTrans.length == 1) {
+		    endState = self.getFinalState( model, endTrans[0].path );
+		    break;
+		}
+		endParent = model.objects[ endParent.parentPath ];
+	    }
+	    return endState;
+	},
 	getFinalState: function( model, transitionId ) {
 	    var self = this;
 	    // follows transitions recursively through select
@@ -296,7 +358,18 @@ define(['./checkModel'], function(checkModel) {
 	    //   * Deep History Pseudostates
 	    //   * Shallow History Pseudostates
 	    var transition = model.objects[ transitionId ];
-	    
+	    console.log( transitionId );
+	    console.log( transition );
+	    var dst = model.objects[ transition.pointers['dst'] ];
+	    if (dst.type == 'End State') {
+		dst = self.getEndState( model, dst.path );
+	    }
+	    else if (dst.type == 'Choice Pseudostate') {
+	    }
+	    else {
+		dst = self.getStartLeafState( dst, model );
+	    }
+	    return dst;
 	},
 	findCommonParents: function(model) {
 	    var self = this;
@@ -337,7 +410,18 @@ define(['./checkModel'], function(checkModel) {
 		});
 	    }
 	},
-	getInitState: function(state) {
+	getStartLeafState: function( state, model ) {
+	    var self = this;
+	    var initState = state;
+	    if (state.State_list && state.Initial_list) {
+		var i = state.Initial_list[0];
+		var initTrans = checkModel.getTransitionsOutOf( i, model.objects );
+		var childState = model.objects[ initTrans[0].pointers['dst'] ];
+		initState = self.getStartLeafState( childState, model );
+	    }
+	    return initState;
+	},
+	getInitState: function(state, model) {
 	    // does not recurse; simply gets the init state and does error checking
 	    var self = this;
 	    var initState = state;
@@ -345,7 +429,8 @@ define(['./checkModel'], function(checkModel) {
                 if (state.Initial_list.length > 1)
                     throw new String("State " + state.name + ", " +state.path+" has more than one init state!");
                 var init = state.Initial_list[0];
-                if (init.transitions.length == 1) {
+		var initTrans = checkModel.getTransitionsOutOf( init, model.objects );
+                if (initTrans.length == 1) {
 		    initState = init;
                 }
                 else {
