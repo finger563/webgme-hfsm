@@ -11,9 +11,9 @@ namespace StateMachine {
   public:
     enum class Type {
       _StateMachineTick_,
-      {{#Events}}
-      {{name}},
-      {{/Events}}
+      {{#eventNames}}
+      {{{.}}},
+      {{/eventNames}}
     }; // ENUMS GENERATED FROM MODEL
 
     /**
@@ -55,11 +55,11 @@ namespace StateMachine {
     static std::string toString ( Event& e ) {
       std::string eventString = "";
       switch ( e._t ) {
-	{{#Events}}
-        case {{name}}:
-          eventString = "{{name}}";
+	{{#eventNames}}
+        case {{{.}}}:
+          eventString = "{{{.}}}";
 	  break;
-	{{/Events}}
+	{{/eventNames}}
       default:
 	break;
       }

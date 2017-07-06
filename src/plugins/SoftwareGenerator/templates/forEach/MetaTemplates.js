@@ -26,7 +26,7 @@ define(['mustache/mustache',
 		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": CompHppTempl,
 		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": CompCppTempl,
 		       "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
-		   }
+		   },
 		   "Task": {
 		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": TaskHppTempl,
 		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": TaskCppTempl,
@@ -55,6 +55,26 @@ define(['mustache/mustache',
 		   var self    = this;
 		   var objects = model.objects;
 		   var root    = model.root;
+		   var rootTypes = ['Task','Timer'];
+		   var generatedArtifacts = [];
+		   rootTypes.map(function(rootType) {
+		       var rootTypeList = root[ rootType + '_list' ];
+		       if (rootTypeList) {
+			   rootTypeList.map(function(obj) {
+			       generatedArtifacts = generatedArtifacts.concat(
+				   UMLTemplates.renderStates( obj )
+			       );
+			   });
+		       }
+		   });
+		   generatedArtifacts = generatedArtifacts.concat(
+		       UMLTemplates.renderEvents( model )
+		   );
+		       
+		   generatedArtifacts.map(function(ga) {
+		       console.log( ga );
+		   });
+		   return generatedArtifacts;
 	       },
 	       getArtifacts: function(pathToObjDict, baseDir) {
 		   var self = this;

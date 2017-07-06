@@ -25,7 +25,9 @@ define(['q'], function(Q) {
 	    });
 	},
 	addEvent: function(model, eventName) {
-	    model.eventNames.push( eventName.toUpperCase().trim() );
+	    eventName = eventName.toUpperCase().trim();
+	    if (eventName)
+		model.eventNames.push( eventName );
 	},
 	sanitizeString: function(str) {
 	    return str.replace(/[ \-]/gi,'_');
@@ -34,11 +36,6 @@ define(['q'], function(Q) {
 	    var varDeclExp = new RegExp(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi);
 	    return varDeclExp.test(str);
 	},
-	checkName: function( obj ) {
-	    var self = this;
-	    if (!self.isValidString( obj.name ))
-		throw "ERROR: "+obj.path+" has invalid name: "+obj.name;
-	},
 	addVariableName: function(obj) {
 	    var self = this;
 	    obj.VariableName = self.sanitizeString(obj.name).toUpperCase();
@@ -46,7 +43,8 @@ define(['q'], function(Q) {
 	processTopLevel: function(obj) {
 	    var self = this;
 	    var sName = self.sanitizeString(obj.name);
-	    self.checkName( obj );
+	    if ( !self.isValidString( sName ) )
+		throw "ERROR: "+obj.path+" has invalid name: "+obj.name;
 	    obj.sanitizedName = sName;
 	    if (obj.Declarations) {
 		obj.Declarations = obj.Declarations.replace(self.stripRegex, "  $1");
@@ -54,6 +52,9 @@ define(['q'], function(Q) {
 	    if (obj.Definitions) {
 		obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
 	    }
+	},
+	checkModel: function(model) {
+	    // throws an error of model is not valid
 	},
 	processModel: function(model) {
 	    var self = this;
@@ -77,7 +78,8 @@ define(['q'], function(Q) {
 		// information exists
 		else if (obj.type == 'Component') {
 		    var compName = self.sanitizeString(obj.name);
-		    self.checkName( obj );
+		    if (!self.isValidString( compName ))
+			throw "ERROR: "+obj.path+" has invalid name: "+obj.name;
 		    obj.needsExtern = obj.Language == 'c';
 		    obj.compName = compName;
 		    obj.includeName = compName + ((obj.Language == 'c++') ? '.hpp' : '.h');
@@ -91,24 +93,20 @@ define(['q'], function(Q) {
 			dst = model.objects[obj.pointers['dst']];
 		    if ( src && dst ) {
 			// valid transition with source and destination pointers in the tree
-			if (!src.transitions) {
-			    src.transitions = []
-			}
+			// add new data to the object
+			obj.prevState = model.objects[src.path];
+			obj.nextState = model.objects[dst.path];
+			obj.commonParent = null;
+			obj.originalState =  null;
+			obj.finalState = null;
+			obj.transitionFunc = '';
+
 			// add the event to a global list of events
 			self.addEvent( model, obj.Event );
 			// add the external transition to the source
-			src.transitions.push({
-			    'Event' : obj.Event,
-			    'Guard' : obj.Guard,
-			    'Action' : obj.Action,
-			    'prevState' : model.objects[src.path],
-			    'nextState' : model.objects[dst.path],
-			    'commonParent': null,
-			    'originalState': null,
-			    'finalState': null,
-			    'transitionFunc': ''
-			});
-			
+			self.updateEventInfo( 'ExternalEvents',
+					      src,
+					      obj );
 		    }
 		}
 		// Process Internal Transition Data into convenience
@@ -116,17 +114,12 @@ define(['q'], function(Q) {
 		else if (obj.type == 'Internal Transition') {
 		    var parent = model.objects[ obj.parentPath ];
 		    if (parent) {
-			if (!parent.InternalTransitions) {
-			    parent.InternalTransitions = []
-			}
 			// add the event to a global list of events
 			self.addEvent( model, obj.Event );
 			// add the internal transition to the parent
-			parent.InternalTransitions.push({
-			    'Event' : obj.Event,
-			    'Guard' : obj.Guard,
-			    'Action': obj.Action,
-			});
+			self.updateEventInfo( 'InternalEvents',
+					      parent,
+					      obj );
 		    }
 		}
 		// Process End State Data
@@ -165,7 +158,8 @@ define(['q'], function(Q) {
 		// make the state names for the variables and such
 		else if (obj.type == 'State') {
 		    var stateName = self.sanitizeString(obj.name);
-		    self.checkName( obj );
+		    if (!self.isValidString( stateName ))
+			throw "ERROR: "+obj.path+" has invalid name: "+obj.name;
 		    var parentObj = model.objects[obj.parentPath];
 		    // make sure no direct siblings of this state share its name
 		    obj.parentState = null;
@@ -198,18 +192,46 @@ define(['q'], function(Q) {
 			obj.State_list = null;
 		    }
 		    // update the prefix for the state function
-		    obj['Periodic Function'] = obj['Periodic Function'].replace(self.stripRegex, "      $1");
-		    obj['Finalization'] = obj['Finalization'].replace(self.stripRegex, "    $1");
+		    obj['Tick'] = obj['Tick'].replace(self.stripRegex, "      $1");
+		    obj['Exit'] = obj['Exit'].replace(self.stripRegex, "    $1");
 		}
 	    });
-	    // figure out heirarchy levels and assign state ids
-	    self.makeStateIDs(model);
+	    // make sure event names are global and sort them
+	    model.eventNames = self.uniq( model.eventNames ).sort();
 	    // make sure all state.transitions have valid .transitionFunc attributes
-	    self.buildTransitionFuncs(model);
+	    //self.buildTransitionFuncs(model);
 	    // make sure all transitions have valid .commonParent attributes
-	    self.findCommonParents(model);
+	    //self.findCommonParents(model);
 	},
-	getFinalState: function( transitionId ) {
+	// MAKE CONVENIENCE FOR WHAT EVENTS ARE HANDLED BY WHICH STATES
+	getEventInfo: function( key, obj, eventName ) {
+	    var self = this;
+	    var eventInfo = obj[ key ]; // should be list of objects { name: , Transitions: }
+	    if (eventInfo == undefined) {
+		// have not had any events
+		obj[ key ] = [ { name: eventName, Transitions: [] } ];
+		eventInfo = obj[ key ];
+	    }
+	    eventInfo = eventInfo.filter(function(o) { return o.name == eventName; });
+	    if (eventInfo.length == 0) {
+		// have had other events, but not this one
+		eventInfo = { name: eventName, Transitions: [] };
+		obj[ key ].push( eventInfo );
+	    }
+	    else {
+		// have had this event
+		eventInfo = eventInfo[0];
+	    }
+	    return eventInfo;
+	},
+	updateEventInfo: function( key, obj, transition ) {
+	    var self = this;
+	    var eventInfo = self.getEventInfo( key, obj, transition.Event );
+	    eventInfo.Transitions.push( transition );
+	},
+	// END CONVENIENCE
+	// MODEL TRAVERSAL
+	getFinalState: function( model, transitionId ) {
 	    var self = this;
 	    // follows transitions recursively through select
 	    //  pseudostates to return the final state to which this
@@ -222,8 +244,33 @@ define(['q'], function(Q) {
 	    //   * Choice Pseudostates
 	    //   * Deep History Pseudostates
 	    //   * Shallow History Pseudostates
-	    var transition = 
-	};
+	    var transition = model.objects[ transitionId ];
+	    
+	},
+	findCommonParents: function(model) {
+	    var self = this;
+	    var objPaths = Object.keys(model.objects);
+	    var padStr = '      $1';
+	    objPaths.map(function(objPath) {
+		var obj = model.objects[objPath];
+		if (obj.type == "Task" || obj.type == "Timer") {
+		    obj.initState = self.getStartState(obj);
+		    obj.initFunc = self.getInitFunc(obj);
+		}
+		else if (obj.type == "State") {
+		    obj.transitions.map(function(trans) {
+			trans.transitionFunc = '';
+			if (trans.Function)
+			    trans.transitionFunc += trans.Function + '\n';
+			trans.transitionFunc += self.getInitFunc(trans.nextState);
+			// update the prefix for the transition function
+			trans.transitionFunc = trans.transitionFunc.replace(self.stripRegex, padStr);
+			trans.finalState = self.getStartState(trans.nextState);
+		    });
+		}
+	    });
+	},
+	// END MODEL TRAVERSAL
 	recurseStates: function(state, levels, level) {
 	    var self = this;
 	    if (levels.length <= level) {
@@ -236,31 +283,6 @@ define(['q'], function(Q) {
 	    if (state.State_list) {
 		state.State_list.map(function(substate) {
 		    self.recurseStates(substate, levels, level + 1);
-		});
-	    }
-	},
-	makeStateIDs: function(model) {
-	    var self = this;
-	    if (model.root.Task_list) {
-		model.root.Task_list.map(function(task) {
-		    var levels = [];
-		    if (task.State_list) {
-			task.State_list.map(function(state) {
-			    self.recurseStates(state, levels, 0);
-			});
-		    }
-		    task.numHeirarchyLevels = levels.length;
-		});
-	    }
-	    if (model.root.Timer_list) {
-		model.root.Timer_list.map(function(timer) {
-		    var levels = [];
-		    if (timer.State_list) {
-			timer.State_list.map(function(state) {
-			    self.recurseStates(state, levels, 0);
-			});
-		    }
-		    timer.numHeirarchyLevels = levels.length;
 		});
 	    }
 	},
@@ -312,29 +334,6 @@ define(['q'], function(Q) {
             return start;
 	},
 	buildTransitionFuncs: function(model) {
-	    var self = this;
-	    var objPaths = Object.keys(model.objects);
-	    var padStr = '      $1';
-	    objPaths.map(function(objPath) {
-		var obj = model.objects[objPath];
-		if (obj.type == "Task" || obj.type == "Timer") {
-		    obj.initState = self.getStartState(obj);
-		    obj.initFunc = self.getInitFunc(obj);
-		}
-		else if (obj.type == "State") {
-		    obj.transitions.map(function(trans) {
-			trans.transitionFunc = '';
-			if (trans.Function)
-			    trans.transitionFunc += trans.Function + '\n';
-			trans.transitionFunc += self.getInitFunc(trans.nextState);
-			// update the prefix for the transition function
-			trans.transitionFunc = trans.transitionFunc.replace(self.stripRegex, padStr);
-			trans.finalState = self.getStartState(trans.nextState);
-		    });
-		}
-	    });
-	},
-	findCommonParents: function(model) {
 	    var self = this;
 	    var objPaths = Object.keys(model.objects);
 	    var padStr = '      $1';

@@ -1,0 +1,12 @@
+case {{{name}}}:
+  if ( false ) {  // makes generation easier :)
+  }
+  {{#Transitions}}
+  else if ( {{{Guard}}} ) {
+    // run transition action
+    {{{Action}}}
+    // make sure nothing else handles this event
+    handled = true;
+  }
+  {{/Transitions}}
+  break;

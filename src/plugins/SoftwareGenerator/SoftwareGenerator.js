@@ -111,7 +111,8 @@ define([
   	    .then(function (projectModel) {
 		// make convenience members and extra data
 		processor.processModel(projectModel);
-		self.projectModel = projectModel.root;
+		self.projectModel = projectModel;
+		self.projectRoot = projectModel.root;
 		self.projectObjects = projectModel.objects;
   	    })
 	    .then(function () {
@@ -153,7 +154,7 @@ define([
     SoftwareGenerator.prototype.getData = function(obj) {
 	var self = this;
 	return {
-	    'model': self.projectModel,
+	    'model': self.projectRoot,
 	    'states': self.getChildrenByType(obj, 'State'),
 	    'obj': obj,
 	    stateDelay: function(timerPeriod) { return self.getStateDelay( timerPeriod ); }
@@ -164,11 +165,11 @@ define([
 	var self = this;
 
 	var baseDir = [
-	    self.projectModel.sanitizedName
+	    self.projectRoot.sanitizedName
 	].join('/');
 
 	// make sure we can figure out exactly where we generated from
-        self.artifacts[self.projectModel.name + '_metadata.json'] = JSON.stringify({
+        self.artifacts[self.projectRoot.name + '_metadata.json'] = JSON.stringify({
     	    projectID: self.project.projectId,
             commitHash: self.commitHash,
             branchName: self.branchName,
@@ -181,7 +182,7 @@ define([
 
 	// what data is needed by the templates
 	var renderData = {
-	    'model': self.projectModel,
+	    'model': self.projectRoot,
 	    'serialPort': self.portName,
 	    'idfPath': self.idfPath,
 	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
@@ -192,8 +193,11 @@ define([
 	//       key is the mustache template for the output filename,
 	//       and the value is the mustache template for the
 	//       content of the file
+	var genStateHpp = MetaTemplates.renderHFSM( self.projectModel );
+	self.artifacts.TEST = genStateHpp;
 	var newArtifacts = MetaTemplates.getArtifacts( self.projectObjects, baseDir );
 	
+	/*
 	// figure our which artifacts we're actually rendering
 	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(
 	    function(key) {
@@ -204,7 +208,7 @@ define([
 	// render templates
 	selectedArtifactKeys.map(function(key) {
 	    var regexp = new RegExp(self.toolchain); // only replace the first
-	    var fileName = key.replace(regexp, self.projectModel.sanitizedName);
+	    var fileName = key.replace(regexp, self.projectRoot.sanitizedName);
 	    self.artifacts[fileName] = ejs.render(TEMPLATES[key], renderData);
 	    // re-render so that users' templates are accounted for
 	    self.artifacts[fileName] = ejs.render(self.artifacts[fileName], renderData);
@@ -228,6 +232,7 @@ define([
 	    });
 	});
 	return deferred.promise;
+	*/
     };
 
     return SoftwareGenerator;
