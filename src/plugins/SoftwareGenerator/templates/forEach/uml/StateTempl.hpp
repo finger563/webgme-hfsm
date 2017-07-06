@@ -1,3 +1,28 @@
+{{#isChoice}}
+/**
+ * @brief Choice states cannot have children and cannot be the active
+ *  state, since they are merely pseudostates and function as
+ *  transitory states.
+ */
+class {{{sanitizedName}}} : public StateMachine::StateBase {
+public:
+  /**
+   * @brief Immediately evaluates the guards on the External
+   *  Transitions leaving this choice state to transition into the
+   *  next state.
+   *
+   * @return true if a choice was made
+   */
+  bool handleChoice ( StateMachine::StateBase* activeLeaf );
+} {{{VariableName}}};
+{{/isChoice}}
+{{#isDeepHistory}}
+StateMachine::DeepHistoryState {{{VariableName}}};
+{{/isDeepHistory}}
+{{#isShallowHistory}}
+StateMachine::ShallowHistoryState {{{VariableName}}};
+{{/isShallowHistory}}
+{{#isState}}
 /**
  * States contain other states and can consume generic
  * StateMachine::Event objects if they have internal or external
@@ -12,12 +37,12 @@
  * Entry and Exit actions also occur whenever a state is entered or
  * exited, respectively.
  */
-class {{{name}}} : public StateBase {
+class {{{sanitizedName}}} : public StateMachine::StateBase {
 public:
 
-  {{#State_list}}
+  {{#Substates}}
   {{> StateTemplHpp }}
-  {{/State_list}}
+  {{/Substates}}
   
   /**
    * @brief Runs the entry() function defined in the model and then
@@ -63,4 +88,5 @@ public:
    * @return StateBase*  Pointer to initial substate
    */
   StateMachine::StateBase* getInitial ( void );
-};
+} {{{VariableName}}};
+{{/isState}}

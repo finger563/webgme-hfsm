@@ -1,8 +1,24 @@
+{{#isChoice}}
+bool {{{fullyQualifiedName}}}::handleChoice ( StateMachine::StateBase* activeLeaf ) {
+  bool handled = false;
+  // We are going into a choice state, need to make sure we
+  // check all the outgoing transitions' guards and decide
+  // which state to go into, and run all the proper Actions,
+  // exit()s and entry()s.
+
+  if ( false ) { } // just to have easier code generation :)
+  {{#ExternalEvents}}
+  {{> ExternalEventTempl }}
+  {{/ExternalEvents}}
+  return handled;
+}
+{{/isChoice}}
+{{#isState}}
 /**
- * Definitions for class {{{name}}}
+ * Definitions for class {{{fullyQualifiedName}}}
  */
 
-void {{{name}}}::entry ( void ) {
+void {{{fullyQualifiedName}}}::entry ( void ) {
   // Now call the Entry action for this state
   {{{Entry}}}
   // Now call the entry function down the active branch to the leaf
@@ -10,7 +26,7 @@ void {{{name}}}::entry ( void ) {
     _activeState->entry();
 }
 
-void {{{name}}}::exit ( void ) {
+void {{{fullyQualifiedName}}}::exit ( void ) {
   if ( _parentState && _parentState->getActive() != this ) {
     // we are no longer the active state of the parent
     {{{Exit}}}
@@ -22,13 +38,13 @@ void {{{name}}}::exit ( void ) {
   }
 }
 
-void {{{name}}}::tick ( void ) {
+void {{{fullyQualifiedName}}}::tick ( void ) {
   {{{Tick}}}
   if ( _activeState )
     _activeState->tick();
 }
 
-bool {{{name}}}::handleEvent ( StateMachine::Event* event ) {
+bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
   bool handled = false;
 
   // Get the currently active leaf state
@@ -59,10 +75,12 @@ bool {{{name}}}::handleEvent ( StateMachine::Event* event ) {
   return handled;
 }
 
-StateMachine::StateBase* {{{name}}}::getInitial ( void ) {
+StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
   return {{{getInitial()}}};
 }
 
-{{#State_list}}
+{{#Substates}}
 {{> StateTemplCpp }}
-{{/State_list}}
+{{/Substates}}
+{{/isState}}
+

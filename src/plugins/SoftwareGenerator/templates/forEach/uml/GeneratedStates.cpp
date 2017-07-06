@@ -2,8 +2,8 @@
 
 namespace StateMachine {
 
-{{#State_list}}
+{{#Substates}}
 {{> StateTemplCpp }}
-{{/State_list}}
+{{/Substates}}
 
 };

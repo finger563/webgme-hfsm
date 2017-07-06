@@ -1,13 +1,15 @@
 #ifndef __GENERATED_STATES_INCLUDE_GUARD__
 #define __GENERATED_STATES_INCLUDE_GUARD__
 
-#include "Event.hpp"
+#include "StateBase.hpp"
+#include "DeepHistoryState.hpp"
+#include "ShallowHistoryState.hpp"
 
 namespace StateMachine {
 
-{{#State_list}}
+{{#Substates}}
 {{> StateTemplHpp }}
-{{/State_list}}
+{{/Substates}}
 
 };
 
