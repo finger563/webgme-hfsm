@@ -192,6 +192,7 @@ define([
 	//       key is the mustache template for the output filename,
 	//       and the value is the mustache template for the
 	//       content of the file
+	var newArtifacts = MetaTemplates.getArtifacts( self.projectObjects, baseDir );
 	
 	// figure our which artifacts we're actually rendering
 	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(

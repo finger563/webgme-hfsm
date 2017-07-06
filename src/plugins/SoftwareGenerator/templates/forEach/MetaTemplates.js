@@ -1,41 +1,70 @@
-define([], function() {
-    'use strict';
-    return {
-	compMk: "#\
-# Main component makefile.\
-#\
-# This Makefile can be left empty. By default, it will take the sources in the \
-# src/ directory, compile them and link them into lib(subdirectory_name).a \
-# in the build directory. This behaviour is entirely configurable,\
-# please read the ESP-IDF documents if you need to do this.\
-#",
+define(['mustache/mustache',
+	'text!./component.mk',
+	'text!./main.cpp',
+	'text!./Task.cpp',
+	'text!./Task.hpp',
+	'text!./Timer.cpp',
+	'text!./Timer.hpp',
+	'text!./Comp.cpp',
+	'text!./Comp.hpp'],
+       function(mustache,
+		compMk,
+		mainCppTempl,
+		TaskCppTempl,
+		TaskHppTempl,
+		TimerCppTempl,
+		TimerHppTempl,
+		CompCppTempl,
+		CompHppTempl) {
+	   'use strict';
 
-	"Component": {
-	    "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": [
-		"#ifndef _{{obj.sanitizedName.toUpperCase()}}_INCLUDE_GUARD_",
-		"#define _{{obj.sanitizedName.toUpperCase()}}_INCLUDE_GUARD_",
-		"{{obj.Declarations}}",
-		"#endif  // _{{obj.sanitizedName.toUpperCase()}}_INCLUDE_GUARD_",
-	    ].join('\n'),
-	    "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": [
-		"#include \"{{obj.sanitizedName}}.hpp\"",
-		"{{obj.Definitions}}"
-	    ].join('\n'),
-	    "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
-	}
-	"Task": {
-	    "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": [
-	    ].join('\n'),
-	    "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": [
-	    ].join('\n'),
-	    "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
-	},
-	"Timer": {
-	    "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": [
-	    ].join('\n'),
-	    "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": [
-	    ].join('\n'),
-	    "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
-	},
-    };
-});
+	   return {
+	       Templates: {
+		   "Component": {
+		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": CompHppTempl,
+		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": CompCppTempl,
+		       "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
+		   }
+		   "Task": {
+		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": TaskHppTempl,
+		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": TaskCppTempl,
+		       "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
+		   },
+		   "Timer": {
+		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": TimerHppTempl,
+		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": TimerCppTempl,
+		       "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
+		   },
+		   "main": {
+		       "{{base}}/main.cpp": mainCppTempl,
+		   },
+	       },
+	       renderState: function( obj ) {
+	       },
+	       renderHFSM: function(model) {
+		   var self    = this;
+		   var objects = model.objects;
+		   var root    = model.root;
+	       },
+	       getArtifacts: function(pathToObjDict, baseDir) {
+		   var self = this;
+		   var artifacts = {};
+		   Object.keys(pathToObjDict).map(function (path) {
+		       var obj = pathToObjDict[ path ];
+		       var templDict = self.Templates[ obj.type ];
+		       if ( templDict ) {
+			   Object.keys(templDict).map(function(pathTempl) {
+			       var fileTempl = templDict[ pathTempl ];
+			       var renderData = {
+				   base: baseDir,
+				   obj: obj
+			       };
+			       var filePath = mustache.render( pathTempl, renderData );
+			       var fileData = mustache.render( fileTempl, renderData );
+			       artifacts[ filePath ] = fileData;
+			   });
+		       }
+		   });
+	       },
+	   };
+       }); // define( [], function() {} );
