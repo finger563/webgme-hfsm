@@ -148,25 +148,14 @@ define([
 	return children;
     };
 
-    SoftwareGenerator.prototype.getTaskData = function(task) {
+    SoftwareGenerator.prototype.getData = function(obj, type) {
 	var self = this;
 	var data = {
 	    'model': self.projectModel,
-	    'task': task,
-	    'states': self.getChildrenByType(task, 'State'),
-	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
+	    'states': self.getChildrenByType(obj, 'State'),
+	    stateDelay: function(timerPeriod) { return self.getStateDelay( timerPeriod ); }
 	};
-	return data;
-    };
-
-    SoftwareGenerator.prototype.getTimerData = function(timer) {
-	var self = this;
-	var data = {
-	    'model': self.projectModel,
-	    'timer': timer,
-	    'states': self.getChildrenByType(timer, 'State'),
-	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
-	};
+	data[ type ] = obj;
 	return data;
     };
 
@@ -197,121 +186,60 @@ define([
 	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
 	};
 
-	// render the main file out
-	var mainKey = [
-	    baseDir,
-	    'main',
-	    'main' + sourceSuffix
-	].join('/');
-	var mainTemplateKey = [
-	    self.language,
-	    'main' + sourceSuffix
-	].join('/');
-	self.artifacts[mainKey] = ejs.render(TEMPLATES[mainTemplateKey], renderData);
-	// make component.mk file for main component
-	var buildFileName = 'component.mk';
-	var componentKey = [
-	    baseDir,
-	    'main',
-	    buildFileName
-	].join('/');
-	var componentTemplateKey = [
-	    self.language,
-	    buildFileName
-	].join('/');
-	self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], renderData);
+	var hfsmTypes = ['Timer','Task'];
 
-	// for each task, render it out
-	if (self.projectModel.Task_list) {
-	    self.projectModel.Task_list.map(function(task) {
-		var taskData = self.getTaskData(task);
-		var baseKey = [
-		    baseDir,
-		    'components',
-		    task.sanitizedName  // component folder
-		].join('/');
-		// Make header file
-		var headerKey = [
-		    baseKey,
-		    'include',
-		    task.sanitizedName + headerSuffix
-		].join('/');
-		var headerTemplateKey = [
-		    self.language,
-		    'task' + headerSuffix
-		].join('/');
-		self.artifacts[headerKey] = ejs.render(TEMPLATES[headerTemplateKey], taskData);
-		// Make source file
-		var sourceKey = [
-		    baseKey,
-		    task.sanitizedName + sourceSuffix
-		].join('/');
-		var sourceTemplateKey = [
-		    self.language,
-		    'task' + sourceSuffix
-		].join('/');
-		self.artifacts[sourceKey] = ejs.render(TEMPLATES[sourceTemplateKey], taskData);
-		// make component.mk file for the component
-		var buildFileName = 'component.mk';
-		var componentKey = [
-		    baseKey,
-		    buildFileName
-		].join('/');
-		var componentTemplateKey = [
-		    self.language,
-		    buildFileName
-		].join('/');
-		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], taskData);
-	    });
-	}
-
-	// for each timer, render it out
-	if (self.projectModel.Timer_list) {
-	    self.projectModel.Timer_list.map(function(timer) {
-		var timerData = self.getTimerData(timer);
-		var baseKey = [
-		    baseDir,
-		    'components',
-		    timer.sanitizedName  // component folder
-		].join('/');
-		// Make header file
-		var headerKey = [
-		    baseKey,
-		    'include',
-		    timer.sanitizedName + headerSuffix
-		].join('/');
-		var headerTemplateKey = [
-		    self.language,
-		    'timer' + headerSuffix
-		].join('/');
-		self.artifacts[headerKey] = ejs.render(TEMPLATES[headerTemplateKey], timerData);
-		// Make source file
-		var sourceKey = [
-		    baseKey,
-		    timer.sanitizedName + sourceSuffix
-		].join('/');
-		var sourceTemplateKey = [
-		    self.language,
-		    'timer' + sourceSuffix
-		].join('/');
-		self.artifacts[sourceKey] = ejs.render(TEMPLATES[sourceTemplateKey], timerData);
-		// make component.mk file for the component
-		var buildFileName = 'component.mk';
-		var componentKey = [
-		    baseKey,
-		    buildFileName
-		].join('/');
-		var componentTemplateKey = [
-		    self.language,
-		    buildFileName
-		].join('/');
-		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], timerData);
-	    });
-	}
-
+	hfsmTypes.map(function( hfsmType ) {
+	    var t = hfsmType.toLowerCase();
+	    var objList = self.projectModel[ hfsmType + '_list' ];
+	    if (objList) {
+		objList.map(function(obj) {
+		    var objData = self.getData(obj, t);
+		    var baseKey = [
+			baseDir,
+			'components',
+			obj.sanitizedName  // component folder
+		    ].join('/');
+		    // Make header file
+		    var headerKey = [
+			baseKey,
+			'include',
+			obj.sanitizedName + headerSuffix
+		    ].join('/');
+		    var headerTemplateKey = [
+			self.language,
+			t + headerSuffix
+		    ].join('/');
+		    self.artifacts[headerKey] = ejs.render(TEMPLATES[headerTemplateKey], objData);
+		    // Make source file
+		    var sourceKey = [
+			baseKey,
+			obj.sanitizedName + sourceSuffix
+		    ].join('/');
+		    var sourceTemplateKey = [
+			self.language,
+			t + sourceSuffix
+		    ].join('/');
+		    self.artifacts[sourceKey] = ejs.render(TEMPLATES[sourceTemplateKey], objData);
+		    // make component.mk file for the component
+		    var buildFileName = 'component.mk';
+		    var componentKey = [
+			baseKey,
+			buildFileName
+		    ].join('/');
+		    var componentTemplateKey = [
+			self.language,
+			buildFileName
+		    ].join('/');
+		    self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], objData);
+		});
+	    }
+	});
+	
 	// figure our which artifacts we're actually rendering
 	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(
-	    function(key) { return key.startsWith(self.toolchain + '/'); }
+	    function(key) {
+		return key.startsWith(self.toolchain + '/') || key.startsWith(self.language + '/');
+	    }
 	);
 	
 	// render templates
