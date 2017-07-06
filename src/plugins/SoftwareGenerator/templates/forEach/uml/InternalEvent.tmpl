@@ -2,11 +2,21 @@ case {{{name}}}:
   if ( false ) {  // makes generation easier :)
   }
   {{#Transitions}}
+  {{#Guard}}
   else if ( {{{Guard}}} ) {
     // run transition action
     {{{Action}}}
     // make sure nothing else handles this event
     handled = true;
   }
+  {{/Guard}}
+  {{^Guard}}
+  else if (true) {
+    // run transition action
+    {{{Action}}}
+    // make sure nothing else handles this event
+    handled = true;
+  }
+  {{/Guard}}
   {{/Transitions}}
   break;

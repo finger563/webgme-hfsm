@@ -5,16 +5,9 @@
  *   * Get common parent properly for all state transitions
  *   * Get default transition for choice pseudostates
  *   * Make sure _ALL_ states have 'VariableName'
- * MODEL CHECKS:
- *   * Default transitions on choice pseudostates
- *   * Choice pseudostate transitions should not have events
- *   * Cannot have multiple or guarded end transitions 
- *   * Multiple transitions with same event / guard
- *   * Multiple events with similar names (only change would be capitalization)
- *   * Choice states chained together (not allowed)
  */
 
-define(['q'], function(Q) {
+define(['./checkModel'], function(checkModel) {
     'use strict';
     return {
 	stripRegex: /^([^\n]+)/gm,
@@ -53,11 +46,9 @@ define(['q'], function(Q) {
 		obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
 	    }
 	},
-	checkModel: function(model) {
-	    // throws an error of model is not valid
-	},
 	processModel: function(model) {
 	    var self = this;
+	    checkModel.checkModel(model);
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
 
@@ -101,12 +92,17 @@ define(['q'], function(Q) {
 			obj.finalState = null;
 			obj.transitionFunc = '';
 
-			// add the event to a global list of events
-			self.addEvent( model, obj.Event );
-			// add the external transition to the source
-			self.updateEventInfo( 'ExternalEvents',
-					      src,
-					      obj );
+			if (obj.Event) {
+			    // add the event to a global list of events
+			    self.addEvent( model, obj.Event );
+			    // add the external transition to the source
+			    self.updateEventInfo( 'ExternalEvents',
+						  src,
+						  obj );
+			}
+			else {
+			    // This must be an END TRANSITION
+			}
 		    }
 		}
 		// Process Internal Transition Data into convenience
@@ -204,6 +200,13 @@ define(['q'], function(Q) {
 	    //self.findCommonParents(model);
 	},
 	// MAKE CONVENIENCE FOR WHAT EVENTS ARE HANDLED BY WHICH STATES
+	transitionSort: function(transA, transB) {
+	    var a = transA.Guard;
+	    var b = transB.Guard;
+	    if (!a && b) return -1;
+	    if (a && !b) return 1;
+	    return 0;
+	},
 	getEventInfo: function( key, obj, eventName ) {
 	    var self = this;
 	    var eventInfo = obj[ key ]; // should be list of objects { name: , Transitions: }
@@ -228,6 +231,7 @@ define(['q'], function(Q) {
 	    var self = this;
 	    var eventInfo = self.getEventInfo( key, obj, transition.Event );
 	    eventInfo.Transitions.push( transition );
+	    eventInfo.Transitions.sort( self.transitionSort );
 	},
 	// END CONVENIENCE
 	// MODEL TRAVERSAL
