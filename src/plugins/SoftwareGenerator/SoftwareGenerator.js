@@ -13,6 +13,7 @@ define([
     'plugin/PluginBase',
     'common/util/ejs', // for ejs templates
     './templates/Templates',
+    './templates/forEach/MetaTemplates',
     'webgme-to-json/webgme-to-json',
     'hfsm/processor',
     'q'
@@ -22,6 +23,7 @@ define([
     PluginBase,
     ejs,
     TEMPLATES,
+    MetaTemplates,
     webgmeToJson,
     processor,
     Q) {
@@ -148,15 +150,14 @@ define([
 	return children;
     };
 
-    SoftwareGenerator.prototype.getData = function(obj, type) {
+    SoftwareGenerator.prototype.getData = function(obj) {
 	var self = this;
-	var data = {
+	return {
 	    'model': self.projectModel,
 	    'states': self.getChildrenByType(obj, 'State'),
+	    'obj': obj,
 	    stateDelay: function(timerPeriod) { return self.getStateDelay( timerPeriod ); }
 	};
-	data[ type ] = obj;
-	return data;
     };
 
     SoftwareGenerator.prototype.generateArtifacts = function () {
@@ -186,54 +187,11 @@ define([
 	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
 	};
 
-	var hfsmTypes = ['Timer','Task'];
-
-	hfsmTypes.map(function( hfsmType ) {
-	    var t = hfsmType.toLowerCase();
-	    var objList = self.projectModel[ hfsmType + '_list' ];
-	    if (objList) {
-		objList.map(function(obj) {
-		    var objData = self.getData(obj, t);
-		    var baseKey = [
-			baseDir,
-			'components',
-			obj.sanitizedName  // component folder
-		    ].join('/');
-		    // Make header file
-		    var headerKey = [
-			baseKey,
-			'include',
-			obj.sanitizedName + headerSuffix
-		    ].join('/');
-		    var headerTemplateKey = [
-			self.language,
-			t + headerSuffix
-		    ].join('/');
-		    self.artifacts[headerKey] = ejs.render(TEMPLATES[headerTemplateKey], objData);
-		    // Make source file
-		    var sourceKey = [
-			baseKey,
-			obj.sanitizedName + sourceSuffix
-		    ].join('/');
-		    var sourceTemplateKey = [
-			self.language,
-			t + sourceSuffix
-		    ].join('/');
-		    self.artifacts[sourceKey] = ejs.render(TEMPLATES[sourceTemplateKey], objData);
-		    // make component.mk file for the component
-		    var buildFileName = 'component.mk';
-		    var componentKey = [
-			baseKey,
-			buildFileName
-		    ].join('/');
-		    var componentTemplateKey = [
-			self.language,
-			buildFileName
-		    ].join('/');
-		    self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], objData);
-		});
-	    }
-	});
+	// TODO: iterate through the elements of MetaTemplates and use
+	//       mustache to render each key accordingly, where the
+	//       key is the mustache template for the output filename,
+	//       and the value is the mustache template for the
+	//       content of the file
 	
 	// figure our which artifacts we're actually rendering
 	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(
@@ -250,57 +208,6 @@ define([
 	    // re-render so that users' templates are accounted for
 	    self.artifacts[fileName] = ejs.render(self.artifacts[fileName], renderData);
 	});
-
-	// make sure to render all components
-	if (self.projectModel['Component_list']) {
-	    self.projectModel['Component_list'].map(function(comp) {
-		var prefix = [
-		    baseDir,
-		    'components',
-		    comp.compName ].join('/'),
-		    headerSuffix = '',
-		    sourceSuffix = '',
-		    compData = {};
-		if ( comp.Language == 'c' ) {
-		    headerSuffix = '.h';
-		    sourceSuffix = '.c';
-		}
-		else if ( comp.Language == 'c++' ) {
-		    headerSuffix = '.hpp';
-		    sourceSuffix = '.cpp';
-		}
-		// make the header file
-		var headerFileName = comp.compName + headerSuffix;
-		var includeGuard = comp.compName.toUpperCase() + '_INCLUDE_GUARD_';
-		var headerFile = [
-		    prefix,
-		    'include',
-		    headerFileName
-		].join('/');
-		self.artifacts[headerFile] = "#ifndef " + includeGuard + "\n#define " + includeGuard +'\n';
-		self.artifacts[headerFile] += comp.Declarations;
-		self.artifacts[headerFile] += "\n#endif //"+includeGuard;
-		// make the source file
-		var sourceFileName = comp.compName + sourceSuffix;
-		var sourceFile = [
-		    prefix,
-		    sourceFileName
-		].join('/');
-		self.artifacts[sourceFile] = '#include "' + headerFileName + '"';
-		self.artifacts[sourceFile] += '\n' + comp.Definitions;
-		// make component.mk file for the component
-		var buildFileName = 'component.mk';
-		var componentKey = [
-		    prefix,
-		    buildFileName
-		].join('/');
-		var componentTemplateKey = [
-		    self.language,
-		    buildFileName
-		].join('/');
-		self.artifacts[componentKey] = ejs.render(TEMPLATES[componentTemplateKey], compData);
-	    });
-	}
 
 	var fileNames = Object.keys(self.artifacts);
 	var artifact = self.blobClient.createArtifact(self.artifactName);
