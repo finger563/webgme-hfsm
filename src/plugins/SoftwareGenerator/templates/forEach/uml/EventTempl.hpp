@@ -1,5 +1,5 @@
-#ifndef __EVENT_INCLUDE_GUARD
-#define __EVENT_INCLUDE_GUARD
+#ifndef __EVENT_INCLUDE_GUARD__
+#define __EVENT_INCLUDE_GUARD__
 
 #include <queue>
 #include <string>
@@ -11,13 +11,9 @@ namespace StateMachine {
   public:
     enum class Type {
       _StateMachineTick_,
-<%
-Events.map(function(e) {
--%>
-      <%- e %>,
-<%
-});
--%>
+      {{#Events}}
+      {{name}},
+      {{/Events}}
     }; // ENUMS GENERATED FROM MODEL
 
     /**
@@ -59,15 +55,11 @@ Events.map(function(e) {
     static std::string toString ( Event& e ) {
       std::string eventString = "";
       switch ( e._t ) {
-<%
-Events.map(function(e) {
--%>
-      case <%- e %>:
-	eventString = "<%- e %>";
-	break;
-<%
-});
--%>
+	{{#Events}}
+        case {{name}}:
+          eventString = "{{name}}";
+	  break;
+	{{/Events}}
       default:
 	break;
       }
@@ -149,4 +141,4 @@ Events.map(function(e) {
 
 };
 
-#endif // __EVENT_INCLUDE_GUARD
+#endif // __EVENT_INCLUDE_GUARD__

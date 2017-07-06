@@ -1,171 +1,66 @@
-#ifndef __STATE_BASE__INCLUDE_GUARD
-#define __STATE_BASE__INCLUDE_GUARD
+/**
+ * States contain other states and can consume generic
+ * StateMachine::Event objects if they have internal or external
+ * transitions on those events and if those transitions' guards are
+ * satisfied. Only one transition can consume an event in a given
+ * state machine.
+ *
+ * There is also a different kind of Event, the tick event, which is
+ * not consumed, but instead executes from the top-level state all
+ * the way to the curently active leaf state.
+ *
+ * Entry and Exit actions also occur whenever a state is entered or
+ * exited, respectively.
+ */
+class {{{name}}} : public StateBase {
+public:
 
-#incldue <vector>
-
-#include "Event.hpp"
-
-namespace StateMachine {
+  {{#State_list}}
+  {{> StateTemplHpp }}
+  {{/State_list}}
+  
+  /**
+   * @brief Runs the entry() function defined in the model and then
+   *  calls the active child's entry() as _activeState->entry().
+   */
+  void entry ( void );
 
   /**
-   * States contain other states and can consume generic
-   * StateMachine::Event objects if they have internal or external
-   * transitions on those events and if those transitions' guards are
-   * satisfied. Only one transition can consume an event in a given
-   * state machine.
-   *
-   * There is also a different kind of Event, the tick event, which is
-   * not consumed, but instead executes from the top-level state all
-   * the way to the curently active leaf state.
-   *
-   * Entry and Exit actions also occur whenever a state is entered or
-   * exited, respectively.
+   * @brief Runs the exit() function defined in the model and then
+   *  calls the parent's _parentState->exit() if the parent's active
+   *  child state has changed. If the parent's active child state
+   *  has not changed, upwards tree traversal stops.
    */
-  class <%- state.name %> : public StateBase {
-  public:
-    /**
-     * @brief Runs the entry() function defined in the model and then
-     *  calls the active child's entry() as _activeState->entry().
-     */
-    void                     entry ( void ) {
-      // Now call the Entry action for this state
-<%- state.Entry %>
-      // Now call the entry function down the active branch to the
-      // leaf
-      if ( _activeState )
-        _activeState->entry();
-    }
+  void exit ( void );
 
-    /**
-     * @brief Runs the exit() function defined in the model and then
-     *  calls the parent's _parentState->exit() if the parent's active
-     *  child state has changed. If the parent's active child state
-     *  has not changed, upwards tree traversal stops.
-     */
-    void                     exit ( void ) {
-      if ( _parentState && _parentState->getActive() != this ) {
-	// we are no longer the active state of the parent
-<%- state.Exit %>
-        _parentState->exit();
-      }
-      else if ( _parentState == nullptr ) {
-	// we are a top level state, just call exit
-<%- state.Exit %>
-      }
-    }
+  /**
+   * @brief Runs the tick() function defined in the model and then
+   *  calls _activeState->tick().
+   */
+  void tick ( void );
 
-    /**
-     * @brief Runs the tick() function defined in the model and then
-     *  calls _activeState->tick().
-     */
-    void                     tick ( void ) {
-<%- state.Tick %>
-      if ( _activeState )
-        _activeState->tick();
-    }
+  /**
+   * @brief Calls _activeState->handleEvent( event ), then if the
+   *  event is not nullptr (meaning the event was not consumed by
+   *  the child subtree), it checks the event against all internal
+   *  transitions associated with that Event.  If the event is still
+   *  not a nullptr (meaning the event was not consumed by the
+   *  internal transitions), then it checks the event against all
+   *  external transitions associated with that Event.
+   *
+   * @param[in] StateMachine::Event* Event needing to be handled
+   *
+   * @return true if event is consumed, false otherwise
+   */
+  bool handleEvent ( StateMachine::Event* event );
 
-    /**
-     * @brief Calls _activeState->handleEvent( event ), then if the
-     *  event is not nullptr (meaning the event was not consumed by
-     *  the child subtree), it checks the event against all internal
-     *  transitions associated with that Event.  If the event is still
-     *  not a nullptr (meaning the event was not consumed by the
-     *  internal transitions), then it checks the event against all
-     *  external transitions associated with that Event.
-     *
-     * @param[in] StateMachine::Event* Event needing to be handled
-     *
-     * @return true if event is consumed, false otherwise
-     */
-    bool                     handleEvent ( StateMachine::Event* event ) {
-      bool handled = false;
-
-      // Get the currently active leaf state
-      StateMachine::StateBase* activeLeaf = getActiveLeaf();
-
-      // handle internal transitions first
-      switch ( event->type() ) {
-<%
-state.InternalTransitions.map(function(trans) {
--%>
-      case <%- trans.Event %>:
-	if ( <%- trans.Guard %> ) {
-	  // run transition action
-<%- trans.Action %>
-          // make sure nothing else handles this event
-	  handled = true;
-	}
-	break;
-<%
-});
--%>
-      default:
-	break;
-      }
-      if (!handled) {
-	// handle external transitions here
-	switch ( event->type() ) {
-<%
-state.ExternalTransitions.map(function(trans) {
--%>
-        case <%- trans.Event %>:
-          if ( <%- trans.Guard %> ) {
-<%
-  if ( trans.finalState.type == 'Choice Pseudostate' ) {
--%>
-            // Going into a choice pseudo-state, let it handle its
-            // guards and perform the state transition
-            handled = <%- trans.finalState.VariableName %>->handleChoice();
-<%
-  } else {
--%>
-	    // We are going into either a regular state, deep history
-	    // state, or a shallow history state, just need to make
-	    // the right state active, run the exit()s, Action, and
-	    // entry()s
-
-	    // set the new active state
-	    <%- trans.finalState.VariableName %>->makeActive();
-            // call the exit() function for the old state
-	    <%- trans.originalState.VariableName %>->exit();
-            // run the transition function (s)
-<%- trans.transitionFunc %>
-            // call the entry() function for the new branch from the
-            // common parent's new active child
-            <%- trans.newBranchState %>->entry();
-            // make sure nothing else handles this event
-	    handled = true;
-<%
-  } // End if (trans.finalState.type) else if (...) else 
--%>
-	  }
-	  break;
-<%
-});
--%>
-	default:
-	  break;
-	}
-      }
-      if (!handled) {
-	// now check parent states
-	handled = _parentState->handleEvent( event );
-      }
-      return handled;
-    }
-
-    /**
-     * @brief Will be known from the model so will be generated in
-     *  derived classes to immediately return the correct initial
-     *  state pointer for quickly transitioning to the proper state
-     *  during external transition handling.
-     *
-     * @return StateBase*  Pointer to initial substate
-     */
-    StateMachine::StateBase* getInitial ( void ) {
-      return <%- state.getInitial() %>;
-    }
-  };
+  /**
+   * @brief Will be known from the model so will be generated in
+   *  derived classes to immediately return the correct initial
+   *  state pointer for quickly transitioning to the proper state
+   *  during external transition handling.
+   *
+   * @return StateBase*  Pointer to initial substate
+   */
+  StateMachine::StateBase* getInitial ( void );
 };
-
-#endif // __STATE_BASE__INCLUDE_GUARD
