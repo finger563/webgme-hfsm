@@ -193,10 +193,14 @@ define([
 	//       key is the mustache template for the output filename,
 	//       and the value is the mustache template for the
 	//       content of the file
-	var genStateHpp = MetaTemplates.renderHFSM( self.projectModel );
+	var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel );
+	self.artifacts = Object.assign(self.artifacts, hfsmArtifacts);
+
+	/*
 	self.artifacts.TEST = genStateHpp;
 	var newArtifacts = MetaTemplates.getArtifacts( self.projectObjects, baseDir );
-	
+	*/
+
 	/*
 	// figure our which artifacts we're actually rendering
 	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(
@@ -213,6 +217,7 @@ define([
 	    // re-render so that users' templates are accounted for
 	    self.artifacts[fileName] = ejs.render(self.artifacts[fileName], renderData);
 	});
+	*/
 
 	var fileNames = Object.keys(self.artifacts);
 	var artifact = self.blobClient.createArtifact(self.artifactName);
@@ -232,7 +237,6 @@ define([
 	    });
 	});
 	return deferred.promise;
-	*/
     };
 
     return SoftwareGenerator;

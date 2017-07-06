@@ -5,11 +5,13 @@ bool {{{fullyQualifiedName}}}::handleChoice ( StateMachine::StateBase* activeLea
   // check all the outgoing transitions' guards and decide
   // which state to go into, and run all the proper Actions,
   // exit()s and entry()s.
-
-  if ( false ) { } // just to have easier code generation :)
+  switch ( event->type() ) {
   {{#ExternalEvents}}
   {{> ExternalEventTempl }}
   {{/ExternalEvents}}
+  default:
+    break;
+  }
   return handled;
 }
 {{/isChoice}}

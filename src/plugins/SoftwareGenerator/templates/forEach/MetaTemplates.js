@@ -56,24 +56,22 @@ define(['mustache/mustache',
 		   var objects = model.objects;
 		   var root    = model.root;
 		   var rootTypes = ['Task','Timer'];
-		   var generatedArtifacts = [];
+		   var generatedArtifacts = {};
 		   rootTypes.map(function(rootType) {
 		       var rootTypeList = root[ rootType + '_list' ];
 		       if (rootTypeList) {
 			   rootTypeList.map(function(obj) {
-			       generatedArtifacts = generatedArtifacts.concat(
+			       generatedArtifacts = Object.assign(
+				   generatedArtifacts,
 				   UMLTemplates.renderStates( obj )
 			       );
 			   });
 		       }
 		   });
-		   generatedArtifacts = generatedArtifacts.concat(
-		       UMLTemplates.renderEvents( model )
+		   generatedArtifacts = Object.assign(
+		       generatedArtifacts,
+		       UMLTemplates.renderEvents( root )
 		   );
-		       
-		   generatedArtifacts.map(function(ga) {
-		       console.log( ga );
-		   });
 		   return generatedArtifacts;
 	       },
 	       getArtifacts: function(pathToObjDict, baseDir) {

@@ -39,6 +39,14 @@ define(['./checkModel'], function(checkModel) {
 		obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
 	    }
 	},
+	addBasicParams: function(obj) {
+	    obj.Substates = [];
+	    obj.isState = false;
+	    obj.isChoice = false;
+	    obj.isDeepHistory = false;
+	    obj.isShallowHistory = false;
+	    obj.isEnd = false;
+	},
 	processModel: function(model) {
 	    var self = this;
 	    checkModel.checkModel(model);
@@ -52,7 +60,8 @@ define(['./checkModel'], function(checkModel) {
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
-		obj.Substates = [];
+		// init all basic params
+		self.addBasicParams( obj );
 		// Make sure top-level Project / Task / Timer names
 		// are good and code attributes are properly prefixed.
 		if (obj.type == 'Project' || obj.type == 'Task' || obj.type == 'Timer') {
@@ -133,7 +142,11 @@ define(['./checkModel'], function(checkModel) {
 		    // need to make a unique name for this state!
 		    // for mustache template
 		    obj.isChoice = true;
-
+		    // add sanitized name
+		    var sName = self.sanitizeString(obj.name);
+		    obj.sanitizedName = sName;
+		    // make the variable name
+		    self.addVariableName( obj );
 		    // make external transition convenience
 		    var extTrans = checkModel.getTransitionsOutOf( obj, model.objects );
 		}
@@ -141,6 +154,9 @@ define(['./checkModel'], function(checkModel) {
 		else if (obj.type == 'Deep History Pseudostate') {
 		    // shouldn't need to do anything special here,
 		    // just treat it like a normal state
+		    // sanitize name for class name
+		    var sName = self.sanitizeString(obj.name);
+		    obj.sanitizedName = sName;
 		    // make the variable name
 		    self.addVariableName( obj );
 		    // for mustache template
@@ -150,6 +166,9 @@ define(['./checkModel'], function(checkModel) {
 		else if (obj.type == 'Shallow History Pseudostate') {
 		    // shouldn't need to do anything special here,
 		    // just treat it like a normal state
+		    // sanitize name for class name
+		    var sName = self.sanitizeString(obj.name);
+		    obj.sanitizedName = sName;
 		    // make the variable name
 		    self.addVariableName( obj );
 		    // for mustache template

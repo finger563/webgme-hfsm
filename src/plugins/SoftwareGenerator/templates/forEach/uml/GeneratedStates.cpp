@@ -1,4 +1,6 @@
-#include "GeneratedStates.hpp"
+{{#dependencies}}
+#include "{{{.}}}"
+{{/dependencies}}
 
 namespace StateMachine {
 

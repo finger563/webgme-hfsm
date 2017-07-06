@@ -32,22 +32,52 @@ define(['mustache/mustache',
 	   var rootTemplates = ["GeneratedStatesTemplHpp",
 				"GeneratedStatesTemplCpp" ];
 
+	   var keyTemplates = {
+	       'EventTempl': '{{{sanitizedName}}}_Events.hpp',
+	       'GeneratedStatesTemplHpp': '{{{sanitizedName}}}_GeneratedStates.hpp',
+	       'GeneratedStatesTemplCpp': '{{{sanitizedName}}}_GeneratedStates.cpp',
+	   };
+
+	   var dependencies = {
+	       'GeneratedStatesTemplCpp': [
+		   'GeneratedStatesTemplHpp'
+	       ]
+	   };
+
+	   function getKey(templName, root) {
+	       var keyTempl = keyTemplates[ templName ];
+	       return mustache.render( keyTempl, root );
+	   };
+
 	   return {
 	       renderEvents: function(root) {
-		   return mustache.render(
-		       Partials[ "EventTempl" ],
-		       root,
+		   var templName = "EventTempl";
+		   var retObj = {};
+		   var key = getKey( templName, root );
+		   var context = Object.assign({ key: key }, root);
+		   console.log(context);
+		   retObj[ key ] = mustache.render(
+		       Partials[ templName ],
+		       context,
 		       Partials
 		   );
+		   return retObj;
 	       },
 	       renderStates: function(root) {
-		   return rootTemplates.map(function(rootTemplName) {
-		       return mustache.render(
+		   var rendered = {};
+		   rootTemplates.map(function(rootTemplName) {
+		       var key = getKey( rootTemplName, root );
+		       var context = Object.assign({
+			   key: key,
+			   dependencies: (dependencies[rootTemplName] || []).map(function(dep) { return getKey( dep, root ); })
+		       }, root);
+		       rendered[ key ] = mustache.render(
 			   Partials[ rootTemplName ],
-			   root,
+			   context,
 			   Partials
 		       );
 		   });
+		   return rendered;
 	       },
 	   };
        }); // define( [], function() {} );
