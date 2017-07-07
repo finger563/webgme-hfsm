@@ -119,6 +119,8 @@ define(['js/util',
                });
            };
 
+	   /* * * * EXTERNAL INTERFACE - NOT CALLED HERE  * * * * * */
+
 	   Simulator.prototype.update = function() {
 	       var self = this;
 	       this.updateEventButtons();
@@ -138,6 +140,7 @@ define(['js/util',
 	   Simulator.prototype.setActiveState = function( gmeId ) {
 	       var self = this;
 	       self._activeState = self.getInitialState( gmeId );
+	       self.updateHistory( self._activeState.id );
 	       self.update();
 	   };
 
