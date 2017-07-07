@@ -1,23 +1,3 @@
-{{#isChoice}}
-bool {{{fullyQualifiedName}}}::handleChoice ( StateMachine::StateBase* activeLeaf ) {
-  bool handled = false;
-  // We are going into a choice state, need to make sure we
-  // check all the outgoing transitions' guards and decide
-  // which state to go into, and run all the proper Actions,
-  // exit()s and entry()s.
-  // 
-  // need to figure out how to gett the active branch properly, how to
-  // call all the right transition actions, and how to call all the
-  // right exit / entry actions
-
-  if (false) { } // makes code generation easier :)
-  {{#ExternalTransitions}}
-  {{> ExternalTransitionTempl }}
-  {{/ExternalTransitions}}
-
-  return handled;
-}
-{{/isChoice}}
 {{#isState}}
 /**
  * Definitions for class {{{fullyQualifiedName}}}

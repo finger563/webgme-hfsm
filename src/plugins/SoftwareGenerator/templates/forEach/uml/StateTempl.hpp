@@ -1,21 +1,3 @@
-{{#isChoice}}
-/**
- * @brief Choice states cannot have children and cannot be the active
- *  state, since they are merely pseudostates and function as
- *  transitory states.
- */
-class {{{sanitizedName}}} : public StateMachine::StateBase {
-public:
-  /**
-   * @brief Immediately evaluates the guards on the External
-   *  Transitions leaving this choice state to transition into the
-   *  next state.
-   *
-   * @return true if a choice was made
-   */
-  bool handleChoice ( StateMachine::StateBase* activeLeaf );
-} {{{VariableName}}};
-{{/isChoice}}
 {{#isDeepHistory}}
 StateMachine::DeepHistoryState {{{VariableName}}};
 {{/isDeepHistory}}

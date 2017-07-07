@@ -81,6 +81,10 @@ define([], function() {
 		    var guardless = outTrans.filter(function(trans) { return !self.hasGuard( trans ); });
 		    if (guardless.length > 1)
 			self.error(obj, "Choice states must have <=1 unguarded exit transition!");
+		    /*
+		    if (guardless.length != 1)
+			self.error(obj, "Choice states must have exactly 1 unguarded exit transition!");
+		    */
 		}
 		else if (obj.type == 'Deep History Pseudostate') {
 		}

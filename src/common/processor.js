@@ -138,12 +138,8 @@ define(['./checkModel'], function(checkModel) {
 		// Process Choice Pseudostate Data
 		else if (obj.type == 'Choice Pseudostate') {
 		    // TODO:
-		    // * TURN INTO FLAT SEQUENCE OF TRANSITIONS / GUARDS
-		    // * Make unique name?
-
-		    // Need to figure out if this goes to another
-		    // choice pseudostate or an end state, and update
-		    // accordingly - how?
+		    // * Get the common parent
+		    // * Chain all the right transition actions together
 
 		    // for mustache template
 		    obj.isChoice = true;

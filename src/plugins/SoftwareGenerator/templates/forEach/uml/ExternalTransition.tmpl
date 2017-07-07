@@ -3,7 +3,12 @@ else if ( {{{Guard}}} ) {
   {{#finalState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
-  handled = {{{finalState.fullyQualifiedVariableName}}}->handleChoice( activeLeaf );
+  {{#finalState}}
+  if (false) { }
+  {{#ExternalTransitions}}
+  {{> ExternalTransitionTempl }}
+  {{/ExternalTransitions}}
+  {{/finalState}}
   {{/finalState.isChoice}}
   {{^finalState.isChoice}}
   // We are going into either a regular state, deep history
@@ -30,7 +35,12 @@ else if ( true ) {
   {{#finalState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
-  handled = {{{finalState.fullyQualifiedVariableName}}}->handleChoice( activeLeaf );
+  {{#finalState}}
+  if (false) { }
+  {{#ExternalTransitions}}
+  {{> ExternalTransitionTempl }}
+  {{/ExternalTransitions}}
+  {{/finalState}}
   {{/finalState.isChoice}}
   {{^finalState.isChoice}}
   // We are going into either a regular state, deep history
