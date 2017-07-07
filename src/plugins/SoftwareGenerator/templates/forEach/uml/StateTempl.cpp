@@ -9,13 +9,12 @@ bool {{{fullyQualifiedName}}}::handleChoice ( StateMachine::StateBase* activeLea
   // need to figure out how to gett the active branch properly, how to
   // call all the right transition actions, and how to call all the
   // right exit / entry actions
-  switch ( event->type() ) {
-  {{#ExternalEvents}}
-  {{> ExternalEventTempl }}
-  {{/ExternalEvents}}
-  default:
-    break;
-  }
+
+  if (false) { } // makes code generation easier :)
+  {{#ExternalTransitions}}
+  {{> ExternalTransitionTempl }}
+  {{/ExternalTransitions}}
+
   return handled;
 }
 {{/isChoice}}

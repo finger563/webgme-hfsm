@@ -99,11 +99,12 @@ define(['./checkModel'], function(checkModel) {
 						  src,
 						  obj );
 			}
-			else if (obj.finalState.type == 'Choice Pseudostate') {
+			else if (src.type == 'Choice Pseudostate') {
 			    // add the external transition to the source
-			    self.updateEventInfo( 'ExternalEvents',
-						  src,
-						  obj );
+			    if (src.ExternalTransitions == undefined)
+				src.ExternalTransitions = [];
+			    src.ExternalTransitions.push( obj );
+			    src.ExternalTransitions.sort( self.transitionSort );
 			}
 		    }
 		}
@@ -136,14 +137,14 @@ define(['./checkModel'], function(checkModel) {
 		}
 		// Process Choice Pseudostate Data
 		else if (obj.type == 'Choice Pseudostate') {
-		    // Need to add:
-		    // * defaultTransition
+		    // TODO:
+		    // * TURN INTO FLAT SEQUENCE OF TRANSITIONS / GUARDS
+		    // * Make unique name?
 
 		    // Need to figure out if this goes to another
 		    // choice pseudostate or an end state, and update
 		    // accordingly - how?
 
-		    // need to make a unique name for this state!
 		    // for mustache template
 		    obj.isChoice = true;
 		    // add sanitized name
