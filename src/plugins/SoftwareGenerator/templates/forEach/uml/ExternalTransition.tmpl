@@ -22,9 +22,14 @@ else if ( {{{Guard}}} ) {
   activeLeaf->exit();
   // run the transition function (s)
   {{{trans.transitionFunc}}}
+  {{^final.isEnd}}
   // call the entry() function for the new branch from the
   // common parent's new active child
   {{{newBranchRoot}}}->entry();
+  {{/final.isEnd}}
+  {{#final.isEnd}}
+  // no entry because we have reached the end state.
+  {{/final.isEnd}}
   // make sure nothing else handles this event
   handled = true;
   {{/finalState.isChoice}}
@@ -54,9 +59,14 @@ else if ( true ) {
   activeLeaf->exit();
   // run the transition function (s)
   {{{trans.transitionFunc}}}
+  {{^final.isEnd}}
   // call the entry() function for the new branch from the
   // common parent's new active child
   {{{newBranchRoot}}}->entry();
+  {{/final.isEnd}}
+  {{#final.isEnd}}
+  // no entry because we have reached the end state.
+  {{/final.isEnd}}
   // make sure nothing else handles this event
   handled = true;
   {{/finalState.isChoice}}

@@ -1,4 +1,5 @@
 define(['mustache/mustache',
+	'handlebars/handlebars.min',
 	'text!./EventTempl.hpp',
 	'text!./InternalEvent.tmpl',
 	'text!./ExternalEvent.tmpl',
@@ -9,6 +10,7 @@ define(['mustache/mustache',
 	'text!./GeneratedStates.hpp',
 	'text!./GeneratedStates.cpp'],
        function(mustache,
+		handlebars,
 		EventTempl,
 		InternalEventTempl,
 		ExternalEventTempl,
@@ -49,7 +51,8 @@ define(['mustache/mustache',
 
 	   function getKey(templName, root) {
 	       var keyTempl = keyTemplates[ templName ];
-	       return mustache.render( keyTempl, root );
+	       //return mustache.render( keyTempl, root );
+	       return handlebars.compile( keyTempl )( root );
 	   };
 
 	   function getContext( templName, root ) {
@@ -68,10 +71,17 @@ define(['mustache/mustache',
 		   var templName = "EventTempl";
 		   var retObj = {};
 		   var context = getContext( templName, root );
+		   /*
 		   retObj[ context.key ] = mustache.render(
 		       Partials[ templName ],
 		       context,
 		       Partials
+		   );
+		   */
+		   retObj[ context.key ] = handlebars.compile(
+		       Partials[ templName ]
+		   )(
+		       context
 		   );
 		   return retObj;
 	       },
@@ -80,10 +90,17 @@ define(['mustache/mustache',
 		   var rendered = {};
 		   rootTemplates.map(function(rootTemplName) {
 		       var context = getContext( rootTemplName, root );
+		       /*
 		       rendered[ context.key ] = mustache.render(
 			   Partials[ rootTemplName ],
 			   context,
 			   Partials
+		       );
+		       */
+		       rendered[ context.key ] = handlebars.compile(
+			   Partials[ rootTemplName ]
+		       )(
+			   context
 		       );
 		   });
 		   return rendered;

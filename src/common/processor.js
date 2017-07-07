@@ -371,7 +371,7 @@ define(['./checkModel'], function(checkModel) {
 	    //  pseudostates to return the final state to which this
 	    //  path goes.
 	    // Should not terminate in:
-	    //   * End States
+	    //   * End States (unless root end state)
 	    //   * Initial States
 	    // Should terminate in:
 	    //   * States
