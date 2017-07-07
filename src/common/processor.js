@@ -94,11 +94,17 @@ define(['./checkModel'], function(checkModel) {
 			if (obj.Event) {
 			    // add the event to a global list of events
 			    self.addEvent( model, obj.Event );
+			    // add the external transition to the source
+			    self.updateEventInfo( 'ExternalEvents',
+						  src,
+						  obj );
 			}
-			// add the external transition to the source
-			self.updateEventInfo( 'ExternalEvents',
-					      src,
-					      obj );
+			else if (obj.finalState.type == 'Choice Pseudostate') {
+			    // add the external transition to the source
+			    self.updateEventInfo( 'ExternalEvents',
+						  src,
+						  obj );
+			}
 		    }
 		}
 		// Process Internal Transition Data into convenience
@@ -118,17 +124,15 @@ define(['./checkModel'], function(checkModel) {
 		else if (obj.type == 'End State') {
 		    // for mustache template
 		    obj.isEnd = true;
+		    // add sanitized name
+		    var sName = self.sanitizeString(obj.name);
+		    obj.sanitizedName = sName;
+		    // make the variable name
+		    self.addVariableName( obj );
+		    // if root, make convenience to it
 		    var parent = model.objects[ obj.parentPath ];
-		    if (parent) {
-			if (!parent.InternalTransitions) {
-			    parent.InternalTransitions = []
-			}
-			parent.InternalTransitions.push({
-			    'Event' : obj.Event,
-			    'Guard' : obj.Guard,
-			    'Action': obj.Action,
-			});
-		    }
+		    if (parent && parent.type != 'State')
+			parent.END = obj;
 		}
 		// Process Choice Pseudostate Data
 		else if (obj.type == 'Choice Pseudostate') {
@@ -244,28 +248,34 @@ define(['./checkModel'], function(checkModel) {
 	    Object.keys(model.objects).map(function(path) {
 		var obj = model.objects[ path ];
 		if (obj.type == 'Deep History Pseudostate') {
-		    obj.fullyQualifiedName = self.getFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
 		}
 		else if (obj.type == 'Shallow History Pseudostate') {
-		    obj.fullyQualifiedName = self.getFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
 		}
 		else if (obj.type == 'Choice Pseudostate') {
-		    obj.fullyQualifiedName = self.getFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
 		    // make convenience members for choice pseudostates
 		    self.makeChoiceConvenience( obj, model.objects );
 		}
 		else if (obj.type == 'State') {
-		    obj.fullyQualifiedName = self.getFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
 		}
 		else if (obj.type == 'End State') {
+		    self.makeFullyQualifiedName( obj, model.objects );
+		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make convenience members for choice pseudostates
 		    self.makeEndConvenience( obj, model.objects );
 		}
@@ -275,16 +285,30 @@ define(['./checkModel'], function(checkModel) {
 		}
 	    });
 	},
-	getFullyQualifiedName: function( obj, objDict ) {
+	makeFullyQualifiedVariableName: function( obj, objDict ) {
 	    var self = this;
+	    if (obj.fullyQualifiedVariableName)
+		return;
+	    var fqName = obj.VariableName;
+	    var parent = objDict[ obj.parentPath ];
+	    if (parent && parent.type == 'State') {
+		self.makeFullyQualifiedVariableName( parent, objDict );
+		fqName = parent.fullyQualifiedVariableName + '.' + fqName;
+	    }
+	    obj.fullyQualifiedVariableName = fqName;
+	},
+	makeFullyQualifiedName: function( obj, objDict ) {
+	    var self = this;
+	    if (obj.fullyQualifiedName)
+		return;
 	    var fqName = obj.sanitizedName;
 	    var parent = objDict[ obj.parentPath ];
 	    // make sure we have a relatively unique name for the state
 	    if (parent && parent.type == 'State') {
-		var parentFQName = self.getFullyQualifiedName( parent, objDict );
-		fqName = parentFQName + '::' + fqName;
+		self.makeFullyQualifiedName( parent, objDict );
+		fqName = parent.fullyQualifiedName + '::' + fqName;
 	    }
-	    return fqName;
+	    obj.fullyQualifiedName = fqName;
 	},
 	transitionSort: function(transA, transB) {
 	    var a = transA.Guard;

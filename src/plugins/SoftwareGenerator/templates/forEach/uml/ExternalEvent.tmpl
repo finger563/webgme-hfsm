@@ -7,7 +7,7 @@ case {{{name}}}:
     {{#finalState.isChoice}}
     // Going into a choice pseudo-state, let it handle its
     // guards and perform the state transition
-    handled = {{{finalState.VariableName}}}->handleChoice( activeLeaf );
+    handled = {{{finalState.fullyQualifiedVariableName}}}->handleChoice( activeLeaf );
     {{/finalState.isChoice}}
     {{^finalState.isChoice}}
     // We are going into either a regular state, deep history
@@ -16,7 +16,7 @@ case {{{name}}}:
     // entry()s
 
     // set the new active state
-    {{{finalState.VariableName}}}->makeActive();
+    {{{finalState.fullyQualifiedVariableName}}}->makeActive();
     // call the exit() function for the old state
     activeLeaf->exit();
     // run the transition function (s)
@@ -34,7 +34,7 @@ case {{{name}}}:
     {{#finalState.isChoice}}
     // Going into a choice pseudo-state, let it handle its
     // guards and perform the state transition
-    handled = {{{finalState.VariableName}}}->handleChoice( activeLeaf );
+    handled = {{{finalState.fullyQualifiedVariableName}}}->handleChoice( activeLeaf );
     {{/finalState.isChoice}}
     {{^finalState.isChoice}}
     // We are going into either a regular state, deep history
@@ -43,7 +43,7 @@ case {{{name}}}:
     // entry()s
 
     // set the new active state
-    {{{finalState.VariableName}}}->makeActive();
+    {{{finalState.fullyQualifiedVariableName}}}->makeActive();
     // call the exit() function for the old state
     activeLeaf->exit();
     // run the transition function (s)

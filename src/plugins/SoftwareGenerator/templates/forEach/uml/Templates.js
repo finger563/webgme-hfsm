@@ -4,6 +4,7 @@ define(['mustache/mustache',
 	'text!./ExternalEvent.tmpl',
 	'text!./StateTempl.hpp',
 	'text!./StateTempl.cpp',
+	'text!./EndStateTempl.hpp',
 	'text!./GeneratedStates.hpp',
 	'text!./GeneratedStates.cpp'],
        function(mustache,
@@ -12,6 +13,7 @@ define(['mustache/mustache',
 		ExternalEventTempl,
 		StateTemplHpp,
 		StateTemplCpp,
+		EndStateTemplHpp,
 		GeneratedStatesTemplHpp,
 		GeneratedStatesTemplCpp) {
 	   'use strict';
@@ -22,6 +24,7 @@ define(['mustache/mustache',
 	       ExternalEventTempl: ExternalEventTempl,
 	       StateTemplHpp: StateTemplHpp,
 	       StateTemplCpp: StateTemplCpp,
+	       EndStateTemplHpp: EndStateTemplHpp,
 	       GeneratedStatesTemplHpp: GeneratedStatesTemplHpp,
 	       GeneratedStatesTemplCpp: GeneratedStatesTemplCpp,
 	   };
@@ -47,20 +50,22 @@ define(['mustache/mustache',
 	   };
 
 	   function getContext( templName, root ) {
-	       var key = getKey( templName );
+	       var key = getKey( templName, root );
+	       var deps = dependencies[ templName ] || [];
+	       deps = deps.map(function(dep) { return getKey( dep, root ); });
 	       return Object.assign({
 		   key: key,
-		   dependencies: (dependencies[templName] || []).map(function(dep) { return getKey( dep, root ); })
+		   dependencies: deps
 	       }, root);
 	   };
 
 	   return {
 	       renderEvents: function(root) {
+		   console.log('render events');
 		   var templName = "EventTempl";
 		   var retObj = {};
-		   var key = getKey( templName, root );
 		   var context = getContext( templName, root );
-		   retObj[ key ] = mustache.render(
+		   retObj[ context.key ] = mustache.render(
 		       Partials[ templName ],
 		       context,
 		       Partials
@@ -68,11 +73,11 @@ define(['mustache/mustache',
 		   return retObj;
 	       },
 	       renderStates: function(root) {
+		   console.log('render states');
 		   var rendered = {};
 		   rootTemplates.map(function(rootTemplName) {
-		       var key = getKey( rootTemplName, root );
 		       var context = getContext( rootTemplName, root );
-		       rendered[ key ] = mustache.render(
+		       rendered[ context.key ] = mustache.render(
 			   Partials[ rootTemplName ],
 			   context,
 			   Partials

@@ -11,6 +11,10 @@ namespace StateMachine {
 {{> StateTemplHpp }}
 {{/Substates}}
 
+{{#END}}
+{{> EndStateTemplHpp}}
+{{/END}}
+
 };
 
 #endif // __GENERATED_STATES_INCLUDE_GUARD__
