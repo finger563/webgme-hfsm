@@ -41,6 +41,7 @@ define(['./checkModel'], function(checkModel) {
 	},
 	addBasicParams: function(obj) {
 	    obj.Substates = [];
+	    obj.isExternalTransition = false;
 	    obj.isState = false;
 	    obj.isChoice = false;
 	    obj.isDeepHistory = false;
@@ -84,6 +85,7 @@ define(['./checkModel'], function(checkModel) {
 		    if ( src && dst ) {
 			// valid transition with source and destination pointers in the tree
 			// add new data to the object
+			obj.isExternalTransition = true;
 			obj.prevState = src;
 			obj.nextState = dst;
 			obj.commonParent = null;
@@ -105,6 +107,9 @@ define(['./checkModel'], function(checkModel) {
 				src.ExternalTransitions = [];
 			    src.ExternalTransitions.push( obj );
 			    src.ExternalTransitions.sort( self.transitionSort );
+			}
+			else {
+			    // should be end event! need to build transition functions properly
 			}
 		    }
 		}
@@ -381,8 +386,6 @@ define(['./checkModel'], function(checkModel) {
 	    //   * Deep History Pseudostates
 	    //   * Shallow History Pseudostates
 	    var transition = model.objects[ transitionId ];
-	    console.log( transitionId );
-	    console.log( transition );
 	    var dst = model.objects[ transition.pointers['dst'] ];
 	    if (dst.type == 'End State') {
 		dst = self.getEndState( model, dst.path );

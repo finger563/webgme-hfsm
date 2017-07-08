@@ -2,13 +2,15 @@
 else if ( {{{Guard}}} ) {
 {{else}}{{!-- ELSE IF NOT GUARD --}}
 else if ( true ) {
-{{~/if}}
+{{/if}}
   {{#if finalState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
   if (false) { }
   {{#each finalState.ExternalTransitions}}
+  {{#addTransition trans=..}}
   {{> ExternalTransitionTempl }}
+  {{/addTransition}}
   {{~/each}}
   {{else}}{{!-- ELSE IF NOT finalState.isChoice --}}
   // We are going into either a regular state, deep history
@@ -21,6 +23,11 @@ else if ( true ) {
   // call the exit() function for the old state
   activeLeaf->exit();
   // run the transition function (s)
+  {{#each previousTransitions}}
+  // transition function for: {{{path}}}
+  {{{transitionFunc}}}
+  {{/each}}
+  // transition function for: {{{path}}}
   {{{transitionFunc}}}
   {{#if finalState.isEnd}}
   // no entry because we have reached the end state.

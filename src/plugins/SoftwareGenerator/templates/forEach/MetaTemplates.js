@@ -57,6 +57,7 @@ define(['handlebars/handlebars.min',
 		   var root    = model.root;
 		   var rootTypes = ['Task','Timer'];
 		   var generatedArtifacts = {};
+		   UMLTemplates.setObjects( objects );
 		   rootTypes.map(function(rootType) {
 		       var rootTypeList = root[ rootType + '_list' ];
 		       if (rootTypeList) {

@@ -47,6 +47,42 @@ define(['handlebars/handlebars.min',
 	       ]
 	   };
 
+	   function getAttrIfType( obj, attr, type ) {
+	       return obj.type == type ? obj[attr] : '';
+	   };
+
+	   var objects = null;
+
+	   function buildTransFunc( obj ) {
+	       var self = this;
+	       var transFunc = '';
+	       if ( obj.type == 'External Transition' ) {
+		   console.log( objects[ obj.parentPath ] );
+		   if (objects != null)
+		       transFunc += buildTransFunc( objects[ obj.parentPath ] );
+		   transFunc += '// transFunc for : '+obj.path;
+		   transFunc += obj.transitionFunc;
+	       }
+	       return transFunc;
+	   };
+
+	   handlebars.registerHelper('addTransition', function(options) {
+	       var context = {},
+		   mergeContext = function(obj) {
+		       for(var k in obj)context[k]=obj[k];
+		   };
+	       mergeContext(this);
+	       var trans = options.hash.trans;
+	       console.log( 'adding transition!' );
+	       console.log( context ); 
+	       console.log( trans );
+	       if (context.previousTransitions == null)
+		   context.previousTransitions = [];
+	       context.previousTransitions.push( trans );
+	       console.log( context.previousTransitions );
+	       return options.fn(context);
+	   });
+
 	   Object.keys(Partials).map(function(partialName) {
 	       handlebars.registerPartial( partialName, Partials[ partialName ] );
 	   });
@@ -67,6 +103,9 @@ define(['handlebars/handlebars.min',
 	   };
 
 	   return {
+	       setObjects: function(objs) {
+		   objects = objs;
+	       },
 	       renderEvents: function(root) {
 		   console.log('render events');
 		   var templName = "EventTempl";
