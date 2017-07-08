@@ -1,5 +1,4 @@
-define(['mustache/mustache',
-	'handlebars/handlebars.min',
+define(['handlebars/handlebars.min',
 	'./uml/Templates',
 	'text!./component.mk',
 	'text!./main.cpp',
@@ -9,8 +8,7 @@ define(['mustache/mustache',
 	'text!./Timer.hpp',
 	'text!./Comp.cpp',
 	'text!./Comp.hpp'],
-       function(mustache,
-		handlebars,
+       function(handlebars,
 		UMLTemplates,
 		compMk,
 		mainCppTempl,
@@ -85,12 +83,16 @@ define(['mustache/mustache',
 		       if ( templDict ) {
 			   Object.keys(templDict).map(function(pathTempl) {
 			       var fileTempl = templDict[ pathTempl ];
-			       var renderData = {
+			       var context = {
 				   base: baseDir,
 				   obj: obj
 			       };
+			       var fileData = '';
+			       var filePath = '';
+			       /*
 			       var filePath = mustache.render( pathTempl, renderData );
 			       var fileData = mustache.render( fileTempl, renderData );
+			       */
 			       artifacts[ filePath ] = fileData;
 			   });
 		       }
