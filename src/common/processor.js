@@ -269,6 +269,8 @@ define(['./checkModel'], function(checkModel) {
 		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
+		    // find the leaf initial state of this state
+		    obj.leafInitialState = self.getStartLeafState( obj, model );
 		}
 		else if (obj.type == 'End State') {
 		    self.makeFullyQualifiedName( obj, model.objects );

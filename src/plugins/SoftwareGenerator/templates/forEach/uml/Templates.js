@@ -49,6 +49,10 @@ define(['mustache/mustache',
 	       ]
 	   };
 
+	   Object.keys(Partials).map(function(partialName) {
+	       handlebars.registerPartial( partialName, Partials[ partialName ] );
+	   });
+
 	   function getKey(templName, root) {
 	       var keyTempl = keyTemplates[ templName ];
 	       //return mustache.render( keyTempl, root );

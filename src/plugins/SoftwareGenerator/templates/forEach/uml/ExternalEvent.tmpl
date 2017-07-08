@@ -1,7 +1,6 @@
 case {{{name}}}:
-  if ( false ) {  // makes generation easier :)
-  }
-  {{#Transitions}}
+  if ( false ) { }  // makes generation easier :)
+  {{#each Transitions}}
   {{> ExternalTransitionTempl}}
-  {{/Transitions}}
+  {{~/each}}
   break;

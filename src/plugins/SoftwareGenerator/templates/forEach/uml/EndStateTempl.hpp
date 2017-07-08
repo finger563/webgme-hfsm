@@ -29,9 +29,9 @@ public:
   bool handleEvent ( StateMachine::Event* event ) { return true; }
 
   /**
-   * @brief Returns nullptr since it is leaf END STATE.
+   * @brief Returns itself since it is leaf END STATE.
    *
-   * @return nullptr
+   * @return this
    */
-  StateMachine::StateBase* getInitial ( void ) { return nullptr; }
+  StateMachine::StateBase* getInitial ( void ) { return this; }
 } {{{VariableName}}};

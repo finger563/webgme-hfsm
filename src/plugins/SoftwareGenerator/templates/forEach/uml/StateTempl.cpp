@@ -1,4 +1,4 @@
-{{#isState}}
+{{#if isState}}
 /**
  * Definitions for class {{{fullyQualifiedName}}}
  */
@@ -37,18 +37,18 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
 
   // handle internal transitions first
   switch ( event->type() ) {
-  {{#InternalEvents}}
+  {{#each InternalEvents}}
   {{> InternalEventTempl }}
-  {{/InternalEvents}}
+  {{~/each}}
   default:
     break;
   }
   if (!handled) {
     // handle external transitions here
     switch ( event->type() ) {
-    {{#ExternalEvents}}
+    {{#each ExternalEvents}}
     {{> ExternalEventTempl }}
-    {{/ExternalEvents}}
+    {{~/each}}
     default:
       break;
     }
@@ -61,11 +61,9 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
 }
 
 StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
-  return {{{getInitial()}}};
+  return &{{{leafInitialState.fullyQualifiedVariableName}}};
 }
-
-{{#Substates}}
+{{#each Substates}}
 {{> StateTemplCpp }}
-{{/Substates}}
-{{/isState}}
-
+{{~/each}}
+{{~/if}}

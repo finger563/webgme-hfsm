@@ -1,11 +1,11 @@
-{{#dependencies}}
+{{#each dependencies}}
 #include "{{{.}}}"
-{{/dependencies}}
+{{~/each}}
 
 namespace StateMachine {
 
-{{#Substates}}
+{{#each Substates}}
 {{> StateTemplCpp }}
-{{/Substates}}
+{{~/each}}
 
 };

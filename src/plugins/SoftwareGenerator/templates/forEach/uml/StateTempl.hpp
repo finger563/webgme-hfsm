@@ -1,10 +1,8 @@
-{{#isDeepHistory}}
+{{#if isDeepHistory}}
 StateMachine::DeepHistoryState {{{VariableName}}};
-{{/isDeepHistory}}
-{{#isShallowHistory}}
+{{else if isShallowHistory}}
 StateMachine::ShallowHistoryState {{{VariableName}}};
-{{/isShallowHistory}}
-{{#isState}}
+{{else if isState}}
 /**
  * States contain other states and can consume generic
  * StateMachine::Event objects if they have internal or external
@@ -22,9 +20,9 @@ StateMachine::ShallowHistoryState {{{VariableName}}};
 class {{{sanitizedName}}} : public StateMachine::StateBase {
 public:
 
-  {{#Substates}}
+  {{#each Substates}}
   {{> StateTemplHpp }}
-  {{/Substates}}
+  {{/each}}
   
   /**
    * @brief Runs the entry() function defined in the model and then
@@ -71,4 +69,4 @@ public:
    */
   StateMachine::StateBase* getInitial ( void );
 } {{{VariableName}}};
-{{/isState}}
+{{/if}}

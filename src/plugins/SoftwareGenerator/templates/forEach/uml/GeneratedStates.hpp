@@ -7,13 +7,13 @@
 
 namespace StateMachine {
 
-{{#Substates}}
-{{> StateTemplHpp }}
-{{/Substates}}
+{{#each Substates}}
+{{> StateTemplHpp}}
+{{~/each}}
 
 {{#END}}
 {{> EndStateTemplHpp}}
-{{/END}}
+{{~/END}}
 
 };
 

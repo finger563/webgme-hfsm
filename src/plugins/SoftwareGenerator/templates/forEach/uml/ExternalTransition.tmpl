@@ -1,74 +1,35 @@
-{{#Guard}}
+{{#if Guard}}
 else if ( {{{Guard}}} ) {
-  {{#finalState.isChoice}}
-  // Going into a choice pseudo-state, let it handle its
-  // guards and perform the state transition
-  {{#finalState}}
-  if (false) { }
-  {{#ExternalTransitions}}
-  {{> ExternalTransitionTempl }}
-  {{/ExternalTransitions}}
-  {{/finalState}}
-  {{/finalState.isChoice}}
-  {{^finalState.isChoice}}
-  // We are going into either a regular state, deep history
-  // state, or a shallow history state, just need to make
-  // the right state active, run the exit()s, Action, and
-  // entry()s
-
-  // set the new active state
-  {{{finalState.fullyQualifiedVariableName}}}->makeActive();
-  // call the exit() function for the old state
-  activeLeaf->exit();
-  // run the transition function (s)
-  {{{trans.transitionFunc}}}
-  {{^final.isEnd}}
-  // call the entry() function for the new branch from the
-  // common parent's new active child
-  {{{newBranchRoot}}}->entry();
-  {{/final.isEnd}}
-  {{#final.isEnd}}
-  // no entry because we have reached the end state.
-  {{/final.isEnd}}
-  // make sure nothing else handles this event
-  handled = true;
-  {{/finalState.isChoice}}
-}
-{{/Guard}}
-{{^Guard}}
+{{else}}{{!-- ELSE IF NOT GUARD --}}
 else if ( true ) {
-  {{#finalState.isChoice}}
+{{~/if}}
+  {{#if finalState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
-  {{#finalState}}
   if (false) { }
-  {{#ExternalTransitions}}
+  {{#each finalState.ExternalTransitions}}
   {{> ExternalTransitionTempl }}
-  {{/ExternalTransitions}}
-  {{/finalState}}
-  {{/finalState.isChoice}}
-  {{^finalState.isChoice}}
+  {{~/each}}
+  {{else}}{{!-- ELSE IF NOT finalState.isChoice --}}
   // We are going into either a regular state, deep history
   // state, or a shallow history state, just need to make
   // the right state active, run the exit()s, Action, and
   // entry()s
-
+  //
   // set the new active state
   {{{finalState.fullyQualifiedVariableName}}}->makeActive();
   // call the exit() function for the old state
   activeLeaf->exit();
   // run the transition function (s)
-  {{{trans.transitionFunc}}}
-  {{^final.isEnd}}
+  {{{transitionFunc}}}
+  {{#if finalState.isEnd}}
+  // no entry because we have reached the end state.
+  {{else}}{{!-- ELSE IF NOT finalState.isEnd --}}
   // call the entry() function for the new branch from the
   // common parent's new active child
   {{{newBranchRoot}}}->entry();
-  {{/final.isEnd}}
-  {{#final.isEnd}}
-  // no entry because we have reached the end state.
-  {{/final.isEnd}}
+  {{~/if}}{{!-- END IF NOT finalState.isEnd --}}
   // make sure nothing else handles this event
   handled = true;
-  {{/finalState.isChoice}}
+  {{~/if}}{{!-- END IF NOT finalState.isChoice --}}
 }
-{{/Guard}}

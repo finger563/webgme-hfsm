@@ -1,22 +1,16 @@
 case {{{name}}}:
   if ( false ) {  // makes generation easier :)
   }
-  {{#Transitions}}
-  {{#Guard}}
+  {{#each Transitions}}
+  {{#if Guard}}
   else if ( {{{Guard}}} ) {
-    // run transition action
-    {{{Action}}}
-    // make sure nothing else handles this event
-    handled = true;
-  }
-  {{/Guard}}
-  {{^Guard}}
+  {{else}}
   else if (true) {
+  {{/if}}
     // run transition action
     {{{Action}}}
     // make sure nothing else handles this event
     handled = true;
   }
-  {{/Guard}}
-  {{/Transitions}}
+  {{/each}}
   break;
