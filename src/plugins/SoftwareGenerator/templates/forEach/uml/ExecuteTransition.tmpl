@@ -1,0 +1,33 @@
+{{#if nextState.Initial_list}}
+{{#nextState.Initial_list.[0].ExternalTransitions.[0]}}
+{{#addTransition trans=.. previous=../previousTransitions}}
+{{> ExecuteTransitionTempl }}
+{{/addTransition}}
+{{/nextState.Initial_list.[0].ExternalTransitions.[0]}}
+{{else}}
+// We are going into either a regular state, deep history
+// state, or a shallow history state, just need to make
+// the right state active, run the exit()s, Action, and
+// entry()s
+
+// set the new active state
+{{{nextState.fullyQualifiedVariableName}}}->makeActive();
+// call the exit() function for the old state
+activeLeaf->exit();
+// run the transition function (s)
+{{#each previousTransitions}}
+// transition Action for: {{{path}}}
+{{{Action}}}
+{{/each}}
+// transition Action for: {{{path}}}
+{{{Action}}}
+{{#if nextState.isEnd}}
+// no entry because we have reached the end state.
+{{else}}
+// call the entry() function for the new branch from the
+// common parent's new active child
+{{{newBranchRoot}}}->entry();
+{{~/if}}
+// make sure nothing else handles this event
+handled = true;
+{{~/if}}

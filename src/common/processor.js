@@ -88,10 +88,6 @@ define(['./checkModel'], function(checkModel) {
 			obj.isExternalTransition = true;
 			obj.prevState = src;
 			obj.nextState = dst;
-			obj.commonParent = null;
-			obj.originalState =  null;
-			obj.finalState = self.getFinalState( model, obj.path );
-			obj.transitionFunc = '';
 
 			if (obj.Event) {
 			    // add the event to a global list of events
@@ -101,7 +97,8 @@ define(['./checkModel'], function(checkModel) {
 						  src,
 						  obj );
 			}
-			else if (src.type == 'Choice Pseudostate') {
+			else if (src.type == 'Choice Pseudostate' ||
+				 src.type == 'Initial') {
 			    // add the external transition to the source
 			    if (src.ExternalTransitions == undefined)
 				src.ExternalTransitions = [];
@@ -139,6 +136,10 @@ define(['./checkModel'], function(checkModel) {
 		    var parent = model.objects[ obj.parentPath ];
 		    if (parent && parent.type != 'State')
 			parent.END = obj;
+		    else {
+			var endTransition = checkModel.getEndTransitions( parent, model.objects );
+			obj.endTransition = endTransition[0];
+		    }
 		}
 		// Process Choice Pseudostate Data
 		else if (obj.type == 'Choice Pseudostate') {

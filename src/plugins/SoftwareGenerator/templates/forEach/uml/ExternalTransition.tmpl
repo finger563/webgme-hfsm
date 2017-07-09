@@ -1,42 +1,27 @@
 {{#if Guard}}
 else if ( {{{Guard}}} ) {
-{{else}}{{!-- ELSE IF NOT GUARD --}}
+{{else}}
 else if ( true ) {
 {{/if}}
-  {{#if finalState.isChoice}}
+  {{#if nextState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
   if (false) { }
-  {{#each finalState.ExternalTransitions}}
-  {{#addTransition trans=..}}
+  {{#each nextState.ExternalTransitions}}
+  {{#addTransition trans=.. previous=../previousTransitions}}
   {{> ExternalTransitionTempl }}
   {{/addTransition}}
   {{~/each}}
-  {{else}}{{!-- ELSE IF NOT finalState.isChoice --}}
-  // We are going into either a regular state, deep history
-  // state, or a shallow history state, just need to make
-  // the right state active, run the exit()s, Action, and
-  // entry()s
-  //
-  // set the new active state
-  {{{finalState.fullyQualifiedVariableName}}}->makeActive();
-  // call the exit() function for the old state
-  activeLeaf->exit();
-  // run the transition function (s)
-  {{#each previousTransitions}}
-  // transition function for: {{{path}}}
-  {{{transitionFunc}}}
-  {{/each}}
-  // transition function for: {{{path}}}
-  {{{transitionFunc}}}
-  {{#if finalState.isEnd}}
-  // no entry because we have reached the end state.
-  {{else}}{{!-- ELSE IF NOT finalState.isEnd --}}
-  // call the entry() function for the new branch from the
-  // common parent's new active child
-  {{{newBranchRoot}}}->entry();
-  {{~/if}}{{!-- END IF NOT finalState.isEnd --}}
-  // make sure nothing else handles this event
-  handled = true;
-  {{~/if}}{{!-- END IF NOT finalState.isChoice --}}
+  {{else if nextState.endTransition}}
+  // Going into an end pseudo-state that is not the root end state,
+  // follow its parent end transition
+  if (false) { }
+  {{#nextState.endTransition}}
+  {{#addTransition trans=.. previous=../previousTransitions}}
+  {{> ExternalTransitionTempl }}
+  {{/addTransition}}
+  {{~/nextState.endTransition}}
+  {{else if nextState.isState}}
+  {{> ExecuteTransitionTempl }}
+  {{~/if}}
 }

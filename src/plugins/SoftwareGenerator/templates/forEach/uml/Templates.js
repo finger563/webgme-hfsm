@@ -3,6 +3,7 @@ define(['handlebars/handlebars.min',
 	'text!./InternalEvent.tmpl',
 	'text!./ExternalEvent.tmpl',
 	'text!./ExternalTransition.tmpl',
+	'text!./ExecuteTransition.tmpl',
 	'text!./StateTempl.hpp',
 	'text!./StateTempl.cpp',
 	'text!./EndStateTempl.hpp',
@@ -13,6 +14,7 @@ define(['handlebars/handlebars.min',
 		InternalEventTempl,
 		ExternalEventTempl,
 		ExternalTransitionTempl,
+		ExecuteTransitionTempl,
 		StateTemplHpp,
 		StateTemplCpp,
 		EndStateTemplHpp,
@@ -25,6 +27,7 @@ define(['handlebars/handlebars.min',
 	       InternalEventTempl: InternalEventTempl,
 	       ExternalEventTempl: ExternalEventTempl,
 	       ExternalTransitionTempl: ExternalTransitionTempl,
+	       ExecuteTransitionTempl: ExecuteTransitionTempl,
 	       StateTemplHpp: StateTemplHpp,
 	       StateTemplCpp: StateTemplCpp,
 	       EndStateTemplHpp: EndStateTemplHpp,
@@ -53,19 +56,6 @@ define(['handlebars/handlebars.min',
 
 	   var objects = null;
 
-	   function buildTransFunc( obj ) {
-	       var self = this;
-	       var transFunc = '';
-	       if ( obj.type == 'External Transition' ) {
-		   console.log( objects[ obj.parentPath ] );
-		   if (objects != null)
-		       transFunc += buildTransFunc( objects[ obj.parentPath ] );
-		   transFunc += '// transFunc for : '+obj.path;
-		   transFunc += obj.transitionFunc;
-	       }
-	       return transFunc;
-	   };
-
 	   handlebars.registerHelper('addTransition', function(options) {
 	       var context = {},
 		   mergeContext = function(obj) {
@@ -73,13 +63,11 @@ define(['handlebars/handlebars.min',
 		   };
 	       mergeContext(this);
 	       var trans = options.hash.trans;
-	       console.log( 'adding transition!' );
-	       console.log( context ); 
-	       console.log( trans );
-	       if (context.previousTransitions == null)
-		   context.previousTransitions = [];
-	       context.previousTransitions.push( trans );
-	       console.log( context.previousTransitions );
+	       var previousTransitions = new Array();
+	       if ( options.hash.previous )
+		   previousTransitions = previousTransitions.concat( options.hash.previous );
+	       previousTransitions.push( trans );
+	       context.previousTransitions = previousTransitions;
 	       return options.fn(context);
 	   });
 
@@ -107,7 +95,6 @@ define(['handlebars/handlebars.min',
 		   objects = objs;
 	       },
 	       renderEvents: function(root) {
-		   console.log('render events');
 		   var templName = "EventTempl";
 		   var retObj = {};
 		   var context = getContext( templName, root );
@@ -120,7 +107,6 @@ define(['handlebars/handlebars.min',
 		   return retObj;
 	       },
 	       renderStates: function(root) {
-		   console.log('render states');
 		   var rendered = {};
 		   rootTemplates.map(function(rootTemplName) {
 		       var context = getContext( rootTemplName, root );
