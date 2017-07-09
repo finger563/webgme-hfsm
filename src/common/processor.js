@@ -1,9 +1,8 @@
 
 /*
  * TODO:
- *   * Build transition functions properly
  *   * Get common parent properly for all state transitions
- *   * Get default transition for choice pseudostates
+ *   * Make pointer objects for states.
  */
 
 define(['./checkModel'], function(checkModel) {
@@ -143,10 +142,6 @@ define(['./checkModel'], function(checkModel) {
 		}
 		// Process Choice Pseudostate Data
 		else if (obj.type == 'Choice Pseudostate') {
-		    // TODO:
-		    // * Get the common parent
-		    // * Chain all the right transition actions together
-
 		    // for mustache template
 		    obj.isChoice = true;
 		    // add sanitized name

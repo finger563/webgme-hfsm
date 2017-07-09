@@ -6,7 +6,7 @@ else if ( true ) {
   {{#if nextState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
-  if (false) { }
+  if (false) { } // makes geneeration easier :)
   {{#each nextState.ExternalTransitions}}
   {{#addTransition trans=.. previous=../previousTransitions}}
   {{> ExternalTransitionTempl }}
@@ -22,6 +22,10 @@ else if ( true ) {
   {{/addTransition}}
   {{~/nextState.endTransition}}
   {{else if nextState.isState}}
+  {{> ExecuteTransitionTempl }}
+  {{else if nextState.isDeepHistory}}
+  {{> ExecuteTransitionTempl }}
+  {{else if nextState.isShallowHistory}}
   {{> ExecuteTransitionTempl }}
   {{~/if}}
 }
