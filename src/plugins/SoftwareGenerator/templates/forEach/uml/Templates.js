@@ -85,6 +85,52 @@ define(['handlebars/handlebars.min',
 	       var self = this;
 	   };
 
+	   function renderNextState( s ) {
+	       var rendered = '// set the new active state\n';
+	       rendered += s.fullyQualifiedVariableName + '->makeActive();\n';
+	       return rendered;
+	   };
+
+	   function renderAction( t ) {
+	       var a = '// transition Action for: ' + t.path + '\n';
+	       a += t.Action + '\n';
+	       return a;
+	   };
+
+	   function renderEntry( start, end, transitions ) {
+	       var e = '';
+	       if (end.type == 'End State')
+		   e += '// final state, no entry.';
+	       else
+		   e+= '// call the entry action for the common parent\n';
+	       return e;
+	   };
+
+	   function renderExit( start, end, transitions ) {
+	       var e = '// call the exit function for the old state\n';
+	       e += 'activeLeaf->exit();\n';
+	       return e;
+	   };
+
+	   handlebars.registerHelper('renderTransition', function( options ) {
+	       var transition = options.hash.transition;
+	       var transitions = new Array();
+	       if (transition.previousTransitions) {
+		   transitions = transitions.concat( transition.previousTransitions);
+	       }
+	       transitions.push( transition );
+	       var start = transitions[0].prevState;
+	       var end = transition.nextState;
+	       var rendered = '';
+	       rendered += renderNextState( end );
+	       rendered += renderExit( start, end, transitions );
+	       transitions.map(function(t) {
+		   rendered += renderAction( t );
+	       });
+	       rendered += renderEntry( start, end, transitions );
+	       return rendered;
+	   });
+
 	   handlebars.registerHelper('getCommonRoot', function(options) {
 	       console.log('getCommonRoot');
 	       var start = options.hash.start;
@@ -92,6 +138,7 @@ define(['handlebars/handlebars.min',
 	       var src, dst;
 	       src = start.prevState;
 	       dst = end.nextState;
+	       
 	       console.log( src );
 	       console.log( dst );
 	   });

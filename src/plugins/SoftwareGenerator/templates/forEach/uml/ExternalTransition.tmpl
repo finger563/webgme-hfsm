@@ -23,9 +23,11 @@ else if ( true ) {
   {{~/nextState.endTransition}}
   {{else if nextState.isState}}
   {{> ExecuteTransitionTempl }}
+  {{else if nextState.isEnd}}
+  {{> ExecuteTransitionTempl }}
   {{else if nextState.isDeepHistory}}
   {{> ExecuteTransitionTempl }}
   {{else if nextState.isShallowHistory}}
   {{> ExecuteTransitionTempl }}
-  {{~/if}}
+  {{/if}}
 }
