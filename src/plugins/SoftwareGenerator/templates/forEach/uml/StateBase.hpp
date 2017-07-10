@@ -23,6 +23,9 @@ namespace StateMachine {
    */
   class StateBase {
   public:
+    StateBase ( ) : _parentState( nullptr ), _activeState( nullptr ) {}
+    StateBase ( StateBase* _parent ) : _parentState( _parent ), _activeState( nullptr ) {}
+    
     /**
      * @brief Will be generated to run the entry() function defined in
      *  the model and then call _activeState->entry().
@@ -32,8 +35,11 @@ namespace StateMachine {
     /**
      * @brief Will be generated to run the exit() function defined in
      *  the model and then call _activeState->exit().
+     *
+     * @return StateMachine::StateBase* pointer to new root on which
+     *                                  to call entry
      */
-    virtual void                     exit ( void );
+    virtual StateMachine::StateBase* exit ( void );
 
     /**
      * @brief Will be generated to run the tick() function defined in

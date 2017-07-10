@@ -7,6 +7,8 @@
 
 namespace StateMachine {
 
+  void initialize ( void );
+
 {{#each Substates}}
 {{> StateTemplHpp}}
 {{~/each}}
@@ -16,5 +18,13 @@ namespace StateMachine {
 {{~/END}}
 
 };
+
+// pointers
+{{#each Substates}}
+{{> PointerTemplHpp }}
+{{~/each}}
+{{#END}}
+extern {{{fullyQualifiedName}}} *const {{{pointerName}}};
+{{~/END}}
 
 #endif // __GENERATED_STATES_INCLUDE_GUARD__

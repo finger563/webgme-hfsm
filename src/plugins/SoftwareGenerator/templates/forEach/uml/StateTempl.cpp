@@ -1,8 +1,9 @@
 {{#if isState}}
 
 /**
- * Definitions for class {{{fullyQualifiedName}}}
+ * Definitions for {{{fullyQualifiedName}}} : {{{path}}}
  */
+
 void {{{fullyQualifiedName}}}::entry ( void ) {
   // Now call the Entry action for this state
   {{{Entry}}}
@@ -11,17 +12,26 @@ void {{{fullyQualifiedName}}}::entry ( void ) {
     _activeState->entry();
 }
 
-void {{{fullyQualifiedName}}}::exit ( void ) {
+StateMachine::StateBase* {{{fullyQualifiedName}}}::exit ( void ) {
+  StateMachine::StateBase* commonRoot = nullptr;
   if ( _parentState && _parentState->getActive() != this ) {
     // we are no longer the active state of the parent run the exit
     // action, then call the parent's exit function
     {{{Exit}}}
-    _parentState->exit();
+    commonRoot = _parentState->exit();
   }
   else if ( _parentState == nullptr ) {
     // we are a top level state, just run the exit action
     {{{Exit}}}
   }
+  else {
+    // we are not top level, but we are already active
+    if (_activeState != nullptr)
+      commonRoot = _activeState;
+    else
+      commonRoot = this;
+  }
+  return commonRoot;
 }
 
 void {{{fullyQualifiedName}}}::tick ( void ) {
@@ -35,6 +45,9 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
 
   // Get the currently active leaf state
   StateMachine::StateBase* activeLeaf = getActiveLeaf();
+
+  // Get the currently active leaf state
+  StateMachine::StateBase* newBranchRoot = nullptr;
 
   // handle internal transitions first
   switch ( event->type() ) {
@@ -62,7 +75,7 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
 }
 
 StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
-  return &{{> InitialStateTempl this}};
+  return {{> InitialStateTempl this}};
 }
 {{#each Substates}}
 {{> StateTemplCpp }}

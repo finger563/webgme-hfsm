@@ -1,9 +1,7 @@
-{{#if isDeepHistory}}
-StateMachine::DeepHistoryState {{{VariableName}}};
-{{else if isShallowHistory}}
-StateMachine::ShallowHistoryState {{{VariableName}}};
-{{else if isState}}
+{{#if isState}}
 /**
+ * @brief Declaration for {{{fullyQualifiedName}}} : {{{path}}}
+ *
  * States contain other states and can consume generic
  * StateMachine::Event objects if they have internal or external
  * transitions on those events and if those transitions' guards are
@@ -24,25 +22,31 @@ public:
   {{> StateTemplHpp }}
   {{/each}}
   
+  {{{sanitizedName}}} ( ) : _parentState( nullptr ), _activeState( nullptr ) {}
+  {{{sanitizedName}}} ( StateBase* _parent ) : _parentState( _parent ), _activeState( nullptr ) {}
+    
   /**
    * @brief Runs the entry() function defined in the model and then
    *  calls the active child's entry() as _activeState->entry().
    */
-  void entry ( void );
+  void                     entry ( void );
 
   /**
    * @brief Runs the exit() function defined in the model and then
    *  calls the parent's _parentState->exit() if the parent's active
    *  child state has changed. If the parent's active child state
    *  has not changed, upwards tree traversal stops.
+   *
+   * @return StateMachine::StateBase* pointer to new root on which
+   *                                  to call entry
    */
-  void exit ( void );
+  StateMachine::StateBase* exit ( void );
 
   /**
    * @brief Runs the tick() function defined in the model and then
    *  calls _activeState->tick().
    */
-  void tick ( void );
+  void                     tick ( void );
 
   /**
    * @brief Calls _activeState->handleEvent( event ), then if the
@@ -57,7 +61,7 @@ public:
    *
    * @return true if event is consumed, false otherwise
    */
-  bool handleEvent ( StateMachine::Event* event );
+  bool                     handleEvent ( StateMachine::Event* event );
 
   /**
    * @brief Will be known from the model so will be generated in
@@ -68,5 +72,5 @@ public:
    * @return StateBase*  Pointer to initial substate
    */
   StateMachine::StateBase* getInitial ( void );
-} {{{VariableName}}};
+};
 {{/if}}

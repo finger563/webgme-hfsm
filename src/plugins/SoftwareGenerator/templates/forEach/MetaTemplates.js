@@ -96,6 +96,7 @@ define(['handlebars/handlebars.min',
 		   // make variable names and such for objects
 		   Object.keys( objects ).map(function( path ) {
 		       var obj = model.objects[ path ];
+		       obj.parent = model.objects[ obj.parentPath ];
 		       if (obj.type == 'Deep History Pseudostate') {
 			   // make rendered names
 			   self.makeFullyQualifiedName( obj, model.objects );

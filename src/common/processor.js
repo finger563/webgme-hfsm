@@ -12,7 +12,7 @@ define(['./checkModel'], function(checkModel) {
 	addEvent: function(model, eventName) {
 	    eventName = eventName.toUpperCase().trim();
 	    if (eventName)
-		model.eventNames.push( eventName );
+		model.root.eventNames.push( eventName );
 	},
 	sanitizeString: function(str) {
 	    return str.replace(/[ \-]/gi,'_');
@@ -45,7 +45,7 @@ define(['./checkModel'], function(checkModel) {
 
 	    // Keep track of all the events in the model and which
 	    // transitions occur from them
-	    model.eventNames = [];
+	    model.root.eventNames = [];
 
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
@@ -175,7 +175,7 @@ define(['./checkModel'], function(checkModel) {
 		}
 	    });
 	    // make sure event names are global and sort them
-	    model.eventNames = self.uniq( model.eventNames ).sort();
+	    model.root.eventNames = self.uniq( model.root.eventNames ).sort();
 	    // make sure all objects have convenience members
 	    self.makeConvenience( model );
 	},

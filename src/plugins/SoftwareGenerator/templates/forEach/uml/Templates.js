@@ -1,7 +1,8 @@
 /*
  * TODO:
  *   * Get common parent properly for all state transitions
- *   * Make pointer objects for states.
+ *   * Ensure Exit / Entry actions are called even when transitions
+       cause the same state to be reactivated
  */
 
 define(['handlebars/handlebars.min',
@@ -14,6 +15,8 @@ define(['handlebars/handlebars.min',
 	'text!./StateTempl.hpp',
 	'text!./StateTempl.cpp',
 	'text!./EndStateTempl.hpp',
+	'text!./Pointer.hpp',
+	'text!./Pointer.cpp',
 	'text!./GeneratedStates.hpp',
 	'text!./GeneratedStates.cpp'],
        function(handlebars,
@@ -26,6 +29,8 @@ define(['handlebars/handlebars.min',
 		StateTemplHpp,
 		StateTemplCpp,
 		EndStateTemplHpp,
+		PointerTemplHpp,
+		PointerTemplCpp,
 		GeneratedStatesTemplHpp,
 		GeneratedStatesTemplCpp) {
 	   'use strict';
@@ -40,6 +45,8 @@ define(['handlebars/handlebars.min',
 	       StateTemplHpp: StateTemplHpp,
 	       StateTemplCpp: StateTemplCpp,
 	       EndStateTemplHpp: EndStateTemplHpp,
+	       PointerTemplHpp: PointerTemplHpp,
+	       PointerTemplCpp: PointerTemplCpp,
 	       GeneratedStatesTemplHpp: GeneratedStatesTemplHpp,
 	       GeneratedStatesTemplCpp: GeneratedStatesTemplCpp,
 	   };
@@ -76,9 +83,45 @@ define(['handlebars/handlebars.min',
 	       return options.fn(context);
 	   });
 
-	   function getParents( state ) {
-	       var self = this;
-	       return self.getParents( );
+	   function getParentList( obj ) {
+	       var currentObj = localRoot;
+	       var matchedPath = currentObj.path;
+	       var parentList = [];
+	       if ( obj.path.indexOf( matchedPath ) > -1 ) {
+		   // this obj is within the localRoot's tree
+		   while (matchedPath != obj.path) {
+		       parentList.push( currentObj );
+		       var child = currentObj.State_list.filter(function(s) {
+			   return obj.path.indexOf( s.path ) > -1;
+		       });
+		       if (child.length) {
+			   child = child[0];
+			   currentObj = child;
+			   matchedPath = currentObj.path;
+		       }
+		       else break;
+		   }
+	       }
+	       return parentList;
+	   };
+
+	   function getTopParent( start, end, transitions ) {
+	       var topParent = null;
+	       var startParents = getParentList( start );
+	       var endParents = getParentList( end );
+	       var parentListArray = transitions.map(function(t) {
+		   return getParentList( t );
+	       });
+	       parentListArray.push( startParents );
+	       parentListArray.push( endParents );
+	       var intersection = _.intersection.apply(_, parentListArray);
+	       if (intersection.length) {
+		   topParent = intersection[ intersection.length - 1 ];
+		   if (topParent.type != 'State') {
+		       topParent = endParents.length > 1 ? endParents[1] : end;
+		   }
+	       }
+	       return topParent;
 	   };
 
 	   function getCommonRoot( a, b ) {
@@ -86,29 +129,48 @@ define(['handlebars/handlebars.min',
 	   };
 
 	   function renderNextState( s ) {
-	       var rendered = '// set the new active state\n';
-	       rendered += s.fullyQualifiedVariableName + '->makeActive();\n';
+	       var rendered = [
+		   '// set the new active state',
+		   s.pointerName + '->makeActive();',
+	       ].join('\n');
 	       return rendered;
 	   };
 
+	   function renderExit( start, end, transitions ) {
+	       var e = [
+		   '// call the exit function for the old state',
+		   'newBranchRoot = activeLeaf->exit();',
+	       ].join('\n');
+	       return e;
+	   };
+
 	   function renderAction( t ) {
-	       var a = '// transition Action for: ' + t.path + '\n';
-	       a += t.Action + '\n';
+	       var a = [
+		   '// transition Action for: ' + t.path,
+		   a += t.Action,
+		   '',
+	       ].join('\n');
 	       return a;
 	   };
 
 	   function renderEntry( start, end, transitions ) {
 	       var e = '';
 	       if (end.type == 'End State')
-		   e += '// final state, no entry.';
-	       else
-		   e+= '// call the entry action for the common parent\n';
-	       return e;
-	   };
-
-	   function renderExit( start, end, transitions ) {
-	       var e = '// call the exit function for the old state\n';
-	       e += 'activeLeaf->exit();\n';
+		   e += '// final state, no entry.\n';
+	       else {
+		   e += [
+		       '// call the entry action for the new branch root',
+		       'if ( newBranchRoot == nullptr ) {',
+		       '  newBranchRoot = ' + topParent.pointerName,
+		       '}',
+		       'newBranchRoot->entry();'
+		       ''
+		   ].join('\n');
+		   /*
+		   var topParent = getTopParent( start, end, transitions );
+		   e+= topParent.pointerName + '->entry();\n';
+		   */
+	       }
 	       return e;
 	   };
 
