@@ -1,8 +1,8 @@
 {{#if isState}}
+
 /**
  * Definitions for class {{{fullyQualifiedName}}}
  */
-
 void {{{fullyQualifiedName}}}::entry ( void ) {
   // Now call the Entry action for this state
   {{{Entry}}}
@@ -13,12 +13,13 @@ void {{{fullyQualifiedName}}}::entry ( void ) {
 
 void {{{fullyQualifiedName}}}::exit ( void ) {
   if ( _parentState && _parentState->getActive() != this ) {
-    // we are no longer the active state of the parent
+    // we are no longer the active state of the parent run the exit
+    // action, then call the parent's exit function
     {{{Exit}}}
     _parentState->exit();
   }
   else if ( _parentState == nullptr ) {
-    // we are a top level state, just call exit
+    // we are a top level state, just run the exit action
     {{{Exit}}}
   }
 }
@@ -61,7 +62,7 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
 }
 
 StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
-  return &{{{leafInitialState.fullyQualifiedVariableName}}};
+  return &{{> InitialStateTempl this}};
 }
 {{#each Substates}}
 {{> StateTemplCpp }}

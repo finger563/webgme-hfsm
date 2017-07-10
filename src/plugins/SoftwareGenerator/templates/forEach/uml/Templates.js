@@ -4,6 +4,7 @@ define(['handlebars/handlebars.min',
 	'text!./ExternalEvent.tmpl',
 	'text!./ExternalTransition.tmpl',
 	'text!./ExecuteTransition.tmpl',
+	'text!./InitialState.tmpl',
 	'text!./StateTempl.hpp',
 	'text!./StateTempl.cpp',
 	'text!./EndStateTempl.hpp',
@@ -15,6 +16,7 @@ define(['handlebars/handlebars.min',
 		ExternalEventTempl,
 		ExternalTransitionTempl,
 		ExecuteTransitionTempl,
+		InitialStateTempl,
 		StateTemplHpp,
 		StateTemplCpp,
 		EndStateTemplHpp,
@@ -28,6 +30,7 @@ define(['handlebars/handlebars.min',
 	       ExternalEventTempl: ExternalEventTempl,
 	       ExternalTransitionTempl: ExternalTransitionTempl,
 	       ExecuteTransitionTempl: ExecuteTransitionTempl,
+	       InitialStateTempl: InitialStateTempl,
 	       StateTemplHpp: StateTemplHpp,
 	       StateTemplCpp: StateTemplCpp,
 	       EndStateTemplHpp: EndStateTemplHpp,
@@ -53,8 +56,6 @@ define(['handlebars/handlebars.min',
 	   function getAttrIfType( obj, attr, type ) {
 	       return obj.type == type ? obj[attr] : '';
 	   };
-
-	   var objects = null;
 
 	   handlebars.registerHelper('addTransition', function(options) {
 	       var context = {},
@@ -91,9 +92,6 @@ define(['handlebars/handlebars.min',
 	   };
 
 	   return {
-	       setObjects: function(objs) {
-		   objects = objs;
-	       },
 	       renderEvents: function(root) {
 		   var templName = "EventTempl";
 		   var retObj = {};

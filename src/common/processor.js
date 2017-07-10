@@ -23,10 +23,6 @@ define(['./checkModel'], function(checkModel) {
 	sanitizeString: function(str) {
 	    return str.replace(/[ \-]/gi,'_');
 	},
-	addVariableName: function(obj) {
-	    var self = this;
-	    obj.VariableName = self.sanitizeString(obj.name).toUpperCase();
-	},
 	processTopLevel: function(obj) {
 	    var self = this;
 	    var sName = self.sanitizeString(obj.name);
@@ -129,8 +125,6 @@ define(['./checkModel'], function(checkModel) {
 		    // add sanitized name
 		    var sName = self.sanitizeString(obj.name);
 		    obj.sanitizedName = sName;
-		    // make the variable name
-		    self.addVariableName( obj );
 		    // if root, make convenience to it
 		    var parent = model.objects[ obj.parentPath ];
 		    if (parent && parent.type != 'State')
@@ -147,8 +141,6 @@ define(['./checkModel'], function(checkModel) {
 		    // add sanitized name
 		    var sName = self.sanitizeString(obj.name);
 		    obj.sanitizedName = sName;
-		    // make the variable name
-		    self.addVariableName( obj );
 		    // make external transition convenience
 		    var extTrans = checkModel.getTransitionsOutOf( obj, model.objects );
 		}
@@ -159,8 +151,6 @@ define(['./checkModel'], function(checkModel) {
 		    // sanitize name for class name
 		    var sName = self.sanitizeString(obj.name);
 		    obj.sanitizedName = sName;
-		    // make the variable name
-		    self.addVariableName( obj );
 		    // for mustache template
 		    obj.isDeepHistory = true;
 		}
@@ -171,8 +161,6 @@ define(['./checkModel'], function(checkModel) {
 		    // sanitize name for class name
 		    var sName = self.sanitizeString(obj.name);
 		    obj.sanitizedName = sName;
-		    // make the variable name
-		    self.addVariableName( obj );
 		    // for mustache template
 		    obj.isShallowHistory = true;
 		}
@@ -183,8 +171,6 @@ define(['./checkModel'], function(checkModel) {
 		    // sanitize name for class name
 		    var sName = self.sanitizeString(obj.name);
 		    obj.sanitizedName = sName;
-		    // make the variable name
-		    self.addVariableName( obj );
 		    // make sure the State_list is either a real list or null
 		    if (!obj.State_list) {
 			obj.State_list = null;
@@ -198,41 +184,8 @@ define(['./checkModel'], function(checkModel) {
 	    model.eventNames = self.uniq( model.eventNames ).sort();
 	    // make sure all objects have convenience members
 	    self.makeConvenience( model );
-	    // make sure all state.transitions have valid .transitionFunc attributes
-	    //self.buildTransitionFuncs(model);
-	    // make sure all transitions have valid .commonParent attributes
-	    //self.findCommonParents(model);
 	},
 	// MAKE CONVENIENCE FOR WHAT EVENTS ARE HANDLED BY WHICH STATES
-	makeEndConvenience: function( obj, objDict ) {
-	    // Make sure we know where the end state will go so that
-	    // we can directly render it
-	    var self = this;
-	},
-	makeInitialConvenience: function( obj, objDict ) {
-	    // Make sure we know where the initial state will go so
-	    // that we can directly render it
-	    var self = this;
-	},
-	makeChoiceConvenience: function( obj, objDict ) {
-	    // makes sure we know which state we came from, what
-	    // transitions we used to get here, and what the possible
-	    // states we are going to are. Need to be able to figure
-	    // these out statically in the model so that we can
-	    // generate all the possibilities directly into
-	    // conditionals and then properly perform the exit,
-	    // transition, and entry actions
-	    var self = this;
-	    // Need to make sure we fully follow the path until we
-	    // terminate in one of:
-	    //  * Leaf State
-	    //  * Final End State
-	    //  * Deep History Pseudostate
-	    //  * Shallow History Pseudostate
-	    //
-	    // Should replace the 'finalState' that the transition
-	    // pionting to this state goes to?
-	},
 	makeSubstate: function(obj, objDict) {
 	    var parent = objDict[ obj.parentPath ];
 	    if (parent) {
@@ -246,69 +199,22 @@ define(['./checkModel'], function(checkModel) {
 	    Object.keys(model.objects).map(function(path) {
 		var obj = model.objects[ path ];
 		if (obj.type == 'Deep History Pseudostate') {
-		    self.makeFullyQualifiedName( obj, model.objects );
-		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
 		}
 		else if (obj.type == 'Shallow History Pseudostate') {
-		    self.makeFullyQualifiedName( obj, model.objects );
-		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
 		}
 		else if (obj.type == 'Choice Pseudostate') {
-		    self.makeFullyQualifiedName( obj, model.objects );
-		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
-		    // make convenience members for choice pseudostates
-		    self.makeChoiceConvenience( obj, model.objects );
 		}
 		else if (obj.type == 'State') {
-		    self.makeFullyQualifiedName( obj, model.objects );
-		    self.makeFullyQualifiedVariableName( obj, model.objects );
 		    // make a substate of its parent
 		    self.makeSubstate( obj, model.objects );
-		    // find the leaf initial state of this state
-		    obj.leafInitialState = self.getStartLeafState( obj, model );
-		}
-		else if (obj.type == 'End State') {
-		    self.makeFullyQualifiedName( obj, model.objects );
-		    self.makeFullyQualifiedVariableName( obj, model.objects );
-		    // make convenience members for choice pseudostates
-		    self.makeEndConvenience( obj, model.objects );
-		}
-		else if (obj.type == 'Initial') {
-		    // make convenience members for choice pseudostates
-		    self.makeInitialConvenience( obj, model.objects );
 		}
 	    });
-	},
-	makeFullyQualifiedVariableName: function( obj, objDict ) {
-	    var self = this;
-	    if (obj.fullyQualifiedVariableName)
-		return;
-	    var fqName = obj.VariableName;
-	    var parent = objDict[ obj.parentPath ];
-	    if (parent && parent.type == 'State') {
-		self.makeFullyQualifiedVariableName( parent, objDict );
-		fqName = parent.fullyQualifiedVariableName + '.' + fqName;
-	    }
-	    obj.fullyQualifiedVariableName = fqName;
-	},
-	makeFullyQualifiedName: function( obj, objDict ) {
-	    var self = this;
-	    if (obj.fullyQualifiedName)
-		return;
-	    var fqName = obj.sanitizedName;
-	    var parent = objDict[ obj.parentPath ];
-	    // make sure we have a relatively unique name for the state
-	    if (parent && parent.type == 'State') {
-		self.makeFullyQualifiedName( parent, objDict );
-		fqName = parent.fullyQualifiedName + '::' + fqName;
-	    }
-	    obj.fullyQualifiedName = fqName;
 	},
 	transitionSort: function(transA, transB) {
 	    var a = transA.Guard;

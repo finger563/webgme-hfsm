@@ -41,15 +41,50 @@ define(['handlebars/handlebars.min',
 		       "{{base}}/main.cpp": mainCppTempl,
 		   },
 	       },
-	       renderEnd: function( obj ) {
+	       makeVariableName: function(obj) {
+		   var self = this;
+		   obj.VariableName = obj.sanitizedName.toUpperCase();
 	       },
-	       renderDeepHistory: function( obj ) {
+	       makePointerName: function( obj, objDict ) {
+		   var self = this;
+		   if (obj.pointerName)
+		       return;
+		   if ( obj.VariableName == undefined )
+		       self.makeVariableName( obj );
+		   var pName = obj.VariableName;
+		   var parent = objDict[ obj.parentPath ];
+		   if (parent && parent.type == 'State') {
+		       self.makePointerName( parent, objDict );
+		       pName = parent.pointerName + '__' + pName;
+		   }
+		   obj.pointerName = pName;
 	       },
-	       renderShallowHistory: function( obj ) {
+	       makeFullyQualifiedVariableName: function( obj, objDict ) {
+		   var self = this;
+		   if (obj.fullyQualifiedVariableName)
+		       return;
+		   if ( obj.VariableName == undefined )
+		       self.makeVariableName( obj );
+		   var fqName = obj.VariableName;
+		   var parent = objDict[ obj.parentPath ];
+		   if (parent && parent.type == 'State') {
+		       self.makeFullyQualifiedVariableName( parent, objDict );
+		       fqName = parent.fullyQualifiedVariableName + '.' + fqName;
+		   }
+		   obj.fullyQualifiedVariableName = fqName;
 	       },
-	       renderChoice: function( obj ) {
-	       },
-	       renderState: function( obj ) {
+	       makeFullyQualifiedName: function( obj, objDict ) {
+		   var self = this;
+		   if (obj.fullyQualifiedName)
+		       return;
+		   var fqName = obj.sanitizedName;
+		   var parent = objDict[ obj.parentPath ];
+		   // make sure we have a relatively unique name for the state
+		   if (parent && parent.type == 'State') {
+		       self.makeFullyQualifiedName( parent, objDict );
+		       fqName = parent.fullyQualifiedName + '::' + fqName;
+		   }
+		   obj.fullyQualifiedName = fqName;
 	       },
 	       renderHFSM: function(model) {
 		   var self    = this;
@@ -57,7 +92,36 @@ define(['handlebars/handlebars.min',
 		   var root    = model.root;
 		   var rootTypes = ['Task','Timer'];
 		   var generatedArtifacts = {};
-		   UMLTemplates.setObjects( objects );
+
+		   // make variable names and such for objects
+		   Object.keys( objects ).map(function( path ) {
+		       var obj = model.objects[ path ];
+		       if (obj.type == 'Deep History Pseudostate') {
+			   // make rendered names
+			   self.makeFullyQualifiedName( obj, model.objects );
+			   self.makeFullyQualifiedVariableName( obj, model.objects );
+			   self.makePointerName( obj, model.objects );
+		       }
+		       else if (obj.type == 'Shallow History Pseudostate') {
+			   // make rendered names
+			   self.makeFullyQualifiedName( obj, model.objects );
+			   self.makeFullyQualifiedVariableName( obj, model.objects );
+			   self.makePointerName( obj, model.objects );
+		       }
+		       else if (obj.type == 'State') {
+			   // make rendered names
+			   self.makeFullyQualifiedName( obj, model.objects );
+			   self.makeFullyQualifiedVariableName( obj, model.objects );
+			   self.makePointerName( obj, model.objects );
+		       }
+		       else if (obj.type == 'End State') {
+			   // make rendered names
+			   self.makeFullyQualifiedName( obj, model.objects );
+			   self.makeFullyQualifiedVariableName( obj, model.objects );
+			   self.makePointerName( obj, model.objects );
+		       }
+		   });
+		   
 		   rootTypes.map(function(rootType) {
 		       var rootTypeList = root[ rootType + '_list' ];
 		       if (rootTypeList) {
