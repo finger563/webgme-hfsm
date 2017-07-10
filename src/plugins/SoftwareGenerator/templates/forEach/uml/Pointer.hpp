@@ -3,7 +3,7 @@ extern StateMachine::DeepHistoryState *const {{{pointerName}}};
 {{else if isShallowHistory}}
 extern StateMachine::ShallowHistoryState *const {{{pointerName}}};
 {{else if isState}}
-extern {{{fullyQualifiedName}}} *const {{{pointerName}}};
+extern StateMachine::{{{fullyQualifiedName}}} *const {{{pointerName}}};
 {{/if}}
 {{#each Substates}}
 {{> PointerTemplHpp }}

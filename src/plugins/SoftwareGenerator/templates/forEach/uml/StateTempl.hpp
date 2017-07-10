@@ -22,8 +22,8 @@ public:
   {{> StateTemplHpp }}
   {{/each}}
   
-  {{{sanitizedName}}} ( ) : _parentState( nullptr ), _activeState( nullptr ) {}
-  {{{sanitizedName}}} ( StateBase* _parent ) : _parentState( _parent ), _activeState( nullptr ) {}
+  {{{sanitizedName}}} ( ) : StateBase ( ) {}
+  {{{sanitizedName}}} ( StateBase* _parent ) : StateBase( _parent ) {}
     
   /**
    * @brief Runs the entry() function defined in the model.

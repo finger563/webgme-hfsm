@@ -34,4 +34,4 @@ public:
    * @return this
    */
   StateMachine::StateBase* getInitial ( void ) { return this; }
-} {{{VariableName}}};
+};

@@ -20,7 +20,7 @@ namespace StateMachine {
      * @brief Default Constructor, defaults type to
      * Type::_StateMachineTick_.
      */
-    Event ( void ) : _t(_Type::_StateMachineTick_) { }
+    Event ( void ) : _t(Type::_StateMachineTick_) { }
 
     /**
      * @brief Constructor for initializing the type.
@@ -56,7 +56,7 @@ namespace StateMachine {
       std::string eventString = "";
       switch ( e._t ) {
 	{{#each eventNames}}
-        case {{{.}}}:
+      case Type::{{{.}}}:
           eventString = "{{{.}}}";
 	  break;
 	{{/each}}

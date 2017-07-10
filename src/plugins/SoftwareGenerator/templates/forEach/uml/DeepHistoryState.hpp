@@ -12,6 +12,10 @@ namespace StateMachine {
    */
   class DeepHistoryState : public StateBase {
   public:
+  
+    DeepHistoryState ( ) : StateBase ( ) {}
+    DeepHistoryState ( StateBase* _parent ) : StateBase( _parent ) {}
+
     /**
      * @brief Calls _parentState->setDeepHistory()
      */

@@ -12,6 +12,9 @@ namespace StateMachine {
    */
   class ShallowHistoryState : public StateBase {
   public:
+    ShallowHistoryState ( ) : StateBase ( ) {}
+    ShallowHistoryState ( StateBase* _parent ) : StateBase( _parent ) {}
+
     /**
      * @brief Calls _parentState->setShallowHistory().
      */

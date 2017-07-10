@@ -1,7 +1,7 @@
 #ifndef __STATE_BASE__INCLUDE_GUARD
 #define __STATE_BASE__INCLUDE_GUARD
 
-#incldue <vector>
+#include <vector>
 
 #include "Event.hpp"
 
@@ -131,8 +131,8 @@ namespace StateMachine {
      */
     void                      makeActive ( void ) {
       if (_parentState != nullptr) {
-	_parentState.setActiveChild( this );
-	_parentState.makeActive();
+	_parentState->setActiveChild( this );
+	_parentState->makeActive();
       }
     }
 

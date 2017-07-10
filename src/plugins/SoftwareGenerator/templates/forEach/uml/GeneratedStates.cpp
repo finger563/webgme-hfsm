@@ -1,6 +1,6 @@
 {{#each dependencies}}
 #include "{{{.}}}"
-{{~/each}}
+{{/each}}
 
 namespace StateMachine {
 
@@ -8,7 +8,7 @@ namespace StateMachine {
   {{> PointerTemplCpp }}
   {{/each}}
   {{#END}}
-  {{{fullyQualifiedName}}}         {{{pointerName}}}_stateObj( );
+  {{{fullyQualifiedName}}}         {{{pointerName}}}_stateObj;
   {{{fullyQualifiedName}}} *const {{{pointerName}}} = &{{{pointerName}}}_stateObj;
   {{/END}}
 

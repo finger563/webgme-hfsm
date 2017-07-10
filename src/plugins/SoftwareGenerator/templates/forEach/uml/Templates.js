@@ -55,7 +55,8 @@ define(['handlebars/handlebars.min',
 
 	   var dependencies = {
 	       'GeneratedStatesTemplCpp': [
-		   'GeneratedStatesTemplHpp'
+		   'GeneratedStatesTemplHpp',
+		   'EventTempl'
 	       ]
 	   };
 

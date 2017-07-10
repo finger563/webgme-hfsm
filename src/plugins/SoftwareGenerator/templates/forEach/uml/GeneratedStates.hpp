@@ -24,7 +24,7 @@ namespace StateMachine {
 {{> PointerTemplHpp }}
 {{~/each}}
 {{#END}}
-extern {{{fullyQualifiedName}}} *const {{{pointerName}}};
+extern StateMachine::{{{fullyQualifiedName}}} *const {{{pointerName}}};
 {{~/END}}
 
 #endif // __GENERATED_STATES_INCLUDE_GUARD__
