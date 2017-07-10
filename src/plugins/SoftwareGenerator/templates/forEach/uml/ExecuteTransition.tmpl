@@ -26,7 +26,11 @@ activeLeaf->exit();
 {{else}}
 // call the entry() function for the new branch from the
 // common parent's new active child
-{{{newBranchRoot}}}->entry();
+{{#if previousTransitions}}
+{{#getCommonRoot start=previousTransitions.[0] end=.}}->entry();{{/getCommonRoot}}
+{{else}}
+{{#getCommonRoot start=. end=.}}->entry();{{/getCommonRoot}}
+{{~/if}}
 {{~/if}}
 // make sure nothing else handles this event
 handled = true;

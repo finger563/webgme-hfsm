@@ -1,10 +1,4 @@
 
-/*
- * TODO:
- *   * Get common parent properly for all state transitions
- *   * Make pointer objects for states.
- */
-
 define(['./checkModel'], function(checkModel) {
     'use strict';
     return {
@@ -250,27 +244,5 @@ define(['./checkModel'], function(checkModel) {
 	    eventInfo.Transitions.sort( self.transitionSort );
 	},
 	// END CONVENIENCE
-	// MODEL TRAVERSAL
-	getNewBranchRoot: function( model, transitionId ) {
-	    var self = this;
-	    // figures out for a given transition, what the new branch
-	    // root will be (i.e. the new active child of the common
-	    // parent of oldActive and newActive
-	},
-	findCommonParents: function(model) {
-	    var self = this;
-	},
-	getStartLeafState: function( state, model ) {
-	    var self = this;
-	    var initState = state;
-	    if (state.State_list && state.Initial_list) {
-		var i = state.Initial_list[0];
-		var initTrans = checkModel.getTransitionsOutOf( i, model.objects );
-		var childState = model.objects[ initTrans[0].pointers['dst'] ];
-		initState = self.getStartLeafState( childState, model );
-	    }
-	    return initState;
-	},
-	// END MODEL TRAVERSAL
     }
 });

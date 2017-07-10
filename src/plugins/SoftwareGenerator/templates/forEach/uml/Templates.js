@@ -1,3 +1,9 @@
+/*
+ * TODO:
+ *   * Get common parent properly for all state transitions
+ *   * Make pointer objects for states.
+ */
+
 define(['handlebars/handlebars.min',
 	'text!./EventTempl.hpp',
 	'text!./InternalEvent.tmpl',
@@ -53,9 +59,7 @@ define(['handlebars/handlebars.min',
 	       ]
 	   };
 
-	   function getAttrIfType( obj, attr, type ) {
-	       return obj.type == type ? obj[attr] : '';
-	   };
+	   var localRoot = null;
 
 	   handlebars.registerHelper('addTransition', function(options) {
 	       var context = {},
@@ -70,6 +74,26 @@ define(['handlebars/handlebars.min',
 	       previousTransitions.push( trans );
 	       context.previousTransitions = previousTransitions;
 	       return options.fn(context);
+	   });
+
+	   function getParents( state ) {
+	       var self = this;
+	       return self.getParents( );
+	   };
+
+	   function getCommonRoot( a, b ) {
+	       var self = this;
+	   };
+
+	   handlebars.registerHelper('getCommonRoot', function(options) {
+	       console.log('getCommonRoot');
+	       var start = options.hash.start;
+	       var end = options.hash.end;
+	       var src, dst;
+	       src = start.prevState;
+	       dst = end.nextState;
+	       console.log( src );
+	       console.log( dst );
 	   });
 
 	   Object.keys(Partials).map(function(partialName) {
@@ -106,6 +130,7 @@ define(['handlebars/handlebars.min',
 	       },
 	       renderStates: function(root) {
 		   var rendered = {};
+		   localRoot = root;
 		   rootTemplates.map(function(rootTemplName) {
 		       var context = getContext( rootTemplName, root );
 
