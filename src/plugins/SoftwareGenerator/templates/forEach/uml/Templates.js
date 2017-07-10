@@ -1,4 +1,7 @@
 define(['handlebars/handlebars.min',
+	'text!./StateBase.hpp',
+	'text!./DeepHistoryState.hpp',
+	'text!./ShallowHistoryState.hpp',
 	'text!./EventTempl.hpp',
 	'text!./InternalEvent.tmpl',
 	'text!./ExternalEvent.tmpl',
@@ -13,6 +16,9 @@ define(['handlebars/handlebars.min',
 	'text!./GeneratedStates.hpp',
 	'text!./GeneratedStates.cpp'],
        function(handlebars,
+		StateBaseData,
+		DeepHistoryData,
+		ShallowHistoryData,
 		EventTempl,
 		InternalEventTempl,
 		ExternalEventTempl,
@@ -27,6 +33,12 @@ define(['handlebars/handlebars.min',
 		GeneratedStatesTemplHpp,
 		GeneratedStatesTemplCpp) {
 	   'use strict';
+
+	   var staticFiles = {
+	       'StateBase.hpp': StateBaseData,
+	       'DeepHistoryState.hpp': DeepHistoryData,
+	       'ShallowHistoryState.hpp': ShallowHistoryData,
+	   };
 
 	   var Partials = {
 	       EventTempl: EventTempl,
@@ -243,6 +255,9 @@ define(['handlebars/handlebars.min',
 	   };
 
 	   return {
+	       renderStatic: function() {
+		   return staticFiles;
+	       },
 	       renderEvents: function(root) {
 		   var templName = "EventTempl";
 		   var retObj = {};

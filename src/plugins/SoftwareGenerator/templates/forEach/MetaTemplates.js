@@ -138,6 +138,10 @@ define(['handlebars/handlebars.min',
 		       generatedArtifacts,
 		       UMLTemplates.renderEvents( root )
 		   );
+		   generatedArtifacts = Object.assign(
+		       generatedArtifacts,
+		       UMLTemplates.renderStatic()
+		   );
 		   return generatedArtifacts;
 	       },
 	       getArtifacts: function(pathToObjDict, baseDir) {
