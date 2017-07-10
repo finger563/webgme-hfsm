@@ -5,33 +5,13 @@
  */
 
 void {{{fullyQualifiedName}}}::entry ( void ) {
-  // Now call the Entry action for this state
+  // Entry action for this state
   {{{Entry}}}
-  // Now call the entry function down the active branch to the leaf
-  if ( _activeState )
-    _activeState->entry();
 }
 
-StateMachine::StateBase* {{{fullyQualifiedName}}}::exit ( void ) {
-  StateMachine::StateBase* commonRoot = nullptr;
-  if ( _parentState && _parentState->getActive() != this ) {
-    // we are no longer the active state of the parent run the exit
-    // action, then call the parent's exit function
-    {{{Exit}}}
-    commonRoot = _parentState->exit();
-  }
-  else if ( _parentState == nullptr ) {
-    // we are a top level state, just run the exit action
-    {{{Exit}}}
-  }
-  else {
-    // we are not top level, but we are already active
-    if (_activeState != nullptr)
-      commonRoot = _activeState;
-    else
-      commonRoot = this;
-  }
-  return commonRoot;
+void {{{fullyQualifiedName}}}::exit ( void ) {
+  // Call the Exit Action for this state
+  {{{Exit}}}
 }
 
 void {{{fullyQualifiedName}}}::tick ( void ) {
@@ -76,6 +56,10 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
 
 StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
   return {{> InitialStateTempl this}};
+}
+
+void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
+{{#if Initial_list}}{{{Initial_list.[0].ExternalTransitions.[0].Action}}}{{/if}}
 }
 {{#each Substates}}
 {{> StateTemplCpp }}

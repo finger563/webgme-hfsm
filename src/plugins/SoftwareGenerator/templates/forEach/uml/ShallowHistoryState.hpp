@@ -13,7 +13,7 @@ namespace StateMachine {
   class ShallowHistoryState : public StateBase {
   public:
     /**
-     * @brief Calls _parentState->setShallowHistory()
+     * @brief Calls _parentState->setShallowHistory().
      */
     void                      makeActive ( ) {
       if (_parentState) {

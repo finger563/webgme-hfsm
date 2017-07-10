@@ -23,23 +23,20 @@ namespace StateMachine {
    */
   class StateBase {
   public:
-    StateBase ( ) : _parentState( nullptr ), _activeState( nullptr ) {}
-    StateBase ( StateBase* _parent ) : _parentState( _parent ), _activeState( nullptr ) {}
+    StateBase ( ) : _parentState( nullptr ), _activeState( this ) {}
+    StateBase ( StateBase* _parent ) : _parentState( _parent ), _activeState( this ) {}
     
     /**
      * @brief Will be generated to run the entry() function defined in
-     *  the model and then call _activeState->entry().
+     *  the model.
      */
     virtual void                     entry ( void );
 
     /**
      * @brief Will be generated to run the exit() function defined in
-     *  the model and then call _activeState->exit().
-     *
-     * @return StateMachine::StateBase* pointer to new root on which
-     *                                  to call entry
+     *   the model.
      */
-    virtual StateMachine::StateBase* exit ( void );
+    virtual void                     exit ( void );
 
     /**
      * @brief Will be generated to run the tick() function defined in
@@ -73,6 +70,24 @@ namespace StateMachine {
     virtual StateMachine::StateBase* getInitial ( void );
 
     /**
+     * @brief Will be generated with the child init transition
+     *  Action. This function will be called whenever shallow history
+     *  is set.
+     */
+    virtual void                     runChildInitTransAction ( void );
+
+    /**
+     * @brief Recurses down to the leaf state and calls the exit
+     *  actions as it unwinds.
+     */
+    void                      exitChildren ( void ) {
+      if (_activeState != nullptr && _activeState != this) {
+	_activeState->exitChildren();
+	_activeState->exit();
+      }
+    }
+
+    /**
      * @brief Will return _activeState if it exists, otherwise will
      *  return nullptr.
      *
@@ -89,7 +104,7 @@ namespace StateMachine {
      * @return StateBase*  Pointer to last active leaf state.
      */
     StateMachine::StateBase*  getActiveLeaf ( void ) {
-      if (_activeState != nullptr)
+      if (_activeState != nullptr && _activeState != this)
 	return _activeState->getActiveLeaf();
       else
 	return this;
@@ -103,7 +118,7 @@ namespace StateMachine {
      */
     StateMachine::StateBase*  getHistory ( void ) {
       StateMachine::StateBase* history = _activeState;
-      if (history == nullptr)
+      if (history == nullptr || history == this)
 	history = getInitial();
       return history;
     }
@@ -134,17 +149,32 @@ namespace StateMachine {
      */
     void                      setInitial ( void ) {
       setActiveChild( getInitial() );
-      if (_activeState != nullptr)
+      if (_activeState != this && _activeState != nullptr)
 	_activeState->setInitial();
     }
 
     /**
-     * @brief Sets the currentlyActive state to the last
+     * @brief Sets the currentlyActive state to the last active state
+     *  and re-initializes them.
      */
     void                      setShallowHistory ( void ) {
       setActiveChild( getHistory() );
-      if (_activeState != nullptr)
+      if (_activeState != nullptr && _activeState != this) {
 	_activeState->setInitial();
+	initShallowHistory();
+      }
+    }
+
+    /**
+     * @brief Calls the init function for the shallow history state
+     *   recursively.
+     */
+    void                      initShallowHistory ( void ) {
+      if (_activeState != nullptr && _activeState != this) {
+	_activeState->runChildInitTransAction();
+	_activeState->entry();
+	_activeState->initShallowHistory();
+      }
     }
 
     /**
@@ -153,7 +183,7 @@ namespace StateMachine {
      */
     void                      setDeepHistory ( void ) {
       setActiveChild( getHistory() );
-      if (_activeState != nullptr)
+      if (_activeState != nullptr && _activeState != this)
 	_activeState->setDeepHistory();
     }
 

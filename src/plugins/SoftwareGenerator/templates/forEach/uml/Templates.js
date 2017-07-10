@@ -1,10 +1,3 @@
-/*
- * TODO:
- *   * Get common parent properly for all state transitions
- *   * Ensure Exit / Entry actions are called even when transitions
-       cause the same state to be reactivated
- */
-
 define(['handlebars/handlebars.min',
 	'text!./EventTempl.hpp',
 	'text!./InternalEvent.tmpl',
@@ -124,72 +117,96 @@ define(['handlebars/handlebars.min',
 	       return topParent;
 	   };
 
-	   function getCommonRoot( a, b ) {
-	       var self = this;
+	   function getCommonRoot( trans ) {
+	       var commonRoot = trans.nextState;
+	       var startList = getParentList( trans.prevState );
+	       var endList = getParentList( trans.nextState );
+	       var intersection = _.intersection(startList, endList);
+	       if (intersection.length) {
+		   commonRoot = intersection[ intersection.length - 1 ];
+	       }
+	       return commonRoot;
+	   };
+
+	   function getStateExits( trans ) {
+	       var root = getCommonRoot( trans );
+	       var exits = [];
+	       var obj = trans.prevState;
+	       while ( obj != root ) {
+		   if (obj.type == 'State')
+		       exits.push( obj );
+		   obj = obj.parent;
+	       }
+	       return exits;
+	   };
+
+	   function getStateEntries( trans ) {
+	       var root = getCommonRoot( trans );
+	       var entries = [];
+	       var obj = trans.nextState;
+	       while ( obj != root ) {
+		   if (obj.type == 'State')
+		       entries.push( obj );
+		   obj = obj.parent;
+	       }
+	       return entries;
 	   };
 
 	   function renderNextState( s ) {
 	       var rendered = [
-		   '// set the new active state',
+		   '// Now set the proper leaf state to be active!',
 		   s.pointerName + '->makeActive();',
 	       ].join('\n');
 	       return rendered;
 	   };
 
-	   function renderExit( start, end, transitions ) {
-	       var e = [
-		   '// call the exit function for the old state',
-		   'newBranchRoot = activeLeaf->exit();',
+	   function renderKey( obj, key ) {
+	       var a = [
+		   '// ' + obj.type + ' : ' + key + ' for: '+obj.path,
+		   obj.pointerName ? obj.pointerName + '->'+key+'();' : obj[key],
+		   ''
 	       ].join('\n');
-	       return e;
+	       return a;
 	   };
 
 	   function renderAction( t ) {
 	       var a = [
 		   '// transition Action for: ' + t.path,
-		   a += t.Action,
+		   t.Action,
 		   '',
 	       ].join('\n');
 	       return a;
 	   };
 
-	   function renderEntry( start, end, transitions ) {
-	       var e = '';
-	       if (end.type == 'End State')
-		   e += '// final state, no entry.\n';
-	       else {
-		   e += [
-		       '// call the entry action for the new branch root',
-		       'if ( newBranchRoot == nullptr ) {',
-		       '  newBranchRoot = ' + topParent.pointerName,
-		       '}',
-		       'newBranchRoot->entry();'
-		       ''
-		   ].join('\n');
-		   /*
-		   var topParent = getTopParent( start, end, transitions );
-		   e+= topParent.pointerName + '->entry();\n';
-		   */
-	       }
-	       return e;
-	   };
-
 	   handlebars.registerHelper('renderTransition', function( options ) {
+	       var rendered = '';
 	       var transition = options.hash.transition;
 	       var transitions = new Array();
 	       if (transition.previousTransitions) {
 		   transitions = transitions.concat( transition.previousTransitions);
 	       }
 	       transitions.push( transition );
-	       var start = transitions[0].prevState;
-	       var end = transition.nextState;
-	       var rendered = '';
-	       rendered += renderNextState( end );
-	       rendered += renderExit( start, end, transitions );
-	       transitions.map(function(t) {
-		   rendered += renderAction( t );
+
+	       transitions.map(function(trans) {
+		   var stateExits = getStateExits( trans );
+		   var stateEntries = getStateEntries( trans );
+		   if (stateExits.length) {
+		       rendered += [
+			   '// make sure we exit any child states!',
+			   stateExits[0].pointerName + '->exitChildren();',
+			   '',
+		       ].join('\n');
+		   }
+		   stateExits.map(function(s) {
+		       rendered += renderKey( s, 'exit' );
+		   });
+		   rendered += renderKey( trans, 'Action' );
+		   stateEntries.map(function(s) {
+		       rendered += renderKey( s, 'entry' );
+		   });
 	       });
-	       rendered += renderEntry( start, end, transitions );
+	       var finalState = transition.nextState;
+	       rendered += renderNextState( finalState );
 	       return rendered;
 	   });
 

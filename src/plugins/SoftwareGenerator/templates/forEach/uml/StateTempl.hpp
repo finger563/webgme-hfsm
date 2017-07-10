@@ -26,21 +26,14 @@ public:
   {{{sanitizedName}}} ( StateBase* _parent ) : _parentState( _parent ), _activeState( nullptr ) {}
     
   /**
-   * @brief Runs the entry() function defined in the model and then
-   *  calls the active child's entry() as _activeState->entry().
+   * @brief Runs the entry() function defined in the model.
    */
   void                     entry ( void );
 
   /**
-   * @brief Runs the exit() function defined in the model and then
-   *  calls the parent's _parentState->exit() if the parent's active
-   *  child state has changed. If the parent's active child state
-   *  has not changed, upwards tree traversal stops.
-   *
-   * @return StateMachine::StateBase* pointer to new root on which
-   *                                  to call entry
+   * @brief Runs the exit() function defined in the model.
    */
-  StateMachine::StateBase* exit ( void );
+  void                     exit ( void );
 
   /**
    * @brief Runs the tick() function defined in the model and then
@@ -72,5 +65,12 @@ public:
    * @return StateBase*  Pointer to initial substate
    */
   StateMachine::StateBase* getInitial ( void );
+
+  /**
+   * @brief Will be generated with the child init transition
+   *  Action. This function will be called whenever shallow history
+   *  is set.
+   */
+  void                     runChildInitTransAction ( void );
 };
 {{/if}}
