@@ -7,6 +7,7 @@
 #
 ################################################################################
 PROJECT_NAME   = {{{sanitizedName}}}
+
 #-------------------------------------------------------------------------------
 #
 # ENVIRONMENT CONFIGURATION
@@ -16,6 +17,20 @@ SHELL          = sh
 REMOVE         = rm -f
 COPY           = cp
 
+#-------------------------------------------------------------------------------
+#
+# SOURCE FILES
+#
+#-------------------------------------------------------------------------------
+CPPSRC =
+{{#each Timer_list}}
+CPPSRC += {{{sanitizedName}}}_GeneratedStates.cpp
+CPPSRC += {{{sanitizedName}}}_test.cpp
+{{/each}}
+{{#each Task_list}}
+CPPSRC += {{{sanitizedName}}}_GeneratedStates.cpp
+CPPSRC += {{{sanitizedName}}}_test.cpp
+{{/each}}
 
 #-------------------------------------------------------------------------------
 #
@@ -30,8 +45,8 @@ CDEFS =
 
 CPPDEFS =
 
-DEBUGDEFS =
-DEBUGDEFS += -DDEBUG_OUTPUT
+DEBUG_DEFS =
+DEBUG_DEFS += -DDEBUG_OUTPUT
 
 CFLAGS =
 CFLAGS += $(CDEFS)
@@ -39,7 +54,6 @@ CFLAGS += $(CDEFS)
 CPPFLAGS = 
 CPPFLAGS += -O$(OPTIMIZATION)
 CPPFLAGS += $(CPPSTANDARD)
-
 
 #-------------------------------------------------------------------------------
 #
@@ -94,8 +108,18 @@ clean:
 	$(REMOVE) {{{sanitizedName}}}_test
 	$(REMOVE) {{{sanitizedName}}}_test_DEBUG
 	{{/each}}
+	$(REMOVE) $(CPPSRC:.cpp=.s) 
+	$(REMOVE) $(CPPSRC:.cpp=.d)
 	$(REMOVE) $(LST)
 	$(REMOVE) .dep/*
+
+
+.PRECIOUS : $(CPPOBJ)
+
+$(CPPOBJ) : %.o : %.cpp
+	@echo
+	@echo Compiling CPP Source: $<
+	g++ $(ALL_CFLAGS $< -o $@
 
 {{#each Task_list}}
 {{{sanitizedName}}}_test:
