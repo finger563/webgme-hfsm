@@ -8,8 +8,8 @@ namespace StateMachine {
   {{> PointerTemplCpp this}}
 
   {{#END}}
-  {{{fullyQualifiedName}}}         {{{pointerName}}}_stateObj;
-  {{{fullyQualifiedName}}} *const {{{pointerName}}} = &{{{pointerName}}}_stateObj;
+  StateMachine::StateBase         {{{pointerName}}}_stateObj;
+  StateMachine::StateBase *const  {{{pointerName}}} = &{{{pointerName}}}_stateObj;
   {{/END}}
 
 {{> StateTemplCpp this }}
@@ -17,4 +17,7 @@ namespace StateMachine {
 
 // Root of the HFSM
 StateMachine::StateBase *const root = &StateMachine::{{{pointerName}}}_stateObj;
+// Event Factory
+StateMachine::EventFactory EVENT_FACTORY;
+StateMachine::EventFactory *const eventFactory = &EVENT_FACTORY;
 

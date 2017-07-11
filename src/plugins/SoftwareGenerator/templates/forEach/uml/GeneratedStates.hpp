@@ -20,7 +20,7 @@ namespace StateMachine {
 extern StateMachine::StateBase *const root;
 {{> PointerTemplHpp this}}
 {{#END}}
-extern StateMachine::{{{fullyQualifiedName}}} *const {{{pointerName}}};
+extern StateMachine::StateBase *const {{{pointerName}}};
 {{~/END}}
 
 #endif // __GENERATED_STATES_INCLUDE_GUARD__

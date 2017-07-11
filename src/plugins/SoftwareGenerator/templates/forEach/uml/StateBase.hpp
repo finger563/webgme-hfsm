@@ -29,19 +29,19 @@ namespace StateMachine {
      * @brief Will be generated to run the entry() function defined in
      *  the model.
      */
-    virtual void                     entry ( void ) = 0;
+    virtual void                     entry ( void ) { };
 
     /**
      * @brief Will be generated to run the exit() function defined in
      *   the model.
      */
-    virtual void                     exit ( void ) = 0;
+    virtual void                     exit ( void ) { };
 
     /**
      * @brief Will be generated to run the tick() function defined in
      *  the model and then call _activeState->tick().
      */
-    virtual void                     tick ( void ) = 0;
+    virtual void                     tick ( void ) { };
 
     /**
      * @brief Calls _activeState->handleEvent( event ), then if the
@@ -56,7 +56,7 @@ namespace StateMachine {
      *
      * @return true if event is consumed, falsed otherwise
      */
-    virtual bool                     handleEvent ( StateMachine::Event* event ) = 0;
+    virtual bool                     handleEvent ( StateMachine::Event* event ) { return false; }
 
     /**
      * @brief Will be known from the model so will be generated in
@@ -66,14 +66,14 @@ namespace StateMachine {
      *
      * @return StateBase*  Pointer to initial substate
      */
-    virtual StateMachine::StateBase* getInitial ( void ) = 0;
+    virtual StateMachine::StateBase* getInitial ( void ) { return this; };
 
     /**
      * @brief Will be generated with the child init transition
      *  Action. This function will be called whenever shallow history
      *  is set.
      */
-    virtual void                     runChildInitTransAction ( void ) = 0;
+    virtual void                     runChildInitTransAction ( void ) { };
 
     /**
      * @brief Recurses down to the leaf state and calls the exit

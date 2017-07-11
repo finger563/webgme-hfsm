@@ -134,4 +134,6 @@ namespace StateMachine {
 
 };
 
+extern StateMachine::EventFactory *const eventFactory;
+
 #endif // __EVENT_INCLUDE_GUARD__
