@@ -164,6 +164,7 @@ namespace StateMachine {
       if (_activeState != nullptr && _activeState != this) {
 	_activeState->setInitial();
 	initShallowHistory();
+	getActiveLeaf()->makeActive();
       }
     }
 
@@ -185,8 +186,11 @@ namespace StateMachine {
      */
     void                      setDeepHistory ( void ) {
       setActiveChild( getHistory() );
-      if (_activeState != nullptr && _activeState != this)
+      if (_activeState != nullptr && _activeState != this) {
+	_activeState->entry();
 	_activeState->setDeepHistory();
+	getActiveLeaf()->makeActive();
+      }
     }
 
     /**

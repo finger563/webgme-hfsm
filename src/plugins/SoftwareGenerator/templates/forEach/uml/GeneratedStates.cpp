@@ -11,7 +11,7 @@
 namespace StateMachine {
   {{> PointerTemplCpp this}}
   {{#END}}
-  StateMachine::StateBase         {{{pointerName}}}_stateObj;
+  StateMachine::StateBase         {{{pointerName}}}_stateObj{{#if parent.pointerName}}( {{{parent.pointerName}}} ){{/if}};
   StateMachine::StateBase *const  {{{pointerName}}} = &{{{pointerName}}}_stateObj;
   {{~/END}}
 
@@ -34,7 +34,12 @@ namespace StateMachine {
   }
 
   void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
-    {{#if Initial_list}}{{{Initial_list.[0].ExternalTransitions.[0].Action}}}{{/if}}
+    {{#if Initial_list}}
+    #ifdef DEBUG_OUTPUT
+    std::cout << "TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
+    #endif
+    {{{Initial_list.[0].ExternalTransitions.[0].Action}}}
+    {{/if}}
   }
   {{#each Substates}}
   {{> StateTemplCpp }}

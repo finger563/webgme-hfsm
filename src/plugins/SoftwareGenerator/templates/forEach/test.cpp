@@ -39,10 +39,10 @@ int main( int argc, char** argv ) {
 
   StateMachine::Event* e = nullptr;
 
+  // run init transition action for HFSM root
+  root->runChildInitTransAction();
   // set initial states
   root->setShallowHistory();
-  // run initial transition and entry actions
-  root->initShallowHistory();
 
   e = makeEvent();
 

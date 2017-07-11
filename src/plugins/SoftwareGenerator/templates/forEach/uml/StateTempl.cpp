@@ -68,7 +68,12 @@ StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
 }
 
 void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
-{{#if Initial_list}}{{{Initial_list.[0].ExternalTransitions.[0].Action}}}{{/if}}
+  {{#if Initial_list}}
+  #ifdef DEBUG_OUTPUT
+  std::cout << "TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
+  #endif
+  {{{Initial_list.[0].ExternalTransitions.[0].Action}}}
+  {{/if}}
 }
 {{#each Substates}}
 {{> StateTemplCpp }}
