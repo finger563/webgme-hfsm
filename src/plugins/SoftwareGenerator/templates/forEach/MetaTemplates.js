@@ -1,45 +1,35 @@
 define(['handlebars/handlebars.min',
 	'./uml/Templates',
-	'text!./component.mk',
-	'text!./main.cpp',
-	'text!./Task.cpp',
-	'text!./Task.hpp',
-	'text!./Timer.cpp',
-	'text!./Timer.hpp',
-	'text!./Comp.cpp',
-	'text!./Comp.hpp'],
+	'text!./Makefile.tmpl',
+	'text!./test.cpp'],
        function(handlebars,
 		UMLTemplates,
-		compMk,
-		mainCppTempl,
-		TaskCppTempl,
-		TaskHppTempl,
-		TimerCppTempl,
-		TimerHppTempl,
-		CompCppTempl,
-		CompHppTempl) {
+		MakefileTempl,
+		MainTestTempl) {
 	   'use strict';
 
+	   var Partials = {
+	       MakefileTempl: MakefileTempl,
+	       MainTestTempl: MainTestTempl,
+	   };
+
+	   Object.keys(Partials).map(function(partialName) {
+	       handlebars.registerPartial( partialName, Partials[ partialName ] );
+	   });
+
 	   return {
-	       Templates: {
-		   "Component": {
-		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": CompHppTempl,
-		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": CompCppTempl,
-		       "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
+	       TestTemplates: {
+		   "Project": {
+		       "Makefile": 'MakefileTempl',
 		   },
 		   "Task": {
-		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": TaskHppTempl,
-		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": TaskCppTempl,
-		       "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
+		       "{{{sanitizedName}}}_test.cpp": 'MainTestTempl',
 		   },
 		   "Timer": {
-		       "{{base}}/components/{{obj.sanitizedName}}/include/{{obj.sanitizedName}}.hpp": TimerHppTempl,
-		       "{{base}}/components/{{obj.sanitizedName}}/{{obj.sanitizedName}}.cpp": TimerCppTempl,
-		       "{{base}}/components/{{obj.sanitizedName}}/component.mk": compMk
+		       "{{{sanitizedName}}}_test.cpp": 'MainTestTempl',
 		   },
-		   "main": {
-		       "{{base}}/main.cpp": mainCppTempl,
-		   },
+	       },
+	       Templates: {
 	       },
 	       makeVariableName: function(obj) {
 		   var self = this;
@@ -85,6 +75,29 @@ define(['handlebars/handlebars.min',
 		       fqName = parent.fullyQualifiedName + '::' + fqName;
 		   }
 		   obj.fullyQualifiedName = fqName;
+	       },
+	       renderTestCode: function( model ) {
+		   var self = this;
+		   var objects = model.objects;
+		   var root    = model.root;
+		   var artifacts = {};
+		   Object.keys(objects).map(function (path) {
+		       var obj = objects[ path ];
+		       var templDict = self.TestTemplates[ obj.type ];
+		       if ( templDict ) {
+			   Object.keys(templDict).map(function(templPath) {
+			       var templName = templDict[ templPath ];
+			       var fileName = handlebars.compile( templPath )( obj );
+			       var fileData = handlebars.compile(
+				   Partials[ templName ]
+			       )(
+				   obj
+			       );
+			       artifacts[ fileName ] = fileData;
+			   });
+		       }
+		   });
+		   return artifacts;
 	       },
 	       renderHFSM: function(model) {
 		   var self    = this;

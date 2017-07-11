@@ -60,7 +60,7 @@ define(['handlebars/handlebars.min',
 				"GeneratedStatesTemplCpp" ];
 
 	   var keyTemplates = {
-	       'EventTempl': '{{{sanitizedName}}}_Events.hpp',
+	       'EventTempl': 'Events.hpp',
 	       'GeneratedStatesTemplHpp': '{{{sanitizedName}}}_GeneratedStates.hpp',
 	       'GeneratedStatesTemplCpp': '{{{sanitizedName}}}_GeneratedStates.cpp',
 	   };
@@ -68,7 +68,6 @@ define(['handlebars/handlebars.min',
 	   var dependencies = {
 	       'GeneratedStatesTemplCpp': [
 		   'GeneratedStatesTemplHpp',
-		   'EventTempl'
 	       ]
 	   };
 

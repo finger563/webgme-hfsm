@@ -192,6 +192,9 @@ define([
 	var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel );
 	self.artifacts = Object.assign(self.artifacts, hfsmArtifacts);
 
+	var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel );
+	self.artifacts = Object.assign(self.artifacts, testCodeArtifacts);
+
 	/*
 	self.artifacts.TEST = genStateHpp;
 	var newArtifacts = MetaTemplates.getArtifacts( self.projectObjects, baseDir );

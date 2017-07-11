@@ -1,0 +1,8 @@
+{{#each Task_list}}
+{{{sanitizedName}}}_test:
+	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14
+{{/each}}
+{{#each Timer_list}}
+{{{sanitizedName}}}_test:
+	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14
+{{/each}}

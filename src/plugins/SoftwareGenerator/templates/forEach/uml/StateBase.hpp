@@ -1,9 +1,7 @@
 #ifndef __STATE_BASE__INCLUDE_GUARD
 #define __STATE_BASE__INCLUDE_GUARD
 
-#include <vector>
-
-#include "Event.hpp"
+#include "Events.hpp"
 
 namespace StateMachine {
 

@@ -1,3 +1,4 @@
+#include "Events.hpp"
 {{#each dependencies}}
 #include "{{{.}}}"
 {{/each}}
