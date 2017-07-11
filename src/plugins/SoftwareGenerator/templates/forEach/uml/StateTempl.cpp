@@ -64,13 +64,17 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
 }
 
 StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
-  return {{> InitialStateTempl this}};
+  {{#if Initial_list}}
+  return {{{Initial_list.[0].ExternalTransitions.[0].nextState.pointerName}}};
+  {{else}}
+  return this;
+  {{/if}};
 }
 
 void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
   {{#if Initial_list}}
   #ifdef DEBUG_OUTPUT
-  std::cout << "TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
+  std::cout << "INITIAL TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
   #endif
   {{{Initial_list.[0].ExternalTransitions.[0].Action}}}
   {{/if}}
