@@ -3,10 +3,9 @@
 #include "{{{.}}}"
 {{/each}}
 
-{{#if parent.DEBUG_OUTPUT}}
-#define DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT
 #include <iostream>
-{{/if}}
+#endif
 
 namespace StateMachine {
   {{> PointerTemplCpp this}}
@@ -15,7 +14,11 @@ namespace StateMachine {
   StateMachine::StateBase *const  {{{pointerName}}} = &{{{pointerName}}}_stateObj;
   {{~/END}}
 
-  // Definitions for the root state
+  // User Definitions for the HFSM
+  {{{Definitions}}}
+
+  /* * *  Definitions for {{{sanitizedName}}} : {{{path}}}  * * */
+  // Generated Definitions for the root state
   bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
     bool handled = false;
 

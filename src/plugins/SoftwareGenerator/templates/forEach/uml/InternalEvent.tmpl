@@ -4,8 +4,14 @@ case Event::Type::{{{name}}}:
   {{#each Transitions}}
   {{#if Guard}}
   else if ( {{{Guard}}} ) {
+    #ifdef DEBUG_OUTPUT
+    std::cout << "GUARD [ {{{Guard}}} ] for INTERNAL TRANSITION:{{{path}}} evaluated to TRUE" << std::endl;
+    #endif
   {{else}}
   else if (true) {
+    #ifdef DEBUG_OUTPUT
+    std::cout << "NO GUARD on INTERNAL TRANSITION:{{{path}}}" << std::endl;
+    #endif
   {{/if}}
     // run transition action
     {{{Action}}}

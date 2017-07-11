@@ -6,10 +6,15 @@
 #include "ShallowHistoryState.hpp"
 
 namespace StateMachine {
+
+  // User Declarations for the HFSM
+  {{{Declarations}}}
+
   // ROOT OF THE HFSM
   class {{{sanitizedName}}} : public StateMachine::StateBase {
   public:
 
+    // Child Substates
     {{#each Substates}}
     {{> StateTemplHpp }}
     {{/each}}

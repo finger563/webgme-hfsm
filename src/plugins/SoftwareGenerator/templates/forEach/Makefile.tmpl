@@ -1,8 +1,12 @@
 {{#each Task_list}}
 {{{sanitizedName}}}_test:
 	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14
+{{{sanitizedName}}}_test_DEBUG:
+	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14 -DDEBUG_OUTPUT
 {{/each}}
 {{#each Timer_list}}
 {{{sanitizedName}}}_test:
 	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14
+{{{sanitizedName}}}_test_DEBUG:
+	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14 -DDEBUG_OUTPUT
 {{/each}}

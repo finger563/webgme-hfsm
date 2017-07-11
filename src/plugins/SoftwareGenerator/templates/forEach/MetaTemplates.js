@@ -106,9 +106,6 @@ define(['handlebars/handlebars.min',
 		   var rootTypes = ['Task','Timer'];
 		   var generatedArtifacts = {};
 
-		   // TURN ON DEBUG OUTPUT FOR NOW
-		   root.DEBUG_OUTPUT = true;
-
 		   // make variable names and such for objects
 		   Object.keys( objects ).map(function( path ) {
 		       var obj = model.objects[ path ];
