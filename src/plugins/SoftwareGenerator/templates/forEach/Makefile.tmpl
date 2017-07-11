@@ -1,12 +1,147 @@
+################################################################################
+################################################################################
+################################################################################
+#
+# MAKEFILE
+# PROJECT: {{{name}}}
+#
+################################################################################
+PROJECT_NAME   = {{{sanitizedName}}}
+#-------------------------------------------------------------------------------
+#
+# ENVIRONMENT CONFIGURATION
+#
+#-------------------------------------------------------------------------------
+SHELL          = sh
+REMOVE         = rm -f
+COPY           = cp
+
+
+#-------------------------------------------------------------------------------
+#
+# COMPILER CONFIGURATION
+#
+#-------------------------------------------------------------------------------
+CSTANDARD   = -std=c14
+CPPSTANDARD = -std=c++14
+OPTIMIZATION= 3
+
+CDEFS =
+
+CPPDEFS =
+
+DEBUGDEFS =
+DEBUGDEFS += -DDEBUG_OUTPUT
+
+CFLAGS =
+CFLAGS += $(CDEFS)
+
+CPPFLAGS = 
+CPPFLAGS += -O$(OPTIMIZATION)
+CPPFLAGS += $(CPPSTANDARD)
+
+
+#-------------------------------------------------------------------------------
+#
+# GENERAL PURPOSE COMPILATION
+#
+#-------------------------------------------------------------------------------
+# Define all object files.
+COBJ      = $(CSRC:.c=.o) 
+AOBJ      = $(ASRC:.S=.o)
+COBJARM   = $(CSRCARM:.c=.o)
+AOBJARM   = $(ASRCARM:.S=.o)
+CPPOBJ    = $(CPPSRC:.cpp=.o) 
+CPPOBJARM = $(CPPSRCARM:.cpp=.o)
+# Listing files.
+LST =
+LST += $(CSRC:.c=.lst)
+LST += $(CPPSRC:.cpp=.lst)
+# Dependency files.
+GENDEPFLAGS = -MD -MP -MF .dep/$(@F).d
+# Combine all necessary flags and optional flags.
+# Add target processor to flags.
+ALL_CFLAGS  = $(CFLAGS) $(CPPFLAGS) $(GENDEPFLAGS)
+
+#-------------------------------------------------------------------------------
+#
+# TARGETS
+#
+#-------------------------------------------------------------------------------
+all: begin test debug end
+test: {{#each Task_list}}{{{sanitizedName}}}_test {{/each}}{{#each Timer_list}}{{{sanitizedName}}}_test {{/each}}
+debug: {{#each Task_list}}{{{sanitizedName}}}_test_DEBUG {{/each}}{{#each Timer_list}}{{{sanitizedName}}}_test_DEBUG {{/each}}
+
+gccversion : 
+	@$(CC) --version
+
+begin: gccversion
+	@echo
+	@echo Building HFSMs within Project: {{{name}}}
+
+end:
+	@echo Finished compiling HFSMs
+	@echo
+
+clean:
+	@echo
+	@echo Cleaning Project: {{{name}}}
+	{{#each Task_list}}
+	$(REMOVE) {{{sanitizedName}}}_test
+	$(REMOVE) {{{sanitizedName}}}_test_DEBUG
+	{{/each}}
+	{{#each Timer_list}}
+	$(REMOVE) {{{sanitizedName}}}_test
+	$(REMOVE) {{{sanitizedName}}}_test_DEBUG
+	{{/each}}
+	$(REMOVE) $(LST)
+	$(REMOVE) .dep/*
+
 {{#each Task_list}}
 {{{sanitizedName}}}_test:
-	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14
+	@echo Compiling {{{sanitizedName}}}_test
+	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS)
 {{{sanitizedName}}}_test_DEBUG:
-	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14 -DDEBUG_OUTPUT
+	@echo Compiling {{{sanitizedName}}}_test_DEBUG
+	g++ -o {{{sanitizedName}}}_test_DEBUG {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
+run_{{{sanitizedName}}}_test: {{{sanitizedName}}}_test
+	@echo
+	@echo Running {{{sanitizedName}}}_test
+	@echo
+	./{{{sanitizedName}}}_test
+	@echo
+	@echo Finished
+run_{{{sanitizedName}}}_test_DEBUG: {{{sanitizedName}}}_test_DEBUG
+	@echo
+	@echo Running {{{sanitizedName}}}_test_DEBUG
+	@echo
+	./{{{sanitizedName}}}_test_DEBUG
+	@echo
+	@echo Finished
 {{/each}}
 {{#each Timer_list}}
 {{{sanitizedName}}}_test:
-	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14
+	@echo Compiling {{{sanitizedName}}}_test
+	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS)
 {{{sanitizedName}}}_test_DEBUG:
-	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp -std=c++14 -DDEBUG_OUTPUT
+	@echo Compiling {{{sanitizedName}}}_test_DEBUG
+	g++ -o {{{sanitizedName}}}_test_DEBUG {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
+run_{{{sanitizedName}}}_test: {{{sanitizedName}}}_test
+	@echo
+	@echo Running {{{sanitizedName}}}_test
+	@echo
+	./{{{sanitizedName}}}_test
+	@echo
+	@echo Finished
+run_{{{sanitizedName}}}_test_DEBUG: {{{sanitizedName}}}_test_DEBUG
+	@echo
+	@echo Running {{{sanitizedName}}}_test_DEBUG
+	@echo
+	./{{{sanitizedName}}}_test_DEBUG
+	@echo
+	@echo Finished
 {{/each}}
+
+-include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
+.PHONY : all begin finish end sizebefore sizeafter gccversion \
+build elf hex bin lss sym clean clean_list program
