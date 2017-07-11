@@ -274,12 +274,7 @@ define(['handlebars/handlebars.min',
 		   var templName = "EventTempl";
 		   var retObj = {};
 		   var context = getContext( templName, root );
-
-		   retObj[ context.key ] = handlebars.compile(
-		       Partials[ templName ]
-		   )(
-		       context
-		   );
+		   retObj[ context.key ] = handlebars.compile( Partials[ templName ] )( context );
 		   return retObj;
 	       },
 	       renderStates: function(root) {
@@ -287,12 +282,7 @@ define(['handlebars/handlebars.min',
 		   localRoot = root;
 		   rootTemplates.map(function(rootTemplName) {
 		       var context = getContext( rootTemplName, root );
-
-		       rendered[ context.key ] = handlebars.compile(
-			   Partials[ rootTemplName ]
-		       )(
-			   context
-		       );
+		       rendered[ context.key ] = handlebars.compile( Partials[ rootTemplName ] )( context );
 		   });
 		   return rendered;
 	       },

@@ -20,6 +20,7 @@ void {{{fullyQualifiedName}}}::tick ( void ) {
   #ifdef DEBUG_OUTPUT
   std::cout << "TICK::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
   #endif
+  // Call the Tick Action for this state
   {{{Tick}}}
   if ( _activeState )
     _activeState->tick();
@@ -68,7 +69,7 @@ StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
   return {{{Initial_list.[0].ExternalTransitions.[0].nextState.pointerName}}};
   {{else}}
   return this;
-  {{/if}};
+  {{/if}}
 }
 
 void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
