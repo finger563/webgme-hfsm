@@ -168,6 +168,7 @@ define(['handlebars/handlebars.min',
 	       var rendered = [
 		   '// Now set the proper leaf state to be active!',
 		   s.pointerName + '->makeActive();',
+		   ''
 	       ].join('\n');
 	       return rendered;
 	   };
@@ -181,11 +182,13 @@ define(['handlebars/handlebars.min',
 	       return a;
 	   };
 
-	   function renderAction( t ) {
+	   function renderDebugOutput( start, end ) {
 	       var a = [
-		   '// transition Action for: ' + t.path,
-		   t.Action,
-		   '',
+		   '#ifdef DEBUG_OUTPUT',
+		   'std::cout << "STATE TRANSITION: '+
+		       start.fullyQualifiedName+'->'+end.fullyQualifiedName+'" << std::endl;',
+		   '#endif',
+		   ''
 	       ].join('\n');
 	       return a;
 	   };
@@ -209,16 +212,26 @@ define(['handlebars/handlebars.min',
 			   '',
 		       ].join('\n');
 		   }
+		   // render exits
 		   stateExits.map(function(s) {
 		       rendered += renderKey( s, 'exit' );
 		   });
+		   // render action
 		   rendered += renderKey( trans, 'Action' );
+		   rendered += [
+		       '#ifdef DEBUG_OUTPUT',
+		       'std::cout << "TRANSITION::ACTION for '+trans.path+'" << std::endl;',
+		       '#endif',
+		       ''
+		   ].join('\n');
+		   // render entries
 		   stateEntries.map(function(s) {
 		       rendered += renderKey( s, 'entry' );
 		   });
 	       });
 	       var finalState = transition.nextState;
 	       rendered += renderNextState( finalState );
+	       rendered += renderDebugOutput( transitions[0].prevState, finalState );
 	       return rendered;
 	   });
 

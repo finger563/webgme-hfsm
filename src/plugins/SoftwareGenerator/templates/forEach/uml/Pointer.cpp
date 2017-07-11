@@ -13,5 +13,5 @@ StateMachine::{{{fullyQualifiedName}}} *const {{{pointerName}}} = &{{{pointerNam
 {{/if}}
 {{#each Substates}}
 {{> PointerTemplCpp }}
-{{/each}}
+{{~/each}}
 

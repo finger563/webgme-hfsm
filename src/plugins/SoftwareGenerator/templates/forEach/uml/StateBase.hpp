@@ -41,7 +41,10 @@ namespace StateMachine {
      * @brief Will be generated to run the tick() function defined in
      *  the model and then call _activeState->tick().
      */
-    virtual void                     tick ( void ) { };
+    virtual void                     tick ( void ) {
+      if ( _activeState != this && _activeState != nullptr )
+	_activeState->tick();
+    };
 
     /**
      * @brief Calls _activeState->handleEvent( event ), then if the
