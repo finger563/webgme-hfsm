@@ -143,8 +143,8 @@ namespace StateMachine {
     }
 
     /**
-     * @brief Executes the entry() action, sets the activeState to the
-     * initial state, and calls set initial on the child active state.
+     * @brief Sets the activeState to the initial state, and calls set
+     *  initial on the child active state.
      */
     void                      setInitial ( void ) {
       setActiveChild( getInitial() );

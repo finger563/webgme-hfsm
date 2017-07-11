@@ -30,6 +30,7 @@ define(['./checkModel'], function(checkModel) {
 	},
 	addBasicParams: function(obj) {
 	    obj.Substates = [];
+	    obj.isRoot = false;
 	    obj.isExternalTransition = false;
 	    obj.isState = false;
 	    obj.isChoice = false;
@@ -54,8 +55,12 @@ define(['./checkModel'], function(checkModel) {
 		self.addBasicParams( obj );
 		// Make sure top-level Project / Task / Timer names
 		// are good and code attributes are properly prefixed.
-		if (obj.type == 'Project' || obj.type == 'Task' || obj.type == 'Timer') {
+		if (obj.type == 'Project') {
 		    self.processTopLevel( obj );
+		}
+		if (obj.type == 'Task' || obj.type == 'Timer') {
+		    self.processTopLevel( obj );
+		    obj.isRoot = true;
 		}
 		// Make sure component names are good and generation
 		// information exists

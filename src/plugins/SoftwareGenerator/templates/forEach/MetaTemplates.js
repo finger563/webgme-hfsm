@@ -43,7 +43,7 @@ define(['handlebars/handlebars.min',
 		       self.makeVariableName( obj );
 		   var pName = obj.VariableName;
 		   var parent = objDict[ obj.parentPath ];
-		   if (parent && parent.type == 'State') {
+		   if (parent && parent.type != 'Project') {
 		       self.makePointerName( parent, objDict );
 		       pName = parent.pointerName + '__' + pName;
 		   }
@@ -57,7 +57,7 @@ define(['handlebars/handlebars.min',
 		       self.makeVariableName( obj );
 		   var fqName = obj.VariableName;
 		   var parent = objDict[ obj.parentPath ];
-		   if (parent && parent.type == 'State') {
+		   if (parent && parent.type != 'Project') {
 		       self.makeFullyQualifiedVariableName( parent, objDict );
 		       fqName = parent.fullyQualifiedVariableName + '.' + fqName;
 		   }
@@ -70,7 +70,7 @@ define(['handlebars/handlebars.min',
 		   var fqName = obj.sanitizedName;
 		   var parent = objDict[ obj.parentPath ];
 		   // make sure we have a relatively unique name for the state
-		   if (parent && parent.type == 'State') {
+		   if (parent && parent.type != 'Project') {
 		       self.makeFullyQualifiedName( parent, objDict );
 		       fqName = parent.fullyQualifiedName + '::' + fqName;
 		   }
@@ -123,6 +123,18 @@ define(['handlebars/handlebars.min',
 			   self.makePointerName( obj, model.objects );
 		       }
 		       else if (obj.type == 'State') {
+			   // make rendered names
+			   self.makeFullyQualifiedName( obj, model.objects );
+			   self.makeFullyQualifiedVariableName( obj, model.objects );
+			   self.makePointerName( obj, model.objects );
+		       }
+		       else if (obj.type == 'Task') {
+			   // make rendered names
+			   self.makeFullyQualifiedName( obj, model.objects );
+			   self.makeFullyQualifiedVariableName( obj, model.objects );
+			   self.makePointerName( obj, model.objects );
+		       }
+		       else if (obj.type == 'Timer') {
 			   // make rendered names
 			   self.makeFullyQualifiedName( obj, model.objects );
 			   self.makeFullyQualifiedVariableName( obj, model.objects );

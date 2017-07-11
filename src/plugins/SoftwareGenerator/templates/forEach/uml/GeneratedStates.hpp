@@ -7,11 +7,8 @@
 
 namespace StateMachine {
 
-  void initialize ( void );
-
-{{#each Substates}}
-{{> StateTemplHpp}}
-{{~/each}}
+  // ROOT OF THE HFSM
+{{> StateTemplHpp this}}
 
 {{#END}}
 {{> EndStateTemplHpp}}
@@ -20,9 +17,8 @@ namespace StateMachine {
 };
 
 // pointers
-{{#each Substates}}
-{{> PointerTemplHpp }}
-{{~/each}}
+extern StateMachine::StateBase *const root;
+{{> PointerTemplHpp this}}
 {{#END}}
 extern StateMachine::{{{fullyQualifiedName}}} *const {{{pointerName}}};
 {{~/END}}

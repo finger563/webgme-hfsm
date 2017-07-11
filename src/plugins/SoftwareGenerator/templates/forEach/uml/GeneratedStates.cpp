@@ -5,19 +5,16 @@
 
 namespace StateMachine {
 
-  {{#each Substates}}
-  {{> PointerTemplCpp }}
-  {{/each}}
+  {{> PointerTemplCpp this}}
+
   {{#END}}
   {{{fullyQualifiedName}}}         {{{pointerName}}}_stateObj;
   {{{fullyQualifiedName}}} *const {{{pointerName}}} = &{{{pointerName}}}_stateObj;
   {{/END}}
 
-  void initialize ( void ) {
-  };
-
-{{#each Substates}}
-{{> StateTemplCpp }}
-{{~/each}}
-
+{{> StateTemplCpp this }}
 };
+
+// Root of the HFSM
+StateMachine::StateBase *const root = &StateMachine::{{{pointerName}}}_stateObj;
+

@@ -10,17 +10,10 @@ namespace StateMachine {
   class Event {
   public:
     enum class Type {
-      _StateMachineTick_,
       {{#each eventNames}}
       {{{.}}},
       {{/each}}
     }; // ENUMS GENERATED FROM MODEL
-
-    /**
-     * @brief Default Constructor, defaults type to
-     * Type::_StateMachineTick_.
-     */
-    Event ( void ) : _t(Type::_StateMachineTick_) { }
 
     /**
      * @brief Constructor for initializing the type.
@@ -52,9 +45,9 @@ namespace StateMachine {
     /**
      * Will return stringified form of the event for debugging
      */
-    static std::string toString ( Event& e ) {
+    static std::string toString ( Event* e ) {
       std::string eventString = "";
-      switch ( e._t ) {
+      switch ( e->_t ) {
 	{{#each eventNames}}
       case Type::{{{.}}}:
           eventString = "{{{.}}}";
