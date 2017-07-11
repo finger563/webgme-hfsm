@@ -21,26 +21,27 @@ namespace StateMachine {
    */
   class StateBase {
   public:
-    StateBase ( ) : _parentState( nullptr ), _activeState( this ) {}
+    StateBase ( void ) : _parentState( nullptr ), _activeState( this ) {}
     StateBase ( StateBase* _parent ) : _parentState( _parent ), _activeState( this ) {}
+    ~StateBase( void ) {}
     
     /**
      * @brief Will be generated to run the entry() function defined in
      *  the model.
      */
-    virtual void                     entry ( void );
+    virtual void                     entry ( void ) = 0;
 
     /**
      * @brief Will be generated to run the exit() function defined in
      *   the model.
      */
-    virtual void                     exit ( void );
+    virtual void                     exit ( void ) = 0;
 
     /**
      * @brief Will be generated to run the tick() function defined in
      *  the model and then call _activeState->tick().
      */
-    virtual void                     tick ( void );
+    virtual void                     tick ( void ) = 0;
 
     /**
      * @brief Calls _activeState->handleEvent( event ), then if the
@@ -55,7 +56,7 @@ namespace StateMachine {
      *
      * @return true if event is consumed, falsed otherwise
      */
-    virtual bool                     handleEvent ( StateMachine::Event* event );
+    virtual bool                     handleEvent ( StateMachine::Event* event ) = 0;
 
     /**
      * @brief Will be known from the model so will be generated in
@@ -65,14 +66,14 @@ namespace StateMachine {
      *
      * @return StateBase*  Pointer to initial substate
      */
-    virtual StateMachine::StateBase* getInitial ( void );
+    virtual StateMachine::StateBase* getInitial ( void ) = 0;
 
     /**
      * @brief Will be generated with the child init transition
      *  Action. This function will be called whenever shallow history
      *  is set.
      */
-    virtual void                     runChildInitTransAction ( void );
+    virtual void                     runChildInitTransAction ( void ) = 0;
 
     /**
      * @brief Recurses down to the leaf state and calls the exit
