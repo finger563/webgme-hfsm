@@ -31,6 +31,20 @@ namespace StateMachine {
     setShallowHistory();
   };
   
+  void {{{fullyQualifiedName}}}::terminate ( void ) {
+    StateMachine::StateBase* exitingState = getActiveLeaf();
+    while ( exitingState != nullptr && exitingState != this ) {
+      // call the exit action on the state
+      exitingState->exit();
+      exitingState = exitingState->getParentState();
+    }
+  };
+  
+  void {{{fullyQualifiedName}}}::restart ( void ) {
+    terminate();
+    initialize();
+  };
+  
   bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
     bool handled = false;
 

@@ -34,6 +34,19 @@ namespace StateMachine {
      *  initial transition and entry actions accordingly.
      */
     void                     initialize ( void );
+    
+    /**
+     * @brief Terminates the HFSM, calling exit functions for the
+     *  active leaf state upwards through its parents all the way to
+     *  the root.
+     */
+    void                     terminate  ( void );
+
+    /**
+     * @brief Restarts the HFSM by calling terminate and then
+     *  initialize.
+     */
+    void                     restart    ( void );
 
     /**
      * @brief Calls handleEvent on the activeLeaf.
