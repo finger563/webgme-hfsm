@@ -39,7 +39,7 @@ define([
 	cytoscape.use( coseBilkent );
 	//cytoscape.use( cyPopper, Popper );
 
-	var rootTypes = ['Task','Timer'];
+	var rootTypes = ['State Machine',];
 
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
@@ -299,7 +299,7 @@ define([
 	    // EDGE HANDLES
 	    this._cy.edgehandles( defaults );
 
-	    var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="Timer"],node[NodeType = "Task"]';
+	    var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"]';
 
 	    // CONTEXT MENUS
 	    var options = {
@@ -1008,9 +1008,7 @@ define([
 		return false;
 	    else if (desc.type == 'Shallow History Pseudostate')
 		return false;
-	    else if (desc.type == 'Task')
-		return false;
-	    else if (desc.type == 'Timer')
+	    else if (desc.type == 'State Machine')
 		return false;
 	    else if (desc.type == 'Initial') {
 		// if initial already has transition, don't allow more
@@ -1041,9 +1039,7 @@ define([
 	    var dstType = dstDesc.type;
 	    if (dstType == 'Initial')
 		valid = false;
-	    else if (dstType == 'Task')
-		valid = false;
-	    else if (dstType == 'Timer')
+	    else if (dstType == 'State Machine')
 		valid = false;
 	    else if (dstType == 'Internal Transition')
 		valid = false;

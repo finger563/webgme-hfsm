@@ -53,12 +53,9 @@ define(['./checkModel'], function(checkModel) {
 		var obj = model.objects[objPath];
 		// init all basic params
 		self.addBasicParams( obj );
-		// Make sure top-level Project / Task / Timer names
+		// Make sure top-level State Machine objects
 		// are good and code attributes are properly prefixed.
-		if (obj.type == 'Project') {
-		    self.processTopLevel( obj );
-		}
-		if (obj.type == 'Task' || obj.type == 'Timer') {
+		if (obj.type == 'State Machine') {
 		    self.processTopLevel( obj );
 		    obj.isRoot = true;
 		}

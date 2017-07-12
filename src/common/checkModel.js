@@ -46,9 +46,7 @@ define([], function() {
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
 		if (obj.type == 'Project' ||
-		    obj.type == 'Component' ||
-		    obj.type == 'Task' ||
-		    obj.type == 'Timer') {
+		    obj.type == 'State Machine') {
 		    // checks: name
 		    self.checkName( obj );
 		}

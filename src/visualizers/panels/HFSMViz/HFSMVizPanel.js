@@ -78,13 +78,22 @@ define([
     HFSMVizPanel.prototype.getValidTypesInfo = function( nodeId ) {
 	var node = this._client.getNode( nodeId );
 	if (node) {
-	    var detailedTypes = node.getValidChildrenTypesDetailed( );
+	    var detailedTypes = {};
+	    /*
+	    detailedTypes = node.getValidChildrenTypesDetailed( );
 	    Object.keys(detailedTypes).map(function(k) {
 		detailedTypes[k] = true;
 	    });
+	    */
 	    // add internal transition - is there a way to not have to
 	    // hard-code this?
 	    detailedTypes[ '/615025579/x' ] = true;
+	    detailedTypes['/615025579/1242097160'] = true; // initial state
+	    detailedTypes['/615025579/A'] = true; // end state
+	    detailedTypes['/615025579/R'] = true; // choice pseudostate
+	    detailedTypes['/615025579/e'] = true; // deep history pseudostate
+	    detailedTypes['/615025579/K'] = true; // shallow history pseudostate
+	    detailedTypes['/615025579/1416392928'] = true; // state
 	    return detailedTypes;
 	}
 	else {

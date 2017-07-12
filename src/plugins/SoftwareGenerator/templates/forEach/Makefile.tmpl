@@ -23,11 +23,7 @@ COPY           = cp
 #
 #-------------------------------------------------------------------------------
 CPPSRC =
-{{#each Timer_list}}
-CPPSRC += {{{sanitizedName}}}_GeneratedStates.cpp
-CPPSRC += {{{sanitizedName}}}_test.cpp
-{{/each}}
-{{#each Task_list}}
+{{#each this.[State Machine_list]}}
 CPPSRC += {{{sanitizedName}}}_GeneratedStates.cpp
 CPPSRC += {{{sanitizedName}}}_test.cpp
 {{/each}}
@@ -83,8 +79,8 @@ ALL_CFLAGS  = $(CFLAGS) $(CPPFLAGS) $(GENDEPFLAGS)
 #
 #-------------------------------------------------------------------------------
 all: begin test debug end
-test: {{#each Task_list}}{{{sanitizedName}}}_test {{/each}}{{#each Timer_list}}{{{sanitizedName}}}_test {{/each}}
-debug: {{#each Task_list}}{{{sanitizedName}}}_test_DEBUG {{/each}}{{#each Timer_list}}{{{sanitizedName}}}_test_DEBUG {{/each}}
+test: {{#each this.[State Machine_list]}}{{{sanitizedName}}}_test {{/each}}
+debug: {{#each this.[State Machine_list]}}{{{sanitizedName}}}_test_DEBUG {{/each}}
 
 gccversion : 
 	@$(CC) --version
@@ -100,11 +96,7 @@ end:
 clean:
 	@echo
 	@echo Cleaning Project: {{{name}}}
-	{{#each Task_list}}
-	$(REMOVE) {{{sanitizedName}}}_test
-	$(REMOVE) {{{sanitizedName}}}_test_DEBUG
-	{{/each}}
-	{{#each Timer_list}}
+	{{#each this.[State Machine_list]}}
 	$(REMOVE) {{{sanitizedName}}}_test
 	$(REMOVE) {{{sanitizedName}}}_test_DEBUG
 	{{/each}}
@@ -121,29 +113,7 @@ $(CPPOBJ) : %.o : %.cpp
 	@echo Compiling CPP Source: $<
 	g++ $(ALL_CFLAGS $< -o $@
 
-{{#each Task_list}}
-{{{sanitizedName}}}_test:
-	@echo Compiling {{{sanitizedName}}}_test
-	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS)
-{{{sanitizedName}}}_test_DEBUG:
-	@echo Compiling {{{sanitizedName}}}_test_DEBUG
-	g++ -o {{{sanitizedName}}}_test_DEBUG {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
-run_{{{sanitizedName}}}_test: {{{sanitizedName}}}_test
-	@echo
-	@echo Running {{{sanitizedName}}}_test
-	@echo
-	./{{{sanitizedName}}}_test
-	@echo
-	@echo Finished
-run_{{{sanitizedName}}}_test_DEBUG: {{{sanitizedName}}}_test_DEBUG
-	@echo
-	@echo Running {{{sanitizedName}}}_test_DEBUG
-	@echo
-	./{{{sanitizedName}}}_test_DEBUG
-	@echo
-	@echo Finished
-{{/each}}
-{{#each Timer_list}}
+{{#each this.[State Machine_list]}}
 {{{sanitizedName}}}_test:
 	@echo Compiling {{{sanitizedName}}}_test
 	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS)

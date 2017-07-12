@@ -85,7 +85,7 @@ define([
         }
     };
 
-    var rootTypes = ['Task','Timer'];
+    var rootTypes = ['State Machine'];
     var excludeTypes = ['Documentation'];
 
     // This next function retrieves the relevant node information for the widget

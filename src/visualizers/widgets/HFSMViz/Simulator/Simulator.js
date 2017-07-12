@@ -21,7 +21,7 @@ define(['js/util',
 	   
            var Simulator;
 
-	   var rootTypes = ['Task','Timer'];
+	   var rootTypes = ['State Machine'];
 
 	   var parentTempl = ['<div class="simulatorTitle">Child of:',
 			      '</div>'].join('\n');

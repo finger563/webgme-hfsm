@@ -22,10 +22,7 @@ define(['handlebars/handlebars.min',
 		   "Project": {
 		       "Makefile": 'MakefileTempl',
 		   },
-		   "Task": {
-		       "{{{sanitizedName}}}_test.cpp": 'MainTestTempl',
-		   },
-		   "Timer": {
+		   "State Machine": {
 		       "{{{sanitizedName}}}_test.cpp": 'MainTestTempl',
 		   },
 	       },
@@ -103,7 +100,7 @@ define(['handlebars/handlebars.min',
 		   var self    = this;
 		   var objects = model.objects;
 		   var root    = model.root;
-		   var rootTypes = ['Task','Timer'];
+		   var rootTypes = ['State Machine'];
 		   var generatedArtifacts = {};
 
 		   // make variable names and such for objects
@@ -128,13 +125,7 @@ define(['handlebars/handlebars.min',
 			   self.makeFullyQualifiedVariableName( obj, model.objects );
 			   self.makePointerName( obj, model.objects );
 		       }
-		       else if (obj.type == 'Task') {
-			   // make rendered names
-			   self.makeFullyQualifiedName( obj, model.objects );
-			   self.makeFullyQualifiedVariableName( obj, model.objects );
-			   self.makePointerName( obj, model.objects );
-		       }
-		       else if (obj.type == 'Timer') {
+		       else if (obj.type == 'State Machine') {
 			   // make rendered names
 			   self.makeFullyQualifiedName( obj, model.objects );
 			   self.makeFullyQualifiedVariableName( obj, model.objects );
