@@ -29,6 +29,13 @@ namespace StateMachine {
     ~{{{sanitizedName}}} ( void ) {}
     
     /**
+     * @brief Fully initializes the HFSM. Runs the HFSM Initialization
+     *  code from the model, then sets the inital state and runs the
+     *  initial transition and entry actions accordingly.
+     */
+    void                     initialize ( void );
+
+    /**
      * @brief Calls handleEvent on the activeLeaf.
      *
      * @param[in] StateMachine::Event* Event needing to be handled
@@ -57,7 +64,7 @@ namespace StateMachine {
 };
 
 // pointers
-extern StateMachine::StateBase *const root;
+extern StateMachine::{{{sanitizedName}}} *const root;
 {{> PointerTemplHpp this}}
 {{#END}}
 extern StateMachine::StateBase *const {{{pointerName}}};

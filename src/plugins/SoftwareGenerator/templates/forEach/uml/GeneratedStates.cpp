@@ -7,6 +7,9 @@
 #include <iostream>
 #endif
 
+// User Includes for the HFSM
+{{{Includes}}}
+
 namespace StateMachine {
   {{> PointerTemplCpp this}}
   {{#END}}
@@ -19,6 +22,15 @@ namespace StateMachine {
 
   /* * *  Definitions for {{{sanitizedName}}} : {{{path}}}  * * */
   // Generated Definitions for the root state
+  void {{{fullyQualifiedName}}}::initialize ( void ) {
+    // Run the model's Initialization code
+    {{{Initialization}}}
+    // run init transition action for HFSM root
+    runChildInitTransAction();
+    // set initial states
+    setShallowHistory();
+  };
+  
   bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
     bool handled = false;
 
@@ -50,7 +62,7 @@ namespace StateMachine {
 };
 
 // Root of the HFSM
-StateMachine::StateBase *const root = &StateMachine::{{{pointerName}}}_stateObj;
+StateMachine::{{{sanitizedName}}} *const root = &StateMachine::{{{pointerName}}}_stateObj;
 // Event Factory
 StateMachine::EventFactory EVENT_FACTORY;
 StateMachine::EventFactory *const eventFactory = &EVENT_FACTORY;

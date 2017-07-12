@@ -45,14 +45,10 @@ int main( int argc, char** argv ) {
 
   StateMachine::Event* e = nullptr;
 
-  // run init transition action for HFSM root
-  root->runChildInitTransAction();
-  // set initial states
-  root->setShallowHistory();
-
-  e = makeEvent();
-
-  while (e != nullptr) {
+  // initialize the HFSM
+  root->initialize();
+  
+  while ( (e = makeEvent()) != nullptr) {
     bool handled = root->handleEvent( e );
     if (handled) {
       #ifdef DEBUG_OUTPUT
@@ -69,7 +65,6 @@ int main( int argc, char** argv ) {
       #endif
     }
     eventFactory->consumeEvent( e );
-    e = makeEvent();
   } 
   
   return 0;

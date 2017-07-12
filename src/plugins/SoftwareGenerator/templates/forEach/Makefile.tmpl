@@ -14,7 +14,7 @@ PROJECT_NAME   = {{{sanitizedName}}}
 #
 #-------------------------------------------------------------------------------
 SHELL          = sh
-REMOVE         = rm -f
+REMOVE         = rm -rf
 COPY           = cp
 
 #-------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ clean:
 	$(REMOVE) $(CPPSRC:.cpp=.s) 
 	$(REMOVE) $(CPPSRC:.cpp=.d)
 	$(REMOVE) $(LST)
-	$(REMOVE) .dep/*
+	$(REMOVE) .dep
 
 
 .PRECIOUS : $(CPPOBJ)

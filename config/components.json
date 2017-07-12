@@ -97,13 +97,7 @@
 	    "Documentation": {
 		"documentation": "gfm"
 	    },
-	    "Task": {
-		"Includes": "cpp",
-		"Initialization": "cpp",
-		"Definitions": "cpp",
-		"Declarations": "cpp"
-	    },
-	    "Timer": {
+	    "State Machine": {
 		"Includes": "cpp",
 		"Initialization": "cpp",
 		"Definitions": "cpp",
