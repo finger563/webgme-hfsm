@@ -1,3 +1,0 @@
-#include "{{{name}}}.hpp"
-
-{{{Definitions}}}
