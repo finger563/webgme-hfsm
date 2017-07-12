@@ -574,7 +574,9 @@ define([
 			name: desc.name,
 			// source-label
 			// target-label
-			label: desc.LABEL
+			label: desc.LABEL,
+			isComplete: desc.isComplete,
+			isIncomplete: !desc.isComplete
 		    };
 		}
 	    }
@@ -586,6 +588,8 @@ define([
 		    NodeType: desc.type,
 		    name: desc.name,
 		    label: desc.LABEL,
+		    isComplete: desc.isComplete,
+		    isIncomplete: !desc.isComplete
 		};
 	    }
 	    return data;

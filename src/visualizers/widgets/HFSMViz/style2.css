@@ -133,6 +133,15 @@ node[InvalidDrop] {
     background-color: red;
 }
 
+node[isComplete]{
+    border-style : solid;
+}
+
+node [isIncomplete]{
+    border-style : dashed;
+
+}
+
 node:selected {
     /* width: 40; */
     /* height: 40; */
