@@ -1,9 +1,11 @@
 #ifndef __EVENT_INCLUDE_GUARD__
 #define __EVENT_INCLUDE_GUARD__
 
-#include <queue>
+#include <deque>
+
+#ifdef DEBUG_OUTPUT
 #include <string>
-#include <chrono>
+#endif
 
 namespace StateMachine {
 
@@ -23,46 +25,25 @@ namespace StateMachine {
     Type type ( void ) {
       return _t;
     }
-
-    /**
-     * @brief Spawn the event. This sets the event's spawn time.
-     */
-    void spawn ( void ) {
-      _spawnTime = std::chrono::system_clock::now();
-    }
-
-    /**
-     * @brief Consume the event. This sets the event's consume time.
-     */
-    void consume ( void ) {
-      _consumeTime = std::chrono::system_clock::now();
-    }
-
-    double waitTime ( void ) {
-      return (_consumeTime - _spawnTime).count();
-    }
-
-    /**
-     * Will return stringified form of the event for debugging
-     */
-    static std::string toString ( Event* e ) {
+    
+    #ifdef DEBUG_OUTPUT
+    static std::string toString( Event* e ) {
       std::string eventString = "";
       switch ( e->_t ) {
-	{{#each eventNames}}
+      {{#each eventNames}}
       case Type::{{{.}}}:
-          eventString = "{{{.}}}";
-	  break;
-	{{/each}}
+        eventString = "{{{.}}}";
+        break;
+      {{/each}}
       default:
 	break;
       }
       return eventString;
     }
-
+    #endif
+    
   protected:
-    std::chrono::time_point<std::chrono::system_clock> _spawnTime;
-    std::chrono::time_point<std::chrono::system_clock> _consumeTime;
-    Type                                               _t;
+    Type _t;
   };
   
   /**
@@ -87,8 +68,7 @@ namespace StateMachine {
      */
     void                 spawnEvent   ( StateMachine::Event::Type t ) {
       StateMachine::Event* newEvent = new Event( t );
-      newEvent->spawn();
-      _eventQ.push( newEvent );
+      _eventQ.push_back( newEvent );
     }
 
     /**
@@ -111,7 +91,7 @@ namespace StateMachine {
       StateMachine::Event* ptr = nullptr;
       if (_eventQ.size()) {
 	ptr = _eventQ.front();
-	_eventQ.pop(); // remove the event from the Q
+	_eventQ.pop_front(); // remove the event from the Q
       }
       return ptr;
     }
@@ -128,8 +108,19 @@ namespace StateMachine {
       }
     }
 
+    #ifdef DEBUG_OUTPUT
+    std::string         toString    ( void ) {
+      std::string qStr = "[ ";
+      for (int i=0; i<_eventQ.size(); i++) {
+	qStr += Event::toString( _eventQ[i] );
+      }
+      qStr += " ]";
+      return qStr;
+    }
+    #endif
+
   protected:
-    std::queue<StateMachine::Event*> _eventQ;
+    std::deque<StateMachine::Event*> _eventQ;
   };
 
 };
