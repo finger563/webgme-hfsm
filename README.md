@@ -53,6 +53,10 @@ Example HFSMs included in the [UML State Diagrams Seed](./src/seeds/UMLStateDiag
 The [Base seed](./src/seeds/base.webgmex) contains just the `Meta` definitions for the
 projects and HFSMs following the UML State Diagram specification.
 
+### Interactive State Machine Simulation
+
+![Complex state machine simulation](./img/simulation.gif)
+
 ### State Machines
 
 State Machines have the following attributes:
