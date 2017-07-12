@@ -618,7 +618,7 @@ define([
 	    self._cy.add(node);
 	    self.nodes[desc.id] = desc;
 	    self.updateDependencies();
-	    self.debouncedReLayout();
+	    //self.debouncedReLayout();
 	};
 	
 	// Adding/Removing/Updating items
