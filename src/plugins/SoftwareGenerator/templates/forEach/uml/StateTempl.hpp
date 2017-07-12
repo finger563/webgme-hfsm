@@ -22,6 +22,9 @@ public:
   {{> StateTemplHpp }}
   {{/each}}
   
+  // Timer period
+  constexpr static const double     timerPeriod = {{{this.[Timer Period]}}};
+
   // Constructors
   {{{sanitizedName}}}  ( void ) : StateBase( ) {}
   {{{sanitizedName}}}  ( StateBase* _parent ) : StateBase( _parent ) {}
@@ -42,6 +45,13 @@ public:
    *  calls _activeState->tick().
    */
   void                     tick ( void );
+
+  /**
+   * @brief The timer period of the state in floating point seconds.
+   *
+   * @return  double  timer period
+   */
+  double                   getTimerPeriod ( void );
 
   /**
    * @brief Calls _activeState->handleEvent( event ), then if the

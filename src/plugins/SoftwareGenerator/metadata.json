@@ -1,64 +1,34 @@
 {
-  "id": "SoftwareGenerator",
-  "name": "SoftwareGenerator",
-  "version": "0.1.0",
-  "description": "",
-  "icon": {
-    "class": "glyphicon glyphicon-cog",
-    "src": ""
-  },
-  "disableServerSideExecution": false,
-  "disableBrowserSideExecution": false,
-  "writeAccessRequired": false,
-  "configStructure": [
-    {
-      "name": "language",
-      "displayName": "Language",
-      "description": "Select generated code language.",
-      "value": "c++",
-      "valueType": "string",
-      "valueItems": [
-        "c++",
-        "c"
-      ]
+    "id": "SoftwareGenerator",
+    "name": "SoftwareGenerator",
+    "version": "0.1.0",
+    "description": "",
+    "icon": {
+	"class": "glyphicon glyphicon-cog",
+	"src": ""
     },
-    {
-      "name": "toolchain",
-      "displayName": "Build Toolchain",
-      "description": "Which toolchain files should be generated.",
-      "value": "eclipse",
-      "valueType": "string",
-      "valueItems": [
-        "eclipse",
-        "make"
-      ]
-    },
-    {
-      "name": "platform",
-      "displayName": "Platform",
-      "description": "Which platform will the generated code be compiled on.",
-      "value": "Linux",
-      "valueType": "string",
-      "valueItems": [
-        "Linux",
-        "Windows"
-      ]
-    },
-    {
-      "name": "idfPath",
-      "displayName": "IDF Path",
-      "description": "Where is the ESP IDF installed?",
-      "value": "/home/jeb/esp/esp-idf",
-      "valueType": "string",
-      "readOnly": false
-    },
-    {
-      "name": "portName",
-      "displayName": "Serial Port",
-      "description": "What serial port the ESP32 device is connected to.",
-      "value": "/dev/ttyUSB0",
-      "valueType": "string",
-      "readOnly": false
-    }
-  ]
+    "disableServerSideExecution": false,
+    "disableBrowserSideExecution": false,
+    "writeAccessRequired": false,
+    "configStructure": [
+	{
+	    "name": "language",
+	    "displayName": "Language",
+	    "description": "Select generated code language.",
+	    "value": "c++",
+	    "valueType": "string",
+	    "valueItems": [
+		"c++",
+		"c"
+	    ]
+	},
+	{
+	    "name": "generateTestCode",
+	    "displayName": "Generate Test Bench",
+	    "description": "Do you want to generate a simple test bench program for your HFSM?",
+	    "value": false,
+	    "valueType": "boolean",
+	    "readOnly": false
+	}
+    ]
 }

@@ -21,6 +21,9 @@ namespace StateMachine {
    */
   class StateBase {
   public:
+
+    constexpr static const double timerPeriod = 0.0f;
+
     StateBase ( void ) : _parentState( nullptr ), _activeState( this ) {}
     StateBase ( StateBase* _parent ) : _parentState( _parent ), _activeState( this ) {}
     ~StateBase( void ) {}
@@ -45,6 +48,12 @@ namespace StateMachine {
       if ( _activeState != this && _activeState != nullptr )
 	_activeState->tick();
     };
+
+    /**
+     */
+    virtual double                   getTimerPeriod ( void ) {
+      return timerPeriod;
+    }
 
     /**
      * @brief Calls _activeState->handleEvent( event ), then if the

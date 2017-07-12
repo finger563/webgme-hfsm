@@ -26,6 +26,10 @@ void {{{fullyQualifiedName}}}::tick ( void ) {
     _activeState->tick();
 }
 
+double {{{fullyQualifiedName}}}::getTimerPeriod ( void ) {
+  return timerPeriod;
+}
+
 bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
   bool handled = false;
 

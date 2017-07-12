@@ -12,8 +12,6 @@ define([
     'plugin/PluginConfig',
     'text!./metadata.json',
     'plugin/PluginBase',
-    'common/util/ejs', // for ejs templates
-    './templates/Templates',
     './templates/forEach/MetaTemplates',
     'webgme-to-json/webgme-to-json',
     'hfsm/processor',
@@ -22,8 +20,6 @@ define([
     PluginConfig,
     pluginMetadata,
     PluginBase,
-    ejs,
-    TEMPLATES,
     MetaTemplates,
     webgmeToJson,
     processor,
@@ -92,9 +88,7 @@ define([
 
 	var currentConfig = self.getCurrentConfig();
 	self.language = currentConfig.language;
-	self.toolchain = currentConfig.toolchain;
-	self.idfPath = currentConfig.idfPath;
-	self.portName = currentConfig.portName;
+	self.generateTestCode = currentConfig.generateTestCode;
 
 	// the active node for this plugin is software -> project
 	var projectNode = self.activeNode;
@@ -132,36 +126,6 @@ define([
 		.done();
     };
 
-    SoftwareGenerator.prototype.getStateDelay = function(timerPeriod) {
-	var defaultTimerPeriod = 1.0;
-	return parseInt(parseFloat(timerPeriod || defaultTimerPeriod) * 1000.0);
-    };
-
-    SoftwareGenerator.prototype.getChildrenByType = function(obj, type) {
-	var self = this;
-	var children = [];
-	if (obj.childPaths) {
-	    obj.childPaths.map(function(childPath) {
-		var child = self.projectObjects[childPath];
-		if (child.type == type) {
-		    children.push(child);
-		    children = children.concat(self.getChildrenByType(child, type));
-		}
-	    });
-	}
-	return children;
-    };
-
-    SoftwareGenerator.prototype.getData = function(obj) {
-	var self = this;
-	return {
-	    'model': self.projectRoot,
-	    'states': self.getChildrenByType(obj, 'State'),
-	    'obj': obj,
-	    stateDelay: function(timerPeriod) { return self.getStateDelay( timerPeriod ); }
-	};
-    };
-
     SoftwareGenerator.prototype.generateArtifacts = function () {
 	var self = this;
 
@@ -178,45 +142,15 @@ define([
             pluginVersion: self.getVersion()
         }, null, 2);
 
-	var headerSuffix = (self.language == 'c++') ? '.hpp' : '.h';
-	var sourceSuffix = (self.language == 'c++') ? '.cpp' : '.c';
-
-	// what data is needed by the templates
-	var renderData = {
-	    'model': self.projectRoot,
-	    'serialPort': self.portName,
-	    'idfPath': self.idfPath,
-	    stateDelay: function(timerPeriod) { return self.getStateDelay(timerPeriod); }
-	};
-
+	self.notify('info', 'Generating HFSM Implementation in '+self.language);
 	var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel );
 	self.artifacts = Object.assign(self.artifacts, hfsmArtifacts);
 
-	var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel );
-	self.artifacts = Object.assign(self.artifacts, testCodeArtifacts);
-
-	/*
-	self.artifacts.TEST = genStateHpp;
-	var newArtifacts = MetaTemplates.getArtifacts( self.projectObjects, baseDir );
-	*/
-
-	/*
-	// figure our which artifacts we're actually rendering
-	var selectedArtifactKeys = Object.keys(TEMPLATES).filter(
-	    function(key) {
-		return key.startsWith(self.toolchain + '/') || key.startsWith(self.language + '/');
-	    }
-	);
-	
-	// render templates
-	selectedArtifactKeys.map(function(key) {
-	    var regexp = new RegExp(self.toolchain); // only replace the first
-	    var fileName = key.replace(regexp, self.projectRoot.sanitizedName);
-	    self.artifacts[fileName] = ejs.render(TEMPLATES[key], renderData);
-	    // re-render so that users' templates are accounted for
-	    self.artifacts[fileName] = ejs.render(self.artifacts[fileName], renderData);
-	});
-	*/
+	if (self.generateTestCode) {
+	    self.notify('info', 'Generating HFSM Test Bench!');
+	    var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel );
+	    self.artifacts = Object.assign(self.artifacts, testCodeArtifacts);
+	}
 
 	var fileNames = Object.keys(self.artifacts);
 	var artifact = self.blobClient.createArtifact(self.artifactName);
