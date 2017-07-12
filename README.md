@@ -55,6 +55,15 @@ projects and HFSMs following the UML State Diagram specification.
 
 ### Interactive State Machine Simulation
 
+In the HFSMViz, the active state of the simulation is highlighted in
+red, and the user can press the event buttons to see how the state
+machine will react to that event. If any guards need to be evaluated,
+a modal dialog will pop up with options for the user to select which
+guard should evaluate to true at that time. The user has the option of
+canceling the transition by selecting `None`. In the case that the
+guards are associated with exit transitions of a choice pseudostate,
+the `Default Transition` will be shown as a guard choice with no text.
+
 ![Complex state machine simulation](./img/simulation.gif)
 
 ### State Machines
