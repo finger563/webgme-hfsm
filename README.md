@@ -125,3 +125,179 @@ codes compile in (using a preprocessor define `DEBUG_OUTPUT`) logging
 code which traces when transitions are fired, which guards are true,
 which actions are executed, and which events are in the State
 Machine's event queue.
+
+#### Example Test Bench Output for the Complex Example State Machine
+
+```bash
+jebKerman@ubuntu  ~/webgme-hfsm/exampleHFSM  make run_Complex_test_DEBUG 
+Compiling Complex_test_DEBUG
+g++ -o Complex_test_DEBUG Complex_test.cpp Complex_GeneratedStates.cpp    -O3 -std=c++14 -MD -MP -MF .dep/Complex_test_DEBUG.d  -DDEBUG_OUTPUT
+
+Running Complex_test_DEBUG
+
+./Complex_test_DEBUG
+INITIAL TRANSITION::ACTION for /3/c/m
+ENTRY::Complex::State_1::/3/c/Y
+SerialTask :: initializing State 1
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 1
+[ EVENT1 ]
+GUARD [ someNumber < someValue ] for INTERNAL TRANSITION:/3/c/Y/t evaluated to TRUE
+Action iterating: 0
+Action iterating: 1
+Action iterating: 2
+Action iterating: 3
+Action iterating: 4
+Action iterating: 5
+Action iterating: 6
+Action iterating: 7
+Action iterating: 8
+Action iterating: 9
+Action iterating: 10
+Action iterating: 11
+Action iterating: 12
+Action iterating: 13
+Action iterating: 14
+Action iterating: 15
+Action iterating: 16
+Action iterating: 17
+Action iterating: 18
+Action iterating: 19
+Action iterating: 20
+Action iterating: 21
+Action iterating: 22
+Action iterating: 23
+Action iterating: 24
+Action iterating: 25
+Action iterating: 26
+Action iterating: 27
+Action iterating: 28
+Action iterating: 29
+Action iterating: 30
+Action iterating: 31
+Handled EVENT1
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 4
+[ EVENT4 ]
+GUARD [ someTest ] for EXTERNAL TRANSITION:/3/c/I evaluated to TRUE
+NO GUARD on EXTERNAL TRANSITION:/3/c/o
+EXIT::Complex::State_1::/3/c/Y
+Exiting State 1
+TRANSITION::ACTION for /3/c/I
+TRANSITION::ACTION for /3/c/o
+ENTRY::Complex::State3::/3/c/T
+TRANSITION::ACTION for /3/c/T/I
+ENTRY::Complex::State3::ChildState::/3/c/T/W
+STATE TRANSITION: Complex::State_1->Complex::State3::ChildState
+Handled EVENT4
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 1
+[ EVENT1 ]
+NO GUARD on EXTERNAL TRANSITION:/3/c/T/L
+EXIT::Complex::State3::ChildState::/3/c/T/W
+TRANSITION::ACTION for /3/c/T/L
+ENTRY::Complex::State3::ChildState2::/3/c/T/0
+STATE TRANSITION: Complex::State3::ChildState->Complex::State3::ChildState2
+Handled EVENT1
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 2
+[ EVENT2 ]
+NO GUARD on EXTERNAL TRANSITION:/3/c/T/j
+EXIT::Complex::State3::ChildState2::/3/c/T/0
+TRANSITION::ACTION for /3/c/T/j
+ENTRY::Complex::State3::ChildState3::/3/c/T/w
+STATE TRANSITION: Complex::State3::ChildState2->Complex::State3::ChildState3
+Handled EVENT2
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 3
+[ EVENT3 ]
+NO GUARD on EXTERNAL TRANSITION:/3/c/T/p
+EXIT::Complex::State3::ChildState3::/3/c/T/w
+TRANSITION::ACTION for /3/c/T/p
+ENTRY::Complex::State3::ChildState::/3/c/T/W
+STATE TRANSITION: Complex::State3::ChildState3->Complex::State3::ChildState
+Handled EVENT3
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 4
+[ EVENT4 ]
+NO GUARD on EXTERNAL TRANSITION:/3/c/w
+EXIT::Complex::State3::ChildState::/3/c/T/W
+EXIT::Complex::State3::/3/c/T
+TRANSITION::ACTION for /3/c/w
+ENTRY::Complex::State_2::/3/c/v
+ENTRY::Complex::State_2::ChildState::/3/c/v/K
+STATE TRANSITION: Complex::State3->Complex::State_2::Deep_History_Pseudostate
+Handled EVENT4
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 4
+[ EVENT4 ]
+NO GUARD on EXTERNAL TRANSITION:/3/c/Q
+EXIT::Complex::State_2::ChildState::/3/c/v/K
+EXIT::Complex::State_2::/3/c/v
+TRANSITION::ACTION for /3/c/Q
+ENTRY::Complex::State3::/3/c/T
+ENTRY::Complex::State3::ChildState::/3/c/T/W
+STATE TRANSITION: Complex::State_2->Complex::State3::Deep_History_Pseudostate
+Handled EVENT4
+Select which event to spawn:
+0. ENDEVENT
+1. EVENT1
+2. EVENT2
+3. EVENT3
+4. EVENT4
+5. INPUTEVENT
+6. None
+selection: 6
+
+Finished
+
+```
