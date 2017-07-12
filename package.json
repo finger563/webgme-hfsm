@@ -8,7 +8,7 @@
   "version": "1.0.2",
   "repository": {
     "type": "git",
-    "url": "http://bitbucket.org/maxmobility/webgme-hfsm.git"
+    "url": "http://github.com/finger563/webgme-hfsm.git"
   },
   "dependencies": {
     "handlebars": "^4.0.10",
