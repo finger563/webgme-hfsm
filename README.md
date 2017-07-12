@@ -1,110 +1,114 @@
 # WebGME HFSM
 
 WebGME App for creating Executable Heirarchical Finite State Machines
-(HFSMs)
+(HFSMs). Contains metamodel, visualization, simulation, and code
+generation for Heirarchical Finite State Machines (HFSMs) following
+the UML State Machine specification.
 
-This repository contains the plugins and base seed for creating HFSMs
-with embedded c/c++ code in each state (for `initialization`, the
-state's periodic `state function`, and the `exiting` the state).  The
-WebGME app utilizes the
-[CodeEditor](https://github.com/finger563/webgme-codeeditor) to allow
-users to edit the code for the model as if it were part of an IDE.
+## Features
+
+* Complete modeling of State Machines following the UML specification
+  including:
+  * States
+  * Events
+  * Internal Transitions
+  * External Transitions
+  * Choice Pseudostates
+  * Deep History Pseudostates
+  * Shallow History Pseudostates
+  * Initial States
+  * End States
+* Interactive model creation
+* In-model **interactive simulation** of the HFSM
+* In-model code attribute editing for the HFSM
+* Model transformation plugin to produce executable **C++** code from
+  the HFSM (*with more languages coming soon*!)
+
+## Description
+
+This repository contains the plugins, decorators, and visualizers (all
+of which are WebGME Components) and the base and example seeds for
+creating HFSMs with embedded c/c++ code in each state. The WebGME app
+utilizes the [CodeEditor](https://github.com/finger563/webgme-codeeditor) to allow users to edit the code for the
+model as if it were part of an IDE.
+
+Together these components and (meta-)modeling environment make up the
+*State Machine Domain* for WebGME.
 
 ## Hierarchical Finite State Machine (HFSM) Description
  
-HFSMs are trees, where a state may have zero or more substates, and
-where states in the same level of the same subtree can transition
-between each other according to certain *guard conditions*. The *guard
-conditions* for all possible transitions out of the current state are
-checked every time the state function executes. In this HFSM, the
-state function executes as a periodic function either within a task or
-a timer in [FreeRTOS](http://freertos.org) according to the
-periodicity set by the state. Note that only leaf-states have valid
-timer periods.
+HFSMs are trees, where a state may have zero or more substates.
  
-The guard conditions check state variables that can either be set in
-the execution of state functions or be set in the execution of an
-interrupt.
+In this modeling paradigm, `Projects` can contain any number of `State
+Machines`.
 
-In these HFSMs, projects can contain any number of:
+Example HFSMs included in the [UML State Diagrams Seed](./src/seeds/UMLStateDiagrams.webgmex):
 
-* Tasks
-* Timers
-* Components
+![Simple State Machine](./img/simple.png)
 
-Example Projects (included in the
-[Base Seed](./src/seeds/base.webgmex)):
+![Medium State Machine](./img/medium.png)
 
-![ESP32 Thing Example Project](./img/espThing.png)
+![Complex State Machine](./img/complex.png)
 
-![ESP32 WROVER Example Project](./img/espWrover.png)
+The [Base seed](./src/seeds/base.webgmex) contains just the `Meta` definitions for the
+projects and HFSMs following the UML State Diagram specification.
 
-### Tasks
+### State Machines
 
-Tasks are HFSMs which get generated into a single task with a dynamic
-period based on the currently active **leaf state**. Since tasks are
-[FreeRTOS Tasks](http://www.freertos.org/a00019.html), they can
-contain blocking code (e.g. *vTaskDelay*).
+State Machines have the following attributes:
 
-Tasks have the following attributes:
+* `Includes` : include statements for the HFSM, will be at the top of
+  the generated header
+* `Initialization` : intialization code run at the beginning of the
+  HFSM, before any of the state initialization code.
+* `Declarations` : variable/function/class declarations within the
+  HFSM's `StateMachine` namespace, will be within the generated header
+  file
+* `Definitions` : variable/function/class definitions within the
+  HFSM's `StateMachine` namespace, will be within the generated source
+  file
 
-* `Includes` : include statements referencing other tasks or 
-  components, will be at the top of the generated header
-* `Initialization` : intialization code run at the beginning of the task.
-* `Declarations` : variable/function/class declarations within the 
-  task's namespace, will be within the generated header
-* `Definitions` : variable/function/class definitions within the 
-  task's namespace, will be within the generated source file
+## HFSMViz State Diagram Visualizer and Simulator
 
-### Timers
-
-Timers are HFSMs which get generated into a single timer with a
-dynamic period based on the currently active **leaf state**. Since
-timers are
-[FreeRTOS Timers](http://www.freertos.org/FreeRTOS-Software-Timer-API-Functions.html),
-they **cannot contain blocking code** (e.g. *vTaskDelay*).
-
-Tasks have the following attributes:
-
-* `Includes` : include statements referencing other tasks or 
-  components, will be at the top of the generated header
-* `Initialization` : intialization code run at the beginning of the task.
-* `Declarations` : variable/function/class declarations within the 
-  task's namespace, will be within the generated header
-* `Definitions` : variable/function/class definitions within the 
-  task's namespace, will be within the generated source file
-
-#### Components
-
-Components are libraries for which the `Declarations` (`.h / .hpp`),
-and the `Definitions` (`.c / .cpp`) are provided in the model itself.
-Whether these are generated as `c` or `c++` libraries depends on the
-setting of the component's **Language** attribute.
-
-## HFSMViz
-
-The **HFSMViz** visualizer allows the visualization of a HFSM (such as
-that for a `Task` or a `Timer`) at a single location, instead of
-having to navigate through the model and only being able to see a
-small neighborhood of nodes at single time, which may be good for
-clearing context when developing the model but hinders understanding
-of the model as a whole.
-
-Simple Serial State Model:
-![Simple Serial State Model](./img/simpleSerial.png)
-And the HFSM Visualized:
-![Simple Serial HFSM](./img/simpleSerialHFSM.png)
-
-Display State Model:
-![Display State Model](./img/display.png)
-And the HFSM Visualized:
-![Display HFSM](./img/displayHFSM.png)
+The **HFSMViz** visualizer allows the visualization of the full
+HFSM. It also provides:
+* An interface to see which events will be handled by the HFSM when it
+  is in a selected (or active) state
+* *Simulation* of the HFSM which properly traverses the transitions from
+  the currently active state to the next active state when the user
+  spawns an event into the simulation.
+  * The visualization will even pop up dialogs asking the user which
+    guard condition should be evalutated to true when the HFSM passes
+    through a choice pseudostate or when multiple transitions have the
+    same event trigger and different guards.
+* Drag and drop external transition creation between two nodes of the
+  HFSM
+* *Automatic layout* and routing of the edges and nodes of the HFSM
+  tree
+* *Context menu* allowing the user to: 
+  * Toggle the display of a state's children
+  * Set the active
+  * Add a new element (which can also be done by dragging from the
+    `Part Browser` and dropping onto the visualizer.
 
 ## Code Generation
 
 The **SoftwareGenerator** plugin supports generation of a `Project`
-and it's `Components`, `Timers`, and `Tasks` into code for the ESP32,
-including the eclipse project configuration.
+and it's `State Machines` into executable code, with the option of
+generating test-bench code for interactively testing out the generated
+HFSM and tracing through which actions occur in what order when an
+event is spawned.
 
-You can edit the code attributes for the `Timers`, `Tasks`, `States`,
-and `Transitions`, within the CodeEditor visualizer.
+You can edit the code attributes for the `State Machines`, `States`,
+`Internal Transitions`, and `External Transitions` within the
+CodeEditor visualizer.
+
+### Test Bench Code
+
+When the test code is generated, it generates a `Makefile` which
+builds a `test` and `DEBUG` target for each of the `State Machines` in
+the `Project` from which the plugin was executed. These test bench
+codes compile in (using a preprocessor define `DEBUG_OUTPUT`) logging
+code which traces when transitions are fired, which guards are true,
+which actions are executed, and which events are in the State
+Machine's event queue.
