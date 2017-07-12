@@ -23,7 +23,7 @@
     "rimraf": "^2.4.0",
     "chai": "^3.0.0"
   },
-  "description": "Hierarchical Finite State Machine (HFSM) visual modling tool with embedded code editor and complete code generation for various languages and platforms.",
+  "description": "WebGME Domain for creating Executable Heirarchical Finite State Machines (HFSMs). Contains metamodel, visualization, simulation, and code generation for Heirarchical Finite State Machines (HFSMs) following the UML State Machine specification.",
   "main": "app.js",
   "directories": {
     "test": "test"
