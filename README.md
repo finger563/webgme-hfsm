@@ -5,6 +5,16 @@ WebGME App for creating Executable Heirarchical Finite State Machines
 generation for Heirarchical Finite State Machines (HFSMs) following
 the UML State Machine specification.
 
+## Table of Contents
+
+1. [Features](#features)
+2. [Description](#description)
+3. [Getting Started](#getting-started)
+    1. [Setting up the WebGME-HFSM Server](#setting-up-the-webgme-hfsm-server)
+	2. [Creating a HFSM](#creating-a-hfsm)
+	3. [Simulating a HFSM](#simulating-a-hfsm)
+	4. [Code Generation](#code-generation)
+
 ## Features
 
 * Complete modeling of State Machines following the UML specification
@@ -35,8 +45,6 @@ model as if it were part of an IDE.
 Together these components and (meta-)modeling environment make up the
 *State Machine Domain* for WebGME.
 
-## Hierarchical Finite State Machine (HFSM) Description
- 
 HFSMs are trees, where a state may have zero or more substates.
  
 In this modeling paradigm, `Projects` can contain any number of `State
@@ -53,21 +61,6 @@ Example HFSMs included in the [UML State Diagrams Seed](./src/seeds/UMLStateDiag
 The [Base seed](./src/seeds/base.webgmex) contains just the `Meta` definitions for the
 projects and HFSMs following the UML State Diagram specification.
 
-### Interactive State Machine Simulation
-
-In the HFSMViz, the active state of the simulation is highlighted in
-red, and the user can press the event buttons to see how the state
-machine will react to that event. If any guards need to be evaluated,
-a modal dialog will pop up with options for the user to select which
-guard should evaluate to true at that time. The user has the option of
-canceling the transition by selecting `None`. In the case that the
-guards are associated with exit transitions of a choice pseudostate,
-the `Default Transition` will be shown as a guard choice with no text.
-
-![Complex state machine simulation](./img/simulation.gif)
-
-### State Machines
-
 State Machines have the following attributes:
 
 * `Includes` : include statements for the HFSM, will be at the top of
@@ -80,8 +73,58 @@ State Machines have the following attributes:
 * `Definitions` : variable/function/class definitions within the
   HFSM's `StateMachine` namespace, will be within the generated source
   file
+  
+## Getting Started
 
-## HFSMViz State Diagram Visualizer and Simulator
+### Setting up the WebGME-HFSM Server
+
+Dependencies:
+* [nodejs ^6.0](www.nodejs.org)
+* [mongodb](www.mongodb.com)
+
+```bash
+git clone https://github.com/finger563/webgme-hfsm
+cd webgme-hfsm
+npm install -g bower # needed for extra package management
+npm install          # installs the required packages for webgme-hfsm
+npm start
+```
+
+Which will run the WebGME-HFSM server on **PORT 8081** of your local
+machine, accepting connections on all IP addresses available to it.
+
+Note: this requires a mongodb instance running on the machine, which
+can be started with:
+
+```bash
+mongod --dbpath ${path you want for your database}
+```
+
+### Creating a HFSM
+
+Once the server has been started, you can navigate (in *Chrome*) to 
+
+```
+localhost:8081
+```
+
+where the server is running. Create a WebGME project there from either
+the `base` or the `examples` seed.
+
+![Creating and editing an HFSM](./img/hfsmEditing.gif)
+
+### Simulating a HFSM
+
+In the HFSMViz, the active state of the simulation is highlighted in
+red, and the user can press the event buttons to see how the state
+machine will react to that event. If any guards need to be evaluated,
+a modal dialog will pop up with options for the user to select which
+guard should evaluate to true at that time. The user has the option of
+canceling the transition by selecting `None`. In the case that the
+guards are associated with exit transitions of a choice pseudostate,
+the `Default Transition` will be shown as a guard choice with no text.
+
+![Complex state machine simulation](./img/simulation.gif)
 
 The **HFSMViz** visualizer allows the visualization of the full
 HFSM. It also provides:
@@ -104,7 +147,7 @@ HFSM. It also provides:
   * Add a new element (which can also be done by dragging from the
     `Part Browser` and dropping onto the visualizer.
 
-## Code Generation
+### Code Generation
 
 The **SoftwareGenerator** plugin supports generation of a `Project`
 and it's `State Machines` into executable code, with the option of
@@ -116,7 +159,7 @@ You can edit the code attributes for the `State Machines`, `States`,
 `Internal Transitions`, and `External Transitions` within the
 CodeEditor visualizer.
 
-### Test Bench Code
+#### Test Bench Code
 
 When the test code is generated, it generates a `Makefile` which
 builds a `test` and `DEBUG` target for each of the `State Machines` in
@@ -126,7 +169,7 @@ code which traces when transitions are fired, which guards are true,
 which actions are executed, and which events are in the State
 Machine's event queue.
 
-#### Example Test Bench Output for the Complex Example State Machine
+##### Example Test Bench Output for the Complex Example State Machine
 
 ```bash
 jebKerman@ubuntu  ~/webgme-hfsm/exampleHFSM  make run_Complex_test_DEBUG 
