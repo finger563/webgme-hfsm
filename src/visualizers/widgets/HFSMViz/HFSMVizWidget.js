@@ -213,7 +213,7 @@ define([
 		// Maximum number of iterations to perform
 		numIter: 2500,
 		// For enabling tiling
-		tile: true,   // true
+		tile: false,   // true
 		// Type of layout animation. The option set is {'during', 'end', false}
 		animate: 'end',
 		// Represents the amount of the vertical space to put between the zero degree members during the tiling operation(can also be a function)
@@ -615,7 +615,21 @@ define([
 		group: 'nodes',
 		data: data
 	    };
-	    self._cy.add(node);
+	    var parentCyNode = null;
+	    var parentPos = null;
+	    if (desc.parentId) {
+		var parentIdTag = desc.parentId.replace(/\//gm, "\\/");
+		var parentCyNode = self._cy.$('#'+parentIdTag);
+	    }
+	    if (parentCyNode) {
+		parentPos = parentCyNode.position();
+	    }
+	    var n = self._cy.add(node);
+	    if (parentCyNode && parentPos) {
+		parentCyNode.position( parentPos );
+		n.position( parentPos );
+	    }
+
 	    self.nodes[desc.id] = desc;
 	    self.updateDependencies();
 	    self.debouncedReLayout();
