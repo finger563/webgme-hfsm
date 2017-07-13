@@ -100,8 +100,6 @@ can be started with:
 mongod --dbpath ${path you want for your database}
 ```
 
-### Creating a HFSM
-
 Once the server has been started, you can navigate (in *Chrome*) to 
 
 ```
@@ -110,6 +108,24 @@ localhost:8081
 
 where the server is running. Create a WebGME project there from either
 the `base` or the `examples` seed.
+
+![Creating a new webgme project](./img/new_webgme_project.gif)
+
+### Creating a HFSM
+
+Once a webgme project has been opened, creat a new HFSM project by dragging in a new component from the left panel.
+
+![Creating a new HFSM project](./img/new_hfsm_project.gif)
+
+Double click on the project and then drag in a new HFSM component.
+
+![Creating a new HFSM](./img/new_hfsm.gif)
+
+In addition to editing the HFSM through webgme, the HFSMViz can also be used. Open an HFSM and click on the HFSMViz on the left side of the screen to use this mode.
+
+![Accessing HFSMViz](./img/accessing_hfsmViz.gif)
+
+Components can be dragged into the visualizer just like in webgme, with addditional operations accessible via the right-click context menu
 
 ![Creating and editing an HFSM](./img/hfsmEditing.gif)
 
