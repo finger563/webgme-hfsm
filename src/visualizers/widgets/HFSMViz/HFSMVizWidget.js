@@ -574,7 +574,7 @@ define([
 			name: desc.name,
 			// source-label
 			// target-label
-			label: desc.LABEL,
+			label: desc.LABEL
 		    };
 		}
 	    }
