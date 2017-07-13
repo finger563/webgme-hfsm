@@ -14,6 +14,8 @@ config.requirejsPaths['mustache'] = "./node_modules/mustache";
 config.requirejsPaths['handlebars'] = "./node_modules/handlebars/dist";
 config.requirejsPaths['webgme-to-json'] = "./node_modules/webgme-to-json";
 config.requirejsPaths['bower'] = "./bower_components/";
+config.requirejsPaths['cytoscape-edgehandles'] = "./bower_components/cytoscape-edgehandles/cytoscape-edgehandles";
+config.requirejsPaths['cytoscape-context-menus'] = "./bower_components/cytoscape-context-menus/cytoscape-context-menus";
 
 // Merging config
 config.storage.autoMerge.enable = true;
