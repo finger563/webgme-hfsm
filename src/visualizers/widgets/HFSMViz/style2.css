@@ -133,12 +133,8 @@ node[InvalidDrop] {
     background-color: red;
 }
 
-node[isComplete]{
-    border-style : solid;
-}
-
-node [isIncomplete]{
-    border-style : dashed;
+node [isIncomplete = "True"]{
+    border-style : dotted;
 
 }
 
