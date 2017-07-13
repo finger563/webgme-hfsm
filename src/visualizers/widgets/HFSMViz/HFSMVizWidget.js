@@ -586,7 +586,7 @@ define([
 		    NodeType: desc.type,
 		    name: desc.name,
 		    label: desc.LABEL,
-		    isIncomplete: !desc.isComplete ? "True" : "False"
+		    isIncomplete: (desc.type == "State" && !desc.isComplete) ? "True" : "False"
 		};
 	    }
 	    return data;

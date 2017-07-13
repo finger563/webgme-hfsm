@@ -133,7 +133,7 @@ node[InvalidDrop] {
     background-color: red;
 }
 
-node [isIncomplete = "True"]{
+node[isIncomplete = "True"]{
     border-style : dotted;
 
 }
