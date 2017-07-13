@@ -394,7 +394,7 @@ define([
 	    }
 
 	    //self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
-	    self.debouncedReLayout = _.debounce(self.reLayout.bind(self), 250);
+	    self.debouncedReLayout = _.debounce(_.once(self.reLayout.bind(self)), 250);
 
 	    // USED FOR DRAG ABILITY
 	    self._hoveredNodeId = null;
@@ -618,7 +618,7 @@ define([
 	    self._cy.add(node);
 	    self.nodes[desc.id] = desc;
 	    self.updateDependencies();
-	    //self.debouncedReLayout();
+	    self.debouncedReLayout();
 	};
 	
 	// Adding/Removing/Updating items
