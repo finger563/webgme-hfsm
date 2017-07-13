@@ -5,6 +5,10 @@ WebGME App for creating Executable Heirarchical Finite State Machines
 generation for Heirarchical Finite State Machines (HFSMs) following
 the UML State Machine specification.
 
+A public server running this project can be accessed at:
+
+[hfsm.rcps.isis.vanderbilt.edu](http://hfsm.rcps.isis.vanderbilt.edu)
+
 ## Table of Contents
 
 1. [Features](#features)
