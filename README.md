@@ -9,15 +9,20 @@ A public server running this project can be accessed at:
 
 [hfsm.rcps.isis.vanderbilt.edu](http://hfsm.rcps.isis.vanderbilt.edu)
 
-## Table of Contents
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
 
-1. [Features](#features)
-2. [Description](#description)
-3. [Getting Started](#getting-started)
-    1. [Setting up the WebGME-HFSM Server](#setting-up-the-webgme-hfsm-server)
-	2. [Creating a HFSM](#creating-a-hfsm)
-	3. [Simulating a HFSM](#simulating-a-hfsm)
-	4. [Code Generation](#code-generation)
+- [Features](#features)
+- [Description](#description)
+- [Getting Started](#getting-started)
+    - [Setting up the WebGME-HFSM Server](#setting-up-the-webgme-hfsm-server)
+    - [Creating a HFSM](#creating-a-hfsm)
+    - [Simulating a HFSM](#simulating-a-hfsm)
+    - [Code Generation](#code-generation)
+        - [Test Bench Code](#test-bench-code)
+            - [Example Test Bench Output for the Complex Example State Machine](#example-test-bench-output-for-the-complex-example-state-machine)
+
+<!-- markdown-toc end -->
 
 ## Features
 
