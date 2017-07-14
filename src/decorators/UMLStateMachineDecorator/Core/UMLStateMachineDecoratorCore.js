@@ -226,7 +226,7 @@ define([
 	return template.content.firstChild;
     }
 
-    function getCode(nodeObj, codeAttr, doHighlight) {
+    function getCode(nodeObj, codeAttr, doHighlight, markIncomplete) {
 	var originalCode = nodeObj.getEditableAttribute( codeAttr ),
 	    code = escapeHtml(originalCode);
 	var el = '';
@@ -239,7 +239,7 @@ define([
 	    $(code).css('overflow', 'hidden');
 	    if (originalCode) {
 	    }
-	    else {
+	    else if (markIncomplete) {
 		$(code).css('background-color','rgba(255,0,0,0.5)');
 	    }
 	    el = code.outerHTML;
@@ -273,9 +273,9 @@ define([
 	    el = this.$el.find('.internal-transitions'),
 	    self = this,
 	    nodeObj = client.getNode(this._metaInfo[CONSTANTS.GME_ID]),
-	    entry = getCode(nodeObj, 'Entry', true),
-	    exit = getCode(nodeObj, 'Exit', true),
-	    tick = getCode(nodeObj, 'Tick', true),
+	    entry = getCode(nodeObj, 'Entry', true, !nodeObj.getAttribute('isComplete')),
+	    exit = getCode(nodeObj, 'Exit', true, !nodeObj.getAttribute('isComplete')),
+	    tick = getCode(nodeObj, 'Tick', true, !nodeObj.getAttribute('isComplete')),
 	    childIDs = nodeObj.getChildrenIds();
 
 	el.empty();
@@ -291,7 +291,7 @@ define([
 		self._control.registerComponentIDForPartID(cid, self._metaInfo[CONSTANTS.GME_ID]);
 		var event = getCode(child, 'Event', false),
 		    guard = getCode(child, 'Guard', false),
-		    action = getCode(child, 'Action', true);
+		    action = getCode(child, 'Action', true, !nodeObj.getAttribute('isComplete'));
 		addCodeToList(el, event, guard, action);
 	    }
 	});

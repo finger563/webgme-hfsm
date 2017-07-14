@@ -592,7 +592,7 @@ define(['js/util',
 	       return template.content.firstChild;
 	   }
 
-	   function getCode(nodeObj, codeAttr, doHighlight) {
+	   function getCode(nodeObj, codeAttr, doHighlight, markIncomplete) {
 	       var originalCode = nodeObj.getEditableAttribute( codeAttr ),
 		   code = escapeHtml(originalCode);
 	       var el = '';
@@ -605,7 +605,7 @@ define(['js/util',
 		   $(code).css('overflow', 'hidden');
 		   if (originalCode) {
 		   }
-		   else {
+		   else if (markIncomplete) {
 		       $(code).css('background-color','rgba(255,0,0,0.5)');
 		   }
 		   el = code.outerHTML;
@@ -679,7 +679,7 @@ define(['js/util',
 			   id: cid,
 			   Event: getCode(child, 'Event', false),
 			   Guard: getCode(child, 'Guard', false),
-			   Action: getCode(child, 'Action', true),
+			   Action: getCode(child, 'Action', true, !node.getAttribute('isComplete')),
 		       });
 		   }
 	       });
@@ -689,9 +689,9 @@ define(['js/util',
 	       };
 	       var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
 	       var el = $(text).find('.internal-transitions');
-	       addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true) );
-	       addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true) );
-	       addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true) );
+	       addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true, !node.getAttribute('isComplete')) );
+	       addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true, !node.getAttribute('isComplete')) );
+	       addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true, !node.getAttribute('isComplete')) );
 	       internalTransitions.sort(function(a,b) { return a.Event.localeCompare(b.Event); }).map(function(i) {
 		   addCodeToList( el, i.id, i.Event, i.Guard, i.Action );
 	       });
