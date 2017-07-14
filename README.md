@@ -23,7 +23,7 @@ A public server running this project can be accessed at:
 
 * Complete modeling of State Machines following the UML specification
   including:
-  * States
+  * States with Hierarchy
   * Events
   * Internal Transitions
   * External Transitions
