@@ -20,7 +20,7 @@ A public server running this project can be accessed at:
     - [Simulating a HFSM](#simulating-a-hfsm)
     - [Code Generation](#code-generation)
         - [Test Bench Code](#test-bench-code)
-            - [Example Test Bench Output for the Complex Example State Machine](#example-test-bench-output-for-the-complex-example-state-machine)
+- [Examples](#examples)
 
 <!-- markdown-toc end -->
 
@@ -54,21 +54,16 @@ model as if it were part of an IDE.
 Together these components and (meta-)modeling environment make up the
 *State Machine Domain* for WebGME.
 
+The [Base seed](./src/seeds/base.webgmex) contains just the `Meta`
+definitions for the projects and HFSMs following the UML State Diagram
+specification and the [Samples Seed](./src/seeds/samples.webgmex)
+contains a project with three different HFSMs: *simple*, *medium*, and
+*complex*.
+
 HFSMs are trees, where a state may have zero or more substates.
  
 In this modeling paradigm, `Projects` can contain any number of `State
 Machines`.
-
-Example HFSMs included in the [UML State Diagrams Seed](./src/seeds/UMLStateDiagrams.webgmex):
-
-![Simple State Machine](./img/simple.png)
-
-![Medium State Machine](./img/medium.png)
-
-![Complex State Machine](./img/complex.png)
-
-The [Base seed](./src/seeds/base.webgmex) contains just the `Meta` definitions for the
-projects and HFSMs following the UML State Diagram specification.
 
 State Machines have the following attributes:
 
@@ -194,8 +189,8 @@ code which traces when transitions are fired, which guards are true,
 which actions are executed, and which events are in the State
 Machine's event queue.
 
-##### Example Test Bench Output for the Complex Example State Machine
-
+<details>
+ <summary>Example Test Bench Output for the Complex Example State Machine</summary>
 ```bash
 jebKerman@ubuntu  ~/webgme-hfsm/exampleHFSM  make run_Complex_test_DEBUG 
 Compiling Complex_test_DEBUG
@@ -369,3 +364,17 @@ selection: 6
 Finished
 
 ```
+</details>
+
+## Examples
+
+Example HFSMs included in the [Samples Seed](./src/seeds/samples.webgmex):
+
+*Simple*:
+![Simple State Machine](./img/simple.gif)
+
+*Medium*:
+![Medium State Machine](./img/medium.gif)
+
+*Complex*:
+![Complex State Machine](./img/complex.gif)
