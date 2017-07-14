@@ -413,6 +413,10 @@ define([
 		else
 		    self.clearDropStatus();
 	    });
+	    self._el.on('mouseout', function(e) {
+		self._hoveredNodeId = null;
+		self.clearDropStatus();
+	    });
 	    
 	    self._cy.on('select', 'node, edge', function(e){
 		var node = this;
