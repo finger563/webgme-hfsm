@@ -189,8 +189,8 @@ code which traces when transitions are fired, which guards are true,
 which actions are executed, and which events are in the State
 Machine's event queue.
 
-<details>
- <summary>Example Test Bench Output for the Complex Example State Machine</summary>
+<details><summary>Example Test Bench Output for the Complex Example State Machine</summary><p>
+
 ```bash
 jebKerman@ubuntu  ~/webgme-hfsm/exampleHFSM  make run_Complex_test_DEBUG 
 Compiling Complex_test_DEBUG
@@ -362,9 +362,9 @@ Select which event to spawn:
 selection: 6
 
 Finished
-
 ```
-</details>
+
+</p></details>
 
 ## Examples
 
