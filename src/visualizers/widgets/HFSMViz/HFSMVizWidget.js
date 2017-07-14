@@ -105,6 +105,7 @@ define([
 		'edges': {}
 	    };
 	    this.waitingNodes = {};
+	    this.droppedChild = {};
 
 	    // LAYOUT RELATED DATA
             this._handle = this._el.find('#hfsmVizHandle');
@@ -635,6 +636,13 @@ define([
 		n.position( parentPos );
 	    }
 
+	    if (self.droppedChild && self.droppedChild.id && self.droppedChild.position) {
+		if (self.droppedChild.id == desc.id || self.droppedChild.id == desc.parentId) {
+		    n.renderedPosition( self.droppedChild.position );
+		    self._clearDroppedChild();
+		}
+	    }
+
 	    self.nodes[desc.id] = desc;
 	    self.updateDependencies();
 	    self.debouncedReLayout();
@@ -889,7 +897,22 @@ define([
 	    return canCreate;
 	};
 
-	HFSMVizWidget.prototype._createChild = function( nodeId, parentId ) {
+	HFSMVizWidget.prototype._clearDroppedChild = function() {
+	    var self = this;
+	    self.droppedChild = {};
+	};
+
+	HFSMVizWidget.prototype._updateDroppedChild = function( nodeId, event ) {
+	    var self = this;
+	    var pos = self._getContainerPosFromEvent(event);
+	    pos.x -= $(self._left).width();
+	    self.droppedChild = {
+		id: nodeId,
+		position: pos
+	    };
+	};
+
+	HFSMVizWidget.prototype._createChild = function( nodeId, parentId, event ) {
 	    var self = this,
 		client = self._client,
 		node = client.getNode(nodeId);
@@ -906,12 +929,14 @@ define([
 		    baseId: nodeId,
 		};
 		self.forceShowChildren( cyNode.id() );
-		client.createChild(childCreationParams, 'Creating new child');
+		var newId = client.createChild(childCreationParams, 'Creating new child');
+		self._updateDroppedChild( newId, event );
 	    }
 	    else {
 		self.forceShowChildren( cyNode.id() );
 		var params = {parentId: parentId};
 		params[nodeId] = {};
+		self._updateDroppedChild( parentId, event );
 		client.startTransaction();
 		client.copyMoreNodes(params);
 		client.completeTransaction();
@@ -971,8 +996,11 @@ define([
 		},
 		drop: function (event, dragInfo) {
                     if (self._isValidDrop(event, dragInfo)) {
-			self._createChild( dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0],
-					   self._hoveredNodeId );
+			self._createChild(
+			    dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0],
+			    self._hoveredNodeId,
+			    event
+			);
                     }
 		    self._isDropping = false;
 		    self._dropId = null;
