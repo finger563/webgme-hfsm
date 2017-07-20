@@ -805,6 +805,14 @@ define([
 	    var self = this;
 	    var hidden = self.getHiddenChildren( node.id() );
 	    if (node.isParent()) {
+		// add node background
+		node.style({
+		    'background-image': 'assets/DecoratorSVG/svgs/stateDiagram.svg',
+		    'background-image-opacity': 1.0,
+		    'background-width': '90%',
+		    'width': 80,
+		    'height': 40,
+		});
 		// currently true, disable show children
 		var children, descendants, edges;
 		children = node.children();
@@ -824,6 +832,13 @@ define([
 		};
 	    }
 	    else if (hidden && hidden.nodes && hidden.edges) {
+		// remove node background
+		node.style({
+		    'background-image': null,
+		    'background-image-opacity': 0,
+		    'width': 10,
+		    'height': 10,
+		});
 		// currently false, reenable show children
 		hidden.nodes.restore();
 		hidden.edges.restore();
