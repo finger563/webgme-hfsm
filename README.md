@@ -189,7 +189,7 @@ code which traces when transitions are fired, which guards are true,
 which actions are executed, and which events are in the State
 Machine's event queue.
 
-[Asciinema recording of interactive test bench](https://asciinema.org/a/kWbxIsIDlQ0ysAlp0ss9X8zJw?t=9)
+[![Asciinema recording of interactive test bench](https://asciinema.org/a/kWbxIsIDlQ0ysAlp0ss9X8zJw.png)](https://asciinema.org/a/kWbxIsIDlQ0ysAlp0ss9X8zJw?t=9)
 
 <details><summary>Example Test Bench Output for the Complex Example State Machine</summary><p>
 
