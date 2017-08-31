@@ -323,8 +323,8 @@ define([
                 this._metaType = META_TYPES['External Transition'];
                 this._metaTypeTemplate = METATYPETEMPLATE_TRANSITION.clone();
                 _.extend(this, new Transition());
-            } else if (UMLStateMachineMETA.TYPE_INFO.isUMLStateDiagram(this._gmeID)) {
-                this._metaType = META_TYPES.UMLStateDiagram;
+            } else if (UMLStateMachineMETA.TYPE_INFO.isStateMachine(this._gmeID)) {
+                this._metaType = META_TYPES.StateMachine;
                 this._metaTypeTemplate = METATYPETEMPLATE_UMLSTATEDIAGRAM.clone();
             }
         }
@@ -366,7 +366,7 @@ define([
                 this._metaTypeTemplate.css({'background-color': this.fillColor});
             } else if (UMLStateMachineMETA.TYPE_INFO.isTransition(this._gmeID)) {
                 // Do nothing
-            } else if (UMLStateMachineMETA.TYPE_INFO.isUMLStateDiagram(this._gmeID)) {
+            } else if (UMLStateMachineMETA.TYPE_INFO.isStateMachine(this._gmeID)) {
                 this._metaTypeTemplate.css({'background-color': this.fillColor});
             }
         }
