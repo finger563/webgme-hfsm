@@ -102,6 +102,7 @@ define([
 		objDescriptor = {
                     id: node.getId(),
 		    type: metaName,
+                    position: node.getRegistry('position'), // { x, y }
                     childrenIds: node.getChildrenIds(),
                     parentId: node.getParentId(),
                     isConnection: GMEConcepts.isConnection(nodeId)

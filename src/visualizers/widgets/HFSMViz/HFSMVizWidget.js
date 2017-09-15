@@ -436,6 +436,26 @@ define([
 		highlight( node );
 	    });
 
+            // USED FOR KNOWING WHEN NODES ARE MOVED
+            self._webGME_to_cy_scale = 0.5;
+            self._grabbedNode = null;
+            self._cy.on('grabon', 'node', function(e) {
+                var node = this;
+                if (node.id()) {
+                    self._grabbedNode = node;
+                }
+            });
+
+            self._cy.on('free', 'node', function(e) {
+                self._grabbedNode = null;
+            });
+            
+            self._debouncedSaveNodePosition = _.debounce(self.saveNodePosition.bind(self), 250);
+            self._cy.on('position', 'node', function(e) {
+                var node = this;
+                self._debouncedSaveNodePosition(node)
+            });
+
 	    // UNSELECT ON NODES AND EDGES
 
 	    self._cy.on('unselect', 'node, edge', function(e){
@@ -482,6 +502,23 @@ define([
 		download( self.HFSMName + '-HFSM.png', png );
 	    });
 	};
+
+	/* * * * * * * * Graph Creation Functions  * * * * * * * */
+
+        HFSMVizWidget.prototype.saveNodePosition = function(n) {
+            var self = this;
+            if (n.id() //&&
+                //self._grabbedNode != null &&
+                //n.id() == self._grabbedNode.id()
+               ) {
+                var pos = n.relativePosition();
+                pos.x /= self._webGME_to_cy_scale;
+                pos.y /= self._webGME_to_cy_scale;
+                console.log('setting pos to '+pos);
+                // we need to update the registry!
+                self._client.setRegistry(n.id(), 'position', pos);
+            }
+        };
 
 	/* * * * * * * * Graph Creation Functions  * * * * * * * */
 
@@ -633,7 +670,11 @@ define([
 	    var n = self._cy.add(node);
 	    if (parentCyNode && parentPos) {
 		parentCyNode.position( parentPos );
-		n.position( parentPos );
+		//n.position( parentPos );
+                var pos = desc.position;
+                pos.x *= self._webGME_to_cy_scale;
+                pos.y *= self._webGME_to_cy_scale;
+                n.relativePosition( pos );
 	    }
 
 	    if (self.droppedChild && self.droppedChild.id && self.droppedChild.position) {
@@ -645,7 +686,7 @@ define([
 
 	    self.nodes[desc.id] = desc;
 	    self.updateDependencies();
-	    self.debouncedReLayout();
+	    //self.debouncedReLayout();
 	};
 	
 	// Adding/Removing/Updating items
