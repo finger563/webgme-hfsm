@@ -433,17 +433,6 @@ define([
                 }
                 highlight( node );
             });
-
-            self._cy.on('unselect', 'node, edge', function(e) {
-                var node = this;
-                var id = node.id();
-                if (id) {
-                    self._selectedNodes = self._selectedNodes.filter(function(n) {
-                        return id != n;
-                    });
-                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-                }
-            });
             
             self._cy.on('cxttap', 'node, edge', function(e) {
                 clear();
@@ -487,6 +476,16 @@ define([
 
             self._cy.on('unselect', 'node, edge', function(e){
                 var node = this;
+                var id = node.id();
+                if (id) {
+                    /*
+                    self._selectedNodes = self._selectedNodes.filter(function(n) {
+                        return id != n;
+                    });
+                    */
+                    self._selectedNodes = [];
+                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+                }
                 clear();
             });
 
@@ -542,11 +541,6 @@ define([
             /*
             cyPos.x *= self._webGME_to_cy_scale;
             cyPos.y *= self._webGME_to_cy_scale;
-            var min = (cyPos.x < cyPos.y) ? cyPos.x : cyPos.y;
-            if (min < 0) {
-                cyPos.x += min;
-                cyPos.y += min;
-            }
             */
             return cyPos;
         };
@@ -554,25 +548,10 @@ define([
         HFSMVizWidget.prototype.cyPosToGmePos = function(cyNode) {
             var self = this;
             var cyPos = cyNode.position();
-            var p = cyNode.parent();
-            if (p.id()) {
-                //console.log(p.position());
-                /*
-                var w = cyNode.parent().width();
-                var h = cyNode.parent().height();
-                cyPos.x += w;
-                cyPos.y += h;
-                */
-            }
             var gmePos = cyPos;
             /*
             gmePos.x /= self._webGME_to_cy_scale;
             gmePos.y /= self._webGME_to_cy_scale;
-            var min = (gmePos.x < gmePos.y) ? gmePos.x : gmePos.y;
-            if (min < 0) {
-                gmePos.x += min;
-                gmePos.y += min;
-            }
             */
             return gmePos;
         };
@@ -594,10 +573,11 @@ define([
             keys.map(function(k) {
                 var id = k;
                 var pos = self._unsavedNodePositions[id];
-                var savedPos = self.nodes[id].position;
-                //console.log('setting pos for ' + id +' to '+pos.x + ','+pos.y);
-                if (self.needToUpdatePosition(pos, savedPos))
-                    self._client.setRegistry(id, 'position', pos);
+                if (self.nodes[id]) {
+                    var savedPos = self.nodes[id].position;
+                    if (self.needToUpdatePosition(pos, savedPos))
+                        self._client.setRegistry(id, 'position', pos);
+                }
             });
 
             self._client.completeTransaction();
@@ -823,6 +803,10 @@ define([
                 else {
                     delete self.dependencies.edges[gmeId];
                 }
+                self._selectedNodes = self._selectedNodes.filter((id) => {
+                    return id != gmeId;
+                });
+                WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
                 delete self.nodes[gmeId];
                 delete self.waitingNodes[gmeId];
                 self._cy.remove("#" + idTag);
