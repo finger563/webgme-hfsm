@@ -472,7 +472,7 @@ define([
                 self._grabbedNode = null;
             });
 
-            self._debouncedSaveNodePositions = _.debounce(self.saveNodePositions.bind(self), 250);
+            self._debouncedSaveNodePositions = _.debounce(self.saveNodePositions.bind(self), 500);
             self._unsavedNodePositions = {};
             self._cy.on('position', 'node', function(e) {
                 var node = this;
@@ -539,9 +539,9 @@ define([
         HFSMVizWidget.prototype.gmePosToCyPos = function(gmePos) {
             var self = this;
             var cyPos = gmePos;
+            /*
             cyPos.x *= self._webGME_to_cy_scale;
             cyPos.y *= self._webGME_to_cy_scale;
-            /*
             var min = (cyPos.x < cyPos.y) ? cyPos.x : cyPos.y;
             if (min < 0) {
                 cyPos.x += min;
@@ -565,9 +565,9 @@ define([
                 */
             }
             var gmePos = cyPos;
+            /*
             gmePos.x /= self._webGME_to_cy_scale;
             gmePos.y /= self._webGME_to_cy_scale;
-            /*
             var min = (gmePos.x < gmePos.y) ? gmePos.x : gmePos.y;
             if (min < 0) {
                 gmePos.x += min;
@@ -578,10 +578,10 @@ define([
         };
 
         HFSMVizWidget.prototype.needToUpdatePosition = function(pos1, pos2) {
-            var dx = pos1.x - pos2.x;
-            var dy = pos1.y - pos2.y;
-            var dyThresh = 0.01;
-            var dxThresh = 0.01;
+            var dx = Math.abs(pos1.x - pos2.x);
+            var dy = Math.abs(pos1.y - pos2.y);
+            var dyThresh = 0.001;
+            var dxThresh = 0.001;
             return (dy > dyThresh || dx > dxThresh);
         };
 
