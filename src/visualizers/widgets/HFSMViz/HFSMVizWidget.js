@@ -437,7 +437,7 @@ define([
 	    });
 
             // USED FOR KNOWING WHEN NODES ARE MOVED
-            self._webGME_to_cy_scale = 0.5;
+            self._webGME_to_cy_scale = 1;
             self._grabbedNode = null;
             self._cy.on('grabon', 'node', function(e) {
                 var node = this;
@@ -449,11 +449,16 @@ define([
             self._cy.on('free', 'node', function(e) {
                 self._grabbedNode = null;
             });
-            
-            self._debouncedSaveNodePosition = _.debounce(self.saveNodePosition.bind(self), 250);
+
+            self._debouncedSaveNodePositions = _.debounce(self.saveNodePositions.bind(self), 250);
+            self._unsavedNodePositions = {};
             self._cy.on('position', 'node', function(e) {
                 var node = this;
-                self._debouncedSaveNodePosition(node)
+                if (node.data('type') != 'State Machine') {
+                    var pos = self.cyPosToGmePos( node );
+                    self._unsavedNodePositions[node.id()] = pos;
+                    self._debouncedSaveNodePositions()
+                }
             });
 
 	    // UNSELECT ON NODES AND EDGES
@@ -503,21 +508,69 @@ define([
 	    });
 	};
 
-	/* * * * * * * * Graph Creation Functions  * * * * * * * */
+	/* * * * * * * * Node Position Functions  * * * * * * * */
 
-        HFSMVizWidget.prototype.saveNodePosition = function(n) {
+        HFSMVizWidget.prototype.getCyTopLeft = function(cyNode) {
+            
+        };
+
+        HFSMVizWidget.prototype.gmePosToCyPos = function(gmePos) {
             var self = this;
-            if (n.id() //&&
-                //self._grabbedNode != null &&
-                //n.id() == self._grabbedNode.id()
-               ) {
-                var pos = n.relativePosition();
-                pos.x /= self._webGME_to_cy_scale;
-                pos.y /= self._webGME_to_cy_scale;
-                console.log('setting pos to '+pos);
-                // we need to update the registry!
-                self._client.setRegistry(n.id(), 'position', pos);
+            var cyPos = gmePos;
+            cyPos.x *= self._webGME_to_cy_scale;
+            cyPos.y *= self._webGME_to_cy_scale;
+            /*
+            var min = (cyPos.x < cyPos.y) ? cyPos.x : cyPos.y;
+            if (min < 0) {
+                cyPos.x += min;
+                cyPos.y += min;
             }
+            */
+            return cyPos;
+        };
+
+        HFSMVizWidget.prototype.cyPosToGmePos = function(cyNode) {
+            var self = this;
+            var cyPos = cyNode.position();
+            var p = cyNode.parent();
+            if (p.id()) {
+                console.log(p.position());
+                /*
+                var w = cyNode.parent().width();
+                var h = cyNode.parent().height();
+                cyPos.x += w;
+                cyPos.y += h;
+                */
+            }
+            var gmePos = cyPos;
+            gmePos.x /= self._webGME_to_cy_scale;
+            gmePos.y /= self._webGME_to_cy_scale;
+            /*
+            var min = (gmePos.x < gmePos.y) ? gmePos.x : gmePos.y;
+            if (min < 0) {
+                gmePos.x += min;
+                gmePos.y += min;
+            }
+            */
+            return gmePos;
+        };
+
+        HFSMVizWidget.prototype.saveNodePositions = function() {
+            var self = this;
+            var keys = Object.keys(self._unsavedNodePositions);
+
+	    self._client.startTransaction();
+
+            keys.map(function(k) {
+                var id = k;
+                var pos = self._unsavedNodePositions[id];
+                console.log('setting pos for ' + id +' to '+pos.x + ','+pos.y);
+                self._client.setRegistry(id, 'position', pos);
+            });
+
+	    self._client.completeTransaction();
+
+            self._unsavedNodePositions = {};
         };
 
 	/* * * * * * * * Graph Creation Functions  * * * * * * * */
@@ -671,10 +724,16 @@ define([
 	    if (parentCyNode && parentPos) {
 		parentCyNode.position( parentPos );
 		//n.position( parentPos );
-                var pos = desc.position;
-                pos.x *= self._webGME_to_cy_scale;
-                pos.y *= self._webGME_to_cy_scale;
-                n.relativePosition( pos );
+                var pos = self.gmePosToCyPos( desc.position );
+                /*
+                var w = parentCyNode.width();
+                var h = parentCyNode.height();
+                pos.x -= w;
+                pos.y -= h;
+                */
+                console.log('making node at position: '+pos.x+','+pos.y);
+                //n.relativePosition( pos );
+                n.position( pos );
 	    }
 
 	    if (self.droppedChild && self.droppedChild.id && self.droppedChild.position) {
@@ -762,6 +821,7 @@ define([
 		    }
 		    else {
 			this._cy.$('#'+idTag).data( this.getDescData(desc) );
+                        // TODO: update position here!
 		    }
 		}
 		this.nodes[desc.id] = desc;
