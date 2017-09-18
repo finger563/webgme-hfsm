@@ -559,8 +559,8 @@ define([
         HFSMVizWidget.prototype.needToUpdatePosition = function(pos1, pos2) {
             var dx = Math.abs(pos1.x - pos2.x);
             var dy = Math.abs(pos1.y - pos2.y);
-            var dyThresh = 0.001;
-            var dxThresh = 0.001;
+            var dyThresh = 0.1;
+            var dxThresh = 0.1;
             return (dy > dyThresh || dx > dxThresh);
         };
 
