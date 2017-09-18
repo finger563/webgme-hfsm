@@ -85,7 +85,7 @@ define([
         }
     };
 
-    var rootTypes = ['State Machine'];
+    var rootTypes = ['State Machine', 'Library'];
     var excludeTypes = ['Documentation'];
 
     // This next function retrieves the relevant node information for the widget

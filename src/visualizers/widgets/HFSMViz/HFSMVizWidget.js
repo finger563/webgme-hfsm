@@ -39,7 +39,7 @@ define([
 	cytoscape.use( coseBilkent );
 	//cytoscape.use( cyPopper, Popper );
 
-	var rootTypes = ['State Machine',];
+	var rootTypes = ['State Machine','Library'];
 
 	var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
@@ -454,7 +454,7 @@ define([
             self._unsavedNodePositions = {};
             self._cy.on('position', 'node', function(e) {
                 var node = this;
-                if (node.data('type') != 'State Machine') {
+                if (rootTypes.indexOf(node.data('type')) == -1) {
                     var pos = self.cyPosToGmePos( node );
                     self._unsavedNodePositions[node.id()] = pos;
                     self._debouncedSaveNodePositions()
@@ -534,7 +534,7 @@ define([
             var cyPos = cyNode.position();
             var p = cyNode.parent();
             if (p.id()) {
-                console.log(p.position());
+                //console.log(p.position());
                 /*
                 var w = cyNode.parent().width();
                 var h = cyNode.parent().height();
@@ -555,6 +555,14 @@ define([
             return gmePos;
         };
 
+        HFSMVizWidget.prototype.needToUpdatePosition = function(pos1, pos2) {
+            var dx = pos1.x - pos2.x;
+            var dy = pos1.y - pos2.y;
+            var dyThresh = 0.01;
+            var dxThresh = 0.01;
+            return (dy > dyThresh || dx > dxThresh);
+        };
+
         HFSMVizWidget.prototype.saveNodePositions = function() {
             var self = this;
             var keys = Object.keys(self._unsavedNodePositions);
@@ -564,8 +572,10 @@ define([
             keys.map(function(k) {
                 var id = k;
                 var pos = self._unsavedNodePositions[id];
-                console.log('setting pos for ' + id +' to '+pos.x + ','+pos.y);
-                self._client.setRegistry(id, 'position', pos);
+                var savedPos = self.nodes[id].position;
+                //console.log('setting pos for ' + id +' to '+pos.x + ','+pos.y);
+                if (self.needToUpdatePosition(pos, savedPos))
+                    self._client.setRegistry(id, 'position', pos);
             });
 
 	    self._client.completeTransaction();
@@ -731,7 +741,7 @@ define([
                 pos.x -= w;
                 pos.y -= h;
                 */
-                console.log('making node at position: '+pos.x+','+pos.y);
+                //console.log('making node at position: '+pos.x+','+pos.y);
                 //n.relativePosition( pos );
                 n.position( pos );
 	    }
@@ -821,7 +831,9 @@ define([
 		    }
 		    else {
 			this._cy.$('#'+idTag).data( this.getDescData(desc) );
-                        // TODO: update position here!
+                        // update position from model
+                        var pos = self.gmePosToCyPos( desc.position );
+                        this._cy.$('#'+idTag).position( pos );
 		    }
 		}
 		this.nodes[desc.id] = desc;
