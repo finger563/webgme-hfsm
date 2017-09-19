@@ -58,6 +58,8 @@
 
 .eventButton {
     margin-left: 0;
+    float: left;
+    width: 85%;
 }
 
 .eventButtonText {
@@ -65,6 +67,13 @@
     white-space: nowrap;
     display: block;
     text-overflow: ellipsis;
+}
+
+.showEventButton {
+    padding: 6px;
+    width: 15%;
+    margin: 0;
+    float: right;
 }
 
 #stateInfo {

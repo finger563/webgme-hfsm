@@ -26,10 +26,19 @@ define(['js/util',
 	   var parentTempl = ['<div class="simulatorTitle">Child of:',
 			      '</div>'].join('\n');
 
-	   var eventTempl = ['<div id="{{eventName}}" class="row btn btn-default btn-primary btn-block eventButton">',
-			     '<span class="eventButtonText">{{eventName}}</span>',
-			     '</div>'].join('\n');
-	   
+	   var eventTempl = [
+               '<div>',
+               '<div id="{{eventName}}" class="row btn btn-default btn-primary btn-block eventButton">',
+	       '<span class="eventButtonText">{{eventName}}</span>',
+	       '</div>',
+               '<div id="show_{{eventName}}" class="row btn btn-default btn-info showEventButton">',
+               '<i class="fa fa-eye">',
+	       '<span class="eventButtonText" style="display:none">{{eventName}}</span>',
+               '</i>',
+	       '</div>',
+	       '</div>',
+           ].join('\n');
+
 	   var stateTemplate = [
 	       '<div id="{{id}}" class="uml-state-machine">',
 	       '<div class="uml-state-diagram">',
@@ -135,6 +144,11 @@ define(['js/util',
 	       // argument that is the gmeId of the current active
 	       // state
 	       self._stateChangedCallback = stateChangedCallback;
+	   };
+
+	   Simulator.prototype.onShowTransitions = function( showTransitionsCallback ) {
+	       var self = this;
+               self._showTransitionsCallback = showTransitionsCallback;
 	   };
 
 	   Simulator.prototype.setActiveState = function( gmeId ) {
@@ -761,16 +775,32 @@ define(['js/util',
 	       return eventNames;
 	   };
 
+           Simulator.prototype.getTransitionIDsWithEvent = function (eventName) {
+               var self = this;
+               var transitionIDs = [];
+               if (eventName) {
+                   transitionIDs = Object.keys(self.nodes).filter(function(id) {
+                       var t = self.nodes[id];
+                       return t.Event == eventName;
+                   });
+               }
+               return transitionIDs;
+           };
+
+           var machineEvents = ['RESTART-HFSM','Tick'];
+
 	   Simulator.prototype.createEventButtons = function () {
 	       var self = this;
 	       self._eventButtons.empty();
-	       var eventNames = ['RESTART-HFSM','Tick'].concat(self.getEventNames().sort());
+	       var eventNames = machineEvents.concat(self.getEventNames().sort());
 	       eventNames.map(function (eventName) {
 		   if (eventName && eventName.trim()) {
 		       var buttonHtml = mustache.render(eventTempl, { eventName: eventName });
 		       self._eventButtons.append( buttonHtml );
 		       var eventButton = $(self._eventButtons).find('#'+eventName).first();
 		       eventButton.on('click', self.onEventButtonClick.bind(self));
+                       var showEventButton = $(self._eventButtons).find('#show_'+eventName).first();
+                       showEventButton.on('click', self.onShowEventButtonClick.bind(self));
 		   }
 	       });
 	   };
@@ -798,6 +828,17 @@ define(['js/util',
 		   self.updateActiveState();
 		   self.handleEvent( eventName, self._activeState.id );
 	       }
+	   };
+
+	   Simulator.prototype.onShowEventButtonClick = function (e) {
+	       var self = this;
+               var transitionIDs = [];
+	       var eventName = self.getEventButtonText( e.target ).trim();
+               if (machineEvents.indexOf(eventName) == -1) {
+                   transitionIDs = self.getTransitionIDsWithEvent( eventName );
+               }
+	       if (self._showTransitionsCallback)
+		   self._showTransitionsCallback( transitionIDs );
 	   };
 
            return Simulator;

@@ -46,6 +46,8 @@ define([
         var HFSMVizWidget,
             WIDGET_CLASS = 'h-f-s-m-viz';
 
+        var minPanelWidth = 10; // percent
+
         HFSMVizWidget = function (logger, container, client) {
             this._logger = logger.fork('Widget');
 
@@ -121,6 +123,7 @@ define([
             this._simulator = new Simulator();
             this._simulator.initialize( this._left, this.nodes, this._client );
             this._simulator.onStateChanged( this.showActiveState.bind(this) );
+            this._simulator.onShowTransitions( this.showTransitions.bind(this) );
 
             // DRAGGING INFO
             this.isDragging = false;
@@ -141,8 +144,8 @@ define([
                     var minX = 0;
                     var maxX = selector.width() + minX;
                     var leftWidth = mousePosX - minX;
-                    var leftPercent = Math.max(10, (leftWidth / maxWidth) * 100);
-                    var rightPercent = Math.max(10, 100 - leftPercent - handlePercent);
+                    var leftPercent = Math.max(minPanelWidth, (leftWidth / maxWidth) * 100);
+                    var rightPercent = Math.max(minPanelWidth, 100 - leftPercent - handlePercent);
                     leftPercent = 100 - rightPercent - handlePercent;
                     self._left.css('width', leftPercent + '%');
                     self._right.css('width', rightPercent + '%');
@@ -386,14 +389,11 @@ define([
             var layoutDuration = 500;
 
             function highlight( node ){
-                node.select();
-                self._simulator.hideStateInfo();
-                self._simulator.displayStateInfo( node.id() );
+                self.highlight(node);
             }
 
             function clear(){
-                self._cy.$(':selected').unselect();
-                self._simulator.hideStateInfo();
+                self.clear();
             }
 
             //self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
@@ -538,6 +538,39 @@ define([
                 download( self.HFSMName + '-HFSM.png', png );
             });
         };
+
+        /* * * * * * * * Display Functions  * * * * * * * */
+
+        HFSMVizWidget.prototype.highlight = function(node) {
+            var self = this;
+            node.select();
+            self._simulator.hideStateInfo();
+            self._simulator.displayStateInfo( node.id() );
+        };
+
+        HFSMVizWidget.prototype.clear = function() {
+            var self = this;
+            self._cy.$(':selected').unselect();
+            self._simulator.hideStateInfo();
+        };
+
+        /* * * * * * * * Transition Selection  * * * * * * * */
+
+        HFSMVizWidget.prototype.showTransitions = function( transitionIDs ) {
+            var self = this;
+            self.clear();
+            self._selectedNodes = [];
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+            transitionIDs.map(function(id) {
+                self._selectedNodes.push(id);
+                // highlight the Transition
+                var idTag = id.replace(/\//gm, "\\/");
+                var node = self._cy.$('#'+idTag);
+                self.highlight( node );
+            });
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+        };
+
 
         /* * * * * * * * Node Position Functions  * * * * * * * */
 
