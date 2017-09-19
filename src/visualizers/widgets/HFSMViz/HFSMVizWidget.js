@@ -9,6 +9,7 @@ define([
     'text!./HFSM.html',
     './Dialog/Dialog',
     './Simulator/Simulator',
+    './Simulator/Choice',
     'js/DragDrop/DropTarget',
     'js/DragDrop/DragConstants',
     'bower/cytoscape/dist/cytoscape.min',
@@ -24,6 +25,7 @@ define([
         HFSMHtml,
         Dialog,
         Simulator,
+        Choice,
         dropTarget,
         DROP_CONSTANTS,
         cytoscape,
@@ -385,9 +387,6 @@ define([
 
             // layout such
 
-            var layoutPadding = 50;
-            var layoutDuration = 500;
-
             function highlight( node ){
                 self.highlight(node);
             }
@@ -395,9 +394,6 @@ define([
             function clear(){
                 self.clear();
             }
-
-            //self._cy.on('add', _.debounce(self.reLayout.bind(self), 250));
-            self.debouncedReLayout = _.debounce(_.once(self.reLayout.bind(self)), 250);
 
             // USED FOR DRAG ABILITY
             self._hoveredNodeId = null;
@@ -490,14 +486,54 @@ define([
                 }
                 clear();
             });
+        };
+
+        /* * * * * * * * Display Functions  * * * * * * * */
+
+        HFSMVizWidget.prototype._addSplitPanelToolbarBtns = function(toolbarEl) {
+            var self = this;
+
+            var layoutPadding = 50;
+            var layoutDuration = 500;
 
             // BUTTON EVENT HANDLERS
 
-            self._el.find('#re_layout').on('click', function(){
-                self.reLayout();
+            var printEl = [
+                '<span id="print" class="split-panel-toolbar-btn fa fa-print">',
+                '</span>',
+            ].join('\n');
+
+            var zoomEl = [
+                '<span id="zoom" class="split-panel-toolbar-btn fa fa-home">',
+                '</span>',
+            ].join('\n');
+
+            var layoutEl = [
+                '<span id="re_layout" class="split-panel-toolbar-btn fa fa-random">',
+                '</span>',
+            ].join('\n');
+
+            toolbarEl.append(printEl);
+            toolbarEl.append(zoomEl);
+            toolbarEl.append(layoutEl);
+
+            toolbarEl.find('#re_layout').on('click', function(){
+                // ask if they really want to randomize the layout
+                var choice = new Choice();
+                var choices = [
+                    'Yes, run cose-bilkent layout.',
+                    'No, do not change any positions'
+                ];
+                choice.initialize( choices, "Really change the layout?" );
+                choice.show();
+                return choice.waitForChoice()
+                    .then(function(choice) {
+                        if (choice == choices[0])
+                            self.reLayout();
+                    });
             });
             
-            self._el.find('#reset').on('click', function(){
+            toolbarEl.find('#zoom').on('click', function(){
                 self._cy.animate({
                     fit: {
                         eles: self._cy.elements(),
@@ -529,7 +565,7 @@ define([
                 });
             }
 
-            self._el.find('#print').on('click', function(){
+            toolbarEl.find('#print').on('click', function(){
                 var png = self._cy.png({
                     full: true,
                     scale: 6,
@@ -538,8 +574,6 @@ define([
                 download( self.HFSMName + '-HFSM.png', png );
             });
         };
-
-        /* * * * * * * * Display Functions  * * * * * * * */
 
         HFSMVizWidget.prototype.highlight = function(node) {
             var self = this;
@@ -800,7 +834,6 @@ define([
 
             self.nodes[desc.id] = desc;
             self.updateDependencies();
-            //self.debouncedReLayout();
         };
         
         // Adding/Removing/Updating items

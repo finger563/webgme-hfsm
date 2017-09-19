@@ -85,9 +85,8 @@ define([
 		detailedTypes[k] = true;
 	    });
 	    */
-	    // add internal transition - is there a way to not have to
-	    // hard-code this?
-	    detailedTypes[ '/615025579/x' ] = true;
+	    // is there a way to not have to hard-code this?
+	    detailedTypes[ '/615025579/x' ] = true; // internal transition
 	    detailedTypes['/615025579/1242097160'] = true; // initial state
 	    detailedTypes['/615025579/A'] = true; // end state
 	    detailedTypes['/615025579/R'] = true; // choice pseudostate
@@ -101,6 +100,18 @@ define([
 	}
     };
     
+    /* * * * * * * * Toolbar related Functions       * * * * * * * */
+
+    HFSMVizPanel.prototype.getSplitPanelToolbarEl = function() {
+        this._splitPanelToolbarEl = IActivePanel.prototype.getSplitPanelToolbarEl.call(this);
+        // Set the size bigger than 40 x 40 and add some padding for the scroll-bar.
+        this._splitPanelToolbarEl.css({
+            'padding-right': '10px'
+        });
+        this.widget._addSplitPanelToolbarBtns(this._splitPanelToolbarEl);
+        return this._splitPanelToolbarEl;
+    };
+
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     HFSMVizPanel.prototype.destroy = function () {
         this.control.destroy();

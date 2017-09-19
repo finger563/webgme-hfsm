@@ -41,29 +41,3 @@
 #hfsmVizLeft {
     width:29%;
 }
-
-#print,
-#re_layout,
-#reset {
-  width: 3em;
-  margin: 0.5em;
-  position: absolute;
-  top: 0;
-  z-index: 999;
-}
-
-#reset {
-  right: 0;
-}
-
-#re_layout {
-  right: 4em;
-}
-
-#print {
-  right: 8em;
-}
-
-#reset i {
-  transform: rotate(45deg);
-}
