@@ -788,11 +788,26 @@ define(['js/util',
            };
 
            var machineEvents = ['RESTART-HFSM','Tick'];
+           var machineEventTempl = [
+               '<div>',
+               '<div id="{{eventName}}" class="row btn btn-default btn-primary btn-block eventButton">',
+	       '<span class="eventButtonText">{{eventName}}</span>',
+	       '</div>',
+	       '</div>',
+           ].join('\n');
 
 	   Simulator.prototype.createEventButtons = function () {
 	       var self = this;
 	       self._eventButtons.empty();
-	       var eventNames = machineEvents.concat(self.getEventNames().sort());
+
+               machineEvents.map(function(eventName) {
+                   var buttonHtml = mustache.render(machineEventTempl, { eventName: eventName });
+                   self._eventButtons.append( buttonHtml );
+		   var eventButton = $(self._eventButtons).find('#'+eventName).first();
+		   eventButton.on('click', self.onEventButtonClick.bind(self));
+               });
+
+	       var eventNames = self.getEventNames().sort();
 	       eventNames.map(function (eventName) {
 		   if (eventName && eventName.trim()) {
 		       var buttonHtml = mustache.render(eventTempl, { eventName: eventName });
