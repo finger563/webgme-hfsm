@@ -14,6 +14,7 @@ edge {
     target-arrow-fill: filled; /* hollow */
     opacity: 1.0;
     width: 1;
+    arrow-scale: 1;
     z-index: 0;
     overlay-opacity: 0;
 
@@ -158,6 +159,7 @@ edge:selected {
     width: 4;
     line-color: rgb(187, 219, 247);/*#000;*/
     target-arrow-color: rgb(187, 219, 247);/*#000;*/
+    arrow-scale: 2;
 }
 
 .filtered {
