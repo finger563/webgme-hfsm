@@ -19,6 +19,7 @@ edge {
     overlay-opacity: 0;
 
     font-size: 8;
+    font-weight: normal;
     text-opacity: 1;
     text-outline-width: 1;
     text-outline-color: #fff;
@@ -157,6 +158,7 @@ edge:selected {
     /* width: 40; */
     /* height: 40; */
     width: 4;
+    font-weight: bold;
     line-color: rgb(187, 219, 247);/*#000;*/
     target-arrow-color: rgb(187, 219, 247);/*#000;*/
     arrow-scale: 2;
