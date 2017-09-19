@@ -16,6 +16,7 @@ define([
     'cytoscape-context-menus',
     'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
     'bower/mustache.js/mustache.min',
+    'bower/blob-util/dist/blob-util.min',
     'text!./style2.css',
     'q',
     'css!bower/cytoscape-context-menus/cytoscape-context-menus.css',
@@ -30,6 +31,7 @@ define([
         cyContext,
         coseBilkent,
         mustache,
+        blobUtil,
         styleText,
         Q) {
         'use strict';
@@ -507,16 +509,24 @@ define([
 
             function download(filename, text) {
                 var element = document.createElement('a');
-                element.setAttribute('href', text);
-                //element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-                element.setAttribute('download', filename);
+                var imgData = text.split(',')[1]; // after the comma is the actual image data
 
-                element.style.display = 'none';
-                document.body.appendChild(element);
+                blobUtil.base64StringToBlob( imgData.toString() ).then(function(blob) {
+                    var blobURL = blobUtil.createObjectURL(blob);
 
-                element.click();
+                    element.setAttribute('href', blobURL);
+                    element.setAttribute('download', filename);
+                    element.style.display = 'none';
 
-                document.body.removeChild(element);
+                    document.body.appendChild(element);
+
+                    element.click();
+
+                    document.body.removeChild(element);
+                }).catch(function(err) {
+                    console.log('Couldnt make blob from image!');
+                    console.log(err);
+                });
             }
 
             self._el.find('#print').on('click', function(){
