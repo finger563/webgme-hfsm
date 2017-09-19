@@ -294,6 +294,17 @@ define([
                     // fired when edgehandles is done and entities are added
                     if (sourceNode && targetNodes && addedEntities)
                         self.draggedEdge( sourceNode, targetNodes[0], addedEntities[0] );
+                    /*
+                    // TODO: ASK WHAT KIND OF TRANSITION TO MAKE
+                    var choice = new Choice();
+                    choice.initialize( ['Local Transition', 'External Transition'], 'What type of transition?');
+                    choice.show();
+                    return choice.waitForChoice()
+                        .then(function(choice) {
+                            if (sourceNode && targetNodes && addedEntities)
+                                self.draggedEdge( sourceNode, targetNodes[0], addedEntities[0] );
+                        });
+                    */
                 },
                 stop: function( sourceNode ) {
                     // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
