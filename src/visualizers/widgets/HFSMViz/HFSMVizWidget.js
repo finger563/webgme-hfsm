@@ -15,12 +15,14 @@ define([
     'bower/cytoscape/dist/cytoscape.min',
     'cytoscape-edgehandles',
     'cytoscape-context-menus',
+    'cytoscape-panzoom',
     'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
     'bower/mustache.js/mustache.min',
     'bower/blob-util/dist/blob-util.min',
     'text!./style2.css',
     'q',
     'css!bower/cytoscape-context-menus/cytoscape-context-menus.css',
+    'css!bower/cytoscape-panzoom/cytoscape.js-panzoom.css',
     'css!./styles/HFSMVizWidget.css'], function (
         HFSMHtml,
         Dialog,
@@ -31,6 +33,7 @@ define([
         cytoscape,
         edgehandles,
         cyContext,
+        cyPanZoom,
         coseBilkent,
         mustache,
         blobUtil,
@@ -40,6 +43,7 @@ define([
 
         cytoscape.use( edgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
         cytoscape.use( cyContext, $ );
+        cytoscape.use( cyPanZoom, $ );
         cytoscape.use( coseBilkent );
         //cytoscape.use( cyPopper, Popper );
 
@@ -321,6 +325,21 @@ define([
             var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"]';
 
             // CONTEXT MENUS
+            /*
+            self._cy.on('cxttap', 'node, edge', function(e) {
+                clear();
+                var node = this;
+                var id = node.id();
+                if (id) {
+                    if (self._selectedNodes.indexOf(id) == -1) {
+                        self._selectedNodes.push(id);
+                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+                    }
+                }
+                highlight( node );
+            });
+            */
+            
             var options = {
                 // List of initial menu items
                 menuItems: [
@@ -396,6 +415,37 @@ define([
             };
             var ctxMenuInstance = this._cy.contextMenus( options );
 
+            // PAN ZOOM WIDGET:
+
+            // the default values of each option are outlined below:
+            var panZoom_defaults = {
+                zoomFactor: 0.05, // zoom factor per zoom tick
+                zoomDelay: 45, // how many ms between zoom ticks
+                minZoom: 0.1, // min zoom level
+                maxZoom: 10, // max zoom level
+                fitPadding: 50, // padding when fitting
+                panSpeed: 10, // how many ms in between pan ticks
+                panDistance: 10, // max pan distance per tick
+                panDragAreaSize: 75, // the length of the pan drag box in which the vector for panning is calculated (bigger = finer control of pan speed and direction)
+                panMinPercentSpeed: 0.25, // the slowest speed we can pan by (as a percent of panSpeed)
+                panInactiveArea: 8, // radius of inactive area in pan drag box
+                panIndicatorMinOpacity: 0.5, // min opacity of pan indicator (the draggable nib); scales from this to 1.0
+                zoomOnly: false, // a minimal version of the ui only with zooming (useful on systems with bad mousewheel resolution)
+                fitSelector: undefined, // selector of elements to fit
+                animateOnFit: function(){ // whether to animate on fit
+                    return false;
+                },
+                fitAnimationDuration: 1000, // duration of animation on fit
+
+                // icon class names
+                sliderHandleIcon: 'fa fa-minus',
+                zoomInIcon: 'fa fa-plus',
+                zoomOutIcon: 'fa fa-minus',
+                resetIcon: 'fa fa-expand'
+            };
+
+            self._cy.panzoom( panZoom_defaults );            
+
             // layout such
 
             function highlight( node ){
@@ -442,18 +492,18 @@ define([
                 }
                 highlight( node );
             });
-            
-            self._cy.on('cxttap', 'node, edge', function(e) {
-                clear();
+
+            self._cy.on('unselect', 'node, edge', function(e){
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    if (self._selectedNodes.indexOf(id) == -1) {
-                        self._selectedNodes.push(id);
-                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-                    }
+                    self._selectedNodes = self._selectedNodes.filter(function(n) {
+                        return id != n;
+                    });
+                    //self._selectedNodes = [];
+                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
                 }
-                highlight( node );
+                clear();
             });
 
             // USED FOR KNOWING WHEN NODES ARE MOVED
@@ -480,26 +530,45 @@ define([
                     self._debouncedSaveNodePositions()
                 }
             });
-
-            // UNSELECT ON NODES AND EDGES
-
-            self._cy.on('unselect', 'node, edge', function(e){
-                var node = this;
-                var id = node.id();
-                if (id) {
-                    /*
-                    self._selectedNodes = self._selectedNodes.filter(function(n) {
-                        return id != n;
-                    });
-                    */
-                    self._selectedNodes = [];
-                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-                }
-                clear();
-            });
         };
 
         /* * * * * * * * Display Functions  * * * * * * * */
+
+        function download(filename, text) {
+            var element = document.createElement('a');
+            var imgData = text.split(',')[1]; // after the comma is the actual image data
+
+            blobUtil.base64StringToBlob( imgData.toString() ).then(function(blob) {
+                var blobURL = blobUtil.createObjectURL(blob);
+
+                element.setAttribute('href', blobURL);
+                element.setAttribute('download', filename);
+                element.style.display = 'none';
+
+                document.body.appendChild(element);
+
+                element.click();
+
+                document.body.removeChild(element);
+            }).catch(function(err) {
+                console.log('Couldnt make blob from image!');
+                console.log(err);
+            });
+        }
+
+        HFSMVizWidget.prototype.onPanningClicked = function() {
+            var self = this;
+            self._cy.userPanningEnabled(true);
+            self._cy.boxSelectionEnabled(false);
+            self._cy.autoungrabify(false);
+        };
+
+        HFSMVizWidget.prototype.onBoxSelectClicked = function() {
+            var self = this;
+            self._cy.userPanningEnabled(false);
+            self._cy.boxSelectionEnabled(true);
+            self._cy.autoungrabify(true);
+        };
 
         HFSMVizWidget.prototype._addSplitPanelToolbarBtns = function(toolbarEl) {
             var self = this;
@@ -514,21 +583,60 @@ define([
                 '</span>',
             ].join('\n');
 
+            var moveEl = [
+                '<span id="pan" class="split-panel-toolbar-btn fa fa-arrows">',
+                '</span>',
+            ].join('\n');
+
+            var selectEl = [
+                '<span id="select" class="split-panel-toolbar-btn fa fa-crop">',
+                '</span>',
+            ].join('\n');
+
             var zoomEl = [
                 '<span id="zoom" class="split-panel-toolbar-btn fa fa-home">',
                 '</span>',
             ].join('\n');
 
             var layoutEl = [
-                '<span id="re_layout" class="split-panel-toolbar-btn fa fa-random">',
+                '<span id="layout" class="split-panel-toolbar-btn fa fa-random">',
                 '</span>',
             ].join('\n');
 
             toolbarEl.append(printEl);
+            //toolbarEl.append(moveEl);
+            //toolbarEl.append(selectEl);
             toolbarEl.append(zoomEl);
             toolbarEl.append(layoutEl);
 
-            toolbarEl.find('#re_layout').on('click', function(){
+            toolbarEl.find('#print').on('click', function(){
+                var png = self._cy.png({
+                    full: true,
+                    scale: 6,
+                    bg: 'white'
+                });
+                download( self.HFSMName + '-HFSM.png', png );
+            });
+
+            toolbarEl.find('#pan').on('click', function() {
+                self.onPanningClicked();
+            });
+            
+            toolbarEl.find('#select').on('click', function() {
+                self.onBoxSelectClicked();
+            });
+            
+            toolbarEl.find('#zoom').on('click', function(){
+                self._cy.animate({
+                    fit: {
+                        eles: self._cy.elements(),
+                        padding: layoutPadding
+                    },
+                    duration: layoutDuration
+                });
+            });
+
+            toolbarEl.find('#layout').on('click', function(){
                 // ask if they really want to randomize the layout
                 var choice = new Choice();
                 var choices = [
@@ -542,47 +650,6 @@ define([
                         if (choice == choices[0])
                             self.reLayout();
                     });
-            });
-            
-            toolbarEl.find('#zoom').on('click', function(){
-                self._cy.animate({
-                    fit: {
-                        eles: self._cy.elements(),
-                        padding: layoutPadding
-                    },
-                    duration: layoutDuration
-                });
-            });
-
-            function download(filename, text) {
-                var element = document.createElement('a');
-                var imgData = text.split(',')[1]; // after the comma is the actual image data
-
-                blobUtil.base64StringToBlob( imgData.toString() ).then(function(blob) {
-                    var blobURL = blobUtil.createObjectURL(blob);
-
-                    element.setAttribute('href', blobURL);
-                    element.setAttribute('download', filename);
-                    element.style.display = 'none';
-
-                    document.body.appendChild(element);
-
-                    element.click();
-
-                    document.body.removeChild(element);
-                }).catch(function(err) {
-                    console.log('Couldnt make blob from image!');
-                    console.log(err);
-                });
-            }
-
-            toolbarEl.find('#print').on('click', function(){
-                var png = self._cy.png({
-                    full: true,
-                    scale: 6,
-                    bg: 'white'
-                });
-                download( self.HFSMName + '-HFSM.png', png );
             });
         };
 
