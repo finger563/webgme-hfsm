@@ -77,14 +77,22 @@ node[NodeType = "Internal Transition"] {
     content: data(label);
     width: 2;
     height: 2;
-    shape: vee;
+    shape: polygon;
+    shape-polygon-points: -1, 0.5,  0.5, 0.5,  1, 0,  0.5, -0.5,  -1, -0.5,  -0.5, 0;
 
     font-size: 8;
     text-outline-width: 1;
     text-outline-color: #fff;
     text-outline-opacity: 1;
-    text-wrap: wrap;
-    text-max-width: 90px;
+    text-wrap: none;
+
+    text-valign: center;
+    text-halign: right;
+
+    padding-right: 8px;
+    text-margin-x: 2px;
+
+    text-events: yes;
 }
 
 node[NodeType = "End State"] {
