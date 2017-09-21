@@ -322,7 +322,7 @@ define([
             // EDGE HANDLES
             this._cy.edgehandles( defaults );
 
-            var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"]';
+            var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]';
 
             // CONTEXT MENUS
             /*
@@ -1136,7 +1136,6 @@ define([
                      !child.isConnection() )
                     validChildTypes[ childType ] = metaId;
             });
-
             return validChildTypes;
         };
 
