@@ -30,7 +30,7 @@ config.plugin.allowServerExecution = true;
 
 // svg paths
 var path = require('path');
-config.visualization.svgDirs = [path.join(__dirname, '..', "./src/svgs")];
+config.visualization.svgDirs.push(path.join(__dirname, '..', "/src/svgs"));
 
 validateConfig(config);
 module.exports = config;
