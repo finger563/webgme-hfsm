@@ -4,6 +4,8 @@
 	"enableThemeSelection": true,
 	"keyBinding": "emacs",
 	"enableKeybindingSelection": true,
+	"lineWrapping": false,
+	"enableLineWrappingToggle": true,
         "autoSaveInterval": "2000",
 	"rootTypes": [
 	    "Project"
