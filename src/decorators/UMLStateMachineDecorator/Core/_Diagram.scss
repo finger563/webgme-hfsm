@@ -2,7 +2,7 @@
 
 $diagram-min-width: 120px;
 $diagram-max-width: 120px;
-$diagram-height: 50px;
+$diagram-height: auto;
 $diagram-border: 1px solid #000000;
 $diagram-name-padding: 5px;
 $diagram-background-color: #FCFCFC;
@@ -12,7 +12,8 @@ $diagram-border-radius: 13px;
 @mixin Diagram {
   .diagram {
     min-width: $diagram-min-width;
-    max-width: $diagram-max-width;
+    /*    max-width: $diagram-max-width;*/
+    width: auto;
     height: $diagram-height;
     background-color: $diagram-background-color;
     border: $diagram-border;

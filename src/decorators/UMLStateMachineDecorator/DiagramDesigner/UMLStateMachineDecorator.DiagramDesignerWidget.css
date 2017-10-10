@@ -211,8 +211,8 @@
   .uml-state-machine .state {
     min-width: 120px;
     min-height: 100px;
-    max-width: 300px;
-    overflow: visible;
+    height: auto;
+    overflow: hidden;
     background-color: #FCFCFC;
     border: 1px solid #000000;
     border-radius: 13px; }
@@ -229,23 +229,22 @@
       padding-left: 5px;
       padding-right: 5px; }
     .uml-state-machine .state .internal-transitions {
-      white-space: nowrap;
+      white-space: pre;
       font-size: 12px;
       font-weight: bold;
       text-align: left;
-      overflow: hidden;
-      text-overflow: ellipsis;
       line-height: 16px;
       padding-left: 5px;
       padding-right: 5px; }
     .uml-state-machine .state li {
+      width: auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
       list-style-type: none;
-      white-space: nowrap;
+      white-space: pre;
       font-size: 12px;
       font-weight: bold;
       text-align: left;
-      overflow: hidden;
-      text-overflow: ellipsis;
       line-height: 14px; }
     .uml-state-machine .state .connector {
       background-color: #FEFEFE;
@@ -298,8 +297,9 @@
       bottom: -6px; }
   .uml-state-machine .diagram {
     min-width: 120px;
-    max-width: 120px;
-    height: 50px;
+    /*    max-width: $diagram-max-width;*/
+    width: auto;
+    height: auto;
     background-color: #FCFCFC;
     border: 1px solid #000000;
     border-radius: 13px;

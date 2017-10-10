@@ -33,6 +33,11 @@
 
 .simulatorTitle,
 .stateInfoTitle{
+    width: inherit;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+
     position: relative;
     top: 0;
     left: 0;
@@ -44,8 +49,6 @@
     line-height: 21px;
     font-weight: 400;
     display: inline-block;
-    margin-right: 10px;
-    margin-left: 5px;
     white-space: nowrap;
     margin-top: 8px;
 }

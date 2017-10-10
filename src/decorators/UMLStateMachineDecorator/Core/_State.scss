@@ -2,7 +2,6 @@
 @import "Connector";
 
 $state-min-width: 120px;
-$state-max-width: 300px;
 $state-min-height: 100px;
 $state-border: 1px solid #000000;
 $state-name-padding: 5px;
@@ -14,8 +13,8 @@ $state-border-radius: 13px;
   .state {
     min-width: $state-min-width;
     min-height: $state-min-height;
-    max-width: $state-max-width;
-    overflow: visible;
+    height: auto;
+    overflow: hidden;
     background-color: $state-background-color;
     border: $state-border;
     border-radius: $state-border-radius;
@@ -35,25 +34,24 @@ $state-border-radius: 13px;
     }
 
     .internal-transitions {
-      white-space: nowrap;
+      white-space: pre;
       font-size: 12px;
       font-weight: bold;
       text-align: left;
-      overflow: hidden;
-      text-overflow: ellipsis;
       line-height: 16px;
       padding-left: $state-name-padding;
       padding-right: $state-name-padding;
     }
 
     li {
+      width: auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
       list-style-type: none;
-      white-space: nowrap;
+      white-space: pre;
       font-size: 12px;
       font-weight: bold;
       text-align: left;
-      overflow: hidden;
-      text-overflow: ellipsis;
       line-height: 14px;
     }
 

@@ -234,9 +234,13 @@ define([
 	    code = '<code class="cpp">'+code+'</code>';
 	    code = htmlToElement(code);
 	    hljs.highlightBlock(code);
+            /*
 	    $(code).css('text-overflow', 'ellipsis');
 	    $(code).css('white-space', 'nowrap');
 	    $(code).css('overflow', 'hidden');
+            */
+	    $(code).css('white-space', 'pre');
+	    $(code).css('overflow', 'auto');
 	    if (originalCode) {
 	    }
 	    else if (markIncomplete) {
