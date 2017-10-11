@@ -124,7 +124,7 @@
 	    }
 	},
         "nameTemplateMap": {
-            "Internal Transition": "{{{Event}}}",
+            "Internal Transition": "IT: {{{Event}}}",
             "External Transition": "ET: {{{Event}}}"
         }
     }
