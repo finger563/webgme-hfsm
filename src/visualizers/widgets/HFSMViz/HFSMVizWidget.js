@@ -533,6 +533,9 @@ define([
                     self._debouncedSaveNodePositions()
                 }
             });
+
+            // USED FOR ZOOMING AFTER INITIALLY LOADING ALL THE NODES (in CreateNode())
+            self._debounced_one_time_zoom = _.debounce(_.once(self.onZoomClicked.bind(self)), 250);
         };
 
         /* * * * * * * * Display Functions  * * * * * * * */
@@ -573,11 +576,23 @@ define([
             self._cy.autoungrabify(true);
         };
 
+        HFSMVizWidget.prototype.onZoomClicked = function() {
+            var self = this;
+            var layoutPadding = 50;
+            self._cy.fit( self._cy.elements(), layoutPadding);
+            /*
+            self._cy.animate({
+                fit: {
+                    eles: self._cy.elements(),
+                    padding: layoutPadding
+                },
+                duration: layoutDuration
+            });
+            */
+        };
+
         HFSMVizWidget.prototype._addSplitPanelToolbarBtns = function(toolbarEl) {
             var self = this;
-
-            var layoutPadding = 50;
-            var layoutDuration = 500;
 
             // BUTTON EVENT HANDLERS
 
@@ -630,13 +645,7 @@ define([
             });
             
             toolbarEl.find('#zoom').on('click', function(){
-                self._cy.animate({
-                    fit: {
-                        eles: self._cy.elements(),
-                        padding: layoutPadding
-                    },
-                    duration: layoutDuration
-                });
+                self.onZoomClicked();
             });
 
             toolbarEl.find('#layout').on('click', function(){
@@ -921,6 +930,7 @@ define([
 
             self.nodes[desc.id] = desc;
             self.updateDependencies();
+            self._debounced_one_time_zoom();
         };
         
         // Adding/Removing/Updating items
