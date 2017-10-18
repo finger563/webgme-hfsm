@@ -524,9 +524,12 @@ define([
             self._unsavedNodePositions = {};
             self._cy.on('position', 'node', function(e) {
                 var node = this;
-                if (rootTypes.indexOf(node.data('type')) == -1) {
+                var type = node.data('type');
+                var id = node.id();
+                if (type && rootTypes.indexOf(type) == -1 && self.nodes[id]) {
                     var pos = self.cyPosToGmePos( node );
-                    self._unsavedNodePositions[node.id()] = pos;
+                    //console.log(self.nodes[node.id()].position);
+                    self.nodes[id].position = pos;
                     self._debouncedSaveNodePositions()
                 }
             });
@@ -686,52 +689,61 @@ define([
 
         /* * * * * * * * Node Position Functions  * * * * * * * */
 
+        HFSMVizWidget.prototype.cyPosition = function(cyNode, pos) {
+            if (pos == undefined)
+                return cyNode.position();
+            else
+                cyNode.position(pos);
+        };
+
         HFSMVizWidget.prototype.getCyTopLeft = function(cyNode) {
             
         };
 
-        HFSMVizWidget.prototype.gmePosToCyPos = function(gmePos) {
+        HFSMVizWidget.prototype.gmePosToCyPos = function(desc) {
             var self = this;
-            var cyPos = gmePos;
-            /*
-            cyPos.x *= self._webGME_to_cy_scale;
-            cyPos.y *= self._webGME_to_cy_scale;
-            */
+            var cyPos = desc.position;
+            var parentIDTag = desc.parentId.replace(/\//gm, "\\/");
+            var cyParent = self._cy.$('#'+parentIDTag);
+            if (cyParent) {
+                //cyPos.x -= cyParent.width();
+                //cyPos.y -= cyParent.height();
+            }
             return cyPos;
         };
 
         HFSMVizWidget.prototype.cyPosToGmePos = function(cyNode) {
             var self = this;
-            var cyPos = cyNode.position();
-            var gmePos = cyPos;
-            /*
-            gmePos.x /= self._webGME_to_cy_scale;
-            gmePos.y /= self._webGME_to_cy_scale;
-            */
+            var gmePos = self.cyPosition( cyNode );
+            var cyParent = cyNode.parent();
+            if (cyParent) {
+                //gmePos.x += cyParent.width();
+                //gmePos.y += cyParent.height();
+            }
             return gmePos;
         };
 
         HFSMVizWidget.prototype.needToUpdatePosition = function(pos1, pos2) {
             var dx = Math.abs(pos1.x - pos2.x);
             var dy = Math.abs(pos1.y - pos2.y);
-            var dyThresh = 0.1;
-            var dxThresh = 0.1;
+            var dyThresh = 0.01;
+            var dxThresh = 0.01;
             return (dy > dyThresh || dx > dxThresh);
         };
 
         HFSMVizWidget.prototype.saveNodePositions = function() {
             var self = this;
-            var keys = Object.keys(self._unsavedNodePositions);
+            var keys = Object.keys(self.nodes);
 
             self._client.startTransaction();
 
             keys.map(function(k) {
                 var id = k;
-                var pos = self._unsavedNodePositions[id];
-                if (self.nodes[id]) {
-                    var savedPos = self.nodes[id].position;
-                    if (self.needToUpdatePosition(pos, savedPos))
-                        self._client.setRegistry(id, 'position', pos);
+                if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1) {
+                    var pos = self.nodes[id].position;
+                    //console.log('saving for '+id);
+                    //console.log(pos);
+                    self._client.setRegistry(id, 'position', pos);
                 }
             });
 
@@ -817,7 +829,6 @@ define([
             var self = this;
             var layout = self._cy.layout(self._layout_options);
             layout.run();
-            //self._cy.nodes().qtip({ content: 'hi', position: { my: 'top center', at: 'bottom center' } })
         };
 
         HFSMVizWidget.prototype.getDescData = function(desc) {
@@ -887,27 +898,17 @@ define([
             if (parentCyNode) {
                 parentPos = parentCyNode.position();
             }
-            var n = self._cy.add(node);
+            
+            var pos = null;
+
             if (parentCyNode && parentPos) {
-                //parentCyNode.position( parentPos );
-                //n.position( parentPos );
-                var pos = self.gmePosToCyPos( desc.position );
-                /*
-                var w = parentCyNode.width();
-                var h = parentCyNode.height();
-                pos.x -= w;
-                pos.y -= h;
-                */
-                //console.log('making node at position: '+pos.x+','+pos.y);
-                //n.relativePosition( pos );
-                n.position( pos );
+                pos = self.gmePosToCyPos(desc);
             }
 
-            if (self.droppedChild && self.droppedChild.id && self.droppedChild.position) {
-                if (self.droppedChild.id == desc.id || self.droppedChild.id == desc.parentId) {
-                    n.position( self.droppedChild.position );
-                    self._clearDroppedChild();
-                }
+            var n = self._cy.add(node);
+
+            if (pos) {
+                self.cyPosition(n, pos);
             }
 
             self.nodes[desc.id] = desc;
@@ -979,6 +980,7 @@ define([
                 var oldDesc = this.nodes[desc.id];
                 if (oldDesc) {
                     var idTag = desc.id.replace(/\//gm, "\\/");
+                    var cyNode = this._cy.$('#'+idTag);
                     if (desc.isConnection) {
                         if (desc.src != oldDesc.src || desc.dst != oldDesc.dst) {
                             this._cy.remove('#' + idTag);
@@ -986,14 +988,20 @@ define([
                             self.updateDependencies();
                         }
                         else {
-                            this._cy.$('#'+idTag).data( this.getDescData(desc) );
+                            cyNode.data( this.getDescData(desc) );
                         }
                     }
                     else {
-                        this._cy.$('#'+idTag).data( this.getDescData(desc) );
+                        cyNode.data( this.getDescData(desc) );
                         // update position from model
-                        var pos = self.gmePosToCyPos( desc.position );
-                        this._cy.$('#'+idTag).position( pos );
+                        if (rootTypes.indexOf(desc.type) == -1) {
+                            if (self.needToUpdatePosition( desc.position, oldDesc.position ) ) {
+                                var pos = self.gmePosToCyPos( desc );
+                                console.log('updating '+desc.id);
+                                console.log(pos);
+                                self.cyPosition(cyNode, pos);
+                            }
+                        }
                     }
                 }
                 this.nodes[desc.id] = desc;
@@ -1216,8 +1224,11 @@ define([
                     baseId: nodeId,
                 };
                 self.forceShowChildren( cyNode.id() );
+                client.startTransaction();
                 var newId = client.createChild(childCreationParams, 'Creating new child');
                 self._updateDroppedChild( newId, event );
+                client.setRegistry(newId, 'position', self.droppedChild.position);
+                client.completeTransaction();
             }
             else {
                 self.forceShowChildren( cyNode.id() );
@@ -1226,8 +1237,10 @@ define([
                 self._updateDroppedChild( parentId, event );
                 client.startTransaction();
                 client.copyMoreNodes(params);
+                client.setRegistry(nodeId, 'position', self.droppedChild.position);
                 client.completeTransaction();
             }
+            self._clearDroppedChild();
         };
 
         HFSMVizWidget.prototype.showDropStatus = function () {
