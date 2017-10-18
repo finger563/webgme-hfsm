@@ -926,7 +926,7 @@ define([
         // Adding/Removing/Updating items
         HFSMVizWidget.prototype.addNode = function (desc) {
             var self = this;
-            if (desc) {
+            if (self._el && self.nodes && desc) {
                 if ( rootTypes.indexOf( desc.type ) > -1 ) {
                     self.HFSMName = desc.name;
                 }
@@ -949,39 +949,41 @@ define([
         HFSMVizWidget.prototype.removeNode = function (gmeId) {
             // TODO: need to have this take into account hidden nodes!
             var self = this;
-            var idTag = gmeId.replace(/\//gm, "\\/");
-            var desc = self.nodes[gmeId];
-            if (desc) {
-                self.forceShowBranch( gmeId );
-                if (!desc.isConnection) {
-                    delete self.dependencies.nodes[gmeId];
-                    self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
-                        if (ele && ele.isEdge()) {
-                            var edgeId = ele.data( 'id' );
-                            var edgeDesc = self.nodes[edgeId];
-                            self.checkDependencies(edgeDesc);
-                        }
+            if (self._el && self.nodes) {
+                var idTag = gmeId.replace(/\//gm, "\\/");
+                var desc = self.nodes[gmeId];
+                if (desc) {
+                    self.forceShowBranch( gmeId );
+                    if (!desc.isConnection) {
+                        delete self.dependencies.nodes[gmeId];
+                        self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
+                            if (ele && ele.isEdge()) {
+                                var edgeId = ele.data( 'id' );
+                                var edgeDesc = self.nodes[edgeId];
+                                self.checkDependencies(edgeDesc);
+                            }
+                        });
+                    }
+                    else {
+                        delete self.dependencies.edges[gmeId];
+                    }
+                    self._selectedNodes = self._selectedNodes.filter((id) => {
+                        return id != gmeId;
                     });
+                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+                    delete self.nodes[gmeId];
+                    delete self.waitingNodes[gmeId];
+                    self._cy.remove("#" + idTag);
+                    self.updateDependencies();
+                    self._simulator.update( );
                 }
-                else {
-                    delete self.dependencies.edges[gmeId];
-                }
-                self._selectedNodes = self._selectedNodes.filter((id) => {
-                    return id != gmeId;
-                });
-                WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-                delete self.nodes[gmeId];
-                delete self.waitingNodes[gmeId];
-                self._cy.remove("#" + idTag);
-                self.updateDependencies();
-                self._simulator.update( );
             }
         };
 
         HFSMVizWidget.prototype.updateNode = function (desc) {
             var self = this;
             // TODO: need to have this take into account hidden nodes!
-            if (desc) {
+            if (self._el && self.nodes && desc) {
                 if ( rootTypes.indexOf( desc.type ) > -1 ) {
                     self.HFSMName = desc.name;
                 }
@@ -1432,6 +1434,11 @@ define([
 
         /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
         HFSMVizWidget.prototype.destroy = function () {
+            this._el.empty();
+            delete this._el;
+            delete this.nodes;
+            delete this._simulator;
+            this._cy.destroy();
         };
 
         HFSMVizWidget.prototype.onActivate = function () {
