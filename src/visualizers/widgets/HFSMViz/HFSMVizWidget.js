@@ -889,7 +889,7 @@ define([
             }
             var n = self._cy.add(node);
             if (parentCyNode && parentPos) {
-                parentCyNode.position( parentPos );
+                //parentCyNode.position( parentPos );
                 //n.position( parentPos );
                 var pos = self.gmePosToCyPos( desc.position );
                 /*
@@ -905,7 +905,7 @@ define([
 
             if (self.droppedChild && self.droppedChild.id && self.droppedChild.position) {
                 if (self.droppedChild.id == desc.id || self.droppedChild.id == desc.parentId) {
-                    n.renderedPosition( self.droppedChild.position );
+                    n.position( self.droppedChild.position );
                     self._clearDroppedChild();
                 }
             }
