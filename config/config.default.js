@@ -5,6 +5,8 @@ var config = require('./config.webgme'),
 
 config.server.port = 8081;
 
+config.storage.keyType = 'rand160Bits';
+
 //config.seedProjects.defaultProject = 'FiniteStateMachine';
 config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
 
