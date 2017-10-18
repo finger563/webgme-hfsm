@@ -696,8 +696,16 @@ define([
                 cyNode.position(pos);
         };
 
-        HFSMVizWidget.prototype.getCyTopLeft = function(cyNode) {
-            
+        HFSMVizWidget.prototype.screenPosToCyPos = function(pos) {
+            var self = this;
+            var extent = self._cy.extent(); // returns bounding box of model positions visible
+            var width = $(self._cy_container).width();
+            var height = $(self._cy_container).height();
+            var newPos = {
+                x: (pos.x / width) * extent.w + extent.x1,
+                y: (pos.y / height) * extent.h + extent.y1,
+            };
+            return newPos;
         };
 
         HFSMVizWidget.prototype.gmePosToCyPos = function(desc) {
@@ -1227,7 +1235,8 @@ define([
                 client.startTransaction();
                 var newId = client.createChild(childCreationParams, 'Creating new child');
                 self._updateDroppedChild( newId, event );
-                client.setRegistry(newId, 'position', self.droppedChild.position);
+                var pos = self.screenPosToCyPos(self.droppedChild.position);
+                client.setRegistry(newId, 'position', pos);
                 client.completeTransaction();
             }
             else {
@@ -1237,7 +1246,8 @@ define([
                 self._updateDroppedChild( parentId, event );
                 client.startTransaction();
                 client.copyMoreNodes(params);
-                client.setRegistry(nodeId, 'position', self.droppedChild.position);
+                var pos = self.screenPosToCyPos(self.droppedChild.position);
+                client.setRegistry(nodeId, 'position', pos);
                 client.completeTransaction();
             }
             self._clearDroppedChild();
