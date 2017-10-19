@@ -486,7 +486,7 @@ define(['js/util',
 	       if (node)
 		   transIds = node.childrenIds.filter(function(cid) {
 		       var child = self.nodes[ cid ];
-		       return child.type == 'Internal Transition' && child.Event == eventName;
+		       return child.type == 'Internal Transition' && child.Event == eventName && child.Enabled;
 		   }).sort( self.transitionSort.bind(self) );
 	       return transIds;
 	   };
@@ -502,7 +502,7 @@ define(['js/util',
 	       var self = this;
 	       var nodeEdges = Object.keys(self.nodes).map(function (k) {
 		   var node = self.nodes[k];
-		   if (node.isConnection && node.src == gmeId)
+		   if (node.isConnection && node.src == gmeId && node.Enabled)
 		       return k;
 	       });
 	       return nodeEdges.filter(function (o) { return o; });
@@ -512,7 +512,7 @@ define(['js/util',
 	       var self = this;
 	       var nodeEdges = Object.keys(self.nodes).map(function (k) {
 		   var node = self.nodes[k];
-		   if (node.isConnection && node.dst == gmeId)
+		   if (node.isConnection && node.dst == gmeId && node.Enabled)
 		       return k;
 	       });
 	       return nodeEdges.filter(function (o) { return o; });
@@ -692,7 +692,7 @@ define(['js/util',
 	       node.getChildrenIds().map(function(cid) {
 		   var child = self._client.getNode( cid );
 		   var childType = self._client.getNode( child.getMetaTypeId() ).getAttribute( 'name' );
-		   if (childType == 'Internal Transition') {
+		   if (childType == 'Internal Transition' && child.getAttribute('Enabled')) {
 		       internalTransitions.push({
 			   id: cid,
 			   Event: getCode(child, 'Event', false),
@@ -768,10 +768,10 @@ define(['js/util',
 	       var self = this;
 	       var eventNames = Object.keys(self.nodes).map(function(k) {
 		   var desc = self.nodes[k];
-		   if (desc.isConnection && desc.Event) {
+		   if (desc.isConnection && desc.Event && desc.Enabled) {
 		       return desc.Event;
 		   }
-		   else if (desc.type == 'Internal Transition') {
+		   else if (desc.type == 'Internal Transition' && desc.Enabled) {
 		       return desc.Event;
 		   }
 	       });
@@ -785,7 +785,7 @@ define(['js/util',
                if (eventName) {
                    transitionIDs = Object.keys(self.nodes).filter(function(id) {
                        var t = self.nodes[id];
-                       return t.Event == eventName;
+                       return t.Event == eventName && t.Enabled;
                    });
                }
                return transitionIDs;
