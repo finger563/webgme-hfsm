@@ -9,6 +9,9 @@ edge {
     line-color: #000;
     line-style: solid; /* dotted, dashed */
     curve-style: bezier; /* bezier, haystack, unbundled-bezier, segments */
+    source-endpoint: outside-to-line;
+    target-endpoint: outside-to-line;
+    /*control-point-step-size: 25;*/
     target-arrow-shape: triangle-backcurve;
     target-arrow-color: #000;
     target-arrow-fill: filled; /* hollow */
