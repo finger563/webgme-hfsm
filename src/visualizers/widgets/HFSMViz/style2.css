@@ -105,6 +105,16 @@ node[NodeType = "End State"] {
     content: ;
 }
 
+node[NodeType = "Documentation"] {
+    background-image: assets/DecoratorSVG/svgs/information.svg;
+    background-image-opacity: 1.0;
+    border-width: 0;
+    shape: ellipse;
+    width: 6;
+    height: 6;
+    content: ;
+}
+
 node[NodeType = "Choice Pseudostate"] {
     width: 5;
     height: 5;

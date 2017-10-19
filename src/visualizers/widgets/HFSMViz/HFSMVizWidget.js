@@ -12,6 +12,7 @@ define([
     './Simulator/Choice',
     'js/DragDrop/DropTarget',
     'js/DragDrop/DragConstants',
+    'decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog',
     'bower/cytoscape/dist/cytoscape.min',
     'cytoscape-edgehandles',
     'cytoscape-context-menus',
@@ -30,6 +31,7 @@ define([
         Choice,
         dropTarget,
         DROP_CONSTANTS,
+        DocumentEditorDialog,
         cytoscape,
         edgehandles,
         cyContext,
@@ -403,6 +405,20 @@ define([
                         },
                         coreAsWell: false // Whether core instance have this item on cxttap
                     },
+                    {
+                        id: 'DocumentView',
+                        content: 'View/Edit Documentation',
+                        tooltipText: 'Edit and View the rendered Markdown Documentation',
+                        selector: 'node[NodeType = "Documentation"]', 
+                        onClickFunction: function ( e ) { // The function to be executed on click
+                            var node = e.target;
+                            if (node == self._cy) { }
+                            else {
+                                self.onEditDocumentation(node.id());
+                            }
+                        },
+                        coreAsWell: false // Whether core instance have this item on cxttap
+                    },
                 ],
                 // css classes that menu items will have
                 menuItemClasses: [
@@ -561,6 +577,23 @@ define([
                 console.log(err);
             });
         }
+
+        HFSMVizWidget.prototype.onEditDocumentation = function(gmeId) {
+            var self = this;
+            var documentation = self.nodes[gmeId].documentation;
+            var editorDialog = new DocumentEditorDialog();
+
+            editorDialog.initialize(documentation, function (text) {
+                try {
+                    self._client.setAttribute(gmeId, 'documentation', text, 'updated documentation for ' + gmeId);
+                } catch (e) {
+                    console.error('Could not save documentation: ');
+                    console.error(e);
+                }
+            });
+
+            editorDialog.show();
+        };
 
         HFSMVizWidget.prototype.onPanningClicked = function() {
             var self = this;
@@ -1379,6 +1412,8 @@ define([
             else if (desc.type == 'Shallow History Pseudostate')
                 return false;
             else if (desc.type == 'State Machine')
+                return false;
+            else if (desc.type == 'Documentation')
                 return false;
             else if (desc.type == 'Initial') {
                 // if initial already has transition, don't allow more

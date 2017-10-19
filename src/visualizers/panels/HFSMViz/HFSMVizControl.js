@@ -86,7 +86,7 @@ define([
     };
 
     var rootTypes = ['State Machine', 'Library'];
-    var excludeTypes = ['Documentation'];
+    var excludeTypes = [];
 
     // This next function retrieves the relevant node information for the widget
     HFSMVizControl.prototype._getObjectDescriptor = function (nodeId) {

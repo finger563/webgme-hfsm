@@ -86,6 +86,7 @@ define([
 	    });
 	    */
 	    // is there a way to not have to hard-code this?
+	    detailedTypes[ '/615025579/i' ] = true; // Documentation
 	    detailedTypes[ '/615025579/x' ] = true; // internal transition
 	    detailedTypes['/615025579/1242097160'] = true; // initial state
 	    detailedTypes['/615025579/A'] = true; // end state
