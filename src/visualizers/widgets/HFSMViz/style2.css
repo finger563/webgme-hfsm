@@ -172,6 +172,10 @@ edge:selected {
     arrow-scale: 2;
 }
 
+edge[Enabled = "False"] {
+    line-style: dashed;
+}
+
 .filtered {
     display: none;
 }
