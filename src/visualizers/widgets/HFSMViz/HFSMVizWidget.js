@@ -1060,12 +1060,12 @@ define([
 
             if (edgesTo) {
                 edgesTo.map(function(eid) {
-                    self._client.deleteNode( eid, "Removing depenent (dst) transition: " + eid );
+                    self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
                 });
             }
             if (edgesFrom) {
                 edgesFrom.map(function(eid) {
-                    self._client.deleteNode( eid, "Removing depenent (src) transition: " + eid );
+                    self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
                 });
             }
             self._client.deleteNode( nodeId, "Removing " + nodeId );
