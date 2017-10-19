@@ -40,6 +40,16 @@ define(['./checkModel'], function(checkModel) {
 	},
 	processModel: function(model) {
 	    var self = this;
+            // REMOVE ALL EVENTS THAT ARE MARKED AS DISABLED
+            var transitionTypes = ['External Transition', 'Internal Transition'];
+            Object.keys(model.objects).map(function(objPath) {
+                var obj = model.objects[objPath];
+                if (transitionTypes.indexOf(obj.type) > -1 && !obj.Enabled) {
+                    console.log('deleting disabled transition: '+objPath);
+                    delete model.objects[objPath];
+                }
+            });
+            
 	    checkModel.checkModel(model);
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
@@ -55,7 +65,7 @@ define(['./checkModel'], function(checkModel) {
 		self.addBasicParams( obj );
 		// Make sure top-level State Machine objects
 		// are good and code attributes are properly prefixed.
-		if (obj.type == 'State Machine') {
+		if (obj.type == 'State Machine' || obj.type == 'Library') {
 		    self.processTopLevel( obj );
 		    obj.isRoot = true;
 		}
