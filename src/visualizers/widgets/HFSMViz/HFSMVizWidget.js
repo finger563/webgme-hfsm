@@ -1051,8 +1051,8 @@ define([
                         if (rootTypes.indexOf(desc.type) == -1) {
                             if (self.needToUpdatePosition( desc.position, oldDesc.position ) ) {
                                 var pos = self.gmePosToCyPos( desc );
-                                console.log('updating '+desc.id);
-                                console.log(pos);
+                                //console.log('updating '+desc.id);
+                                //console.log(pos);
                                 self.cyPosition(cyNode, pos);
                             }
                         }
@@ -1188,14 +1188,13 @@ define([
             var validChildTypes = {};
 
             // figure out what the allowable range is
-            var validChildren = node.getValidChildrenTypesDetailed( );
+            var validChildren = node.getValidChildrenTypesDetailed(null, true);
             Object.keys( validChildren ).map(function( metaId ) {
                 var child = client.getNode( metaId );
                 var childType = child.getAttribute('name');
                 var canCreateMore = validChildren[ metaId ];
                 if ( canCreateMore &&
-                     !child.isAbstract() &&
-                     !child.isConnection() )
+                     !child.isAbstract() )
                     validChildTypes[ childType ] = metaId;
             });
             return validChildTypes;
@@ -1207,13 +1206,24 @@ define([
             var self = this;
 
             var parentId = self._hoveredNodeId;
-            var nodeId = null;
+            // default to true if there are dropped items
+            return self._canCreateChildren( dragInfo, parentId );
+        };
 
-            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length === 1) {
-                nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0];
+        HFSMVizWidget.prototype._canCreateChildren = function( dragInfo, parentId ) {
+            var self = this;
+
+            var isValid = dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0;
+
+            for (var i=0; i<dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length; i++) {
+                var nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][i];
+                if (!self._canCreateChild( nodeId, parentId )) {
+                    isValid = false;
+                    break;
+                }
             }
 
-            return self._canCreateChild( nodeId, parentId );
+            return isValid;
         };
 
         HFSMVizWidget.prototype._canCreateChild = function( nodeId, parentId ) {
@@ -1261,49 +1271,57 @@ define([
             };
         };
 
-        HFSMVizWidget.prototype._createChild = function( nodeId, parentId, event ) {
+        HFSMVizWidget.prototype._createChildren = function( dragInfo, parentId, event ) {
             var self = this,
-                client = self._client,
-                node = client.getNode(nodeId);
+                client = self._client;
 
-            var selector = '#' + parentId.replace(/\//gm, "\\/");
-            var cyNode = self._cy.$(selector);
-
-            if (node.isAbstract()) {
-                // do nothing!
-            }
-            else if (node.isMetaNode()) {
-                var childCreationParams = {
-                    parentId: parentId,
-                    baseId: nodeId,
-                };
-                self.forceShowChildren( cyNode.id() );
+            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0) {
                 client.startTransaction();
-                var newId = client.createChild(childCreationParams, 'Creating new child');
-                self._updateDroppedChild( newId, event );
-                var pos = self.screenPosToCyPos(self.droppedChild.position);
-                client.setRegistry(newId, 'position', pos);
+
+                dragInfo[DROP_CONSTANTS.DRAG_ITEMS].map(function(nodeId) {
+                    var selector = '#' + parentId.replace(/\//gm, "\\/");
+                    var cyNode = self._cy.$(selector);
+                    var node = client.getNode(nodeId);
+
+                    if (node.isAbstract()) {
+                        // do nothing!
+                    }
+                    else if (node.isMetaNode()) {
+                        var childCreationParams = {
+                            parentId: parentId,
+                            baseId: nodeId,
+                        };
+                        self.forceShowChildren( cyNode.id() );
+                        var newId = client.createChild(childCreationParams, 'Creating new child');
+                        self._updateDroppedChild( newId, event );
+                        var pos = self.screenPosToCyPos(self.droppedChild.position);
+                        client.setRegistry(newId, 'position', pos);
+                    }
+                    else {
+                        self.forceShowChildren( cyNode.id() );
+                        self._updateDroppedChild( parentId, event );
+                        var pos = self.screenPosToCyPos(self.droppedChild.position);
+                        var params = {parentId: parentId};
+                        params[nodeId] = {
+                            'registry': {
+                                'position': pos
+                            }
+                        };
+                        client.copyMoreNodes(params);
+                    }
+                });
+                
                 client.completeTransaction();
             }
-            else {
-                self.forceShowChildren( cyNode.id() );
-                var params = {parentId: parentId};
-                params[nodeId] = {};
-                self._updateDroppedChild( parentId, event );
-                client.startTransaction();
-                client.copyMoreNodes(params);
-                var pos = self.screenPosToCyPos(self.droppedChild.position);
-                client.setRegistry(nodeId, 'position', pos);
-                client.completeTransaction();
-            }
+
             self._clearDroppedChild();
         };
 
         HFSMVizWidget.prototype.showDropStatus = function () {
             var self = this;
             self.clearDropStatus();
-            if (self._isDropping && self._hoveredNodeId && self._dropId) {
-                var canDrop = self._canCreateChild( self._dropId, self._hoveredNodeId );
+            if (self._isDropping && self._hoveredNodeId && self._dropInfo) {
+                var canDrop = self._canCreateChildren( self._dropInfo, self._hoveredNodeId );
                 var selector = '#' + self._hoveredNodeId.replace(/\//gm, "\\/");
                 var node = self._cy.$( selector );
                 if (node.length) {
@@ -1343,23 +1361,22 @@ define([
             dropTarget.makeDroppable(self._right, {
                 over: function (event, dragInfo) {
                     self._isDropping = true;
-                    self._dropId = (dragInfo && dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length === 1) ?
-                        dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0] : null;
+                    self._dropInfo = dragInfo;
                 },
                 out: function (/*event, dragInfo*/) {
                     self._isDropping = false;
-                    self._dropId = null;
+                    self._dropInfo = null;
                 },
                 drop: function (event, dragInfo) {
                     if (self._isValidDrop(event, dragInfo)) {
-                        self._createChild(
-                            dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0],
+                        self._createChildren(
+                            dragInfo,
                             self._hoveredNodeId,
                             event
                         );
                     }
                     self._isDropping = false;
-                    self._dropId = null;
+                    self._dropInfo = null;
                 }
             });
         };
