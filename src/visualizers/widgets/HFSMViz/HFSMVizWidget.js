@@ -10,6 +10,7 @@ define([
     './Dialog/Dialog',
     './Simulator/Simulator',
     './Simulator/Choice',
+    'js/Controls/ContextMenu',
     'js/DragDrop/DropTarget',
     'js/DragDrop/DragConstants',
     'decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog',
@@ -29,6 +30,7 @@ define([
         Dialog,
         Simulator,
         Choice,
+        ContextMenu,
         dropTarget,
         DROP_CONSTANTS,
         DocumentEditorDialog,
@@ -117,7 +119,6 @@ define([
                 'edges': {}
             };
             this.waitingNodes = {};
-            this.droppedChild = {};
 
             // LAYOUT RELATED DATA
             this._handle = this._el.find('#hfsmVizHandle');
@@ -1084,6 +1085,21 @@ define([
 
         /* * * * * * * * Context Menu Functions    * * * * * * * */
 
+        HFSMVizWidget.prototype.createWebGMEContextMenu = function(menuItems, fnCallback, position) {
+            var self = this;
+
+            var menu = new ContextMenu({
+                items: menuItems,
+                callback: function(key) {
+                    if (fnCallback)
+                        fnCallback(key);
+                }
+            });
+
+            position = position || {x: 200, y:200};
+            menu.show(position);
+        };
+
         HFSMVizWidget.prototype.deleteNode = function( nodeId ) {
             var self = this;
             var edgesTo = self._simulator.getEdgesToNode( nodeId );
@@ -1200,12 +1216,11 @@ define([
             return validChildTypes;
         };
 
-        HFSMVizWidget.prototype._isValidDrop = function (event, dragInfo) {
-            if (!dragInfo)
+        HFSMVizWidget.prototype._isValidDrop = function (dragInfo, parentId) {
+            if (!dragInfo || !parentId)
                 return false;
             var self = this;
 
-            var parentId = self._hoveredNodeId;
             // default to true if there are dropped items
             return self._canCreateChildren( dragInfo, parentId );
         };
@@ -1256,22 +1271,7 @@ define([
             return canCreate;
         };
 
-        HFSMVizWidget.prototype._clearDroppedChild = function() {
-            var self = this;
-            self.droppedChild = {};
-        };
-
-        HFSMVizWidget.prototype._updateDroppedChild = function( nodeId, event ) {
-            var self = this;
-            var pos = self._getContainerPosFromEvent(event);
-            pos.x -= $(self._left).width();
-            self.droppedChild = {
-                id: nodeId,
-                position: pos
-            };
-        };
-
-        HFSMVizWidget.prototype._createChildren = function( dragInfo, parentId, event ) {
+        HFSMVizWidget.prototype._createChildren = function( dragInfo, parentId, childPosition ) {
             var self = this,
                 client = self._client;
 
@@ -1287,20 +1287,18 @@ define([
                         // do nothing!
                     }
                     else if (node.isMetaNode()) {
+                        var pos = self.screenPosToCyPos( childPosition );
                         var childCreationParams = {
                             parentId: parentId,
                             baseId: nodeId,
+                            position: pos
                         };
                         self.forceShowChildren( cyNode.id() );
-                        var newId = client.createChild(childCreationParams, 'Creating new child');
-                        self._updateDroppedChild( newId, event );
-                        var pos = self.screenPosToCyPos(self.droppedChild.position);
-                        client.setRegistry(newId, 'position', pos);
+                        client.createChild(childCreationParams, 'Creating new child');
                     }
                     else {
                         self.forceShowChildren( cyNode.id() );
-                        self._updateDroppedChild( parentId, event );
-                        var pos = self.screenPosToCyPos(self.droppedChild.position);
+                        var pos = self.screenPosToCyPos( childPosition );
                         var params = {parentId: parentId};
                         params[nodeId] = {
                             'registry': {
@@ -1313,8 +1311,6 @@ define([
                 
                 client.completeTransaction();
             }
-
-            self._clearDroppedChild();
         };
 
         HFSMVizWidget.prototype.showDropStatus = function () {
@@ -1351,6 +1347,50 @@ define([
             }
         };
 
+        HFSMVizWidget.prototype.dropRequiresMenu = function(dragInfo) {
+            var self = this,
+                client = self._client;
+            // default to all items require a drop menu
+            var requiresMenu = dragInfo && dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 1;
+            
+            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length == 1) {
+                // if it's only a single item, check if it's a meta
+                // item or not, only require menu for non-meta nodes
+                var nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0];
+                var node = client.getNode(nodeId);
+                requiresMenu = !node.isMetaNode();
+            }
+
+            return requiresMenu;
+        };
+
+        HFSMVizWidget.prototype.showDropMenu = function (menuPosition, childPosition, dragInfo) {
+            var self = this,
+                parentId = self._hoveredNodeId,
+                options = {
+                    '0': {
+                        name: 'Move Nodes',
+                        icon: false
+                    },
+                    '1': {
+                        name: 'Copy Nodes',
+                        icon: false
+                    },
+                    '2': {
+                        name: 'Instance Nodes',
+                        icon: false
+                    }
+                };
+
+            self.createWebGMEContextMenu(options, function(option) {
+                self._createChildren(
+                    dragInfo,
+                    parentId,
+                    childPosition
+                );
+            }, menuPosition);
+        };
+
         HFSMVizWidget.prototype._makeDroppable = function () {
             var self = this,
                 desc;
@@ -1368,13 +1408,24 @@ define([
                     self._dropInfo = null;
                 },
                 drop: function (event, dragInfo) {
-                    if (self._isValidDrop(event, dragInfo)) {
-                        self._createChildren(
-                            dragInfo,
-                            self._hoveredNodeId,
-                            event
-                        );
-                    }
+                    var menuPos = {x: event.pageX, y: event.pageY},
+                        childPosition = self._getContainerPosFromEvent(event),
+                        parentId = self._hoveredNodeId;
+                    
+                    childPosition.x -= $(self._left).width();
+
+                    if (self._isValidDrop(dragInfo, parentId)) {
+                        if (self.dropRequiresMenu(dragInfo))
+                            self.showDropMenu(menuPos, childPosition, dragInfo);
+                        else {
+                            self._createChildren(
+                                dragInfo,
+                                parentId,
+                                childPosition
+                            );
+                        }
+                    } 
+
                     self._isDropping = false;
                     self._dropInfo = null;
                 }
