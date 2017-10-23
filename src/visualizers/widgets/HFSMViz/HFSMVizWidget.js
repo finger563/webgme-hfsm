@@ -420,6 +420,21 @@ define([
                         },
                         coreAsWell: false // Whether core instance have this item on cxttap
                     },
+                    {
+                        id: 'reparentSelection',
+                        content: 'Move Selected Nodes Here',
+                        tooltipText: 'Makes the node that was right clicked that parent of the selected node.',
+                        selector: childAvailableSelector,
+                        onClickFunction: function ( e ) {
+                            var node = e.target;
+                            if (node == self._cy) { }
+                            else {
+                                self._moveNodes( self._selectedNodes, node.id(), e.position );
+                            }
+                        },
+                        coreAsWell: false,
+                        hasTrailingDivider: true, // Whether the item will have a trailing divider
+                    },
                 ],
                 // css classes that menu items will have
                 menuItemClasses: [
