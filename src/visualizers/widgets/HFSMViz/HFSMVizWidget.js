@@ -1271,44 +1271,113 @@ define([
             return canCreate;
         };
 
-        HFSMVizWidget.prototype._createChildren = function( dragInfo, parentId, childPosition ) {
+        HFSMVizWidget.prototype._createNode = function( baseId, parentId, childPosition ) {
             var self = this,
                 client = self._client;
 
-            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0) {
+            if (baseId) {
+
                 client.startTransaction();
 
-                dragInfo[DROP_CONSTANTS.DRAG_ITEMS].map(function(nodeId) {
+                var selector = '#' + parentId.replace(/\//gm, "\\/"),
+                    cyNode = self._cy.$(selector),
+                    node = client.getNode(baseId);
+
+                self.forceShowChildren( cyNode.id() );
+
+                var pos = self.screenPosToCyPos( childPosition );
+                var childCreationParams = {
+                    parentId: parentId,
+                    baseId: baseId,
+                    position: pos
+                };
+
+                client.createChild(childCreationParams, 'Creating new child');
+                
+                client.completeTransaction();
+            }
+        };
+
+        HFSMVizWidget.prototype._instanceNodes = function( nodeIds, parentId, childPosition ) {
+            var self = this,
+                client = self._client;
+
+            if (nodeIds.length > 0) {
+                client.startTransaction("Creating node instances into " + parentId);
+
+                nodeIds.map(function(nodeId) {
                     var selector = '#' + parentId.replace(/\//gm, "\\/");
                     var cyNode = self._cy.$(selector);
                     var node = client.getNode(nodeId);
 
-                    if (node.isAbstract()) {
-                        // do nothing!
-                    }
-                    else if (node.isMetaNode()) {
-                        var pos = self.screenPosToCyPos( childPosition );
-                        var childCreationParams = {
-                            parentId: parentId,
-                            baseId: nodeId,
-                            position: pos
-                        };
-                        self.forceShowChildren( cyNode.id() );
-                        client.createChild(childCreationParams, 'Creating new child');
-                    }
-                    else {
-                        self.forceShowChildren( cyNode.id() );
-                        var pos = self.screenPosToCyPos( childPosition );
-                        var params = {parentId: parentId};
-                        params[nodeId] = {
-                            'registry': {
-                                'position': pos
-                            }
-                        };
-                        client.copyMoreNodes(params);
-                    }
+                    self.forceShowChildren( cyNode.id() );
+                    var pos = self.screenPosToCyPos( childPosition );
+
+                    var childCreationParams = {
+                        parentId: parentId,
+                        baseId: nodeId,
+                        position: pos
+                    };
+                    client.createChild(childCreationParams);
                 });
                 
+                client.completeTransaction();
+            }
+        };
+
+        HFSMVizWidget.prototype._copyNodes = function( nodeIds, parentId, childPosition ) {
+            var self = this,
+                client = self._client;
+
+            if (nodeIds.length > 0) {
+                client.startTransaction("Copying Nodes into " + parentId);
+
+                var selector = '#' + parentId.replace(/\//gm, "\\/");
+                var cyNode = self._cy.$(selector);
+
+                self.forceShowChildren( cyNode.id() );
+                var pos = self.screenPosToCyPos( childPosition );
+                var params = {parentId: parentId};
+
+                nodeIds.map(function(nodeId) {
+                    params[nodeId] = {
+                        'registry': {
+                            'position': pos
+                        }
+                    };
+                });
+                
+                client.copyMoreNodes(params);
+
+                client.completeTransaction();
+            }
+        };
+
+        HFSMVizWidget.prototype._moveNodes = function( nodeIds, parentId, childPosition ) {
+            var self = this,
+                client = self._client;
+
+            if (nodeIds.length > 0) {
+                client.startTransaction("Moving nodes into " + parentId);
+
+                var selector = '#' + parentId.replace(/\//gm, "\\/");
+                var cyNode = self._cy.$(selector);
+
+                var params = {parentId: parentId};
+
+                self.forceShowChildren( cyNode.id() );
+                var pos = self.screenPosToCyPos( childPosition );
+
+                nodeIds.map(function(nodeId) {
+                    params[nodeId] = {
+                        'registry': {
+                            'position': pos
+                        }
+                    };
+                });
+                
+                client.moveMoreNodes(params);
+
                 client.completeTransaction();
             }
         };
@@ -1351,17 +1420,31 @@ define([
             var self = this,
                 client = self._client;
             // default to all items require a drop menu
-            var requiresMenu = dragInfo && dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 1;
-            
-            if (dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length == 1) {
-                // if it's only a single item, check if it's a meta
-                // item or not, only require menu for non-meta nodes
-                var nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][0];
-                var node = client.getNode(nodeId);
-                requiresMenu = !node.isMetaNode();
-            }
+            var requiresMenu = dragInfo && dragInfo[DROP_CONSTANTS.DRAG_EFFECTS].length > 1;
 
             return requiresMenu;
+        };
+
+        HFSMVizWidget.prototype.handleDrop = function (event, dragInfo) {
+            var self = this;
+
+            var menuPos = {x: event.pageX, y: event.pageY},
+                childPosition = self._getContainerPosFromEvent(event),
+                parentId = self._hoveredNodeId;
+            
+            childPosition.x -= $(self._left).width();
+
+            if (self._isValidDrop(dragInfo, parentId)) {
+                if (self.dropRequiresMenu(dragInfo))
+                    self.showDropMenu(menuPos, childPosition, dragInfo);
+                else {
+                    self._createNode(
+                        dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                        parentId,
+                        childPosition
+                    );
+                }
+            } 
         };
 
         HFSMVizWidget.prototype.showDropMenu = function (menuPosition, childPosition, dragInfo) {
@@ -1369,25 +1452,43 @@ define([
                 parentId = self._hoveredNodeId,
                 options = {
                     '0': {
-                        name: 'Move Nodes',
-                        icon: false
+                        name: 'Create Instance',
+                        icon: false,
+                        fn: function() {
+                            self._instanceNodes(
+                                dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                                parentId,
+                                childPosition
+                            );
+                        }
                     },
                     '1': {
-                        name: 'Copy Nodes',
-                        icon: false
+                        name: 'Move Here',
+                        icon: false,
+                        fn: function() {
+                            self._moveNodes(
+                                dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                                parentId,
+                                childPosition
+                            );
+                        }
                     },
                     '2': {
-                        name: 'Instance Nodes',
-                        icon: false
+                        name: 'Copy Here',
+                        icon: false,
+                        fn: function() {
+                            self._copyNodes(
+                                dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                                parentId,
+                                childPosition
+                            );
+                        }
                     }
                 };
 
             self.createWebGMEContextMenu(options, function(option) {
-                self._createChildren(
-                    dragInfo,
-                    parentId,
-                    childPosition
-                );
+                if (options[option] && options[option].fn)
+                    options[option].fn();
             }, menuPosition);
         };
 
@@ -1408,24 +1509,7 @@ define([
                     self._dropInfo = null;
                 },
                 drop: function (event, dragInfo) {
-                    var menuPos = {x: event.pageX, y: event.pageY},
-                        childPosition = self._getContainerPosFromEvent(event),
-                        parentId = self._hoveredNodeId;
-                    
-                    childPosition.x -= $(self._left).width();
-
-                    if (self._isValidDrop(dragInfo, parentId)) {
-                        if (self.dropRequiresMenu(dragInfo))
-                            self.showDropMenu(menuPos, childPosition, dragInfo);
-                        else {
-                            self._createChildren(
-                                dragInfo,
-                                parentId,
-                                childPosition
-                            );
-                        }
-                    } 
-
+                    self.handleDrop(event, dragInfo);
                     self._isDropping = false;
                     self._dropInfo = null;
                 }
