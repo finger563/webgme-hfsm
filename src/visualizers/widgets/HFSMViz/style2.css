@@ -175,6 +175,11 @@ node:selected {
     border-width: 4;
 }
 
+.edgehandles-target {
+    background-color: rgb(0, 0, 0);
+    background-opacity: 0.2;
+}
+
 edge:selected {
     /* width: 40; */
     /* height: 40; */
