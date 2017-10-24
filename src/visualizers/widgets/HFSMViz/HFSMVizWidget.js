@@ -82,6 +82,27 @@ define([
             this._logger.debug('ctor finished');
         };
 
+        HFSMVizWidget.prototype._relativeToWindowPos = function( relativePos ) {
+            var self = this;
+
+            var windowPos = {
+                x: relativePos.x,
+                y: relativePos.y
+            };
+
+            var splitPos = $(self._container).parents('.panel-base-wh').parent().position();
+            var centerPanelPos = $('.ui-layout-pane-center').position();
+            // X OFFSET
+            windowPos.x += splitPos.left;
+            windowPos.x += centerPanelPos.left;
+
+            // Y OFFSET
+            windowPos.y += splitPos.top;
+            windowPos.y += centerPanelPos.top;            
+
+            return windowPos;
+        };
+
         HFSMVizWidget.prototype._getContainerPosFromEvent = function( e ) {
             var self = this;
             var x = e.pageX,
@@ -245,23 +266,28 @@ define([
             this._cytoscape_options.layout = self._layout_options;
             this._cy = cytoscape(self._cytoscape_options);
 
+            var edgeHandleIcon = new Image();
+            edgeHandleIcon.src = '/assets/DecoratorSVG/svgs/edgeIcon.svg';
+            edgeHandleIcon.width = 10;
+            edgeHandleIcon.height = 10;
+
             // the default values of each option are outlined below:
-            var defaults = {
+            var edgeHandleDefaults = {
                 preview: true, // whether to show added edges preview before releasing selection
                 stackOrder: 4, // Controls stack order of edgehandles canvas element by setting it's z-index
-                handleSize: 5, // the size of the edge handle put on nodes
+                handleSize: 7.5, // the size of the edge handle put on nodes
                 handleHitThreshold: 1, // a threshold for hit detection that makes it easier to grab the handle
-                handleIcon: false, // an image to put on the handle
+                handleIcon: edgeHandleIcon,
                 handleColor: '#00235b', //  the colour of the handle and the line drawn from it
                 handleLineType: 'ghost', // can be 'ghost' for real edge, 'straight' for a straight line, or 'draw' for a draw-as-you-go line
                 handleLineWidth: 1, // width of handle line in pixels
-                handleOutlineColor: '#ff0000', // the colour of the handle outline
+                handleOutlineColor: null,//'#ff0000', // the colour of the handle outline
                 handleOutlineWidth: 1, // the width of the handle outline in pixels
                 handleNodes: function( node ) { //'node', // selector/filter function
                     var desc = self.nodes[node.id()];
                     return self.isValidSource( desc );
                 },
-                handlePosition: 'middle top', // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
+                handlePosition: 'right bottom', // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
                 hoverDelay: 150, // time spend over a target node before it is considered a target selection
                 cxt: false, // whether cxt events trigger edgehandles (useful on touch)
                 enabled: true, // whether to start the plugin in the enabled state
@@ -299,31 +325,57 @@ define([
                 },
                 complete: function( sourceNode, targetNodes, addedEntities ) {
                     // fired when edgehandles is done and entities are added
-                    if (sourceNode && targetNodes && addedEntities)
-                        self.draggedEdge( sourceNode, targetNodes[0], addedEntities[0] );
-                    /*
-                    // TODO: ASK WHAT KIND OF TRANSITION TO MAKE
-                    var choice = new Choice();
-                    choice.initialize( ['Local Transition', 'External Transition'], 'What type of transition?');
-                    choice.show();
-                    return choice.waitForChoice()
-                        .then(function(choice) {
-                            if (sourceNode && targetNodes && addedEntities)
-                                self.draggedEdge( sourceNode, targetNodes[0], addedEntities[0] );
-                        });
-                    */
+
+                    // remove the temporary edges
+                    addedEntities.map(function(ae) {
+                        ae.remove();
+                    });
+
+                    var options = {
+                        "0": {
+                            name: 'External Transition',
+                            icon: false,
+                            fn: function() {
+                                if (sourceNode && targetNodes && addedEntities)
+                                    self.draggedEdge( sourceNode, targetNodes[0] );
+                            }
+                        },
+                        "1": {
+                            name: 'Local Transition',
+                            icon: false,
+                            fn: function() {
+                                alert('Local Transitions are not supported yet!');
+                            }
+                        },
+                    };
+
+                    var targetPos = self.cyPosition( targetNodes[0] );
+                    targetPos = self.cyPosToScreenPos( targetPos );
+                    targetPos.x += $(self._left).width();
+                    targetPos = self._relativeToWindowPos( targetPos );
+
+                    self.createWebGMEContextMenu(options, function(option) {
+                        if (options[option] && options[option].fn)
+                            options[option].fn();
+                    }, targetPos);
                 },
                 stop: function( sourceNode ) {
                     // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
                 }, 
                 cancel: function( sourceNode, renderedPosition, invalidTarget ){
-                    // fired when edgehandles are cancelled ( incomplete - nothing has been added ) - renderedPosition is where the edgehandle was released, invalidTarget is
-                    // a collection on which the handle was released, but which for other reasons (loopAllowed | edgeType) is an invalid target
+                    // fired when edgehandles are cancelled (
+                    // incomplete - nothing has been added ) -
+                    // renderedPosition is where the edgehandle was
+                    // released, invalidTarget is
+                    
+                    // a collection on which the handle was released,
+                    // but which for other reasons (loopAllowed |
+                    // edgeType) is an invalid target
                 }
             };
 
             // EDGE HANDLES
-            this._cy.edgehandles( defaults );
+            this._cy.edgehandles( edgeHandleDefaults );
 
             var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]';
 
@@ -752,6 +804,18 @@ define([
                 return cyNode.position();
             else
                 cyNode.position(pos);
+        };
+
+        HFSMVizWidget.prototype.cyPosToScreenPos = function(pos) {
+            var self = this;
+            var extent = self._cy.extent(); // returns bounding box of model positions visible
+            var width = $(self._cy_container).width();
+            var height = $(self._cy_container).height();
+            var newPos = {
+                x: (pos.x - extent.x1) / extent.w  * width,
+                y: (pos.y - extent.y1) / extent.h  * height,
+            };
+            return newPos;
         };
 
         HFSMVizWidget.prototype.screenPosToCyPos = function(pos) {
@@ -1533,13 +1597,12 @@ define([
 
         /* * * * * * * * Edge Creation Functions   * * * * * * * */
 
-        HFSMVizWidget.prototype.draggedEdge = function( cySrc, cyDst, cyEdge ) {
+        HFSMVizWidget.prototype.draggedEdge = function( cySrc, cyDst ) {
             var self = this;
             var srcDesc = self.nodes[cySrc.id()];
             var dstDesc = self.nodes[cyDst.id()];
             var srcParentId = srcDesc.parentId;
             var newEdgePath = self.createNewEdge( srcParentId, srcDesc, dstDesc );
-            cyEdge.remove();
         };
 
         HFSMVizWidget.prototype.createNewEdge = function( parentId, src, dst ) {
