@@ -323,7 +323,7 @@ define([
                 start: function( sourceNode ) {
                     // fired when edgehandles interaction starts (drag on handle)
                 },
-                complete: function( sourceNode, targetNodes, addedEntities ) {
+                complete: function( sourceNode, targetNodes, addedEntities, position ) {
                     // fired when edgehandles is done and entities are added
 
                     // remove the temporary edges
@@ -350,7 +350,7 @@ define([
                     };
 
                     var targetPos = self.cyPosition( targetNodes[0] );
-                    targetPos = self.cyPosToScreenPos( targetPos );
+                    targetPos = position || self.cyPosToScreenPos( targetPos );
                     targetPos.x += $(self._left).width();
                     targetPos = self._relativeToWindowPos( targetPos );
 
