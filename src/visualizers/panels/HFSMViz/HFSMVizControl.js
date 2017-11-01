@@ -165,18 +165,19 @@ define([
 
     HFSMVizControl.prototype._onLoad = function (gmeId) {
         var description = this._getObjectDescriptor(gmeId);
-	if (description)
+	if (description && this._widget)
             this._widget.addNode(description);
     };
 
     HFSMVizControl.prototype._onUpdate = function (gmeId) {
         var description = this._getObjectDescriptor(gmeId);
-	if (description)
+	if (description && this._widget)
             this._widget.updateNode(description);
     };
 
     HFSMVizControl.prototype._onUnload = function (gmeId) {
-        this._widget.removeNode(gmeId);
+        if (this._widget)
+            this._widget.removeNode(gmeId);
     };
 
     HFSMVizControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
@@ -190,6 +191,7 @@ define([
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     HFSMVizControl.prototype.destroy = function () {
         this._detachClientEventListeners();
+        this._client.removeUI(this._territoryId);
     };
 
     HFSMVizControl.prototype._attachClientEventListeners = function () {

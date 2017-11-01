@@ -1710,7 +1710,7 @@ define([
 
         /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
         HFSMVizWidget.prototype.destroy = function () {
-            this._el.empty();
+            this._el.remove();
             delete this._el;
             delete this.nodes;
             delete this._simulator;
