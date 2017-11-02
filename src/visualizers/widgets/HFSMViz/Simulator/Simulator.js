@@ -161,8 +161,7 @@ define(['js/util',
 
 	   Simulator.prototype.setActiveState = function( gmeId ) {
 	       var self = this;
-	       self._activeState = self.getInitialState( gmeId );
-	       self.updateHistory( self._activeState.id );
+               self.handleNextState( self.getInitialState( gmeId ) );
 	       self.update();
 	   };
 
@@ -570,6 +569,7 @@ define(['js/util',
                            }
 			   var childInitId = edge.dst;
 			   initState = self.getInitialState( childInitId );
+                           
 		       }
 		   }
 	       }

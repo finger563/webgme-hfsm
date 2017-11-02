@@ -199,7 +199,7 @@ edge[Enabled = "False"] {
 }
 
 .active {
-    line-color: red;
-    border-color: red;
-    target-arrow-color: red;
+    line-color: blue;
+    border-color: blue;
+    target-arrow-color: blue;
 }
