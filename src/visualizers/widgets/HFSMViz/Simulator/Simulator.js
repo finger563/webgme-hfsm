@@ -161,7 +161,7 @@ define(['js/util',
 
 	   Simulator.prototype.setActiveState = function( gmeId ) {
 	       var self = this;
-               self.handleNextState( self.getInitialState( gmeId ) );
+               self.handleNextState( self.getInitialState( gmeId, true ) );
 	       self.update();
 	   };
 
@@ -170,7 +170,7 @@ define(['js/util',
 	   Simulator.prototype.initActiveState = function( ) {
 	       var self = this;
 	       this._historyStates = {};
-	       this._activeState = self.getInitialState( self.getTopLevelId() );
+	       this._activeState = self.getInitialState( self.getTopLevelId(), true );
 	       // display info
 	       if (self._activeState) {
 		   self.hideStateInfo();
@@ -188,7 +188,7 @@ define(['js/util',
 	       }
 	       else {
 		   var activeId = self._activeState.id;
-		   self._activeState = self.getInitialState( activeId );
+		   self._activeState = self.getInitialState( activeId, true );
 	       }
 	   };
 
@@ -568,7 +568,7 @@ define(['js/util',
                                self._animateElementCallback( edge.id );
                            }
 			   var childInitId = edge.dst;
-			   initState = self.getInitialState( childInitId );
+			   initState = self.getInitialState( childInitId, animate );
                            
 		       }
 		   }

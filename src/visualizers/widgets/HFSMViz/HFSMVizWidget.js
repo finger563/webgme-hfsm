@@ -1152,25 +1152,6 @@ define([
             var eles = self._cy.$('#'+idTag);
             if (eles.length) {
                 eles.flashClass("active", 1000);
-                /*
-                eles
-                    .animate({
-                        style: {
-                            'line-color': 'red',
-                            'border-color': 'red',
-                        }
-                    })
-                    .delay(1000)
-                    .animate({
-                        style: {
-                            'line-color': 'black',
-                            'border-color': 'black',
-                        },
-                        complete: function() {
-                            eles.stop()
-                        }
-                    })
-                */
             }
         };
 
