@@ -101,7 +101,7 @@ node[NodeType = "Internal Transition"] {
 node[NodeType = "End State"] {
     background-image: assets/DecoratorSVG/svgs/endState.svg;
     background-image-opacity: 1.0;
-    border-width: 0;
+    border-width: 1;
     shape: ellipse;
     width: 6;
     height: 6;
@@ -196,4 +196,10 @@ edge[Enabled = "False"] {
 
 .filtered {
     display: none;
+}
+
+.active {
+    line-color: red;
+    border-color: red;
+    target-arrow-color: red;
 }

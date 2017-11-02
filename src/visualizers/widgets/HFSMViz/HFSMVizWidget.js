@@ -153,6 +153,7 @@ define([
             this._simulator = new Simulator();
             this._simulator.initialize( this._left, this.nodes, this._client );
             this._simulator.onStateChanged( this.showActiveState.bind(this) );
+            this._simulator.onAnimateElement( this.animateElement.bind(this) );
             this._simulator.onShowTransitions( this.showTransitions.bind(this) );
 
             // DRAGGING INFO
@@ -1144,6 +1145,34 @@ define([
         };
 
         /* * * * * * * * Active State Display      * * * * * * * */
+
+        HFSMVizWidget.prototype.animateElement = function( eleId ) {
+            var self = this;
+            var idTag = eleId.replace(/\//gm, "\\/");
+            var eles = self._cy.$('#'+idTag);
+            if (eles.length) {
+                eles.flashClass("active", 1000);
+                /*
+                eles
+                    .animate({
+                        style: {
+                            'line-color': 'red',
+                            'border-color': 'red',
+                        }
+                    })
+                    .delay(1000)
+                    .animate({
+                        style: {
+                            'line-color': 'black',
+                            'border-color': 'black',
+                        },
+                        complete: function() {
+                            eles.stop()
+                        }
+                    })
+                */
+            }
+        };
 
         HFSMVizWidget.prototype.showActiveState = function( stateId ) {
             var self = this;

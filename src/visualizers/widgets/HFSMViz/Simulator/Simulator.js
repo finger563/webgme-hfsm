@@ -146,6 +146,14 @@ define(['js/util',
 	       self._stateChangedCallback = stateChangedCallback;
 	   };
 
+	   Simulator.prototype.onAnimateElement = function(animateElementCallback) {
+	       var self = this;
+	       // call func when state is changed; func should take an
+	       // argument that is the gmeId of the current active
+	       // state
+	       self._animateElementCallback = animateElementCallback;
+	   };
+
 	   Simulator.prototype.onShowTransitions = function( showTransitionsCallback ) {
 	       var self = this;
                self._showTransitionsCallback = showTransitionsCallback;
@@ -415,6 +423,7 @@ define(['js/util',
 	   Simulator.prototype.handleNextState = function ( state ) {
 	       var self = this;
 	       if ( state ) {
+                   self._animateElementCallback( state.id );
 		   // update history states here for all states we're leaving
 		   self.updateHistory( self._activeState.id );
 		   if ( state.type == 'Choice Pseudostate' ) {
@@ -540,7 +549,7 @@ define(['js/util',
 	       return parentState;
 	   };
 
-	   Simulator.prototype.getInitialState = function( stateId ) {
+	   Simulator.prototype.getInitialState = function( stateId, animate ) {
 	       var self = this;
 	       var state = self.nodes[ stateId ];
 	       var initState = state;
@@ -555,6 +564,10 @@ define(['js/util',
 		       var initEdgeIds = self.getEdgesFromNode( initId );
 		       if (initEdgeIds.length == 1) {
 			   var edge = self.nodes[ initEdgeIds[0] ];
+                           if (animate) {
+                               self._animateElementCallback( initId );
+                               self._animateElementCallback( edge.id );
+                           }
 			   var childInitId = edge.dst;
 			   initState = self.getInitialState( childInitId );
 		       }
@@ -568,10 +581,11 @@ define(['js/util',
 	       var nextState = null;
 	       var trans = self.nodes[ transId ];
 	       if (trans) {
+                   self._animateElementCallback( transId );
 		   if (trans.type == 'External Transition') {
 		       var dstId = trans.dst;
 		       if (dstId) { // exte
-			   nextState = self.getInitialState( dstId ); // will recurse
+			   nextState = self.getInitialState( dstId, true ); // will recurse
 		       }
 		   }
 		   else if (trans.type == 'Internal Transition') {
