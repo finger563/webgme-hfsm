@@ -234,7 +234,7 @@ define(['js/util',
 	       var historyStateId = self._historyStates[ stateId ];
 	       if (historyStateId == undefined) // set to parent if we haven't been here before
 		   historyStateId = self.nodes[ stateId ].parentId;
-	       return self.getInitialState( historyStateId );
+	       return self.getInitialState( historyStateId, true );
 	   };
 
 	   Simulator.prototype.handleDeepHistory = function( stateId ) {
@@ -246,7 +246,7 @@ define(['js/util',
 	       if (historyStateId == undefined) {
 		   // set to parent if we havent' been here before
 		   historyStateId = self.nodes[ stateId ].parentId;
-		   histState = self.getInitialState( historyStateId );
+		   histState = self.getInitialState( historyStateId, true );
 	       }
 	       else {
 		   // we've been here, get the state it pointed to
@@ -254,7 +254,7 @@ define(['js/util',
 		   if (histState == undefined ) {
 		       // State stored in history must have been moved / deleted
 		       alert('History state no longer valid, reinitailizing.');
-		       histState = self.getInitialState( self.getTopLevelId() );
+		       histState = self.getInitialState( self.getTopLevelId(), true );
 		   }
 	       }
 	       return histState;
