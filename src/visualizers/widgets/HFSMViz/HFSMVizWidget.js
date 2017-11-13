@@ -12,6 +12,8 @@ define([
     './Simulator/Simulator',
     './Simulator/Choice',
     // built-ins
+    'js/Constants',
+    'js/Utils/GMEConcepts',
     'js/Controls/ContextMenu',
     'js/DragDrop/DropTarget',
     'js/DragDrop/DragConstants',
@@ -37,6 +39,8 @@ define([
         Simulator,
         Choice,
         // built-ins
+        CONSTANTS,
+        GMEConcepts,
         ContextMenu,
         dropTarget,
         DROP_CONSTANTS,
@@ -340,39 +344,7 @@ define([
                 },
                 complete: function( sourceNode, targetNodes, addedEntities, position ) {
                     // fired when edgehandles is done and entities are added
-
-                    // remove the temporary edges
-                    addedEntities.map(function(ae) {
-                        ae.remove();
-                    });
-
-                    var options = {
-                        "0": {
-                            name: 'External Transition',
-                            icon: false,
-                            fn: function() {
-                                if (sourceNode && targetNodes && addedEntities)
-                                    self.draggedEdge( sourceNode, targetNodes[0] );
-                            }
-                        },
-                        "1": {
-                            name: 'Local Transition',
-                            icon: false,
-                            fn: function() {
-                                alert('Local Transitions are not supported yet!');
-                            }
-                        },
-                    };
-
-                    var targetPos = self.cyPosition( targetNodes[0] );
-                    targetPos = position || self.cyPosToScreenPos( targetPos );
-                    targetPos.x += $(self._left).width();
-                    targetPos = self._relativeToWindowPos( targetPos );
-
-                    self.createWebGMEContextMenu(options, function(option) {
-                        if (options[option] && options[option].fn)
-                            options[option].fn();
-                    }, targetPos);
+                    self.edgeContextMenu( sourceNode, targetNodes, addedEntities, position );
                 },
                 stop: function( sourceNode ) {
                     // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
@@ -1621,19 +1593,77 @@ define([
 
         /* * * * * * * * Edge Creation Functions   * * * * * * * */
 
-        HFSMVizWidget.prototype.draggedEdge = function( cySrc, cyDst ) {
-            var self = this;
-            var srcDesc = self.nodes[cySrc.id()];
-            var dstDesc = self.nodes[cyDst.id()];
-            var srcParentId = srcDesc.parentId;
-            var newEdgePath = self.createNewEdge( srcParentId, srcDesc, dstDesc );
+        HFSMVizWidget.prototype.edgeContextMenu = function(cySource, cyTargets, addedEdges, position) {
+            var self = this,
+                client = self._client;
+            // get the valid connections that can be made
+            if (!cySource || !cyTargets || !addedEdges) {
+            }
+
+            // remove the temporary edges
+            addedEdges.map(function(ae) {
+                ae.remove();
+            });
+
+            var srcId = cySource.id();
+            var srcDesc = self.nodes[srcId];
+            var dstId = cyTargets[0].id();
+            var dstDesc = self.nodes[dstId];
+
+            var parentId = srcDesc.parentId;
+
+            function makeOption(src, dst, connId) {
+                var conn = client.getNode(connId);
+                return {
+                    name: conn.getAttribute('name'),
+                    icon: false,
+                    fn: function() {
+                        self.createNewEdge( parentId, src, dst, connId );
+                    }
+                }
+            }
+
+            var options = {};
+
+            // figure out what kind of connections the parent can have
+            var parentNode = client.getNode(parentId);
+            GMEConcepts.initialize(client);
+            var validConnections = GMEConcepts.getValidConnectionTypesFromSourceInAspect(srcId, parentId, CONSTANTS.ASPECT_ALL);
+            
+            var options = {};
+            var localKey = "" + validConnections.length;
+            options[localKey] = {
+                name: 'Local Transition',
+                icon: false,
+                fn: function() {
+                    alert('Local Transitions are not supported yet!');
+                }
+            };
+
+            var i = 0;
+            validConnections.map(function(typeId) {
+                var key = ""+i;
+                i++;
+                var option = makeOption( srcId, dstId, typeId);
+                options[key] = option;
+            });
+
+            var targetPos = self.cyPosition( cyTargets[0] );
+            targetPos = position || self.cyPosToScreenPos( targetPos );
+            targetPos.x += $(self._left).width();
+            targetPos = self._relativeToWindowPos( targetPos );
+
+            self.createWebGMEContextMenu(options, function(option) {
+                if (options[option] && options[option].fn)
+                    options[option].fn();
+            }, targetPos);
         };
 
-        HFSMVizWidget.prototype.createNewEdge = function( parentId, src, dst ) {
+        HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeMetaId ) {
             var self = this;
             var client = self._client;
-            // should be META:External Transition
-            var edgeMetaId = '/615025579/318746662'; // need to not hardcode the edgeId
+            var edgeMetaNode = client.getNode(edgeMetaId);
+            var edgeType = edgeMetaNode.getAttribute('name');
             var childCreationParams = {
                 parentId: parentId,
                 baseId: edgeMetaId,
@@ -1641,13 +1671,13 @@ define([
 
             client.startTransaction();
 
-            var msg = 'Creating External Transition between ' + src.id + ' and '+dst.id;
+            var msg = 'Creating ' + edgeType + ' between ' + srcId + ' and '+dstId;
             var newEdgePath = client.createChild( childCreationParams, msg);
             if (newEdgePath) {
-                msg = 'Setting src pointer for ' + newEdgePath + ' to ' + src.id;
-                client.setPointer( newEdgePath, 'src', src.id, msg );
-                msg = 'Setting dst pointer for ' + newEdgePath + ' to ' + dst.id;
-                client.setPointer( newEdgePath, 'dst', dst.id, msg );
+                msg = 'Setting src pointer for ' + newEdgePath + ' to ' + srcId;
+                client.setPointer( newEdgePath, 'src', srcId, msg );
+                msg = 'Setting dst pointer for ' + newEdgePath + ' to ' + dstId;
+                client.setPointer( newEdgePath, 'dst', dstId, msg );
             }
 
             client.completeTransaction();
