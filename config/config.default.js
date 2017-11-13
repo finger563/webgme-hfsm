@@ -7,6 +7,10 @@ config.server.port = 8081;
 
 config.storage.keyType = 'rand160Bits';
 
+config.client.log.level = 'debug';
+
+config.server.log.level = 'debug';
+
 //config.seedProjects.defaultProject = 'FiniteStateMachine';
 config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
 
@@ -14,8 +18,6 @@ config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
 config.requirejsPaths.hfsm = "./src/common";
 config.requirejsPaths['webgme-to-json'] = "./node_modules/webgme-to-json";
 config.requirejsPaths['bower'] = "./bower_components/";
-config.requirejsPaths['mustache'] = "bower/mustache";
-config.requirejsPaths['handlebars'] = "./bower_components/handlebars/dist";
 config.requirejsPaths['cytoscape-edgehandles'] = "./bower_components/cytoscape-edgehandles/cytoscape-edgehandles";
 config.requirejsPaths['cytoscape-context-menus'] = "./bower_components/cytoscape-context-menus/cytoscape-context-menus";
 config.requirejsPaths['cytoscape-panzoom'] = "./bower_components/cytoscape-panzoom/cytoscape-panzoom";

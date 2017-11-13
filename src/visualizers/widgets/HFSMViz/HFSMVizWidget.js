@@ -6,50 +6,64 @@
  */
 
 define([
+    // local
     'text!./HFSM.html',
     './Dialog/Dialog',
     './Simulator/Simulator',
     './Simulator/Choice',
+    // built-ins
     'js/Controls/ContextMenu',
     'js/DragDrop/DropTarget',
     'js/DragDrop/DragConstants',
     'decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog',
+    // cytoscape
     'bower/cytoscape/dist/cytoscape.min',
     'cytoscape-edgehandles',
     'cytoscape-context-menus',
     'cytoscape-panzoom',
     'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
+    // utils
     'bower/mustache.js/mustache.min',
     'bower/blob-util/dist/blob-util.min',
     'text!./style2.css',
     'q',
+    // css
     'css!bower/cytoscape-context-menus/cytoscape-context-menus.css',
     'css!bower/cytoscape-panzoom/cytoscape.js-panzoom.css',
     'css!./styles/HFSMVizWidget.css'], function (
+        // local
         HFSMHtml,
         Dialog,
         Simulator,
         Choice,
+        // built-ins
         ContextMenu,
         dropTarget,
         DROP_CONSTANTS,
         DocumentEditorDialog,
+        // cytoscape 
         cytoscape,
-        edgehandles,
+        cyEdgehandles,
         cyContext,
         cyPanZoom,
         coseBilkent,
+        // utils
         mustache,
         blobUtil,
         styleText,
         Q) {
         'use strict';
 
-        cytoscape.use( edgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
+        //console.log(cytoscape);
+        //console.log(cyEdgehandles);
+        //console.log(cyContext);
+        //console.log(cyPanZoom);
+        //console.log(coseBilkent);
+
+        cytoscape.use( cyEdgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
         cytoscape.use( cyContext, $ );
         cytoscape.use( cyPanZoom, $ );
         cytoscape.use( coseBilkent );
-        //cytoscape.use( cyPopper, Popper );
 
         var rootTypes = ['State Machine','Library'];
 
