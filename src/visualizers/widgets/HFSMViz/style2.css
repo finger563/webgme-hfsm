@@ -171,8 +171,8 @@ node[isIncomplete = "True"]{
 node:selected {
     /* width: 40; */
     /* height: 40; */
-    border-color: rgb(187, 219, 247);
-    border-width: 4;
+    border-color: #F88;/*rgb(187, 219, 247);*/
+    /* border-width: 4;    */
 }
 
 .edgehandles-target {
@@ -183,11 +183,11 @@ node:selected {
 edge:selected {
     /* width: 40; */
     /* height: 40; */
-    width: 4;
+    /* width: 4; */
     font-weight: bold;
-    line-color: rgb(187, 219, 247);/*#000;*/
-    target-arrow-color: rgb(187, 219, 247);/*#000;*/
-    arrow-scale: 2;
+    line-color: #F88; /*rgb(187, 219, 247);/*#000;*/
+    target-arrow-color: #F08; /*rgb(187, 219, 247);/*#000;*/
+    /* arrow-scale: 2; */
 }
 
 edge[Enabled = "False"] {
