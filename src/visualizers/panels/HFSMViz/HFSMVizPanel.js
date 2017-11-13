@@ -74,18 +74,60 @@ define([
         this.widget.onWidgetContainerResize(width, height);
     };
 
+    var validGUIDs = [
+        "1580d9b2-6093-84f0-06ec-858980294d65",
+        "f8fc18e6-db54-3cf1-51e5-df2a7693628f",
+        "682bbfe9-48c6-9de0-2a45-3315bca7c7cf", // state
+        "fdc4b7d9-d5ab-37e0-e33e-abc99464fba6",
+        "f848f280-919c-deaa-9b57-06064ee66de4",
+        "e723b314-48ed-60f4-f398-d0ace680c118",
+        "24205425-8e9f-c762-0b76-84c08809e1e6",
+
+        "9d05629e-8ada-4efc-58b1-3f5d315c3a1e", // internal transition
+    ];
+
+    var stateGUID = validGUIDs[2];
+
     /* * * * * * * * Tells part browser what to show * * * * * * * */
     HFSMVizPanel.prototype.getValidTypesInfo = function( nodeId ) {
+        var client = this._client;
 	var node = this._client.getNode( nodeId );
 	if (node) {
 	    var detailedTypes = {};
-	    /*
-	    detailedTypes = node.getValidChildrenTypesDetailed( );
-	    Object.keys(detailedTypes).map(function(k) {
-		detailedTypes[k] = true;
+
+	    var t = node.getValidChildrenTypesDetailed( );
+	    Object.keys(t).map(function(k) {
+                var n = client.getNode(k);
+                var guid = null;
+                try {
+                    guid = n.getLibraryGuid();
+                }
+                catch (e) {
+                    guid = n.getGuid();
+                }
+                if (validGUIDs.indexOf(guid) > -1)
+                    detailedTypes[k] = true;
+
+                if (guid == stateGUID) {
+                    // get internal transition
+                    var c = n.getValidChildrenTypesDetailed();
+                    Object.keys(c).map(function(key) {
+                        var n2 = client.getNode(key);
+                        var guid2 = null;
+                        try {
+                            guid2 = n2.getLibraryGuid();
+                        }
+                        catch (e) {
+                            guid2 = n2.getGuid();
+                        }
+                        if (validGUIDs.indexOf(guid2) > -1)
+                            detailedTypes[key] = true;
+                    });
+                }
 	    });
-	    */
+
 	    // is there a way to not have to hard-code this?
+            /*
 	    detailedTypes[ '/615025579/i' ] = true; // Documentation
 	    detailedTypes[ '/615025579/x' ] = true; // internal transition
 	    detailedTypes['/615025579/1242097160'] = true; // initial state
@@ -94,6 +136,7 @@ define([
 	    detailedTypes['/615025579/e'] = true; // deep history pseudostate
 	    detailedTypes['/615025579/K'] = true; // shallow history pseudostate
 	    detailedTypes['/615025579/1416392928'] = true; // state
+            */
 	    return detailedTypes;
 	}
 	else {
