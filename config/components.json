@@ -15,7 +15,7 @@
 	    "Initial",
 	    "End State"
 	],
-	"loadDepth": 10,
+	"loadDepth": -1,
 	"defaultSyntax": "cpp",
 	"syntaxToModeMap": {
 	    "gfm": {
