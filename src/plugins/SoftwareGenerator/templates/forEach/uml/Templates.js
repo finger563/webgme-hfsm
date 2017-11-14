@@ -1,4 +1,4 @@
-define(['bower/handlebars/dist/handlebars.min',
+define(['bower/handlebars/handlebars.min',
         'underscore',
 	'text!./StateBase.hpp',
 	'text!./DeepHistoryState.hpp',

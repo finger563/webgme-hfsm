@@ -1,4 +1,4 @@
-define(['bower/handlebars/dist/handlebars.min',
+define(['bower/handlebars/handlebars.min',
 	'./uml/Templates',
 	'text!./Makefile.tmpl',
 	'text!./test.cpp'],
