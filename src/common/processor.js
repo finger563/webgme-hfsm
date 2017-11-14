@@ -69,14 +69,6 @@ define(['./checkModel'], function(checkModel) {
 		    self.processTopLevel( obj );
 		    obj.isRoot = true;
 		}
-		// Make sure component names are good and generation
-		// information exists
-		else if (obj.type == 'Component') {
-		    var sName = self.sanitizeString(obj.name);
-		    obj.sanitizedName = sName;
-		    obj.needsExtern = obj.Language == 'c';
-		    obj.includeName = sName + ((obj.Language == 'c++') ? '.hpp' : '.h');
-		}
 		// Process External Transition Data into convenience
 		// members of source State
 		else if (obj.type == 'External Transition') {
