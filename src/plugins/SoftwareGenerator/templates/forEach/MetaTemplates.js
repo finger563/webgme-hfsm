@@ -71,7 +71,7 @@ define(['bower/handlebars/handlebars.min',
 		   }
 		   obj.fullyQualifiedName = fqName;
 	       },
-	       renderTestCode: function( model ) {
+	       renderTestCode: function( model, objToFilePrefixFn ) {
 		   var self = this;
 		   var objects = model.objects;
 		   var root    = model.root;
@@ -88,13 +88,16 @@ define(['bower/handlebars/handlebars.min',
 			       )(
 				   obj
 			       );
+                               if (objToFilePrefixFn) {
+                                   fileName = objToFilePrefixFn( obj ) + fileName;
+                               }
 			       artifacts[ fileName ] = fileData;
 			   });
 		       }
 		   });
 		   return artifacts;
 	       },
-	       renderHFSM: function(model) {
+	       renderHFSM: function(model, objToFilePrefixFn ) {
 		   var self    = this;
 		   var objects = model.objects;
 		   var root    = model.root;
@@ -146,46 +149,37 @@ define(['bower/handlebars/handlebars.min',
                        });
 		       if (rootTypeList) {
 			   rootTypeList.map(function(obj) {
-			       generatedArtifacts = Object.assign(
-				   generatedArtifacts,
+                               var hfsmArtifacts = {};
+			       hfsmArtifacts = Object.assign(
+				   hfsmArtifacts,
 				   UMLTemplates.renderStates( obj )
 			       );
+		               hfsmArtifacts = Object.assign(
+		                   hfsmArtifacts,
+		                   UMLTemplates.renderEvents( obj )
+		               );
+		               hfsmArtifacts = Object.assign(
+		                   hfsmArtifacts,
+		                   UMLTemplates.renderStatic( )
+		               );
+                               if (objToFilePrefixFn) {
+                                   var prefixedArtifacts = {};
+                                   Object.keys(hfsmArtifacts).map(function(fname) {
+                                       var fdata = hfsmArtifacts[fname];
+                                       prefixdName = objToFilePrefixFn(obj) + fname;
+                                       prefixedArtifacts[prefixedName] = fdata;
+                                   });
+		                   hfsmArtifacts = prefixedArtifacts;
+                               }
+
+                               generatedArtifacts = Object.assign(
+                                   generatedArtifacts,
+                                   hfsmArtifacts
+                               );
 			   });
 		       }
 		   });
-		   generatedArtifacts = Object.assign(
-		       generatedArtifacts,
-		       UMLTemplates.renderEvents( root )
-		   );
-		   generatedArtifacts = Object.assign(
-		       generatedArtifacts,
-		       UMLTemplates.renderStatic()
-		   );
 		   return generatedArtifacts;
-	       },
-	       getArtifacts: function(pathToObjDict, baseDir) {
-		   var self = this;
-		   var artifacts = {};
-		   Object.keys(pathToObjDict).map(function (path) {
-		       var obj = pathToObjDict[ path ];
-		       var templDict = self.Templates[ obj.type ];
-		       if ( templDict ) {
-			   Object.keys(templDict).map(function(pathTempl) {
-			       var fileTempl = templDict[ pathTempl ];
-			       var context = {
-				   base: baseDir,
-				   obj: obj
-			       };
-			       var fileData = '';
-			       var filePath = '';
-			       /*
-			       var filePath = mustache.render( pathTempl, renderData );
-			       var fileData = mustache.render( fileTempl, renderData );
-			       */
-			       artifacts[ filePath ] = fileData;
-			   });
-		       }
-		   });
 	       },
 	   };
        }); // define( [], function() {} );

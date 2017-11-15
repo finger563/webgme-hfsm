@@ -1,9 +1,9 @@
 #ifndef __STATE_BASE__INCLUDE_GUARD
 #define __STATE_BASE__INCLUDE_GUARD
 
-#include "Events.hpp"
-
 namespace StateMachine {
+
+  class Event;
 
   /**
    * States contain other states and can consume generic

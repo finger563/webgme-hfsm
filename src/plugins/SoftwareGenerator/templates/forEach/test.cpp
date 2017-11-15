@@ -1,4 +1,4 @@
-#include "Events.hpp"
+#include "{{{sanitizedName}}}_Events.hpp"
 #include "{{{sanitizedName}}}_GeneratedStates.hpp"
 
 #include <string>

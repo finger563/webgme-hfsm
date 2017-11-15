@@ -62,7 +62,7 @@ define(['bower/handlebars/handlebars.min',
 				"GeneratedStatesTemplCpp" ];
 
 	   var keyTemplates = {
-	       'EventTempl': 'Events.hpp',
+	       'EventTempl': '{{{sanitizedName}}}_Events.hpp',
 	       'GeneratedStatesTemplHpp': '{{{sanitizedName}}}_GeneratedStates.hpp',
 	       'GeneratedStatesTemplCpp': '{{{sanitizedName}}}_GeneratedStates.cpp',
 	   };
