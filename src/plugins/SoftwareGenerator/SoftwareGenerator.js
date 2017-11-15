@@ -136,7 +136,7 @@ define([
         self.branchName = branchName;
     };
 
-    SoftwareGenerator.prototype.generateArtifacts = function (result, generateHash, generateTestCode) {
+    SoftwareGenerator.prototype.generateArtifacts = function (result, generateHash, generateTestCode, objToFilePrefixFn) {
 	var self = this;
         var artifacts = {};
 
@@ -155,12 +155,12 @@ define([
             }, null, 2);
         }
 
-	var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel );
+	var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel, objToFilePrefixFn );
 	artifacts = Object.assign(artifacts, hfsmArtifacts);
 
 	if (generateTestCode) {
 	    self.notify('info', 'Generating HFSM Test Bench!');
-	    var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel );
+	    var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel, objToFilePrefixFn );
 	    artifacts = Object.assign(artifacts, testCodeArtifacts);
 	}
         return artifacts;

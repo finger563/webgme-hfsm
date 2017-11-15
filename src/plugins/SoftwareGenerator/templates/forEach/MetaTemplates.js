@@ -89,9 +89,15 @@ define(['bower/handlebars/handlebars.min',
 				   obj
 			       );
                                if (objToFilePrefixFn) {
-                                   fileName = objToFilePrefixFn( obj ) + fileName;
+                                   var fileName = null;
+                                   var prefix = objToFilePrefixFn( obj );
+                                   if (prefix) {
+                                       fileName = prefix + fileName;
+                                   }
                                }
-			       artifacts[ fileName ] = fileData;
+                               if (fileName) {
+			           artifacts[ fileName ] = fileData;
+                               }
 			   });
 		       }
 		   });
@@ -166,8 +172,11 @@ define(['bower/handlebars/handlebars.min',
                                    var prefixedArtifacts = {};
                                    Object.keys(hfsmArtifacts).map(function(fname) {
                                        var fdata = hfsmArtifacts[fname];
-                                       prefixdName = objToFilePrefixFn(obj) + fname;
-                                       prefixedArtifacts[prefixedName] = fdata;
+                                       var prefix = objToFilePrefixFn(obj);
+                                       if (prefix) {
+                                           var prefixedName = prefix + fname;
+                                           prefixedArtifacts[prefixedName] = fdata;
+                                       }
                                    });
 		                   hfsmArtifacts = prefixedArtifacts;
                                }
