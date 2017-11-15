@@ -9,10 +9,21 @@ define(['./checkModel'], function(checkModel) {
 		return seen.hasOwnProperty(item) ? false : (seen[item] = true);
 	    });
 	},
-	addEvent: function(model, eventName) {
+	addEvent: function(model, obj, eventName) {
 	    eventName = eventName.toUpperCase().trim();
-	    if (eventName)
-		model.root.eventNames.push( eventName );
+	    if (eventName) {
+                // go up to the State Machine object and add it there.
+                var p = model.objects[obj.parentPath];
+                while (p && p.type && p.type != 'State Machine') {
+                    p = model.objects[p.parentPath];
+                }
+                if (p) {
+                    if (!p.eventNames) {
+                        p.eventNames = [];
+                    }
+		    p.eventNames.push( eventName );
+                }
+            }
 	},
 	sanitizeString: function(str) {
 	    return str.replace(/[ \-]/gi,'_');
@@ -54,10 +65,6 @@ define(['./checkModel'], function(checkModel) {
 	    // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
 	    // FOR SELECT OBJECTS IN THE MODEL
 
-	    // Keep track of all the events in the model and which
-	    // transitions occur from them
-	    model.root.eventNames = [];
-
 	    var objPaths = Object.keys(model.objects);
 	    objPaths.map(function(objPath) {
 		var obj = model.objects[objPath];
@@ -84,7 +91,7 @@ define(['./checkModel'], function(checkModel) {
 
 			if (obj.Event) {
 			    // add the event to a global list of events
-			    self.addEvent( model, obj.Event );
+			    self.addEvent( model, obj, obj.Event );
 			    // add the external transition to the source
 			    self.updateEventInfo( 'ExternalEvents',
 						  src,
@@ -109,7 +116,7 @@ define(['./checkModel'], function(checkModel) {
 		    var parent = model.objects[ obj.parentPath ];
 		    if (parent) {
 			// add the event to a global list of events
-			self.addEvent( model, obj.Event );
+			self.addEvent( model, obj, obj.Event );
 			// add the internal transition to the parent
 			self.updateEventInfo( 'InternalEvents',
 					      parent,
@@ -179,8 +186,13 @@ define(['./checkModel'], function(checkModel) {
 		    obj['Exit'] = obj['Exit'].replace(self.stripRegex, "    $1");
 		}
 	    });
-	    // make sure event names are global and sort them
-	    model.root.eventNames = self.uniq( model.root.eventNames ).sort();
+            // make sure event names are unique and sort them
+	    objPaths.map(function(objPath) {
+		var obj = model.objects[objPath];
+		if (obj.type == 'State Machine') {
+                    obj.eventNames = self.uniq( obj.eventNames ).sort();
+		}
+            });
 	    // make sure all objects have convenience members
 	    self.makeConvenience( model );
 	},
