@@ -98,22 +98,22 @@ define([
 	self.artifactName = self.project.projectId + '+' + self.branchName + '+' + self.projectName + '_generatedCode';
 
 	self.projectModel = {}; // will be filled out by loadProjectModel (and associated functions)
-	self.artifacts = {}; // will be filled out and used by various parts of this plugin
 
 	webgmeToJson.notify = function(level, msg) {self.notify(level, msg);}
 
       	webgmeToJson.loadModel(self.core, self.rootNode, projectNode, true, true)
   	    .then(function (projectModel) {
 		// make convenience members and extra data
-		processor.processModel(projectModel);
-		self.projectModel = projectModel;
-		self.projectRoot = projectModel.root;
-		self.projectObjects = projectModel.objects;
+                self.setProjectModel( projectModel );
   	    })
 	    .then(function () {
-		return self.generateArtifacts();
+	        self.notify('info', 'Generating HFSM Implementation in '+self.language);
+		return self.generateArtifacts(self.result, true, self.generateTestCode);
 	    })
-	    .then(function () {
+	    .then(function (artifacts) {
+                return self.saveArtifacts( self.result, artifacts, self.artifactName );
+            })
+            .then(function () {
 		self.notify('info', "Generated artifacts.");
         	self.result.setSuccess(true);
         	callback(null, self.result);
@@ -126,36 +126,52 @@ define([
 		.done();
     };
 
-    SoftwareGenerator.prototype.generateArtifacts = function () {
+    SoftwareGenerator.prototype.setProjectModel = function(projectModel, commitHash, branchName) {
+        var self = this;
+	processor.processModel(projectModel);
+	self.projectModel = projectModel;
+	self.projectRoot = projectModel.root;
+	self.projectObjects = projectModel.objects;
+        self.commitHash = commitHash;
+        self.branchName = branchName;
+    };
+
+    SoftwareGenerator.prototype.generateArtifacts = function (result, generateHash, generateTestCode) {
 	var self = this;
+        var artifacts = {};
 
 	var baseDir = [
 	    self.projectRoot.sanitizedName
 	].join('/');
 
-	// make sure we can figure out exactly where we generated from
-        self.artifacts[self.projectRoot.name + '_metadata.json'] = JSON.stringify({
-    	    projectID: self.project.projectId,
-            commitHash: self.commitHash,
-            branchName: self.branchName,
-            timeStamp: (new Date()).toISOString(),
-            pluginVersion: self.getVersion()
-        }, null, 2);
+        if (generateHash) {
+	    // make sure we can figure out exactly where we generated from
+            artifacts[self.projectRoot.name + '_metadata.json'] = JSON.stringify({
+    	        projectID: self.project.projectId,
+                commitHash: self.commitHash,
+                branchName: self.branchName,
+                timeStamp: (new Date()).toISOString(),
+                pluginVersion: self.getVersion()
+            }, null, 2);
+        }
 
-	self.notify('info', 'Generating HFSM Implementation in '+self.language);
 	var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel );
-	self.artifacts = Object.assign(self.artifacts, hfsmArtifacts);
+	artifacts = Object.assign(artifacts, hfsmArtifacts);
 
-	if (self.generateTestCode) {
+	if (generateTestCode) {
 	    self.notify('info', 'Generating HFSM Test Bench!');
 	    var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel );
-	    self.artifacts = Object.assign(self.artifacts, testCodeArtifacts);
+	    artifacts = Object.assign(artifacts, testCodeArtifacts);
 	}
+        return artifacts;
+    };
 
-	var fileNames = Object.keys(self.artifacts);
-	var artifact = self.blobClient.createArtifact(self.artifactName);
+    SoftwareGenerator.prototype.saveArtifacts = function (result, artifacts, artifactName) {
+        var self = this;
+	var fileNames = Object.keys(artifacts);
+	var artifact = self.blobClient.createArtifact(artifactName);
 	var deferred = new Q.defer();
-	artifact.addFiles(self.artifacts, function(err) {
+	artifact.addFiles(artifacts, function(err) {
 	    if (err) {
 		deferred.reject(err.message);
 		return;
@@ -165,7 +181,7 @@ define([
 		    deferred.reject(err.message);
 		    return;
 		}
-		self.result.addArtifact(hashes[0]);
+		result.addArtifact(hashes[0]);
 		deferred.resolve();
 	    });
 	});

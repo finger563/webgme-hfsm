@@ -40,7 +40,7 @@ define(['bower/handlebars/handlebars.min',
 		       self.makeVariableName( obj );
 		   var pName = obj.VariableName;
 		   var parent = objDict[ obj.parentPath ];
-		   if (parent && parent.type != 'Project') {
+                   if (parent && obj.type != 'State Machine') {
 		       self.makePointerName( parent, objDict );
 		       pName = parent.pointerName + '__' + pName;
 		   }
@@ -54,7 +54,7 @@ define(['bower/handlebars/handlebars.min',
 		       self.makeVariableName( obj );
 		   var fqName = obj.VariableName;
 		   var parent = objDict[ obj.parentPath ];
-		   if (parent && parent.type != 'Project') {
+                   if (parent && obj.type != 'State Machine') {
 		       self.makeFullyQualifiedVariableName( parent, objDict );
 		       fqName = parent.fullyQualifiedVariableName + '.' + fqName;
 		   }
@@ -67,7 +67,7 @@ define(['bower/handlebars/handlebars.min',
 		   var fqName = obj.sanitizedName;
 		   var parent = objDict[ obj.parentPath ];
 		   // make sure we have a relatively unique name for the state
-		   if (parent && parent.type != 'Project') {
+                   if (parent && obj.type != 'State Machine') {
 		       self.makeFullyQualifiedName( parent, objDict );
 		       fqName = parent.fullyQualifiedName + '::' + fqName;
 		   }
@@ -140,7 +140,12 @@ define(['bower/handlebars/handlebars.min',
 		   });
 		   
 		   rootTypes.map(function(rootType) {
-		       var rootTypeList = root[ rootType + '_list' ];
+                       var rootTypeList = Object.keys(objects).filter(function(k) {
+                           var o = objects[k];
+                           return o.type == rootType;
+                       }).map(function(k) {
+                           return objects[k];
+                       });
 		       if (rootTypeList) {
 			   rootTypeList.map(function(obj) {
 			       generatedArtifacts = Object.assign(
