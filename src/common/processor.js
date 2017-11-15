@@ -125,8 +125,9 @@ define(['./checkModel'], function(checkModel) {
 		    obj.sanitizedName = sName;
 		    // if root, make convenience to it
 		    var parent = model.objects[ obj.parentPath ];
-		    if (parent && parent.type != 'State')
+		    if (parent && parent.type != 'State') {
 			parent.END = obj;
+                    }
 		    else {
 			var endTransition = checkModel.getEndTransitions( parent, model.objects );
 			obj.endTransition = endTransition[0];

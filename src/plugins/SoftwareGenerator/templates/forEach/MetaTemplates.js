@@ -19,10 +19,8 @@ define(['bower/handlebars/handlebars.min',
 
 	   return {
 	       TestTemplates: {
-		   "Project": {
-		       "Makefile": 'MakefileTempl',
-		   },
 		   "State Machine": {
+		       "Makefile": 'MakefileTempl',
 		       "{{{sanitizedName}}}_test.cpp": 'MainTestTempl',
 		   },
 	       },

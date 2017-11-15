@@ -6,10 +6,10 @@
 
 void displayEventMenu() {
   std::cout << "Select which event to spawn:" << std::endl <<
-  {{#parent.eventNames}}
+  {{#eventNames}}
   "{{{@index}}}. {{{.}}}" << std::endl <<
-  {{/parent.eventNames}}
-  "{{{parent.eventNames.length}}}. None" << std::endl
+  {{/eventNames}}
+  "{{{eventNames.length}}}. None" << std::endl
 					 << "selection: ";
 }
 
@@ -23,13 +23,13 @@ int getUserSelection() {
 StateMachine::Event* makeEvent() {
   StateMachine::Event* e = nullptr;
   StateMachine::Event::Type types[] = {
-    {{#parent.eventNames}}
+    {{#eventNames}}
     StateMachine::Event::Type::{{{.}}},
-    {{/parent.eventNames}}
+    {{/eventNames}}
   };
   displayEventMenu();
   int i = getUserSelection();
-  if ( i < {{{parent.eventNames.length}}} && i > -1 ) {
+  if ( i < {{{eventNames.length}}} && i > -1 ) {
     eventFactory->spawnEvent( types[ i ] );
 
     #ifdef DEBUG_OUTPUT

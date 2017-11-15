@@ -23,10 +23,8 @@ COPY           = cp
 #
 #-------------------------------------------------------------------------------
 CPPSRC =
-{{#each this.[State Machine_list]}}
 CPPSRC += {{{sanitizedName}}}_GeneratedStates.cpp
 CPPSRC += {{{sanitizedName}}}_test.cpp
-{{/each}}
 
 #-------------------------------------------------------------------------------
 #
@@ -78,9 +76,11 @@ ALL_CFLAGS  = $(CFLAGS) $(CPPFLAGS) $(GENDEPFLAGS)
 # TARGETS
 #
 #-------------------------------------------------------------------------------
-all: begin test debug end
-test: {{#each this.[State Machine_list]}}{{{sanitizedName}}}_test {{/each}}
-debug: {{#each this.[State Machine_list]}}{{{sanitizedName}}}_test_DEBUG {{/each}}
+all:       begin test debug end
+test:      {{{sanitizedName}}}_test
+debug:     {{{sanitizedName}}}_test_DEBUG
+run:       run_{{{sanitizedName}}}_test
+run_debug: run_{{{sanitizedName}}}_test_DEBUG
 
 gccversion : 
 	@$(CC) --version
@@ -113,7 +113,6 @@ $(CPPOBJ) : %.o : %.cpp
 	@echo Compiling CPP Source: $<
 	g++ $(ALL_CFLAGS $< -o $@
 
-{{#each this.[State Machine_list]}}
 {{{sanitizedName}}}_test:
 	@echo Compiling {{{sanitizedName}}}_test
 	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS)
@@ -134,7 +133,6 @@ run_{{{sanitizedName}}}_test_DEBUG: {{{sanitizedName}}}_test_DEBUG
 	./{{{sanitizedName}}}_test_DEBUG
 	@echo
 	@echo Finished
-{{/each}}
 
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
 .PHONY : all begin finish end sizebefore sizeafter gccversion \
