@@ -10,12 +10,12 @@
 
 namespace StateMachine {
 
-  // User Declarations for the HFSM
-  {{{Declarations}}}
-
   // ROOT OF THE HFSM
   class {{{sanitizedName}}} : public StateMachine::StateBase {
   public:
+
+    // User Declarations for the HFSM
+    {{{Declarations}}}
 
     // Child Substates
     {{#each Substates}}
