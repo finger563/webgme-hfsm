@@ -76,7 +76,7 @@ namespace StateMachine {
 };
 
 // Root of the HFSM
-StateMachine::{{{sanitizedName}}} *const root = &StateMachine::{{{pointerName}}}_stateObj;
+StateMachine::{{{sanitizedName}}} *const {{{sanitizedName}}}_root = &StateMachine::{{{pointerName}}}_stateObj;
 // Event Factory
 StateMachine::EventFactory EVENT_FACTORY;
 StateMachine::EventFactory *const eventFactory = &EVENT_FACTORY;

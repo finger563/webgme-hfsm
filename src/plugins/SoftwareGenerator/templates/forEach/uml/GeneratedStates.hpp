@@ -77,7 +77,7 @@ namespace StateMachine {
 };
 
 // pointers
-extern StateMachine::{{{sanitizedName}}} *const root;
+extern StateMachine::{{{sanitizedName}}} *const {{{sanitizedName}}}_root;
 {{> PointerTemplHpp this}}
 {{#END}}
 extern StateMachine::StateBase *const {{{pointerName}}};

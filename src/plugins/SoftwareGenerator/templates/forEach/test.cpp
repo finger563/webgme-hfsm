@@ -46,10 +46,10 @@ int main( int argc, char** argv ) {
   StateMachine::Event* e = nullptr;
 
   // initialize the HFSM
-  root->initialize();
+  {{{sanitizedName}}}_root->initialize();
   
   while ( (e = makeEvent()) != nullptr) {
-    bool handled = root->handleEvent( e );
+    bool handled = {{{sanitizedName}}}_root->handleEvent( e );
     if (handled) {
       #ifdef DEBUG_OUTPUT
       std::cout << "Handled " << StateMachine::Event::toString( e ) << std::endl;
