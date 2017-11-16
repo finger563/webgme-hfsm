@@ -7,9 +7,6 @@
 #include <iostream>
 #endif
 
-// User Includes for the HFSM
-{{{Includes}}}
-
 namespace StateMachine {
   {{> PointerTemplCpp this}}
   {{#END}}

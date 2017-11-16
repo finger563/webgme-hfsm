@@ -5,6 +5,9 @@
 #include "DeepHistoryState.hpp"
 #include "ShallowHistoryState.hpp"
 
+// User Includes for the HFSM
+{{{Includes}}}
+
 namespace StateMachine {
 
   // User Declarations for the HFSM
