@@ -22,7 +22,7 @@ void {{{fullyQualifiedName}}}::tick ( void ) {
   #endif
   // Call the Tick Action for this state
   {{{Tick}}}
-  if ( _activeState )
+  if ( _activeState != nullptr && _activeState != this )
     _activeState->tick();
 }
 
