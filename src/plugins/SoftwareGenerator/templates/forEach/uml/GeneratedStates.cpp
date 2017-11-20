@@ -15,12 +15,14 @@ namespace StateMachine {
   {{~/END}}
 
   // User Definitions for the HFSM
+  //::::{{{path}}}::::Definitions::::
   {{{Definitions}}}
 
   /* * *  Definitions for {{{sanitizedName}}} : {{{path}}}  * * */
   // Generated Definitions for the root state
   void {{{fullyQualifiedName}}}::initialize ( void ) {
     // Run the model's Initialization code
+    //::::{{{path}}}::::Initialization::::
     {{{Initialization}}}
     // run init transition action for HFSM root
     runChildInitTransAction();
@@ -64,6 +66,7 @@ namespace StateMachine {
     #ifdef DEBUG_OUTPUT
     std::cout << "INITIAL TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
     #endif
+    //::::{{{Initial_list.[0].ExternalTransitions.[0].path}}}::::Action::::
     {{{Initial_list.[0].ExternalTransitions.[0].Action}}}
     {{/if}}
   }

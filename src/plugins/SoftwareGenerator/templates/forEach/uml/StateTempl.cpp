@@ -5,6 +5,7 @@ void {{{fullyQualifiedName}}}::entry ( void ) {
   std::cout << "ENTRY::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
   #endif
   // Entry action for this state
+  //::::{{{path}}}::::Entry::::
   {{{Entry}}}
 }
 
@@ -13,6 +14,7 @@ void {{{fullyQualifiedName}}}::exit ( void ) {
   std::cout << "EXIT::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
   #endif
   // Call the Exit Action for this state
+  //::::{{{path}}}::::Exit::::
   {{{Exit}}}
 }
 
@@ -21,6 +23,7 @@ void {{{fullyQualifiedName}}}::tick ( void ) {
   std::cout << "TICK::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
   #endif
   // Call the Tick Action for this state
+  //::::{{{path}}}::::Tick::::
   {{{Tick}}}
   if ( _activeState != nullptr && _activeState != this )
     _activeState->tick();
@@ -81,6 +84,7 @@ void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
   #ifdef DEBUG_OUTPUT
   std::cout << "INITIAL TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
   #endif
+  //::::{{{Initial_list.[0].ExternalTransitions.[0].path}}}::::Action::::
   {{{Initial_list.[0].ExternalTransitions.[0].Action}}}
   {{/if}}
 }

@@ -178,10 +178,16 @@ define(['bower/handlebars/handlebars.min',
 	   function renderKey( obj, key ) {
 	       var a = [
 		   '// ' + obj.type + ' : ' + key + ' for: '+obj.path,
-		   obj.pointerName ? obj.pointerName + '->'+key+'();' : obj[key],
-		   ''
-	       ].join('\n');
-	       return a;
+	       ];
+               if (obj.pointerName) {
+                   a.push( obj.pointerName + '->'+key+'();' );
+               }
+               else {
+                   a.push( '//::::'+obj.path+'::::'+key+'::::' );
+                   a.push( obj[key] );
+               }
+               a.push('');
+	       return a.join('\n');
 	   };
 
 	   function renderDebugOutput( start, end ) {

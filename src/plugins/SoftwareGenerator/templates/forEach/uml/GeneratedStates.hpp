@@ -6,6 +6,7 @@
 #include "ShallowHistoryState.hpp"
 
 // User Includes for the HFSM
+//::::{{{path}}}::::Includes::::
 {{{Includes}}}
 
 namespace StateMachine {
@@ -15,6 +16,7 @@ namespace StateMachine {
   public:
 
     // User Declarations for the HFSM
+    //::::{{{path}}}::::Declarations::::
     {{{Declarations}}}
 
     // Child Substates
