@@ -9,8 +9,13 @@ define(['./checkModel'], function(checkModel) {
 		return seen.hasOwnProperty(item) ? false : (seen[item] = true);
 	    });
 	},
+	makeEventName: function(name) {
+	    return name.trim(); // toUpperCase();
+	},
 	addEvent: function(model, obj, eventName) {
-	    eventName = eventName.toUpperCase().trim();
+	    var self = this;
+	    eventName = self.makeEventName(eventName);
+	    obj.EventName = eventName;
 	    if (eventName) {
                 // go up to the State Machine object and add it there.
                 var p = model.objects[obj.parentPath];
@@ -256,7 +261,7 @@ define(['./checkModel'], function(checkModel) {
 	},
 	updateEventInfo: function( key, obj, transition ) {
 	    var self = this;
-	    var eventInfo = self.getEventInfo( key, obj, transition.Event );
+	    var eventInfo = self.getEventInfo( key, obj, transition.EventName );
 	    eventInfo.Transitions.push( transition );
 	    eventInfo.Transitions.sort( self.transitionSort );
 	},
