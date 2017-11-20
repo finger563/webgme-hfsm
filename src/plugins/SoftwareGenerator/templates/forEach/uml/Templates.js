@@ -8,10 +8,11 @@ define(['bower/handlebars/handlebars.min',
 	'text!./ExternalEvent.tmpl',
 	'text!./ExternalTransition.tmpl',
 	'text!./ExecuteTransition.tmpl',
-	'text!./InitialState.tmpl',
+	'text!./Initialize.tmpl',
 	'text!./StateTempl.hpp',
 	'text!./StateTempl.cpp',
 	'text!./EndStateTempl.hpp',
+	'text!./ChoiceState.tmpl',
 	'text!./Pointer.hpp',
 	'text!./Pointer.cpp',
 	'text!./GeneratedStates.hpp',
@@ -26,10 +27,11 @@ define(['bower/handlebars/handlebars.min',
 		ExternalEventTempl,
 		ExternalTransitionTempl,
 		ExecuteTransitionTempl,
-		InitialStateTempl,
+		InitializeTempl,
 		StateTemplHpp,
 		StateTemplCpp,
 		EndStateTemplHpp,
+		ChoiceStateTempl,
 		PointerTemplHpp,
 		PointerTemplCpp,
 		GeneratedStatesTemplHpp,
@@ -48,10 +50,11 @@ define(['bower/handlebars/handlebars.min',
 	       ExternalEventTempl: ExternalEventTempl,
 	       ExternalTransitionTempl: ExternalTransitionTempl,
 	       ExecuteTransitionTempl: ExecuteTransitionTempl,
-	       InitialStateTempl: InitialStateTempl,
+	       InitializeTempl: InitializeTempl,
 	       StateTemplHpp: StateTemplHpp,
 	       StateTemplCpp: StateTemplCpp,
 	       EndStateTemplHpp: EndStateTemplHpp,
+	       ChoiceStateTempl: ChoiceStateTempl,
 	       PointerTemplHpp: PointerTemplHpp,
 	       PointerTemplCpp: PointerTemplCpp,
 	       GeneratedStatesTemplHpp: GeneratedStatesTemplHpp,
@@ -112,29 +115,10 @@ define(['bower/handlebars/handlebars.min',
 	       return parentList;
 	   };
 
-	   function getTopParent( start, end, transitions ) {
-	       var topParent = null;
-	       var startParents = getParentList( start );
-	       var endParents = getParentList( end );
-	       var parentListArray = transitions.map(function(t) {
-		   return getParentList( t );
-	       });
-	       parentListArray.push( startParents );
-	       parentListArray.push( endParents );
-	       var intersection = _.intersection.apply(_, parentListArray);
-	       if (intersection.length) {
-		   topParent = intersection[ intersection.length - 1 ];
-		   if (topParent.type != 'State') {
-		       topParent = endParents.length > 1 ? endParents[1] : end;
-		   }
-	       }
-	       return topParent;
-	   };
-
-	   function getCommonRoot( trans ) {
-	       var commonRoot = trans.nextState;
-	       var startList = getParentList( trans.prevState );
-	       var endList = getParentList( trans.nextState );
+	   function getCommonRoot( a, b ) {
+	       var commonRoot = b;
+	       var startList = getParentList( a );
+	       var endList = getParentList( b );
 	       var intersection = _.intersection(startList, endList);
 	       if (intersection.length) {
 		   commonRoot = intersection[ intersection.length - 1 ];
@@ -142,37 +126,11 @@ define(['bower/handlebars/handlebars.min',
 	       return commonRoot;
 	   };
 
-	   function getStateExits( trans ) {
-	       var root = getCommonRoot( trans );
-	       var exits = [];
-	       var obj = trans.prevState;
-	       while ( obj != root ) {
-		   if (obj.type == 'State')
-		       exits.push( obj );
-		   obj = obj.parent;
-	       }
-	       return exits;
-	   };
-
-	   function getStateEntries( trans ) {
-	       var root = getCommonRoot( trans );
-	       var entries = [];
-	       var obj = trans.nextState;
-	       while ( obj != root ) {
-		   if (obj.type == 'State')
-		       entries.push( obj );
-		   obj = obj.parent;
-	       }
+	   function getStateEntries( root, newState ) {
+               var rootList = getParentList( root );
+               var stateList = getParentList( newState );
+	       var entries = _.difference( rootList, stateList );
 	       return entries;
-	   };
-
-	   function renderNextState( s ) {
-	       var rendered = [
-		   '// Now set the proper leaf state to be active!',
-		   s.pointerName + '->makeActive();',
-		   ''
-	       ].join('\n');
-	       return rendered;
 	   };
 
 	   function renderKey( obj, key ) {
@@ -180,11 +138,19 @@ define(['bower/handlebars/handlebars.min',
 		   '// ' + obj.type + ' : ' + key + ' for: '+obj.path,
 	       ];
                if (obj.pointerName) {
-                   a.push( obj.pointerName + '->'+key+'();' );
+                   a = a.concat([
+                       obj.pointerName + '->'+key+'();',
+                   ]);
                }
                else {
-                   a.push( '//::::'+obj.path+'::::'+key+'::::' );
-                   a.push( obj[key] );
+                   a = a.concat([
+		       '#ifdef DEBUG_OUTPUT',
+		       'std::cout << "TRANSITION::ACTION for '+obj.path+'" << std::endl;',
+		       '#endif',
+		       '',
+                       '//::::'+obj.path+'::::'+key+'::::',
+                       obj[key],
+                   ]);
                }
                a.push('');
 	       return a.join('\n');
@@ -210,35 +176,30 @@ define(['bower/handlebars/handlebars.min',
 	       }
 	       transitions.push( transition );
 
-	       transitions.map(function(trans) {
-		   var stateExits = getStateExits( trans );
-		   var stateEntries = getStateEntries( trans );
-		   if (stateExits.length) {
-		       rendered += [
-			   '// make sure we exit any child states!',
-			   stateExits[0].pointerName + '->exitChildren();',
-			   '',
-		       ].join('\n');
-		   }
-		   // render exits
-		   stateExits.map(function(s) {
-		       rendered += renderKey( s, 'exit' );
-		   });
+               var prevState = transitions[0].prevState;
+               var nextState = transitions[ transitions.length - 1 ].nextState;
+               var rootState = getCommonRoot( prevState, nextState );
+
+               // all exits from old up to root
+               rendered += [
+                   '// Call all exits',
+                   rootState.pointerName + '->exitChildren();',
+                   '',
+               ].join('\n');
+
+               // all transition actions from old to new
+               transitions.map(function(trans) {
 		   // render action
 		   rendered += renderKey( trans, 'Action' );
-		   rendered += [
-		       '#ifdef DEBUG_OUTPUT',
-		       'std::cout << "TRANSITION::ACTION for '+trans.path+'" << std::endl;',
-		       '#endif',
-		       ''
-		   ].join('\n');
-		   // render entries
-		   stateEntries.map(function(s) {
-		       rendered += renderKey( s, 'entry' );
-		   });
-	       });
+               });
+
+               // all entries from root down to new
+               var entries = getStateEntries(rootState, nextState);
+               entries.map(function(e) {
+		   rendered += renderKey( e, 'entry' );
+               });
+
 	       var finalState = transition.nextState;
-	       rendered += renderNextState( finalState );
 	       rendered += renderDebugOutput( transitions[0].prevState, finalState );
 	       return rendered;
 	   });

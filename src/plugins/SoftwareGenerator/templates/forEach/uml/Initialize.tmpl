@@ -1,0 +1,19 @@
+{{#if Initial_list}}
+// run initial transition
+#ifdef DEBUG_OUTPUT
+std::cout << "INITIAL TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
+#endif
+//::::{{{Initial_list.[0].ExternalTransitions.[0].path}}}::::Action::::
+{{{Initial_list.[0].ExternalTransitions.[0].Action}}}
+{{#Initial_list.[0].ExternalTransitions.[0].nextState}}
+{{#if isChoice}}
+{{> ChoiceStateTempl }}
+{{else if isState}}
+// initialize our new active state
+{{{pointerName}}}->initialize();
+{{/if}}
+{{/Initial_list.[0].ExternalTransitions.[0].nextState}}
+{{else}}
+// if we're a leaf state, make sure we're active
+makeActive();
+{{/if}}

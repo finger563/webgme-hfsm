@@ -27,13 +27,23 @@ else if ( true ) {
   {{> ExternalTransitionTempl }}
   {{/addTransition}}
   {{~/nextState.endTransition}}
-  {{else if nextState.isState}}
-  {{> ExecuteTransitionTempl }}
+  {{else}}
+  // Transitioning states!
+  {{#renderTransition transition=.}}{{/renderTransition}}
+  {{#if nextState.isState}}
+  // going into regular state
+  {{{nextState.pointerName}}}->initialize();
   {{else if nextState.isEnd}}
-  {{> ExecuteTransitionTempl }}
+  // going into end pseudo-state THIS SHOULD BE TOP LEVEL END STATE
+  {{nextState.pointerName}}->makeActive();
   {{else if nextState.isDeepHistory}}
-  {{> ExecuteTransitionTempl }}
+  // going into deep history pseudo-state
+  {{{nextState.parent.pointerName}}}->setDeepHistory();
   {{else if nextState.isShallowHistory}}
-  {{> ExecuteTransitionTempl }}
+  // going into shallow history pseudo-state
+  {{{nextState.parent.pointerName}}}->setShallowHistory();
+  {{/if}}
+  // make sure nothing else handles this event
+  handled = true;
   {{/if}}
 }

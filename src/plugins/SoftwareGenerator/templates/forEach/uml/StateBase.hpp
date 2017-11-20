@@ -27,6 +27,12 @@ namespace StateMachine {
     StateBase ( void ) : _parentState( nullptr ), _activeState( this ) {}
     StateBase ( StateBase* _parent ) : _parentState( _parent ), _activeState( this ) {}
     ~StateBase( void ) {}
+
+    /**
+     * @brief Will be generated to call entry() then handle any child
+     *  initialization. Finally calls makeActive on the leaf.
+     */
+    virtual void                     initialize ( void ) { };
     
     /**
      * @brief Will be generated to run the entry() function defined in
@@ -81,13 +87,6 @@ namespace StateMachine {
     virtual StateMachine::StateBase* getInitial ( void ) { return this; };
 
     /**
-     * @brief Will be generated with the child init transition
-     *  Action. This function will be called whenever shallow history
-     *  is set.
-     */
-    virtual void                     runChildInitTransAction ( void ) { };
-
-    /**
      * @brief Recurses down to the leaf state and calls the exit
      *  actions as it unwinds.
      */
@@ -120,19 +119,6 @@ namespace StateMachine {
       else
 	return this;
     }
-    
-    /**
-     * @brief Will return _activeState if it exists, otherwise
-     *  will return the initial state.
-     *
-     * @return StateBase*  Pointer to last active substate
-     */
-    StateMachine::StateBase*  getHistory ( void ) {
-      StateMachine::StateBase* history = _activeState;
-      if (history == nullptr || history == this)
-	history = getInitial();
-      return history;
-    }
 
     /**
      * @brief Make this state the active substate of its parent and
@@ -155,50 +141,30 @@ namespace StateMachine {
     }
 
     /**
-     * @brief Sets the activeState to the initial state, and calls set
-     *  initial on the child active state.
-     */
-    void                      setInitial ( void ) {
-      setActiveChild( getInitial() );
-      if (_activeState != this && _activeState != nullptr)
-	_activeState->setInitial();
-    }
-
-    /**
      * @brief Sets the currentlyActive state to the last active state
      *  and re-initializes them.
      */
     void                      setShallowHistory ( void ) {
-      setActiveChild( getHistory() );
       if (_activeState != nullptr && _activeState != this) {
-	_activeState->setInitial();
-	getActiveLeaf()->makeActive();
-	initShallowHistory();
+        entry();
+        _activeState->initialize();
+      }
+      else {
+        initialize();
       }
     }
 
     /**
-     * @brief Calls the init function for the shallow history state
-     *   recursively.
-     */
-    void                      initShallowHistory ( void ) {
-      if (_activeState != nullptr && _activeState != this) {
-	_activeState->entry();
-	_activeState->runChildInitTransAction();
-	_activeState->initShallowHistory();
-      }
-    }
-
-    /**
-     * @brief Will set the _activeState substate's history state;
-     *  calls _lastActiveState->setDeepHistory()
+     * @brief Go to the last active leaf of this state. If none
+     *  exists, re-initialize.
      */
     void                      setDeepHistory ( void ) {
-      setActiveChild( getHistory() );
       if (_activeState != nullptr && _activeState != this) {
-	_activeState->entry();
+	entry();
 	_activeState->setDeepHistory();
-	getActiveLeaf()->makeActive();
+      }
+      else {
+        initialize();
       }
     }
 

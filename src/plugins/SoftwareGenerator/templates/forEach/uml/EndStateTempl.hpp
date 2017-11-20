@@ -27,11 +27,4 @@ public:
    * @return true 
    */
   bool handleEvent ( StateMachine::Event* event ) { return true; }
-
-  /**
-   * @brief Returns itself since it is leaf END STATE.
-   *
-   * @return this
-   */
-  StateMachine::StateBase* getInitial ( void ) { return this; }
 };

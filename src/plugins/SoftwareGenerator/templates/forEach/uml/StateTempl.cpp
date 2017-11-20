@@ -1,5 +1,11 @@
 {{#if isState}}
 /* * *  Definitions for {{{fullyQualifiedName}}} : {{{path}}}  * * */
+void {{{fullyQualifiedName}}}::initialize ( void ) {
+  // call our own entry action
+  entry();
+  {{> InitializeTempl }}
+}
+
 void {{{fullyQualifiedName}}}::entry ( void ) {
   #ifdef DEBUG_OUTPUT
   std::cout << "ENTRY::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
@@ -36,12 +42,6 @@ double {{{fullyQualifiedName}}}::getTimerPeriod ( void ) {
 bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
   bool handled = false;
 
-  // Get the currently active leaf state
-  StateMachine::StateBase* activeLeaf = getActiveLeaf();
-
-  // Get the currently active leaf state
-  StateMachine::StateBase* newBranchRoot = nullptr;
-
   // handle internal transitions first
   switch ( event->type() ) {
   {{#each InternalEvents}}
@@ -69,24 +69,6 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
   }
   {{/if}}
   return handled;
-}
-
-StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
-  {{#if Initial_list}}
-  return {{{Initial_list.[0].ExternalTransitions.[0].nextState.pointerName}}};
-  {{else}}
-  return this;
-  {{/if}}
-}
-
-void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
-  {{#if Initial_list}}
-  #ifdef DEBUG_OUTPUT
-  std::cout << "INITIAL TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
-  #endif
-  //::::{{{Initial_list.[0].ExternalTransitions.[0].path}}}::::Action::::
-  {{{Initial_list.[0].ExternalTransitions.[0].Action}}}
-  {{/if}}
 }
 {{#each Substates}}
 {{> StateTemplCpp }}

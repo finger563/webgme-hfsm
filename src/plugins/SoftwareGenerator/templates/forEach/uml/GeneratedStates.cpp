@@ -22,21 +22,19 @@ namespace StateMachine {
   // Generated Definitions for the root state
   void {{{fullyQualifiedName}}}::initialize ( void ) {
     // Run the model's Initialization code
+    #ifdef DEBUG_OUTPUT
+    std::cout << "HFSM Initialization" << std::endl;
+    #endif
     //::::{{{path}}}::::Initialization::::
     {{{Initialization}}}
-    // run init transition action for HFSM root
-    runChildInitTransAction();
-    // set initial states
-    setShallowHistory();
+    // now set the states up properly
+    {{> InitializeTempl }}
   };
   
   void {{{fullyQualifiedName}}}::terminate ( void ) {
-    StateMachine::StateBase* exitingState = getActiveLeaf();
-    while ( exitingState != nullptr && exitingState != this ) {
-      // call the exit action on the state
-      exitingState->exit();
-      exitingState = exitingState->getParentState();
-    }
+    // will call exit() and exitChildren() on _activeState if it
+    // exists
+    exitChildren();
   };
   
   void {{{fullyQualifiedName}}}::restart ( void ) {
@@ -50,25 +48,13 @@ namespace StateMachine {
     // Get the currently active leaf state
     StateMachine::StateBase* activeLeaf = getActiveLeaf();
 
-    // have the active leaf handle the event, this will bubble up until
-    // the event is handled or it reaches the root.
-    handled = activeLeaf->handleEvent( event );
+    if (activeLeaf != nullptr && activeLeaf != this) {
+      // have the active leaf handle the event, this will bubble up until
+      // the event is handled or it reaches the root.
+      handled = activeLeaf->handleEvent( event );
+    }
 
     return handled;
-  }
-
-  StateMachine::StateBase* {{{fullyQualifiedName}}}::getInitial ( void ) {
-    return {{> InitialStateTempl this}};
-  }
-
-  void {{{fullyQualifiedName}}}::runChildInitTransAction ( void ) {
-    {{#if Initial_list}}
-    #ifdef DEBUG_OUTPUT
-    std::cout << "INITIAL TRANSITION::ACTION for {{{Initial_list.[0].ExternalTransitions.[0].path}}}" << std::endl;
-    #endif
-    //::::{{{Initial_list.[0].ExternalTransitions.[0].path}}}::::Action::::
-    {{{Initial_list.[0].ExternalTransitions.[0].Action}}}
-    {{/if}}
   }
   {{#each Substates}}
   {{> StateTemplCpp }}

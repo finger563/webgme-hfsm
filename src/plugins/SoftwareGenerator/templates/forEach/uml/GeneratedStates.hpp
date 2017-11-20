@@ -61,23 +61,6 @@ namespace StateMachine {
      * @return true if event is consumed, false otherwise
      */
     bool                     handleEvent ( StateMachine::Event* event );
-
-    /**
-     * @brief Will be known from the model so will be generated in
-     *  derived classes to immediately return the correct initial
-     *  state pointer for quickly transitioning to the proper state
-     *  during external transition handling.
-     *
-     * @return StateBase*  Pointer to initial substate
-     */
-    StateMachine::StateBase* getInitial ( void );
-
-    /**
-     * @brief Will be generated with the child init transition
-     *  Action. This function will be called whenever shallow history
-     *  is set.
-     */
-    void                     runChildInitTransAction ( void );
   };
 };
 

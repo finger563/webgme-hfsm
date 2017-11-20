@@ -1,0 +1,26 @@
+// Going into a choice pseudo-state, let it handle its
+// guards and perform the state transition
+if (false) { } // makes geneeration easier :)
+{{#each ExternalTransitions}}
+{{#addTransition trans=.. previous=../previousTransitions}}
+{{#if Guard}}
+else if ( {{{Guard}}} ) {
+  #ifdef DEBUG_OUTPUT
+  std::cout << "GUARD [ {{{Guard}}} ] for EXTERNAL TRANSITION:{{{path}}} evaluated to TRUE" << std::endl;
+  #endif
+{{else}}
+else if ( true ) {
+  #ifdef DEBUG_OUTPUT
+  std::cout << "NO GUARD on EXTERNAL TRANSITION:{{{path}}}" << std::endl;
+  #endif
+{{/if}}
+  //:::{{{path}}}:::Action
+  {{{Action}}}
+  {{#if nextState.isChoice}}
+  {{> ChoiceStateTempl nextState}}
+  {{else if nextState.isState}}
+  {{nextState.pointerName}}->initialize();
+  {{/if}}
+}
+{{/addTransition}}
+{{~/each}}
