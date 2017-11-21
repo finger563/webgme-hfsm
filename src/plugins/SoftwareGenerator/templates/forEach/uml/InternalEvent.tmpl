@@ -3,6 +3,7 @@ case Event::Type::{{{name}}}:
   }
   {{#each Transitions}}
   {{#if Guard}}
+  //::::{{{path}}}::::Guard::::
   else if ( {{{Guard}}} ) {
     #ifdef DEBUG_OUTPUT
     std::cout << "GUARD [ {{{Guard}}} ] for INTERNAL TRANSITION:{{{path}}} evaluated to TRUE" << std::endl;

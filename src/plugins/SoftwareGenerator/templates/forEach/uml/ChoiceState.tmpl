@@ -4,6 +4,7 @@ if (false) { } // makes geneeration easier :)
 {{#each ExternalTransitions}}
 {{#addTransition trans=.. previous=../previousTransitions}}
 {{#if Guard}}
+//::::{{{path}}}::::Guard::::
 else if ( {{{Guard}}} ) {
   #ifdef DEBUG_OUTPUT
   std::cout << "GUARD [ {{{Guard}}} ] for EXTERNAL TRANSITION:{{{path}}} evaluated to TRUE" << std::endl;
