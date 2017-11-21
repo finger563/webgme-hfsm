@@ -28,7 +28,7 @@ define(['bower/handlebars/handlebars.min',
 	       },
 	       makeVariableName: function(obj) {
 		   var self = this;
-		   obj.VariableName = obj.sanitizedName.toUpperCase();
+		   obj.VariableName = obj.sanitizedName.toUpperCase() + '_OBJ';
 	       },
 	       makePointerName: function( obj, objDict ) {
 		   var self = this;
