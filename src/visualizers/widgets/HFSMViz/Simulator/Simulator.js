@@ -67,38 +67,38 @@ define(['js/util',
            Simulator.prototype.initialize = function ( container, nodes, client ) {
                var self = this;
 
-	       this._client = client;
+	       self._client = client;
 
 	       container.append( SimulatorHtml );
-	       this._container = container;
-	       this._el = $(container).find('#hfsmSimulator').first();
-	       this._top = $(container).find('.simulator-top-panel').first();
-	       this._bottom = $(container).find('.simulator-bottom-panel').first();
-	       this._handle = $(container).find('#simulatorHandle').first();
+	       self._container = container;
+	       self._el = $(container).find('#hfsmSimulator').first();
+	       self._top = $(container).find('.simulator-top-panel').first();
+	       self._bottom = $(container).find('.simulator-bottom-panel').first();
+	       self._handle = $(container).find('#simulatorHandle').first();
 
 	       // NODE RELATED DATA
-	       this.nodes = nodes;
+	       self.nodes = nodes;
 
 	       // EVENT RELATED DATA
-               this._eventButtons = this._el.find('#eventButtons').first();
+               self._eventButtons = self._el.find('#eventButtons').first();
 
 	       // STATE INFO DISPLAY
-	       this._stateInfo = this._el.find('#stateInfo').first();
+	       self._stateInfo = self._el.find('#stateInfo').first();
 
 	       // Active state information
-	       this._activeState = null;
+	       self._activeState = null;
 
 	       // History state information
-	       this._historyStates = {}; // map from history state ID to remembered state
+	       self._historyStates = {}; // map from history state ID to remembered state
 	       
 	       // DRAGGING INFO
-               this.isDragging = false;
+               self.isDragging = false;
 
-               this._handle.mousedown(function(e) {
+               self._handle.mousedown(function(e) {
 		   self.isDragging = true;
 		   e.preventDefault();
                });
-               this._el.mouseup(function() {
+               self._el.mouseup(function() {
 		   self.isDragging = false;
                }).mousemove(function(e) {
 		   if (self.isDragging) {
@@ -132,10 +132,10 @@ define(['js/util',
 
 	   Simulator.prototype.update = function() {
 	       var self = this;
-	       this.updateEventButtons();
-	       this.updateActiveState();
+	       self.updateEventButtons();
+	       self.updateActiveState();
 	       if (self._activeState)
-		   this._stateChangedCallback( self._activeState.id );
+		   self._stateChangedCallback( self._activeState.id );
 	   };
 
 	   Simulator.prototype.onStateChanged = function(stateChangedCallback) {
@@ -169,8 +169,8 @@ define(['js/util',
 
 	   Simulator.prototype.initActiveState = function( ) {
 	       var self = this;
-	       this._historyStates = {};
-	       this._activeState = self.getInitialState( self.getTopLevelId(), true );
+	       self._historyStates = {};
+	       self._activeState = self.getInitialState( self.getTopLevelId(), true );
 	       // display info
 	       if (self._activeState) {
 		   self.hideStateInfo();
