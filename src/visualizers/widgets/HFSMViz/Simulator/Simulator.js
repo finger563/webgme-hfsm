@@ -161,8 +161,11 @@ define(['js/util',
 
 	   Simulator.prototype.setActiveState = function( gmeId ) {
 	       var self = this;
-               self.handleNextState( self.getInitialState( gmeId, true ) );
-	       self.update();
+               self.getInitialState( gmeId, true )
+                   .then(function(s) {
+                       self.handleNextState( s );
+	               self.update();
+                   });
 	   };
 
 	   /* * * * * *      Simulation Functions     * * * * * * * */
@@ -170,25 +173,31 @@ define(['js/util',
 	   Simulator.prototype.initActiveState = function( ) {
 	       var self = this;
 	       self._historyStates = {};
-	       self._activeState = self.getInitialState( self.getTopLevelId(), true );
-	       // display info
-	       if (self._activeState) {
-		   self.hideStateInfo();
-		   self.displayStateInfo( self._activeState.id );
-		   if (self._stateChangedCallback)
-		       self._stateChangedCallback( self._activeState.id );
-	       }
+	       return self.getInitialState( self.getTopLevelId(), true )
+                   .then(function(s) {
+                       self._activeState = s;
+	               // display info
+	               if (self._activeState) {
+		           self.hideStateInfo();
+		           self.displayStateInfo( self._activeState.id );
+		           if (self._stateChangedCallback)
+		               self._stateChangedCallback( self._activeState.id );
+	               }
+                   });
 	   };
 
 	   Simulator.prototype.updateActiveState = function( ) {
 	       var self = this;
 	       if (self._activeState == null ||
 		   self.nodes[ self._activeState.id ] == undefined) {
-		   self.initActiveState();
+		   return self.initActiveState();
 	       }
 	       else {
 		   var activeId = self._activeState.id;
-		   self._activeState = self.getInitialState( activeId, true );
+		   return self.getInitialState( activeId, true )
+                       .then(function(s) {
+                           self._activeState = s;
+                       });
 	       }
 	   };
 
@@ -302,9 +311,14 @@ define(['js/util',
 			   var msg = title + ' selected choice [ ' + selectedEdge.choice + ' ] on transition ' +
 			       selectedEdge.transitionId;
 			   console.log(msg);
-			   nextState = self.getNextState( selectedEdge.transitionId );
+			   self.getNextState( selectedEdge.transitionId )
+                               .then(function(s) {
+                                   callback(s);
+                               });
 		       }
-		       callback( nextState );
+                       else {
+		           callback( null );
+                       }
 		   });
 	   };
 
@@ -322,6 +336,7 @@ define(['js/util',
 	       // get all external transitions for this event
 	       var endState = self.nodes[ stateId ];
 	       var parentState = self.nodes [ endState.parentId ];
+               var deferred = Q.defer();
 	       while (parentState) {
 		   // get all transitions that don't have an event
 		   var transitionIds = self.getEdgesFromNode( parentState.id ).filter(function(eId) {
@@ -337,13 +352,14 @@ define(['js/util',
 		       var msg = 'END TRANSITION on '+
 			   stateId + ' through transition ' + guardless[0];
 		       console.log(msg);
-		       nextState = self.getNextState( guardless[0] );
+		       return self.getNextState( guardless[0] );
 		       break;
 		   }
 		   else if (guardless.length > 1 || (guardless.length != transitionIds.length)) {
 		       alert('Warning!\n'+
 			     'Cannot have more than one END TRANSITION!\n'+
 			     'NOT TRANSITIONING!');
+                       deferred.resolve(self._activeState);
 		       break;
 		   }
 		   else if (transitionIds.length) {
@@ -351,23 +367,26 @@ define(['js/util',
 		       alert('Warning!\n'+
 			     'END TRANSITIONS cannot have guards!\n'+
 			     'NOT TRANSITIONING!');
+                       deferred.resolve(self._activeState);
 		       break;
 		   }
 		   else if ( rootTypes.indexOf( parentState.type ) > -1 ) {
 		       nextState = endState;
 		       // THIS IS THE END OF THE STATE MACHINE
 		       console.log('END OF HFSM');
+                       deferred.resolve(nextState);
 		       break;
 		   }
 		   else if (transitionIds.length == 0) {
 		       alert('Warning!\n'+
 			     'END states must be followed by END TRANSITIONS in non-root states!\n'+
 			     'NOT TRANSITIONING!');
+                       deferred.resolve(self._activeState);
 		       break;
 		   }
 		   parentState = self.nodes [ parentState.parentId ];
 	       }
-	       return nextState;
+	       return deferred.promise.then(function(s) { return s; });
 	   };
 
 	   Simulator.prototype.transitionSort = function(aId, bId) {
@@ -391,7 +410,11 @@ define(['js/util',
 		   var trans = self.nodes[ guardless[0] ];
 		   var msg = 'Event: '+ eventName + ' ' + trans.type.toUpperCase() + ': on ' + trans.id;
 		   console.log(msg);
-		   nextStateCallback( self.getNextState( trans.id ) );
+                   self.getNextState( trans.id )
+                       .then(function(s) {
+                           nextStateCallback( s );
+                       });
+		   //nextStateCallback( self.getNextState( trans.id ) );
 	       }
 	       else if (guardless.length > 1) {
 		   alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
@@ -408,7 +431,11 @@ define(['js/util',
 			       var msg = eventName + '::' + trans.type.toUpperCase() + ': [ ' +
 				   selection.choice + ' ] was TRUE on ' + trans.id;
 			       console.log(msg);
-			       nextStateCallback( self.getNextState( trans.id ) );
+                               self.getNextState( trans.id )
+                                   .then(function(s) {
+                                       nextStateCallback(s);
+                                   });
+			       //nextStateCallback( self.getNextState( trans.id ) );
 			   }
 			   else 
 			       nextStateCallback( null );
@@ -429,7 +456,10 @@ define(['js/util',
 		       self.handleChoice( state.id, self.handleNextState.bind(self) );
 		   }
 		   else if (state.type == 'End State' && state.parentId != self.getTopLevelId()) {
-		       self.handleNextState( self.handleEnd( state.id ) );
+                       self.handleEnd( state.id )
+                           .then(function(s) {
+		               self.handleNextState( s );
+                           });
 		   }
 		   else {
 		       if (state.type == 'Shallow History Pseudostate')
@@ -551,6 +581,7 @@ define(['js/util',
 	   Simulator.prototype.getInitialState = function( stateId, animate ) {
 	       var self = this;
 	       var state = self.nodes[ stateId ];
+               var deferred = Q.defer();
 	       var initState = state;
 	       if (state) {
 		   var init = state.childrenIds.filter(function (cid) {
@@ -568,31 +599,47 @@ define(['js/util',
                                self._animateElementCallback( edge.id );
                            }
 			   var childInitId = edge.dst;
-			   initState = self.getInitialState( childInitId, animate );
-                           
+			   deferred.resolve( self.getInitialState( childInitId, animate ) );
 		       }
 		   }
+                   else if (state.type == 'Choice Pseudostate') {
+		       self.handleChoice( state.id, function(s) {
+                           deferred.resolve(s);
+                       });
+                   }
+                   else {
+                       deferred.resolve(initState);
+                   }
 	       }
-	       return initState;
+               else {
+                   deferred.resolve(initState);
+               }
+	       return deferred.promise.then(function(s) {
+                   return s;
+               });
 	   };
 
 	   Simulator.prototype.getNextState = function( transId ) {
 	       var self = this;
 	       var nextState = null;
+               var deferred = Q.defer();
 	       var trans = self.nodes[ transId ];
 	       if (trans) {
                    self._animateElementCallback( transId );
 		   if (trans.type == 'External Transition') {
 		       var dstId = trans.dst;
 		       if (dstId) { // exte
-			   nextState = self.getInitialState( dstId, true ); // will recurse
+			   self.getInitialState( dstId, true )
+                               .then(function(s) {
+                                   deferred.resolve(s);
+                               });
 		       }
 		   }
 		   else if (trans.type == 'Internal Transition') {
-		       nextState = self.nodes[ trans.parentId ];
+		       deferred.resolve(self.nodes[ trans.parentId ]);
 		   }
 	       }
-	       return nextState;
+	       return deferred.promise.then(function(s) { return s; });
 	   };
 
 	   /* * * * * * State Info Display Functions  * * * * * * * */
