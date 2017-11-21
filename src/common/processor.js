@@ -43,6 +43,9 @@ define(['./checkModel'], function(checkModel) {
 	    if (obj.Definitions) {
 		obj.Definitions = obj.Definitions.replace(self.stripRegex, "  $1");
 	    }
+            if (!obj.eventNames) {
+                obj.eventNames = [];
+            }
 	},
 	addBasicParams: function(obj) {
 	    obj.Substates = [];
