@@ -19,23 +19,27 @@ define([
     var HFSMVizControl;
 
     HFSMVizControl = function (options) {
+        var self = this;
+        self._logger = options.logger.fork('Control');
 
-        this._logger = options.logger.fork('Control');
-
-        this._client = options.client;
+        self._client = options.client;
 
         // Initialize core collections and variables
-        this._widget = options.widget;
+        self._widget = options.widget;
 
-        this.currentNodeInfo = {id: null, children: [], parentId: null};
+        self.currentNodeInfo = {id: null, children: [], parentId: null};
+
+        // Put new node's info into territory rules
+        self._selfPatterns = {};
 	
-        this._initWidgetEventHandlers();
+        self._initWidgetEventHandlers();
 
-        this._logger.debug('ctor finished');
+        self._logger.debug('ctor finished');
     };
 
     HFSMVizControl.prototype._initWidgetEventHandlers = function () {
-        this._widget.onNodeClick = function (id) {
+        var self = this;
+        self._widget.onNodeClick = function (id) {
             // Change the current active object
             WebGMEGlobal.State.registerActiveObject(id);
         };
@@ -47,53 +51,44 @@ define([
     // (this allows the browser to then only load those relevant parts).
     HFSMVizControl.prototype.selectedObjectChanged = function (nodeId) {
 	var self = this,
-	    desc,
-	    nodeName;
+	    desc;
 
-        if (nodeId && nodeId != this.currentNodeInfo.id) {
+        self._logger.debug('activeObject nodeId \'' + nodeId + '\'');
+
+        if (!self.currentNodeInfo.id) {
             // Remove current territory patterns
             if (self._territoryId) {
 		self._client.removeUI(self._territoryId);
             }
-	    if (this.currentNodeInfo.id) {
-		this._widget._initialize();
-	    }
 
-            // Put new node's info into territory rules
-            self._selfPatterns = {};
+            self.currentNodeInfo.id = nodeId;
+            self.currentNodeInfo.parentId = undefined;
 
-            this.currentNodeInfo.id = nodeId;
-            this.currentNodeInfo.parentId = undefined;
-
-            desc = this._getObjectDescriptor(nodeId);
-	    if (!desc) {
-		self._client.updateTerritory(self._territoryId, self._selfPatterns);
-		return;
-	    }
-            nodeName = (desc && desc.name);
+            desc = self._getObjectDescriptor(nodeId);
             if (desc) {
-                this.currentNodeInfo.parentId = desc.parentId;
+                self._selfPatterns[nodeId] = {children: 100};  // Territory "rule"
+                self._territoryId = self._client.addUI(self, function (events) {
+                    self._eventCallback(events);
+                });
+
+                // Update the territory
+                self.currentNodeInfo.parentId = desc.parentId;
             }
 
-            self._selfPatterns[nodeId] = {children: 10};  // Territory "rule"
-            self._territoryId = self._client.addUI(self, function (events) {
-                self._eventCallback(events);
-            });
-
-            // Update the territory
             self._client.updateTerritory(self._territoryId, self._selfPatterns);
         }
     };
 
     var rootTypes = ['State Machine', 'Library'];
-    var excludeTypes = [];
+    var excludeTypes = [];//'Project', 'Component'];
 
     // This next function retrieves the relevant node information for the widget
     HFSMVizControl.prototype._getObjectDescriptor = function (nodeId) {
-        var node = this._client.getNode(nodeId),
+        var self = this;
+        var node = self._client.getNode(nodeId),
             objDescriptor = null;
         if (node) {
-	    var metaObj = this._client.getNode(node.getMetaTypeId()),
+	    var metaObj = self._client.getNode(node.getMetaTypeId()),
 		metaName = undefined;
 	    if (metaObj) {
 		metaName = metaObj.getAttribute(nodePropertyNames.Attributes.name);
@@ -137,42 +132,45 @@ define([
 
     /* * * * * * * * Node Event Handling * * * * * * * */
     HFSMVizControl.prototype._eventCallback = function (events) {
+        var self = this;
         var i = events ? events.length : 0,
             event;
 
-        this._logger.debug('_eventCallback \'' + i + '\' items');
+        self._logger.debug('_eventCallback \'' + i + '\' items');
 
         while (i--) {
             event = events[i];
             switch (event.etype) {
 
             case CONSTANTS.TERRITORY_EVENT_LOAD:
-                this._onLoad(event.eid);
+                self._onLoad(event.eid);
                 break;
             case CONSTANTS.TERRITORY_EVENT_UPDATE:
-                this._onUpdate(event.eid);
+                self._onUpdate(event.eid);
                 break;
             case CONSTANTS.TERRITORY_EVENT_UNLOAD:
-                this._onUnload(event.eid);
+                self._onUnload(event.eid);
                 break;
             default:
                 break;
             }
         }
 
-        this._logger.debug('_eventCallback \'' + events.length + '\' items - DONE');
+        self._logger.debug('_eventCallback \'' + events.length + '\' items - DONE');
     };
 
     HFSMVizControl.prototype._onLoad = function (gmeId) {
-        var description = this._getObjectDescriptor(gmeId);
-	if (description && this._widget)
-            this._widget.addNode(description);
+        var self = this;
+        var description = self._getObjectDescriptor(gmeId);
+	if (description && self._widget)
+            self._widget.addNode(description);
     };
 
     HFSMVizControl.prototype._onUpdate = function (gmeId) {
-        var description = this._getObjectDescriptor(gmeId);
-	if (description && this._widget)
-            this._widget.updateNode(description);
+        var self = this;
+        var description = self._getObjectDescriptor(gmeId);
+	if (description && self._widget)
+            self._widget.updateNode(description);
     };
 
     HFSMVizControl.prototype._onUnload = function (gmeId) {
@@ -181,17 +179,14 @@ define([
     };
 
     HFSMVizControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
-        if (this._currentNodeId === activeObjectId) {
-            // The same node selected as before - do not trigger
-        } else {
-            this.selectedObjectChanged(activeObjectId);
-        }
+        this.selectedObjectChanged(activeObjectId);
     };
 
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     HFSMVizControl.prototype.destroy = function () {
-        this._detachClientEventListeners();
         this._client.removeUI(this._territoryId);
+        delete this._widget;
+        this._detachClientEventListeners();
     };
 
     HFSMVizControl.prototype._attachClientEventListeners = function () {
@@ -206,8 +201,10 @@ define([
     HFSMVizControl.prototype.onActivate = function () {
         this._attachClientEventListeners();
 
-        if (typeof this._currentNodeId === 'string') {
-            WebGMEGlobal.State.registerActiveObject(this._currentNodeId, {suppressVisualizerFromNode: true});
+        if (this.currentNodeInfo && typeof this.currentNodeInfo.id === 'string') {
+            WebGMEGlobal.State.registerActiveObject(this.currentNodeInfo.id, {
+                suppressVisualizerFromNode: true
+            });
         }
     };
 

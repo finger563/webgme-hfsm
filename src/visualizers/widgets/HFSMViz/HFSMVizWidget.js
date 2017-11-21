@@ -850,6 +850,9 @@ define([
 
         HFSMVizWidget.prototype.saveNodePositions = function() {
             var self = this;
+            if (!self.nodes)
+                return;
+
             var keys = Object.keys(self.nodes);
 
             self._client.startTransaction();
