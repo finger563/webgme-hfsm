@@ -127,9 +127,9 @@ define(['bower/handlebars/handlebars.min',
 	   };
 
 	   function getStateEntries( root, newState ) {
-               var rootList = getParentList( root );
+               var rootList = getParentList( root ).concat([root]);
                var stateList = getParentList( newState );
-	       var entries = _.difference( rootList, stateList );
+	       var entries = _.difference( stateList, rootList );
 	       return entries;
 	   };
 
