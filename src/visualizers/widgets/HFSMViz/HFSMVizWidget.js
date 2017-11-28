@@ -1436,6 +1436,12 @@ define([
                 client = self._client;
 
             if (nodeIds.length > 0) {
+                if (nodeIds.indexOf(parentId) != -1) {
+                    alert('Error!\n'+
+                          'Cannot reparent to a node in the selection!');
+                    return;
+                }
+                
                 client.startTransaction("Moving nodes into " + parentId);
 
                 var selector = '#' + parentId.replace(/\//gm, "\\/");
