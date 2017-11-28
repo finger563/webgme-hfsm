@@ -1745,7 +1745,8 @@ define([
                 valid = false;
             else if (srcType == 'Initial') {
                 if (dstType == 'Deep History Pseudostate' ||
-                    dstType == 'Shallow History Pseudostate')
+                    dstType == 'Shallow History Pseudostate' ||
+                    dstType == 'End State')
                     valid = false;
             }
             return valid;
