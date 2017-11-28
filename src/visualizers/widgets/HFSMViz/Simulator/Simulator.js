@@ -281,8 +281,27 @@ define(['js/util',
 
 	   Simulator.prototype.selectGuard = function( transitionIds, title ) {
 	       var self = this;
-	       if (!transitionIds.length)
+	       if (!transitionIds.length) {
 		   return new Q.Promise(function(resolve, reject) { resolve(); });
+               }
+
+	       // now check transitions with guard
+               var groupedTIDs = _.groupBy(transitionIds, function(tid) {
+                   var e = self.nodes[ tid ];
+                   return e.Guard;
+               });
+               for (var g in groupedTIDs) {
+                   var tidArray = groupedTIDs[ g ];
+                   if (tidArray && tidArray.length > 1) {
+                       // more than one transition has the same guard!
+		       alert('Warning!\n'+
+			     'More than one transition has the same guard!\n'+
+			     'NOT TRANSITIONING!');
+		       return new Q.Promise(function(resolve, reject) { resolve(); });
+                   }
+               }
+
+               // now get choice
 	       var choiceToEdgeId = self.getChoices( transitionIds );
 	       var choice = new Choice();
 	       choice.initialize( Object.keys(choiceToEdgeId), title );
@@ -406,7 +425,7 @@ define(['js/util',
 		   return edge.Guard == null || !edge.Guard.trim();
 	       });
 	       // now check
-	       if (guardless.length == 1) {
+	       if (guardless.length == 1 && transitionIds.length == 1) {
 		   var trans = self.nodes[ guardless[0] ];
 		   var msg = 'Event: '+ eventName + ' ' + trans.type.toUpperCase() + ': on ' + trans.id;
 		   console.log(msg);
@@ -421,7 +440,7 @@ define(['js/util',
 		   nextStateCallback( null );
 	       }
 	       else if (transitionIds.length) {
-		   // now check transitions with guard
+                   // now get choice from user
 		   var state = self.nodes[ stateId ];
 		   var title = '<b>'+state.name+'</b> transition\'s guard for <b>'+eventName+'</b>:';
 		   self.selectGuard( transitionIds, title )
