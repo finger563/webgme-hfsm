@@ -113,25 +113,25 @@ localhost:8081
 where the server is running. Create a WebGME project there from either
 the `base` or the `examples` seed.
 
-![Creating a new webgme project](./img/new_webgme_project.gif)
+![Creating a new webgme project](wiki/images/new_webgme_project.gif)
 
 ### Creating a HFSM
 
 Once a webgme project has been opened, creat a new HFSM project by dragging in a new component from the left panel.
 
-![Creating a new HFSM project](./img/new_hfsm_project.gif)
+![Creating a new HFSM project](wiki/images/new_hfsm_project.gif)
 
 Double click on the project and then drag in a new HFSM component.
 
-![Creating a new HFSM](./img/new_hfsm.gif)
+![Creating a new HFSM](wiki/images/new_hfsm.gif)
 
 In addition to editing the HFSM through webgme, the HFSMViz can also be used. Open an HFSM and click on the HFSMViz on the left side of the screen to use this mode.
 
-![Accessing HFSMViz](./img/accessing_hfsmViz.gif)
+![Accessing HFSMViz](wiki/images/accessing_hfsmViz.gif)
 
 Components can be dragged into the visualizer just like in webgme, with addditional operations accessible via the right-click context menu
 
-![Creating and editing an HFSM](./img/hfsmEditing.gif)
+![Creating and editing an HFSM](wiki/images/hfsmEditing.gif)
 
 ### Simulating a HFSM
 
@@ -144,7 +144,7 @@ canceling the transition by selecting `None`. In the case that the
 guards are associated with exit transitions of a choice pseudostate,
 the `Default Transition` will be shown as a guard choice with no text.
 
-![Complex state machine simulation](./img/simulation.gif)
+![Complex state machine simulation](wiki/images/simulation.gif)
 
 The **HFSMViz** visualizer allows the visualization of the full
 HFSM. It also provides:
@@ -373,10 +373,10 @@ Finished
 Example HFSMs included in the [Samples Seed](./src/seeds/samples.webgmex):
 
 *Simple*:
-![Simple State Machine](./img/simple.gif)
+![Simple State Machine](wiki/images/simple.gif)
 
 *Medium*:
-![Medium State Machine](./img/medium.gif)
+![Medium State Machine](wiki/images/medium.gif)
 
 *Complex*:
-![Complex State Machine](./img/complex.gif)
+![Complex State Machine](wiki/images/complex.gif)
