@@ -468,7 +468,7 @@ define([
                             var node = e.target;
                             if (node == self._cy) { }
                             else {
-                                self._moveNodes( self._selectedNodes, node.id(), e.position );
+                                self._moveNodes( self._selectedNodes, node.id(), self.cyPosToScreenPos(e.position) );
                             }
                         },
                         coreAsWell: false,
