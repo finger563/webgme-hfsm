@@ -248,6 +248,7 @@ define(['js/util',
 
 	   Simulator.prototype.handleDeepHistory = function( stateId ) {
 	       var self = this;
+               var deferred = Q.defer();
 	       var histState = null;
 	       // set the active state to the state stored in the
 	       // history state.
@@ -255,7 +256,10 @@ define(['js/util',
 	       if (historyStateId == undefined) {
 		   // set to parent if we havent' been here before
 		   historyStateId = self.nodes[ stateId ].parentId;
-		   histState = self.getInitialState( historyStateId, true );
+		   self.getInitialState( historyStateId, true )
+                       .then(function(s) {
+                           deferred.resolve(s);
+                       });
 	       }
 	       else {
 		   // we've been here, get the state it pointed to
@@ -263,10 +267,18 @@ define(['js/util',
 		   if (histState == undefined ) {
 		       // State stored in history must have been moved / deleted
 		       alert('History state no longer valid, reinitailizing.');
-		       histState = self.getInitialState( self.getTopLevelId(), true );
+		       self.getInitialState( self.getTopLevelId(), true )
+                           .then(function(s) {
+                               deferred.resolve(s);
+                           });
 		   }
+                   else {
+                       deferred.resolve( histState );
+                   }
 	       }
-	       return histState;
+	       return deferred.promise.then(function(s) {
+                   return s;
+               });
 	   };
 
 	   Simulator.prototype.getChoices = function( transitionIds ) {
@@ -480,11 +492,19 @@ define(['js/util',
 		               self.handleNextState( s );
                            });
 		   }
+		   else if (state.type == 'Shallow History Pseudostate') {
+		       self.handleShallowHistory( state.id )
+                           .then(function(s) {
+		               self.handleNextState( s );
+                           });
+                   }
+		   else if (state.type == 'Deep History Pseudostate') {
+		       state = self.handleDeepHistory( state.id )
+                           .then(function(s) {
+		               self.handleNextState( s );
+                           });
+                   }
 		   else {
-		       if (state.type == 'Shallow History Pseudostate')
-			   state = self.handleShallowHistory( state.id );
-		       else if (state.type == 'Deep History Pseudostate')
-			   state = self.handleDeepHistory( state.id );
 		       // now transition!
 		       if ( state.id != self._activeState.id ) {
 			   var msg = 'STATE TRANSITION: ' + self._activeState.id + ' -> ' + state.id;
