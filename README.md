@@ -127,8 +127,6 @@ Double click on the project and then drag in a new HFSM component.
 
 In addition to editing the HFSM through webgme, the HFSMViz can also be used. Open an HFSM and click on the HFSMViz on the left side of the screen to use this mode.
 
-![Accessing HFSMViz](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/accessing_hfsmViz.gif)
-
 Components can be dragged into the visualizer just like in webgme, with addditional operations accessible via the right-click context menu
 
 ![Creating and editing an HFSM](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/hfsmEditing.gif)
@@ -373,10 +371,10 @@ Finished
 Example HFSMs included in the [Samples Seed](./src/seeds/samples.webgmex):
 
 *Simple*:
-![Simple State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/simple.gif)
+![Simple State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/simple.png)
 
 *Medium*:
-![Medium State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/medium.gif)
+![Medium State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/medium.png)
 
 *Complex*:
-![Complex State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/complex.gif)
+![Complex State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/complex.png)
