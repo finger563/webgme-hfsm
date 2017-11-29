@@ -945,7 +945,9 @@ define(['js/util',
 	       }
 	       else {
 		   self.updateActiveState();
-		   self.handleEvent( eventName, self._activeState.id );
+                   if (self._activeState) {
+		       self.handleEvent( eventName, self._activeState.id );
+                   }
 	       }
 	   };
 
