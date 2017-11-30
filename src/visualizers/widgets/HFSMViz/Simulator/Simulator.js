@@ -816,6 +816,19 @@ define(['js/util',
 	       return text.outerHTML;
 	   };
 
+	   Simulator.prototype.renderStateMachine = function( gmeId ) {
+	       var self = this;
+	       var node = self._client.getNode( gmeId );
+	       var stateObj = {
+		   name: node.getAttribute('name'),
+		   id: gmeId
+	       };
+	       var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
+	       var el = $(text).find('.internal-transitions');
+	       addCodeToList( el, null, 'Initialization', null, getCode(node, 'Initialization', true, false));
+	       return text.outerHTML;
+	   };
+
 	   Simulator.prototype.displayStateInfo = function ( gmeId ) {
 	       var self = this;
 	       //self.hideStateInfo();
@@ -835,6 +848,14 @@ define(['js/util',
 			   self.displayStateInfo( node.getParentId() );
 		       }
 		   }
+                   else if (nodeType == 'State Machine') {
+		       if ( $(self._stateInfo).find('.uml-state-machine').length ) {
+			   $(self._stateInfo).append(parentTempl);
+		       }
+		       $(self._stateInfo).append( self.renderStateMachine( gmeId ) );
+		       $(self._stateInfo).find('.uml-state-machine')
+			   .on('click', self.onClickStateInfo.bind(self) );
+                   }
 	       }
 	   };
 

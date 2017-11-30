@@ -12,7 +12,6 @@ $state-border-radius: 13px;
 @mixin State {
   .state {
     min-width: $state-min-width;
-    min-height: $state-min-height;
     height: auto;
     overflow: hidden;
     background-color: $state-background-color;
