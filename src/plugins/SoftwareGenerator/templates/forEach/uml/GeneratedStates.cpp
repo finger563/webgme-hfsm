@@ -42,6 +42,18 @@ namespace StateMachine {
     initialize();
   };
   
+  bool {{{fullyQualifiedName}}}::hasStopped ( void ) {
+    bool reachedEnd = false;
+    {{#END}}
+    // Get the currently active leaf state
+    StateMachine::StateBase* activeLeaf = getActiveLeaf();
+    if (activeLeaf != nullptr && activeLeaf != this && activeLeaf == {{{pointerName}}}) {
+      reachedEnd = true;
+    }
+    {{/END}}
+    return reachedEnd;
+  };
+  
   bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
     bool handled = false;
 

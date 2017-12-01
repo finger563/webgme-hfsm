@@ -54,6 +54,11 @@ namespace StateMachine {
     void                     restart    ( void );
 
     /**
+     * @brief Returns true if the HFSM has reached its END State
+     */
+    bool                     hasStopped ( void );
+
+    /**
      * @brief Calls handleEvent on the activeLeaf.
      *
      * @param[in] StateMachine::Event* Event needing to be handled
