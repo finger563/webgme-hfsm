@@ -1152,12 +1152,14 @@ define([
                 data.ActiveState = undefined;
                 previousActiveState.data( data );
             }
-            var idTag = stateId.replace(/\//gm, "\\/");
-            var node = self._cy.$('#'+idTag);
-            if (node.length) {
-                var data = node.data();
-                data.ActiveState = true;
-                node.data( data );
+            if (stateId) {
+                var idTag = stateId.replace(/\//gm, "\\/");
+                var node = self._cy.$('#'+idTag);
+                if (node.length) {
+                    var data = node.data();
+                    data.ActiveState = true;
+                    node.data( data );
+                }
             }
         };
 

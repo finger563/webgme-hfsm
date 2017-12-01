@@ -136,6 +136,8 @@ define(['js/util',
 	       self.updateActiveState();
 	       if (self._activeState)
 		   self._stateChangedCallback( self._activeState.id );
+               else 
+		   self._stateChangedCallback( null );
 	   };
 
 	   Simulator.prototype.onStateChanged = function(stateChangedCallback) {
@@ -199,6 +201,13 @@ define(['js/util',
                            self._activeState = s;
                        });
 	       }
+	   };
+
+	   Simulator.prototype.clearActiveState = function( ) {
+	       var self = this;
+               self._activeState = null;
+	       if (self._stateChangedCallback)
+		   self._stateChangedCallback( null );
 	   };
 
 	   Simulator.prototype.getActiveStateId = function( ) {
@@ -912,7 +921,7 @@ define(['js/util',
                return transitionIDs;
            };
 
-           var machineEvents = ['RESTART-HFSM','Tick'];
+           var machineEvents = ['HFSM-Restart','HFSM-Clear','HFSM-Tick'];
            var machineEventTempl = [
                '<div>',
                '<div id="{{eventName}}" class="row btn btn-default btn-primary btn-block eventButton">',
@@ -958,10 +967,13 @@ define(['js/util',
 	   Simulator.prototype.onEventButtonClick = function (e) {
 	       var self = this;
 	       var eventName = self.getEventButtonText( e.target ).trim();
-	       if (eventName == 'RESTART-HFSM') {
+	       if (eventName == 'HFSM-Restart') {
 		   self.initActiveState();
 	       }
-	       else if (eventName == 'Tick') {
+	       else if (eventName == 'HFSM-Clear') {
+		   self.clearActiveState();
+	       }
+	       else if (eventName == 'HFSM-Tick') {
 		   self.updateActiveState();
 	       }
 	       else {
