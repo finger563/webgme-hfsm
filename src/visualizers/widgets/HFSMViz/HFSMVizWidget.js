@@ -1774,19 +1774,38 @@ define([
         HFSMVizWidget.prototype.onBackgroundDblClick = function () {
         };
 
+        HFSMVizWidget.prototype.clearNodes = function() {
+            delete this.nodes;
+            this._cy.nodes().remove();
+            this.nodes = {};
+            this._debounced_one_time_zoom = _.debounce(_.once(this.onZoomClicked.bind(this)), 250);
+        };
+
+        HFSMVizWidget.prototype.shutdown = function() {
+            if (this._el) {
+                this._el.remove();
+                delete this._el;
+            }
+            if (this._simulator) {
+                delete this._simulator;
+            }
+            if (this._cy) {
+                this._cy.destroy();
+            }
+        };
+        
         /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
         HFSMVizWidget.prototype.destroy = function () {
-            this._el.remove();
-            delete this._el;
-            delete this.nodes;
-            delete this._simulator;
-            this._cy.destroy();
+            this.clearNodes();
+            this.shutdown();
         };
 
         HFSMVizWidget.prototype.onActivate = function () {
         };
 
         HFSMVizWidget.prototype.onDeactivate = function () {
+            this.clearNodes();
+            this.shutdown();
         };
 
         return HFSMVizWidget;
