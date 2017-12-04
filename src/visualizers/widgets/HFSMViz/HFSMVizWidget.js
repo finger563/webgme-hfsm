@@ -142,6 +142,18 @@ define([
             };
         };
 
+        HFSMVizWidget.prototype.initializeSimulator = function() {
+            if (this._simulator) {
+                delete this._simulator;
+            }
+            // SIMULATOR
+            this._simulator = new Simulator();
+            this._simulator.initialize( this._left, this.nodes, this._client );
+            this._simulator.onStateChanged( this.showActiveState.bind(this) );
+            this._simulator.onAnimateElement( this.animateElement.bind(this) );
+            this._simulator.onShowTransitions( this.showTransitions.bind(this) );
+        };
+
         HFSMVizWidget.prototype._initialize = function () {
             var width = this._el.width(),
                 height = this._el.height(),
@@ -168,11 +180,7 @@ define([
             this._right.css('width', '80%');
 
             // SIMULATOR
-            this._simulator = new Simulator();
-            this._simulator.initialize( this._left, this.nodes, this._client );
-            this._simulator.onStateChanged( this.showActiveState.bind(this) );
-            this._simulator.onAnimateElement( this.animateElement.bind(this) );
-            this._simulator.onShowTransitions( this.showTransitions.bind(this) );
+            this.initializeSimulator();
 
             // DRAGGING INFO
             this.isDragging = false;
@@ -1777,8 +1785,10 @@ define([
         HFSMVizWidget.prototype.clearNodes = function() {
             delete this.nodes;
             this._cy.nodes().remove();
+            // now re-init
             this.nodes = {};
             this._debounced_one_time_zoom = _.debounce(_.once(this.onZoomClicked.bind(this)), 250);
+            this.initializeSimulator();
         };
 
         HFSMVizWidget.prototype.shutdown = function() {
