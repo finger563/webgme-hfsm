@@ -107,6 +107,7 @@ define([], function() {
 		    // * name is unique within siblings
 		    // * only one 'Initial'
 		    // * only one end transition with no guard / event,
+		    // * if a child END exists, then it must have one end transition
                     // * timer period is non-zero if it has no child states
 		    self.checkName( obj );
 		    var parentObj = model.objects[obj.parentPath];
@@ -133,10 +134,20 @@ define([], function() {
 		    }
 		    // only one END TRANSITION and it has no guard
 		    var endTrans = self.getEndTransitions( obj, model.objects );
-		    if (endTrans.length > 1)
+		    if (endTrans.length > 1) {
 			self.error(obj, "State cannot have more than one END TRANSITION!");
-		    else if (endTrans.length == 1 && self.hasGuard( endTrans[0] ))
-			self.error(obj, "END TRANSITION cannot have gaurd!");
+                    }
+                    else if (endTrans.length == 1) {
+		        if (self.hasGuard( endTrans[0] )) {
+			    self.error(obj, "END TRANSITION cannot have gaurd!");
+                        }
+                    }
+                    else { // has no end transition
+                        if (obj['End State_list']) {
+                            // has an end state
+                            self.error(obj, "State has END State but no END TRANSITION!");
+                        }
+                    }
                     // non-zero timer period if non-zero substates
                     if (!obj.Initial_list && !obj.State_list && obj['Timer Period'] <= 0) {
                         self.error(obj, "Leaf state must have non-zero timer period!");
