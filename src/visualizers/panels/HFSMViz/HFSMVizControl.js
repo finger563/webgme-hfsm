@@ -45,6 +45,9 @@ define([
         };
     };
 
+    var rootTypes = ['State Machine', 'Library'];
+    var excludeTypes = [];//'Project', 'Component'];
+
     /* * * * * * * * Visualizer content update callbacks * * * * * * * */
     // One major concept here is with managing the territory. The territory
     // defines the parts of the project that the visualizer is interested in
@@ -70,7 +73,7 @@ define([
             self.currentNodeInfo.parentId = undefined;
 
             desc = self._getObjectDescriptor(nodeId);
-            if (desc) {
+            if (desc && rootTypes.indexOf(desc.type) > -1) {
                 self._selfPatterns[nodeId] = {children: 100};  // Territory "rule"
                 self._territoryId = self._client.addUI(self, function (events) {
                     self._eventCallback(events);
@@ -83,9 +86,6 @@ define([
             self._client.updateTerritory(self._territoryId, self._selfPatterns);
         }
     };
-
-    var rootTypes = ['State Machine', 'Library'];
-    var excludeTypes = [];//'Project', 'Component'];
 
     // This next function retrieves the relevant node information for the widget
     HFSMVizControl.prototype._getObjectDescriptor = function (nodeId) {
