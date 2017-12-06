@@ -1814,8 +1814,6 @@ define([
         };
 
         HFSMVizWidget.prototype.onDeactivate = function () {
-            this.clearNodes();
-            this.shutdown();
         };
 
         return HFSMVizWidget;
