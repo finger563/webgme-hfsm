@@ -468,6 +468,21 @@ define([
                         coreAsWell: false // Whether core instance have this item on cxttap
                     },
                     {
+                        id: 'arrangeSelection',
+                        content: 'Auto-Arrange Selected Nodes Here',
+                        tooltipText: 'Arrange selected nodes into a grid with a top left where the user clicked.',
+                        selector: 'node',
+                        onClickFunction: function ( e ) {
+                            var node = e.target;
+                            if (node == self._cy) { }
+                            else {
+                                self._arrangeNodes( self._selectedNodes, e.position );
+                            }
+                        },
+                        coreAsWell: false,
+                        hasTrailingDivider: true, // Whether the item will have a trailing divider
+                    },
+                    {
                         id: 'reparentSelection',
                         content: 'Move Selected Nodes Here',
                         tooltipText: 'Makes the node that was right clicked that parent of the selected node.',
@@ -1452,7 +1467,7 @@ define([
                     return;
                 }
 
-		try {
+		try { 
                     client.startTransaction("Moving nodes into " + parentId);
 
                     var selector = '#' + parentId.replace(/\//gm, "\\/");
@@ -1474,6 +1489,46 @@ define([
                     client.moveMoreNodes(params);
 
                     client.completeTransaction();
+		}
+		catch (ex) {
+		    alert(ex);
+		}
+            }
+        };
+
+        HFSMVizWidget.prototype._arrangeNodes = function( nodeIds, modelClickPosition ) {
+            var self = this;
+
+            if (nodeIds.length > 1) {
+		try {
+		    var options = {
+			name: "grid",
+			fit: false,
+			avoidOverlap: true,
+			nodeDimensionsIncludeLabels: true,
+			condense: true,
+			/*
+			sort: function(a,b) {
+			    // should arrange them so they're grouped by type
+			},
+			*/
+			animate: false,
+			transform: function(node, position) {
+			    var newPos = {
+				x: position.x + modelClickPosition.x,
+				y: position.y + modelClickPosition.y
+			    };
+			    return newPos;
+			}
+		    };
+
+		    var selector = nodeIds.map((nodeId) => {
+			return '#'+nodeId.replace(/\//gm, "\\/");
+		    }).join(", ");
+
+                    var cyNodes = self._cy.$(selector);
+		    var layout = cyNodes.layout(options);
+		    layout.run();
 		}
 		catch (ex) {
 		    alert(ex);
