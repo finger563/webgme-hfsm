@@ -11,6 +11,7 @@
     "url": "http://github.com/finger563/webgme-hfsm.git"
   },
   "dependencies": {
+    "underscore": "^1.8.3",
     "webgme": "2.x",
     "webgme-codeeditor": "^3.0.0",
     "webgme-to-json": "^1.0.4"

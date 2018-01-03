@@ -42,6 +42,23 @@ double {{{fullyQualifiedName}}}::getTimerPeriod ( void ) {
 bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
   bool handled = false;
 
+  // take care of all event types that this branch will not handle -
+  // for more consistent run-time performnace
+  switch ( event->type() ) {
+    {{#each UnhandledEvents}}
+  case Event::Type::{{{.}}}:
+    handled = true;
+    break;
+    {{/each}}
+  default:
+    break;
+  }
+
+  if (handled) {
+    // we didn't actually handle the event, but return anyway
+    return false;
+  }
+
   // handle internal transitions first
   switch ( event->type() ) {
   {{#each InternalEvents}}

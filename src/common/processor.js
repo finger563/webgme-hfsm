@@ -1,5 +1,5 @@
 
-define(['./checkModel'], function(checkModel) {
+define(['./checkModel', 'underscore'], function(checkModel, _) {
     'use strict';
     return {
 	stripRegex: /^([^\n]+)/gm,
@@ -17,12 +17,9 @@ define(['./checkModel'], function(checkModel) {
 	    eventName = self.makeEventName(eventName);
 	    obj.EventName = eventName;
 	    if (eventName) {
-                // go up to the State Machine object and add it there.
-                var p = model.objects[obj.parentPath];
-                while (p && p.type && p.type != 'State Machine') {
-                    p = model.objects[p.parentPath];
-                }
-                if (p) {
+                // go to the State Machine object and add it there.
+                var p = model.root;
+                if (p && p.type == 'State Machine') {
                     if (!p.eventNames) {
                         p.eventNames = [];
                     }
@@ -49,6 +46,7 @@ define(['./checkModel'], function(checkModel) {
 	},
 	addBasicParams: function(obj) {
 	    obj.Substates = [];
+	    obj.UnhandledEvents = [];
 	    obj.isRoot = false;
 	    obj.isExternalTransition = false;
 	    obj.isState = false;
@@ -150,6 +148,8 @@ define(['./checkModel'], function(checkModel) {
 		}
 		// Process Choice Pseudostate Data
 		else if (obj.type == 'Choice Pseudostate') {
+		    // make a substate of its parent
+		    self.makeSubstate( obj, model.objects );
 		    // for mustache template
 		    obj.isChoice = true;
 		    // add sanitized name
@@ -160,6 +160,8 @@ define(['./checkModel'], function(checkModel) {
 		}
 		// Process Process Deep History Pseudostate Data
 		else if (obj.type == 'Deep History Pseudostate') {
+		    // make a substate of its parent
+		    self.makeSubstate( obj, model.objects );
 		    // shouldn't need to do anything special here,
 		    // just treat it like a normal state
 		    // sanitize name for class name
@@ -170,6 +172,8 @@ define(['./checkModel'], function(checkModel) {
 		}
 		// Process Process Shallow History Pseudostate Data
 		else if (obj.type == 'Shallow History Pseudostate') {
+		    // make a substate of its parent
+		    self.makeSubstate( obj, model.objects );
 		    // shouldn't need to do anything special here,
 		    // just treat it like a normal state
 		    // sanitize name for class name
@@ -180,6 +184,8 @@ define(['./checkModel'], function(checkModel) {
 		}
 		// make the state names for the variables and such
 		else if (obj.type == 'State') {
+		    // make a substate of its parent
+		    self.makeSubstate( obj, model.objects );
 		    // for mustache template
 		    obj.isState = true;
 		    // sanitize name for class name
@@ -213,27 +219,33 @@ define(['./checkModel'], function(checkModel) {
 		parent.Substates.push( obj );
 	    }
 	},
+	findUnhandledEvents: function(obj, objDict) {
+	    var self = this;
+	    var parent = objDict[ obj.parentPath ];
+	    if (parent) {
+		// figure out disjoint set of events
+		var handledEventNames = [];
+		if (obj.InternalEvents) {
+		    handledEventNames = handledEventNames.concat(obj.InternalEvents.map((e) => {
+			return e.name;
+		    }));
+		}
+		if (obj.ExternalEvents) {
+		    handledEventNames = handledEventNames.concat(obj.ExternalEvents.map((e) => {
+			return e.name;
+		    }));
+		}
+		obj.UnhandledEvents = _.difference( parent.UnhandledEvents, handledEventNames );
+	    }
+	    // recurse down from the top
+	    obj.Substates.map((s) => {
+		self.findUnhandledEvents(s, objDict);
+	    });
+	},
 	makeConvenience: function(model) {
 	    var self = this;
-	    Object.keys(model.objects).map(function(path) {
-		var obj = model.objects[ path ];
-		if (obj.type == 'Deep History Pseudostate') {
-		    // make a substate of its parent
-		    self.makeSubstate( obj, model.objects );
-		}
-		else if (obj.type == 'Shallow History Pseudostate') {
-		    // make a substate of its parent
-		    self.makeSubstate( obj, model.objects );
-		}
-		else if (obj.type == 'Choice Pseudostate') {
-		    // make a substate of its parent
-		    self.makeSubstate( obj, model.objects );
-		}
-		else if (obj.type == 'State') {
-		    // make a substate of its parent
-		    self.makeSubstate( obj, model.objects );
-		}
-	    });
+	    model.root.UnhandledEvents = model.root.eventNames;
+	    self.findUnhandledEvents(model.root, model.objects);
 	},
 	transitionSort: function(transA, transB) {
 	    var a = transA.Guard;
