@@ -18,8 +18,11 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
 	    obj.EventName = eventName;
 	    if (eventName) {
                 // go to the State Machine object and add it there.
-                var p = model.root;
-                if (p && p.type == 'State Machine') {
+		var p = model.objects[obj.parentPath];
+		while (p && p.type && p.type != 'State Machine') {
+		    p = model.objects[p.parentPath];
+		}
+                if (p) {
                     if (!p.eventNames) {
                         p.eventNames = [];
                     }
@@ -244,8 +247,13 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
 	},
 	makeConvenience: function(model) {
 	    var self = this;
-	    model.root.UnhandledEvents = model.root.eventNames;
-	    self.findUnhandledEvents(model.root, model.objects);
+	    Object.keys(model.objects).map((path) => {
+		var obj = model.objects[path];
+		if (obj.type == 'State Machine') {
+		    obj.UnhandledEvents = obj.eventNames;
+		    self.findUnhandledEvents(obj, model.objects);
+		}
+	    });
 	},
 	transitionSort: function(transA, transB) {
 	    var a = transA.Guard;
