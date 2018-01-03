@@ -1451,28 +1451,33 @@ define([
                           'Cannot reparent to a node in the selection!');
                     return;
                 }
-                
-                client.startTransaction("Moving nodes into " + parentId);
 
-                var selector = '#' + parentId.replace(/\//gm, "\\/");
-                var cyNode = self._cy.$(selector);
+		try {
+                    client.startTransaction("Moving nodes into " + parentId);
 
-                var params = {parentId: parentId};
+                    var selector = '#' + parentId.replace(/\//gm, "\\/");
+                    var cyNode = self._cy.$(selector);
 
-                self.forceShowChildren( cyNode.id() );
-                var pos = self.screenPosToCyPos( childPosition );
+                    var params = {parentId: parentId};
 
-                nodeIds.map(function(nodeId) {
-                    params[nodeId] = {
-                        'registry': {
-                            'position': pos
-                        }
-                    };
-                });
-                
-                client.moveMoreNodes(params);
+                    self.forceShowChildren( cyNode.id() );
+                    var pos = self.screenPosToCyPos( childPosition );
 
-                client.completeTransaction();
+                    nodeIds.map(function(nodeId) {
+			params[nodeId] = {
+                            'registry': {
+				'position': pos
+                            }
+			};
+                    });
+                    
+                    client.moveMoreNodes(params);
+
+                    client.completeTransaction();
+		}
+		catch (ex) {
+		    alert(ex);
+		}
             }
         };
 
