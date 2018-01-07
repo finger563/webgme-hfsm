@@ -52,6 +52,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
 	    obj.UnhandledEvents = [];
 	    obj.isRoot = false;
 	    obj.isExternalTransition = false;
+	    obj.isLocalTransition = false;
 	    obj.isState = false;
 	    obj.isChoice = false;
 	    obj.isDeepHistory = false;
@@ -128,7 +129,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
 		    if ( src && dst ) {
 			// valid transition with source and destination pointers in the tree
 			// add new data to the object
-			obj.isExternalTransition = true;
+			obj.isLocalTransition = true;
 			obj.prevState = src;
 			obj.nextState = dst;
 
