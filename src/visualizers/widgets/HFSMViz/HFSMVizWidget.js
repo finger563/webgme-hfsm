@@ -82,6 +82,7 @@ define([
             this._el = container;
 
             this._client = client;
+            GMEConcepts.initialize(client);
 
             // set widget class
             this._el.addClass(WIDGET_CLASS);
@@ -1713,40 +1714,31 @@ define([
                 }
             }
 
-            var options = {};
-
             // figure out what kind of connections the parent can have
             var parentNode = client.getNode(parentId);
-            GMEConcepts.initialize(client);
-            var validConnections = GMEConcepts.getValidConnectionTypesFromSourceInAspect(srcId, parentId, CONSTANTS.ASPECT_ALL);
+            var validConnections = GMEConcepts.getValidConnectionTypesInAspect(srcId, dstId, parentId, CONSTANTS.ASPECT_ALL);
             
-            var options = {};
-            var localKey = "" + validConnections.length;
-            options[localKey] = {
-                name: 'Local Transition',
-                icon: false,
-                fn: function() {
-                    alert('Local Transitions are not supported yet!');
-                }
-            };
+	    if (validConnections.length > 0) {
+		var options = {};
+		var localKey = "" + validConnections.length;
+		var i = 0;
+		validConnections.map(function(typeId) {
+                    var key = ""+i;
+                    i++;
+                    var option = makeOption( srcId, dstId, typeId);
+                    options[key] = option;
+		});
 
-            var i = 0;
-            validConnections.map(function(typeId) {
-                var key = ""+i;
-                i++;
-                var option = makeOption( srcId, dstId, typeId);
-                options[key] = option;
-            });
+		var targetPos = self.cyPosition( cyTargets[0] );
+		targetPos = position || self.cyPosToScreenPos( targetPos );
+		targetPos.x += $(self._left).width();
+		targetPos = self._relativeToWindowPos( targetPos );
 
-            var targetPos = self.cyPosition( cyTargets[0] );
-            targetPos = position || self.cyPosToScreenPos( targetPos );
-            targetPos.x += $(self._left).width();
-            targetPos = self._relativeToWindowPos( targetPos );
-
-            self.createWebGMEContextMenu(options, function(option) {
-                if (options[option] && options[option].fn)
-                    options[option].fn();
-            }, targetPos);
+		self.createWebGMEContextMenu(options, function(option) {
+                    if (options[option] && options[option].fn)
+			options[option].fn();
+		}, targetPos);
+	    }
         };
 
         HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeMetaId ) {

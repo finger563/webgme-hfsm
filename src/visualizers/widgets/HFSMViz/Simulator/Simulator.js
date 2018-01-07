@@ -674,7 +674,7 @@ define(['js/util',
 	       var trans = self.nodes[ transId ];
 	       if (trans) {
                    self._animateElementCallback( transId );
-		   if (trans.type == 'External Transition') {
+		   if (trans.type == 'External Transition' || trans.type == 'Local Transition') {
 		       var dstId = trans.dst;
 		       if (dstId) { // exte
 			   self.getInitialState( dstId, true )
