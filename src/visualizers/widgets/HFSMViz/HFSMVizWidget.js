@@ -228,7 +228,7 @@ define([
                 panningEnabled: true,
                 userPanningEnabled: true,
                 boxSelectionEnabled: true,
-                selectionType: 'additive',
+                selectionType: 'single',
                 touchTapThreshold: 8,
                 desktopTapThreshold: 4,
                 autolock: false,
@@ -575,14 +575,25 @@ define([
             // USED FOR NODE SELECTION AND MULTI-SELECTION
 
             self._selectedNodes = [];
+	    self.multiSelectionEnabled = false;
+            self._cy.on('tap', 'node, edge', function(e){
+		self.multiSelectionEnabled = e.originalEvent.ctrlKey;
+		// is there a better way of doing this?
+		if (self.multiSelectionEnabled) {
+		    self._cy._private.selectionType = "additive";
+		}
+		else {
+		    self._cy._private.selectionType = "single";
+		}
+            });
             self._cy.on('select', 'node, edge', function(e){
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    if (self._selectedNodes.indexOf(id) == -1) {
+		    if (self._selectedNodes.indexOf(id) == -1) {
                         self._selectedNodes.push(id);
-                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-                    }
+			WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+		    }
                 }
                 highlight( node );
             });
