@@ -28,6 +28,9 @@ define([], function() {
 	hasEvent: function( trans ) {
 	    return trans.Event && trans.Event.trim().length > 0;
 	},
+	hasParentChildRelationship: function( a, b ) {
+	    return a.parentPath == b.path || a.path == b.parentPath;
+	},
 	checkModel: function(model) {
 	    /**
 	     * @brief Ensures correctness of the model, throwing
@@ -58,6 +61,24 @@ define([], function() {
 			self.badProperty(obj, 'src');
 		    if ( dst == undefined )
 			self.badProperty(obj, 'dst');
+		}
+		else if (obj.type == 'Local Transition') {
+		    // checks: src, dst, Event, Guard,
+		    var src = model.objects[obj.pointers['src']],
+			dst = model.objects[obj.pointers['dst']];
+		    if ( src == undefined )
+			self.badProperty(obj, 'src');
+		    if ( dst == undefined )
+			self.badProperty(obj, 'dst');
+
+		    if ( !self.hasParentChildRelationShip( src, dst ) ) {
+			console.log(`Local Transition ${objPath} does not have src/dst that are in an explicitly parent-child relationship - converting ${objPath} to External Transition!`);
+			obj.type == 'External Transition';
+		    }
+
+		    if ( !self.hasEvent( obj ) ) {
+			self.error(obj, "LOCAL TRANSITIONS MUST HAVE EVENTS");
+		    }
 		}
 		else if (obj.type == 'Internal Transition') {
 		    // checks: event

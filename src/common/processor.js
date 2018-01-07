@@ -61,7 +61,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
 	processModel: function(model) {
 	    var self = this;
             // REMOVE ALL EVENTS THAT ARE MARKED AS DISABLED
-            var transitionTypes = ['External Transition', 'Internal Transition'];
+            var transitionTypes = ['External Transition', 'Local Transition', 'Internal Transition'];
             Object.keys(model.objects).map(function(objPath) {
                 var obj = model.objects[objPath];
                 if (transitionTypes.indexOf(obj.type) > -1 && !obj.Enabled) {
@@ -116,6 +116,32 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
 			}
 			else {
 			    // should be end event! need to build transition functions properly
+			}
+		    }
+		}
+		// Process Local Transition Data into convenience
+		// members of source State
+		else if (obj.type == 'Local Transition') {
+		    // need function to get final state that doesn't terminate on end states
+		    var src = model.objects[obj.pointers['src']],
+			dst = model.objects[obj.pointers['dst']];
+		    if ( src && dst ) {
+			// valid transition with source and destination pointers in the tree
+			// add new data to the object
+			obj.isExternalTransition = true;
+			obj.prevState = src;
+			obj.nextState = dst;
+
+			if (obj.Event) {
+			    // add the event to a global list of events
+			    self.addEvent( model, obj, obj.Event );
+			    // add the external transition to the source
+			    self.updateEventInfo( 'ExternalEvents',
+						  src,
+						  obj );
+			}
+			else {
+			    // should never happen since this is local transition!
 			}
 		    }
 		}
