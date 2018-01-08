@@ -71,7 +71,7 @@ define([], function() {
 		    if ( dst == undefined )
 			self.badProperty(obj, 'dst');
 
-		    if ( !self.hasParentChildRelationShip( src, dst ) ) {
+		    if ( !self.hasParentChildRelationship( src, dst ) ) {
 			console.log(`Local Transition ${objPath} does not have src/dst that are in an explicitly parent-child relationship - converting ${objPath} to External Transition!`);
 			obj.type == 'External Transition';
 		    }
