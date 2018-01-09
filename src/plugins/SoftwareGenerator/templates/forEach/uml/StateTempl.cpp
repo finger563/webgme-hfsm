@@ -1,8 +1,6 @@
 {{#if isState}}
 /* * *  Definitions for {{{fullyQualifiedName}}} : {{{path}}}  * * */
 void {{{fullyQualifiedName}}}::initialize ( void ) {
-  // call our own entry action
-  entry();
   {{> InitializeTempl }}
 }
 

@@ -8,6 +8,7 @@ define(['bower/handlebars/handlebars.min',
 	'text!./ExternalEvent.tmpl',
 	'text!./ExternalTransition.tmpl',
 	'text!./ExecuteTransition.tmpl',
+	'text!./InitTransition.tmpl',
 	'text!./Initialize.tmpl',
 	'text!./StateTempl.hpp',
 	'text!./StateTempl.cpp',
@@ -27,6 +28,7 @@ define(['bower/handlebars/handlebars.min',
 		ExternalEventTempl,
 		ExternalTransitionTempl,
 		ExecuteTransitionTempl,
+                InitTransitionTempl,
 		InitializeTempl,
 		StateTemplHpp,
 		StateTemplCpp,
@@ -50,6 +52,7 @@ define(['bower/handlebars/handlebars.min',
 	       ExternalEventTempl: ExternalEventTempl,
 	       ExternalTransitionTempl: ExternalTransitionTempl,
 	       ExecuteTransitionTempl: ExecuteTransitionTempl,
+	       InitTransitionTempl: InitTransitionTempl,
 	       InitializeTempl: InitializeTempl,
 	       StateTemplHpp: StateTemplHpp,
 	       StateTemplCpp: StateTemplCpp,
@@ -78,26 +81,11 @@ define(['bower/handlebars/handlebars.min',
 
 	   var localRoot = null;
 
-	   handlebars.registerHelper('addTransition', function(options) {
-	       var context = {},
-		   mergeContext = function(obj) {
-		       for(var k in obj)context[k]=obj[k];
-		   };
-	       mergeContext(this);
-	       var trans = options.hash.trans;
-	       var previousTransitions = new Array();
-	       if ( options.hash.previous )
-		   previousTransitions = previousTransitions.concat( options.hash.previous );
-	       previousTransitions.push( trans );
-	       context.previousTransitions = previousTransitions;
-	       return options.fn(context);
-	   });
-
 	   function getParentList( obj ) {
 	       var currentObj = localRoot;
 	       var matchedPath = currentObj.path;
 	       var parentList = [];
-	       if ( obj.path.indexOf( matchedPath ) > -1 ) {
+	       if ( obj.path && obj.path.indexOf( matchedPath ) > -1 ) {
 		   // this obj is within the localRoot's tree
 		   while (matchedPath != obj.path) {
 		       parentList.push( currentObj );
@@ -157,18 +145,25 @@ define(['bower/handlebars/handlebars.min',
 	   };
 
 	   function renderDebugOutput( start, end ) {
-	       var a = [
-		   '#ifdef DEBUG_OUTPUT',
-		   'std::cout << "STATE TRANSITION: '+
-		       start.fullyQualifiedName+'->'+end.fullyQualifiedName+'" << std::endl;',
-		   '#endif',
-		   ''
-	       ].join('\n');
-	       return a;
+               var a = [];
+               if (start.fullyQualifiedName) {
+	           a = a.concat([
+		       '#ifdef DEBUG_OUTPUT',
+		       'std::cout << "STATE TRANSITION: '+
+		           start.fullyQualifiedName+'->'+end.fullyQualifiedName+'" << std::endl;',
+		       '#endif',
+		       ''
+	           ]);
+               }
+	       return a.join('\n');
 	   };
 
 	   handlebars.registerHelper('renderTransition', function( options ) {
 	       var rendered = '';
+
+               var renderExit = options.hash.exit && options.hash.exit == "true";
+               var renderEntry = options.hash.entry && options.hash.entry == "true";
+
 	       var transition = options.hash.transition;
 	       var transitions = new Array();
 	       if (transition.previousTransitions) {
@@ -180,12 +175,14 @@ define(['bower/handlebars/handlebars.min',
                var nextState = transitions[ transitions.length - 1 ].nextState;
                var rootState = getCommonRoot( prevState, nextState );
 
-               // all exits from old up to root
-               rendered += [
-                   '// Call all exits',
-                   rootState.pointerName + '->exitChildren();',
-                   '',
-               ].join('\n');
+               if (renderExit) {
+                   // all exits from old up to root
+                   rendered += [
+                       '// Call all exits',
+                       rootState.pointerName + '->exitChildren();',
+                       '',
+                   ].join('\n');
+               }
 
                // all transition actions from old to new
                transitions.map(function(trans) {
@@ -193,27 +190,32 @@ define(['bower/handlebars/handlebars.min',
 		   rendered += renderKey( trans, 'Action' );
                });
 
-               // all entries from root down to new
-               var entries = getStateEntries(rootState, nextState);
-               entries.map(function(e) {
-		   rendered += renderKey( e, 'entry' );
-               });
+               if (renderEntry) {
+                   // all entries from root down to new
+                   var entries = getStateEntries(rootState, nextState);
+                   entries.map(function(e) {
+		       rendered += renderKey( e, 'entry' );
+                   });
+               }
 
 	       var finalState = transition.nextState;
 	       rendered += renderDebugOutput( transitions[0].prevState, finalState );
 	       return rendered;
 	   });
 
-	   handlebars.registerHelper('getCommonRoot', function(options) {
-	       console.log('getCommonRoot');
-	       var start = options.hash.start;
-	       var end = options.hash.end;
-	       var src, dst;
-	       src = start.prevState;
-	       dst = end.nextState;
-	       
-	       console.log( src );
-	       console.log( dst );
+	   handlebars.registerHelper('addTransition', function(options) {
+	       var context = {},
+		   mergeContext = function(obj) {
+		       for(var k in obj)context[k]=obj[k];
+		   };
+	       mergeContext(this);
+	       var trans = options.hash.trans;
+	       var previousTransitions = new Array();
+	       if ( options.hash.previous )
+		   previousTransitions = previousTransitions.concat( options.hash.previous );
+	       previousTransitions.push( trans );
+	       context.previousTransitions = previousTransitions;
+	       return options.fn(context);
 	   });
 
 	   Object.keys(Partials).map(function(partialName) {

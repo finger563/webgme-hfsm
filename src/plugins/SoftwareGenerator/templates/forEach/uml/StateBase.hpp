@@ -146,7 +146,7 @@ namespace StateMachine {
      */
     void                      setShallowHistory ( void ) {
       if (_activeState != nullptr && _activeState != this) {
-        entry();
+        _activeState->entry();
         _activeState->initialize();
       }
       else {
@@ -160,7 +160,7 @@ namespace StateMachine {
      */
     void                      setDeepHistory ( void ) {
       if (_activeState != nullptr && _activeState != this) {
-	entry();
+        _activeState->entry();
 	_activeState->setDeepHistory();
       }
       else {

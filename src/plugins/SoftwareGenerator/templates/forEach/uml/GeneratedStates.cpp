@@ -23,7 +23,7 @@ namespace StateMachine {
   void {{{fullyQualifiedName}}}::initialize ( void ) {
     // Run the model's Initialization code
     #ifdef DEBUG_OUTPUT
-    std::cout << "HFSM Initialization" << std::endl;
+    std::cout << "{{{name}}}:{{{path}}} HFSM Initialization" << std::endl;
     #endif
     //::::{{{path}}}::::Initialization::::
     {{{Initialization}}}

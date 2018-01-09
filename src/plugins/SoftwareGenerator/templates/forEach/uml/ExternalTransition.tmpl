@@ -30,9 +30,10 @@ else if ( true ) {
   {{~/nextState.endTransition}}
   {{else}}
   // Transitioning states!
-  {{#renderTransition transition=.}}{{/renderTransition}}
+  {{#renderTransition exit="true" entry="true" transition=.}}{{/renderTransition}}
   {{#if nextState.isState}}
   // going into regular state
+  {{{nextState.pointerName}}}->entry();
   {{{nextState.pointerName}}}->initialize();
   {{else if nextState.isEnd}}
   // going into end pseudo-state THIS SHOULD BE TOP LEVEL END STATE

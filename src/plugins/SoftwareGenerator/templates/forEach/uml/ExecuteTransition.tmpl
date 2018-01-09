@@ -6,7 +6,7 @@
 {{/nextState.Initial_list.[0].ExternalTransitions.[0]}}
 {{else}}
 // Transitioning states!
-{{#renderTransition transition=.}}{{/renderTransition}}
+{{#renderTransition exit="true" entry="true" transition=.}}{{/renderTransition}}
 // make sure nothing else handles this event
 handled = true;
 {{/if}}
