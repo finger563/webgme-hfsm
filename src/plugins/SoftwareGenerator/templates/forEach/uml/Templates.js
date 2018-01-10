@@ -81,32 +81,37 @@ define(['bower/handlebars/handlebars.min',
 
 	   var localRoot = null;
 
-	   function getParentList( obj ) {
-	       var currentObj = localRoot;
-	       var matchedPath = currentObj.path;
-	       var parentList = [];
-	       if ( obj.path && obj.path.indexOf( matchedPath ) > -1 ) {
+	   function objInBranchOfRoot(obj, root) {
+	       return root && obj && obj.path && obj.path.indexOf( root.path ) > -1;
+	   };
+
+	   function getBranch( obj ) {
+	       var branch = [];
+	       if ( objInBranchOfRoot(obj, localRoot) ) {
 		   // this obj is within the localRoot's tree
+		   var currentObj = localRoot;
+		   var matchedPath = currentObj.path;
+		   branch.push( currentObj );
 		   while (matchedPath != obj.path) {
-		       parentList.push( currentObj );
-		       var child = currentObj.State_list.filter(function(s) {
+		       var children = currentObj.State_list.filter(function(s) {
 			   return obj.path.indexOf( s.path ) > -1;
 		       });
-		       if (child.length) {
-			   child = child[0];
+		       if (children.length) {
+			   var child = children[0];
 			   currentObj = child;
+			   branch.push( currentObj );
 			   matchedPath = currentObj.path;
 		       }
 		       else break;
 		   }
 	       }
-	       return parentList;
+	       return branch;
 	   };
 
 	   function getCommonRoot( a, b ) {
 	       var commonRoot = b;
-	       var startList = getParentList( a );
-	       var endList = getParentList( b );
+	       var startList = getBranch( a );
+	       var endList = getBranch( b );
 	       var intersection = _.intersection(startList, endList);
 	       if (intersection.length) {
 		   commonRoot = intersection[ intersection.length - 1 ];
@@ -114,12 +119,108 @@ define(['bower/handlebars/handlebars.min',
 	       return commonRoot;
 	   };
 
-	   function getStateEntries( root, newState ) {
-               var rootList = getParentList( root ).concat([root]);
-               var stateList = getParentList( newState );
-	       var entries = _.difference( stateList, rootList );
+	   function sameBranch( a, b ) {
+	       return a.path.indexOf(b.path) > -1 || b.path.indexOf(a.path) > -1;
+	   };
+
+	   function getStateExits( root, oldState, newState, isLocal ) {
+               var rootList = getBranch( root );
+               var stateList = getBranch( oldState );
+
+	       // cases:
+	       //    1. make sure external transitions along the branch re-enter root
+	       //    2. make sure local transitions along branch do not re-enter root
+
+	       if (isLocal) {
+	       }
+	       else {
+		   if (sameBranch(oldState, newState)) {
+		       rootList = rootList.filter((a) => { return a != root; });
+		   }
+	       }
+
+	       var exits = _.difference( stateList, rootList ) || [];
+	       return exits.reverse();
+	   };
+
+	   function getStateEntries( root, oldState, newState, isLocal ) {
+               var rootList = getBranch( root );
+               var stateList = getBranch( newState );
+
+	       // cases:
+	       //    1. make sure external transitions along the branch re-enter root
+	       //    2. make sure local transitions along branch do not re-enter root
+
+	       if (isLocal) {
+	       }
+	       else {
+		   if (sameBranch(oldState, newState)) {
+		       rootList = rootList.filter((a) => { return a != root; });
+		   }
+	       }
+
+	       // need to make sure not to render entries for history pseudostates
+	       if (["Deep History Pseudostate", "Shallow History Pseudostate"].indexOf(newState.type) > -1) {
+		   stateList = stateList.filter((a) => { return a != newState });
+	       }
+
+	       var entries = _.difference( stateList, rootList ) || [];
 	       return entries;
 	   };
+
+	   handlebars.registerHelper('renderTransition', function( options ) {
+	       var rendered = '';
+
+               var renderExit = options.hash.exit && options.hash.exit == "true";
+               var renderEntry = options.hash.entry && options.hash.entry == "true";
+
+	       var transition = options.hash.transition;
+	       var transitions = new Array();
+	       if (transition.previousTransitions) {
+		   transitions = transitions.concat( transition.previousTransitions);
+	       }
+	       transitions.push( transition );
+
+               var prevState = transitions[0].prevState;
+               var nextState = transitions[ transitions.length - 1 ].nextState;
+               var rootState = getCommonRoot( prevState, nextState );
+
+	       var isLocal = transitions.length == 1 && transitions[0].isLocalTransition;
+
+	       if (renderExit) {
+		   // all exits from root down to new
+		   var exits = getStateExits(rootState, prevState, nextState, isLocal);
+		   rendered += [
+		       '// Call all from prev state down exits',
+		       prevState.pointerName + '->exitChildren();',
+		       ''
+		   ].join('\n');
+		   exits.map(function(e) {
+		       rendered += renderKey( e, 'exit' );
+		   });
+	       }
+
+               // all transition actions from old to new
+               transitions.map(function(trans) {
+		   // render action
+		   rendered += renderKey( trans, 'Action' );
+               });
+
+	       if (renderEntry) {
+		   // all entries from root down to new
+		   var entries = getStateEntries(rootState, prevState, nextState, isLocal);
+		   if (isLocal) {
+		       entries = entries.filter((s) => { return s !== rootState && s !== prevState; });
+		   }
+		   entries.map(function(e) {
+		       rendered += renderKey( e, 'entry' );
+		   });
+	       }
+
+	       var finalState = transition.nextState;
+	       rendered += renderDebugOutput( transitions[0].prevState, finalState );
+	       return rendered;
+	   });
 
 	   function renderKey( obj, key ) {
 	       var a = [
@@ -157,51 +258,6 @@ define(['bower/handlebars/handlebars.min',
                }
 	       return a.join('\n');
 	   };
-
-	   handlebars.registerHelper('renderTransition', function( options ) {
-	       var rendered = '';
-
-               var renderExit = options.hash.exit && options.hash.exit == "true";
-               var renderEntry = options.hash.entry && options.hash.entry == "true";
-
-	       var transition = options.hash.transition;
-	       var transitions = new Array();
-	       if (transition.previousTransitions) {
-		   transitions = transitions.concat( transition.previousTransitions);
-	       }
-	       transitions.push( transition );
-
-               var prevState = transitions[0].prevState;
-               var nextState = transitions[ transitions.length - 1 ].nextState;
-               var rootState = getCommonRoot( prevState, nextState );
-
-               if (renderExit) {
-                   // all exits from old up to root
-                   rendered += [
-                       '// Call all exits',
-                       rootState.pointerName + '->exitChildren();',
-                       '',
-                   ].join('\n');
-               }
-
-               // all transition actions from old to new
-               transitions.map(function(trans) {
-		   // render action
-		   rendered += renderKey( trans, 'Action' );
-               });
-
-               if (renderEntry) {
-                   // all entries from root down to new
-                   var entries = getStateEntries(rootState, nextState);
-                   entries.map(function(e) {
-		       rendered += renderKey( e, 'entry' );
-                   });
-               }
-
-	       var finalState = transition.nextState;
-	       rendered += renderDebugOutput( transitions[0].prevState, finalState );
-	       return rendered;
-	   });
 
 	   handlebars.registerHelper('addTransition', function(options) {
 	       var context = {},

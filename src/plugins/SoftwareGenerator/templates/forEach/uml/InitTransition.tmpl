@@ -23,7 +23,6 @@ else if ( true ) {
   // Transitioning states!
 {{#renderTransition exit="false" entry="true" transition=.}}{{/renderTransition}}
   // now initialize the actual next state
-  {{{nextState.pointerName}}}->entry();
   {{{nextState.pointerName}}}->initialize();
 {{/if}}
 }

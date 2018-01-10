@@ -12,7 +12,6 @@ if (false) { } // makes geneeration easier :)
 {{else}}
 {{#renderTransition exit="false" entry="true" transition=.}}{{/renderTransition}}
 // initialize our new active state
-{{{nextState.pointerName}}}->entry();
 {{{nextState.pointerName}}}->initialize();
 {{/if}}
 {{~/each}}
