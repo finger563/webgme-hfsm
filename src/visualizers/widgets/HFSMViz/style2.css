@@ -194,6 +194,10 @@ edge[Enabled = "False"] {
     line-style: dashed;
 }
 
+edge[type = "Local Transition"] {
+    target-arrow-fill: hollow;
+}
+
 .filtered {
     display: none;
 }
