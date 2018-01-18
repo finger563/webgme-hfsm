@@ -1143,8 +1143,10 @@ define([
                     if (desc.isConnection) {
                         if (desc.src != oldDesc.src || desc.dst != oldDesc.dst) {
                             this._cy.remove('#' + idTag);
-                            self.checkDependencies( desc );
-                            self.updateDependencies();
+                            let depsMet = self.checkDependencies( desc );
+                            if (depsMet) {
+                                self.createEdge(desc);
+                            }
                         }
                         else {
                             cyNode.data( this.getDescData(desc) );
