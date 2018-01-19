@@ -1,5 +1,8 @@
 {{#if isState}}
 /* * *  Definitions for {{{fullyQualifiedName}}} : {{{path}}}  * * */
+// Timer period
+const double {{{fullyQualifiedName}}}::timerPeriod = {{{this.[Timer Period]}}};
+
 void {{{fullyQualifiedName}}}::initialize ( void ) {
   {{> InitializeTempl }}
 }

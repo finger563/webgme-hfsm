@@ -23,7 +23,7 @@ public:
   {{/each}}
   
   // Timer period
-  constexpr static const double     timerPeriod = {{{this.[Timer Period]}}};
+  static const double timerPeriod;
 
   // Constructors
   {{{sanitizedName}}}  ( void ) : StateBase( ) {}
