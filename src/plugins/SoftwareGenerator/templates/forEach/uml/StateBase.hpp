@@ -185,12 +185,12 @@ namespace StateMachine {
      * Pointer to the currently or most recently active substate of
      * this state.
      */
-    StateMachine::StateBase  *_activeState      = nullptr;
+    StateMachine::StateBase  *_activeState;
 
     /**
      * Pointer to the parent state of this state.
      */
-    StateMachine::StateBase  *_parentState      = nullptr;
+    StateMachine::StateBase  *_parentState;
   };
   
 };
