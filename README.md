@@ -6,7 +6,7 @@
 WebGME App for creating Executable Heirarchical Finite State Machines
 (HFSMs). Contains metamodel, visualization, simulation, and code
 generation for Heirarchical Finite State Machines (HFSMs) following
-the UML State Machine specification.
+the UML State Machine specification, see [Wikipedia UML State Machine](https://en.wikipedia.org/wiki/UML_state_machine), [another reference](https://www.uml-diagrams.org/state-machine-diagrams.html), and [the UML specification](http://www.omg.org/spec/UML/).
 
 A public server running this project can be accessed at:
 
