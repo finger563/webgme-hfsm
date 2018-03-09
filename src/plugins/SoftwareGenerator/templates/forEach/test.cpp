@@ -46,6 +46,8 @@ void handleAllEvents() {
   StateMachine::Event* e = eventFactory->getNextEvent();
   while (e != nullptr) {
     bool handled = {{{sanitizedName}}}_root->handleEvent( e );
+    // free the memory that was allocated during "spawnEvent"
+    eventFactory->consumeEvent( e );
     if (handled) {
 #if DEBUG_OUTPUT
       std::cout << "Handled " << StateMachine::Event::toString( e ) << std::endl;
