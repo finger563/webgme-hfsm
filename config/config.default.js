@@ -7,10 +7,6 @@ config.server.port = 8081;
 
 config.storage.keyType = 'rand160Bits';
 
-config.client.log.level = 'debug';
-
-config.server.log.level = 'debug';
-
 //config.seedProjects.defaultProject = 'FiniteStateMachine';
 config.seedProjects.basePaths = [__dirname + '/../src/seeds'];
 

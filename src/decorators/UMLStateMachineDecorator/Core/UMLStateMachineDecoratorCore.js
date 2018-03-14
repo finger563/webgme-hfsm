@@ -129,8 +129,8 @@ define([
 	    if (UMLStateMachineMETA.TYPE_INFO.isTransition(this._gmeID)) {
 		// show event [ guard ]
 		name = '';
-		var event = nodeObj.getEditableAttribute('Event'),
-		    guard = nodeObj.getEditableAttribute('Guard');
+		var event = nodeObj.getAttribute('Event'),
+		    guard = nodeObj.getAttribute('Guard');
 		if (event)
 		    name += event;
 		if (guard)
@@ -227,7 +227,7 @@ define([
     }
 
     function getCode(nodeObj, codeAttr, doHighlight, markIncomplete) {
-	var originalCode = nodeObj.getEditableAttribute( codeAttr ),
+	var originalCode = nodeObj.getAttribute( codeAttr ),
 	    code = escapeHtml(originalCode);
 	var el = '';
 	if (doHighlight) {
