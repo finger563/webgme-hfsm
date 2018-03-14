@@ -716,7 +716,7 @@ define(['js/util',
 	   }
 
 	   function getCode(nodeObj, codeAttr, doHighlight, markIncomplete) {
-	       var originalCode = nodeObj.getEditableAttribute( codeAttr ),
+	       var originalCode = nodeObj.getAttribute( codeAttr ),
 		   code = escapeHtml(originalCode);
 	       var el = '';
 	       if (doHighlight) {
