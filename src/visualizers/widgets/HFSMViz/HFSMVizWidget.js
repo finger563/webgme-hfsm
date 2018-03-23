@@ -160,6 +160,9 @@ define([
                 height = this._el.height(),
                 self = this;
             
+            // is the project readonly?
+            this._readOnly = this._client.isProjectReadOnly();
+
             // Root Info
             this.HFSMName = '';
 
@@ -233,7 +236,7 @@ define([
                 touchTapThreshold: 8,
                 desktopTapThreshold: 4,
                 autolock: false,
-                autoungrabify: false,
+                autoungrabify: this._readOnly,
                 autounselectify: false,
 
                 // rendering options:
@@ -370,8 +373,10 @@ define([
                 }
             };
 
-            // EDGE HANDLES
-            this._cy.edgehandles( edgeHandleDefaults );
+	    if (!this._readOnly) {
+		// EDGE HANDLES
+		this._cy.edgehandles( edgeHandleDefaults );
+	    }
 
             var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]';
 
@@ -508,7 +513,10 @@ define([
                     // add class names to this list
                 ]
             };
-            var ctxMenuInstance = this._cy.contextMenus( options );
+
+	    if (!this._readOnly) {
+		var ctxMenuInstance = this._cy.contextMenus( options );
+	    }
 
             // PAN ZOOM WIDGET:
 
@@ -744,11 +752,14 @@ define([
                 '</span>',
             ].join('\n');
 
-            toolbarEl.append(printEl);
             //toolbarEl.append(moveEl);
             //toolbarEl.append(selectEl);
+
+            toolbarEl.append(printEl);
             toolbarEl.append(zoomEl);
-            toolbarEl.append(layoutEl);
+	    if (!self._readOnly) {
+		toolbarEl.append(layoutEl);
+	    }
 
             toolbarEl.find('#print').on('click', function(){
                 var png = self._cy.png({
@@ -1345,6 +1356,9 @@ define([
         HFSMVizWidget.prototype._canCreateChildren = function( dragInfo, parentId ) {
             var self = this;
 
+	    if (self._readOnly)
+		return false;
+
             var isValid = dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0;
 
             for (var i=0; i<dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length; i++) {
@@ -1554,7 +1568,8 @@ define([
             var self = this;
             self.clearDropStatus();
             if (self._isDropping && self._hoveredNodeId && self._dropInfo) {
-                var canDrop = self._canCreateChildren( self._dropInfo, self._hoveredNodeId );
+                var canDrop = !self._readOnly &&
+		    self._canCreateChildren( self._dropInfo, self._hoveredNodeId );
                 var selector = '#' + self._hoveredNodeId.replace(/\//gm, "\\/");
                 var node = self._cy.$( selector );
                 if (node.length) {
