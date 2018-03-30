@@ -12,7 +12,6 @@
 }
 
 #cy {
-  height: 100%;
   width: 100%;
 /*
   position: absolute;
@@ -22,6 +21,18 @@
   active-bg-color: #fff;
   active-bg-opacity: 0.333;
 */
+}
+
+.simulator-logs {
+    color: #4825c7;
+    background-color: #FFFFFF;
+    height: 100%;
+    width: 100%;
+    border-top: 1px solid #000000;
+    display: block;
+    user-select: text;
+    white-space: pre;
+    overflow: auto;
 }
 
 #hfsmVizHandle {

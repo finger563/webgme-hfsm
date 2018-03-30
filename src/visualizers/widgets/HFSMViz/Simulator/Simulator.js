@@ -76,6 +76,8 @@ define(['js/util',
 	       self._bottom = $(container).find('.simulator-bottom-panel').first();
 	       self._handle = $(container).find('#simulatorHandle').first();
 
+	       self._logEl = null;
+
 	       // NODE RELATED DATA
 	       self.nodes = nodes;
 
@@ -128,7 +130,30 @@ define(['js/util',
                });
            };
 
+	   Simulator.prototype.log = function( msg ) {
+	       var self = this;
+	       if (self._logEl) {
+		   self._logEl.append(`${msg}\n`);
+		   var div = self._logEl.get(0);
+		   div.scrollTop = div.scrollHeight;
+	       } else {
+		   console.log(msg);
+	       }
+	   };
+
+	   Simulator.prototype.clearLogs = function() {
+	       var self = this;
+	       if (self._logEl) {
+		   self._logEl.empty();
+	       }
+	   };
+
 	   /* * * * EXTERNAL INTERFACE - NOT CALLED HERE  * * * * * */
+
+	   Simulator.prototype.setLogDisplay = function( logEl ) {
+	       var self = this;
+	       self._logEl = logEl;
+	   };
 
 	   Simulator.prototype.update = function() {
 	       var self = this;
@@ -250,8 +275,14 @@ define(['js/util',
 	       // set the active state to the state stored in the
 	       // history state.
 	       var historyStateId = self._historyStates[ stateId ];
-	       if (historyStateId == undefined) // set to parent if we haven't been here before
+	       if (historyStateId == undefined) {
+		   // set to parent if we haven't been here before
+		   var msg = `No History set - initializing ${stateId}`;
+		   self.log(msg);
 		   historyStateId = self.nodes[ stateId ].parentId;
+	       }
+	       var msg = `Following Shallow History for ${stateId} to ${historyStateId}`;
+	       self.log(msg);
 	       return self.getInitialState( historyStateId, true );
 	   };
 
@@ -264,6 +295,8 @@ define(['js/util',
 	       var historyStateId = self._historyStates[ stateId ];
 	       if (historyStateId == undefined) {
 		   // set to parent if we havent' been here before
+		   var msg = `No Deep History set - initializing state ${stateId}`;
+		   self.log(msg);
 		   historyStateId = self.nodes[ stateId ].parentId;
 		   self.getInitialState( historyStateId, true )
                        .then(function(s) {
@@ -282,6 +315,8 @@ define(['js/util',
                            });
 		   }
                    else {
+		       var msg = `Following Deep History for ${stateId} to ${histState.id}`;
+		       self.log(msg);
                        deferred.resolve( histState );
                    }
 	       }
@@ -348,9 +383,8 @@ define(['js/util',
 		   .then(function(selectedEdge) {
 		       var nextState = null;
 		       if (selectedEdge && selectedEdge.transitionId) {
-			   var msg = title + ' selected choice [ ' + selectedEdge.choice + ' ] on transition ' +
-			       selectedEdge.transitionId;
-			   console.log(msg);
+			   var msg = `${title} selected choice [ ${selectedEdge.choice} ] on transition ${selectedEdge.transitionId}`;
+			   self.log(msg);
 			   self.getNextState( selectedEdge.transitionId )
                                .then(function(s) {
                                    callback(s);
@@ -391,7 +425,7 @@ define(['js/util',
 		   if (guardless.length == 1) {
 		       var msg = 'END TRANSITION on '+
 			   stateId + ' through transition ' + guardless[0];
-		       console.log(msg);
+		       self.log(msg);
 		       return self.getNextState( guardless[0] );
 		       break;
 		   }
@@ -413,7 +447,7 @@ define(['js/util',
 		   else if ( rootTypes.indexOf( parentState.type ) > -1 ) {
 		       nextState = endState;
 		       // THIS IS THE END OF THE STATE MACHINE
-		       console.log('END OF HFSM');
+		       self.log('END OF HFSM');
                        deferred.resolve(nextState);
 		       break;
 		   }
@@ -448,8 +482,8 @@ define(['js/util',
 	       // now check
 	       if (guardless.length == 1 && transitionIds.length == 1) {
 		   var trans = self.nodes[ guardless[0] ];
-		   var msg = 'Event: '+ eventName + ' ' + trans.type.toUpperCase() + ': on ' + trans.id;
-		   console.log(msg);
+		   var msg = `Event: "${eventName}" on ${trans.type} : ${trans.id}`;
+		   self.log(msg);
                    self.getNextState( trans.id )
                        .then(function(s) {
                            nextStateCallback( s );
@@ -468,9 +502,8 @@ define(['js/util',
 		       .then(function(selection) {
 			   if (selection && selection.transitionId) {
 			       var trans = self.nodes[ selection.transitionId ];
-			       var msg = eventName + '::' + trans.type.toUpperCase() + ': [ ' +
-				   selection.choice + ' ] was TRUE on ' + trans.id;
-			       console.log(msg);
+			       var msg = `${eventName}::${trans.type}: [ ${selection.choice} ] was TRUE on ${trans.id}`;
+			       self.log(msg);
                                self.getNextState( trans.id )
                                    .then(function(s) {
                                        nextStateCallback(s);
@@ -516,11 +549,11 @@ define(['js/util',
 		   else {
 		       // now transition!
 		       if ( state.id != self._activeState.id ) {
-			   var msg = 'STATE TRANSITION: ' + self._activeState.id + ' -> ' + state.id;
-			   console.log( msg );
+			   var msg = `STATE TRANSITION: ${self._activeState.name}->${state.name}`;
+			   self.log( msg );
 			   if (state.type == 'End State') {
 			       // THIS IS THE TOP LEVEL END STATE!
-			       console.log('HFSM HAS TERMINATED!');
+			       self.log('HFSM HAS TERMINATED!');
 			   }
 		       }
 		       // update active state!
@@ -647,6 +680,8 @@ define(['js/util',
                                self._animateElementCallback( edge.id );
                            }
 			   var childInitId = edge.dst;
+			   var msg = `Initial transition ${edge.id} to ${childInitId}`;
+			   self.log(msg);			   
 			   deferred.resolve( self.getInitialState( childInitId, animate ) );
 		       }
 		   }
@@ -968,12 +1003,16 @@ define(['js/util',
 	       var self = this;
 	       var eventName = self.getEventButtonText( e.target ).trim();
 	       if (eventName == 'HFSM-Restart') {
+		   self.log('\n---- HFSM RESTARTING ----');
 		   self.initActiveState();
 	       }
 	       else if (eventName == 'HFSM-Clear') {
+		   self.clearLogs();
 		   self.clearActiveState();
 	       }
 	       else if (eventName == 'HFSM-Tick') {
+		   var msg = `Tick down to leaf node ${self._activeState.name} : ${self._activeState.id}`;
+		   self.log(msg);
 		   self.updateActiveState();
 	       }
 	       else {

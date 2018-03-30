@@ -153,6 +153,7 @@ define([
             this._simulator.onStateChanged( this.showActiveState.bind(this) );
             this._simulator.onAnimateElement( this.animateElement.bind(this) );
             this._simulator.onShowTransitions( this.showTransitions.bind(this) );
+	    this._simulator.setLogDisplay( this._right.find('#simulator-logs').first() );
         };
 
         HFSMVizWidget.prototype._initialize = function () {
