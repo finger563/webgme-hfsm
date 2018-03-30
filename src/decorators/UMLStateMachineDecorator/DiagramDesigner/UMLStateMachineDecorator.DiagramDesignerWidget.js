@@ -62,12 +62,7 @@ define(['js/Constants',
         this._renderContent();
 
         //if END or INITIAL state, don't display name except only on META level
-        if (META_TYPES['End State'] &&
-            META_TYPES.Initial &&
-            (this._metaType === META_TYPES['End State'] ||
-            this._metaType === META_TYPES.Initial) &&
-            this._gmeID !== META_TYPES.Initial &&
-            this._gmeID !== META_TYPES['End State']) {
+        if (META_TYPES['State'] && this._gmeID !== this._metaType && this._metaType !== META_TYPES['State']) {
             this.$name.remove();
         } else {
             // set title editable on double-click

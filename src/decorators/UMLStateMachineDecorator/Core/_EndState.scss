@@ -12,6 +12,9 @@ $end-state-internal-border-radius: 10px;
 @mixin EndState {
   .end-state {
     .icon {
+      margin-left: auto;
+      margin-right: auto;
+      display:block;
       background-color: $end-state-background-color;
       border: $end-state-border;
       width: $end-state-size;
@@ -34,12 +37,18 @@ $end-state-internal-border-radius: 10px;
       }
     }
 
-
     .name {
+      margin-left: auto;
+      margin-right: auto;
+      display:block;
       white-space: nowrap;
-      position: absolute;
-      margin-left: 0px;
-      left: 50%;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      height: 16px;
+      line-height: 16px;
     }
 
     .connector {

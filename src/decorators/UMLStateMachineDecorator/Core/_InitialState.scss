@@ -9,6 +9,9 @@ $connector-diff: -2px;
 @mixin InitialState {
   .initial-state {
     .icon {
+      margin-left: auto;
+      margin-right: auto;
+      display:block;
       background-color: $initial-state-background-color;
       width: $initial-state-size;
       height: $initial-state-size;
@@ -18,10 +21,17 @@ $connector-diff: -2px;
     }
 
     .name {
-    	white-space: nowrap;
-        position: absolute;
-        margin-left: 0px;
-        left: 50%;
+      margin-left: auto;
+      margin-right: auto;
+      display:block;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      height: 16px;
+      line-height: 16px;
     }
 
     .connector {
