@@ -40,6 +40,7 @@ Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further
   * Events
   * Internal Transitions
   * External Transitions
+  * Local Transitions
   * Choice Pseudostates
   * Deep History Pseudostates
   * Shallow History Pseudostates
