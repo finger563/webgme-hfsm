@@ -64,7 +64,7 @@ Together these components and (meta-)modeling environment make up the
 
 The [Base seed](./src/seeds/base.webgmex) contains just the `Meta`
 definitions for the projects and HFSMs following the UML State Diagram
-specification and the [Samples Seed](./src/seeds/samples.webgmex)
+specification and the [Examples Seed](./src/seeds/examples.webgmex)
 contains a project with three different HFSMs: *simple*, *medium*, and
 *complex*.
 
@@ -376,7 +376,7 @@ Finished
 
 ## Examples
 
-Example HFSMs included in the [Samples Seed](./src/seeds/samples.webgmex):
+Example HFSMs included in the [Examples Seed](./src/seeds/examples.webgmex):
 
 *Simple*:
 ![Simple State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/simple.png)
