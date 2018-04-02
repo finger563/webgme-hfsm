@@ -169,9 +169,11 @@ HFSM. It also provides:
   tree
 * *Context menu* allowing the user to: 
   * Toggle the display of a state's children
-  * Set the active
+  * Set the active state
+  * Auto-arrange selected nodes into a grid
+  * Re-parent selected nodes into the right-clicked node
   * Add a new element (which can also be done by dragging from the
-    `Part Browser` and dropping onto the visualizer.
+    `Part Browser` and dropping onto the visualizer.)
 
 ### Code Generation
 
