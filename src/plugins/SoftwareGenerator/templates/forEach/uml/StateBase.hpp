@@ -22,8 +22,8 @@ namespace StateMachine {
   class StateBase {
   public:
 
-    StateBase ( void ) : _parentState( nullptr ), _activeState( this ) {}
-    StateBase ( StateBase* _parent ) : _parentState( _parent ), _activeState( this ) {}
+    StateBase ( void ) : _activeState( this ), _parentState( nullptr ) {}
+    StateBase ( StateBase* _parent ) : _activeState( this ), _parentState( _parent ) {}
     ~StateBase( void ) {}
 
     /**
