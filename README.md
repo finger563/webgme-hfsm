@@ -46,11 +46,24 @@ Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further
   * Shallow History Pseudostates
   * Initial States
   * End States
-* Interactive model creation
+* **Interactive model creation**
+  * Positions of states are saved
+  * Code can be edited directly in the model
+  * Simulator automatically updates as model changes
+  * Can use multi-select to move groups of states or to edit attributes of multiple objects (e.g. transition events)
+  * Can auto-select all transitions by `Event`
+  * Can zoom / pan the model to focus on a specific context
 * In-model **interactive simulation** of the HFSM
+  * Highlighting of execution pathways during event handling
+  * Can disable / enable transitions
+  * User can select which guards are true when transitions have guards
+  * Currently active state tree branch shown including all event actions
+  * Simulator informs the user if the model is not well formed
 * In-model **collaborative code attribute editing** for the HFSM (using [the CodeEditor](https://github.com/finger563/webgme-codeeditor))
 * Model transformation plugin to produce executable **C++** code from
   the HFSM (*with more languages coming soon*!)
+  * Disabled transitions are not generated
+  * Model is checked before being generated
 
 ## Description
 
