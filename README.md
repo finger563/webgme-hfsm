@@ -105,8 +105,8 @@ State Machines have the following attributes:
 ### Setting up the WebGME-HFSM Server
 
 Dependencies:
-* [nodejs ^6.0](www.nodejs.org)
-* [mongodb](www.mongodb.com)
+* [nodejs ^6.0](https://www.nodejs.org)
+* [mongodb](https://www.mongodb.com)
 
 ```bash
 git clone https://github.com/finger563/webgme-hfsm
