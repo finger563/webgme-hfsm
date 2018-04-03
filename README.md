@@ -48,7 +48,7 @@ Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further
   * End States
 * Interactive model creation
 * In-model **interactive simulation** of the HFSM
-* In-model code attribute editing for the HFSM
+* In-model **collaborative code attribute editing** for the HFSM (using [the CodeEditor](https://github.com/finger563/webgme-codeeditor))
 * Model transformation plugin to produce executable **C++** code from
   the HFSM (*with more languages coming soon*!)
 
