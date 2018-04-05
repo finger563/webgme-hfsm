@@ -1764,8 +1764,32 @@ define([
             var client = self._client;
             var edgeMetaNode = client.getNode(edgeMetaId);
             var edgeType = edgeMetaNode.getAttribute('name');
+	    // default to old case of edge being sibling of src
+	    var edgeParentId = parentId;
+	    // get common parent to make the edge a child of the
+	    // common ancestor of the src and dst
+            var srcSelector = '#' + srcId.replace(/\//gm, "\\/");
+            var dstSelector = '#' + dstId.replace(/\//gm, "\\/");
+	    var srcNode = self._cy.$(srcSelector);
+	    var dstNode = self._cy.$(dstSelector);
+	    var srcAncestors = srcNode.ancestors();
+	    var dstAncestors = dstNode.ancestors();
+	    if (dstAncestors.contains(srcNode)) {
+		// handle the case that the src is an ancestor of the dst
+		edgeParentId = srcId;
+	    } else if (srcAncestors.contains(dstNode)) {
+		// handle the case that the dst is an ancestor of the src
+		edgeParentId = dstId;
+	    } else {
+		// handle the case that the src and dst are in separate sub-graphs
+		var commonAncestorCy = self._cy.$( srcSelector + ',' + dstSelector )
+		    .commonAncestors()
+		    .first();
+		edgeParentId = commonAncestorCy && commonAncestorCy.id();
+	    }
+
             var childCreationParams = {
-                parentId: parentId,
+                parentId: edgeParentId,
                 baseId: edgeMetaId,
             };
 
