@@ -298,10 +298,8 @@ define([
             this._cytoscape_options.layout = self._layout_options;
             this._cy = cytoscape(self._cytoscape_options);
 
-            var edgeHandleIcon = new Image();
+            var edgeHandleIcon = new Image(10,10);
             edgeHandleIcon.src = '/assets/DecoratorSVG/svgs/edgeIcon.svg';
-            edgeHandleIcon.width = 10;
-            edgeHandleIcon.height = 10;
 
             // the default values of each option are outlined below:
             var edgeHandleDefaults = {
@@ -1834,22 +1832,26 @@ define([
 
         HFSMVizWidget.prototype.validEdgeLoop = function( desc ) {
             var self = this;
-            if (desc.type == 'Initial' ||
-                desc.type == 'End State' ||
-                desc.type == 'Internal Transition' ||
-                desc.type == 'Deep History Pseudostate' ||
-                desc.type == 'Shallow History Pseudostate' ||
-                desc.type == 'Choice Pseudostate')
+            if (desc && desc.type) {
+                if (desc.type == 'Initial' ||
+                    desc.type == 'End State' ||
+                    desc.type == 'Internal Transition' ||
+                    desc.type == 'Deep History Pseudostate' ||
+                    desc.type == 'Shallow History Pseudostate' ||
+                    desc.type == 'Choice Pseudostate')
+                    return false;
+                else
+                    return true;
+            } else {
                 return false;
-            else
-                return true;
+            }
         };
 
         HFSMVizWidget.prototype.validEdge = function( srcDesc, dstDesc ) {
             var self = this;
             var valid = true;
-            var srcType = srcDesc.type;
-            var dstType = dstDesc.type;
+            var srcType = srcDesc && srcDesc.type || 'Initial';
+            var dstType = dstDesc && dstDesc.type || 'Initial';
             if (dstType == 'Initial')
                 valid = false;
             else if (dstType == 'State Machine')
