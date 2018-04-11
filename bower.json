@@ -31,6 +31,6 @@
     "handlebars": "components/handlebars.js#4.0.11"
   },
   "resolutions": {
-    "cytoscape": "cytoscape/cytoscape.js#3.2.11"
+    "cytoscape": "3.2.11"
   }
 }
