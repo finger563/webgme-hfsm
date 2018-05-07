@@ -15,7 +15,7 @@ A public server running this project can be accessed at:
 
 [hfsm.rcps.isis.vanderbilt.edu](http://hfsm.rcps.isis.vanderbilt.edu)
 
-Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further information, including links to relevant Youtube Videos and specific pages about development process and such.
+**Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further information, including links to relevant Youtube Videos and specific pages about development process and such.**
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
