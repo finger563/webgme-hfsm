@@ -76,6 +76,10 @@ define([
 
         var minPanelWidth = 10; // percent
 
+        var gmeIdToCySelector = function(gmeId) {
+            return '#' + gmeId.replace(/\//gm, "\\/");
+        };
+
         HFSMVizWidget = function (logger, container, client) {
             this._logger = logger.fork('Widget');
 
@@ -153,7 +157,7 @@ define([
             this._simulator.onStateChanged( this.showActiveState.bind(this) );
             this._simulator.onAnimateElement( this.animateElement.bind(this) );
             this._simulator.onShowTransitions( this.showTransitions.bind(this) );
-	    this._simulator.setLogDisplay( this._right.find('#simulator-logs').first() );
+            this._simulator.setLogDisplay( this._right.find('#simulator-logs').first() );
         };
 
         HFSMVizWidget.prototype._initialize = function () {
@@ -215,10 +219,10 @@ define([
             });
 
             /*
-            var DOMURL = window.URL || window.webkitURL || window;
-            var img = new Image();
-            var svg = new Blob([data], {type: 'image/svg+xml'});
-            var url = DOMURL.createObjectURL(svg);
+              var DOMURL = window.URL || window.webkitURL || window;
+              var img = new Image();
+              var svg = new Blob([data], {type: 'image/svg+xml'});
+              var url = DOMURL.createObjectURL(svg);
             */
 
             this._cytoscape_options = {
@@ -372,27 +376,27 @@ define([
                 }
             };
 
-	    if (!this._readOnly) {
-		// EDGE HANDLES
-		this._cy.edgehandles( edgeHandleDefaults );
-	    }
+            if (!this._readOnly) {
+                // EDGE HANDLES
+                this._cy.edgehandles( edgeHandleDefaults );
+            }
 
             var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]';
 
             // CONTEXT MENUS
             /*
-            self._cy.on('cxttap', 'node, edge', function(e) {
-                clear();
-                var node = this;
-                var id = node.id();
-                if (id) {
-                    if (self._selectedNodes.indexOf(id) == -1) {
-                        self._selectedNodes.push(id);
-                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-                    }
-                }
-                highlight( node );
-            });
+              self._cy.on('cxttap', 'node, edge', function(e) {
+              clear();
+              var node = this;
+              var id = node.id();
+              if (id) {
+              if (self._selectedNodes.indexOf(id) == -1) {
+              self._selectedNodes.push(id);
+              WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+              }
+              }
+              highlight( node );
+              });
             */
             
             var options = {
@@ -513,9 +517,9 @@ define([
                 ]
             };
 
-	    if (!this._readOnly) {
-		var ctxMenuInstance = this._cy.contextMenus( options );
-	    }
+            if (!this._readOnly) {
+                var ctxMenuInstance = this._cy.contextMenus( options );
+            }
 
             // PAN ZOOM WIDGET:
 
@@ -583,25 +587,25 @@ define([
             // USED FOR NODE SELECTION AND MULTI-SELECTION
 
             self._selectedNodes = [];
-	    self.multiSelectionEnabled = false;
+            self.multiSelectionEnabled = false;
             self._cy.on('tap', 'node, edge', function(e){
-		self.multiSelectionEnabled = e.originalEvent.ctrlKey;
-		// is there a better way of doing this?
-		if (self.multiSelectionEnabled) {
-		    self._cy._private.selectionType = "additive";
-		}
-		else {
-		    self._cy._private.selectionType = "single";
-		}
+                self.multiSelectionEnabled = e.originalEvent.ctrlKey;
+                // is there a better way of doing this?
+                if (self.multiSelectionEnabled) {
+                    self._cy._private.selectionType = "additive";
+                }
+                else {
+                    self._cy._private.selectionType = "single";
+                }
             });
             self._cy.on('select', 'node, edge', function(e){
                 var node = this;
                 var id = node.id();
                 if (id) {
-		    if (self._selectedNodes.indexOf(id) == -1) {
+                    if (self._selectedNodes.indexOf(id) == -1) {
                         self._selectedNodes.push(id);
-			WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-		    }
+                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+                    }
                 }
                 highlight( node );
             });
@@ -711,13 +715,13 @@ define([
             var layoutPadding = 50;
             self._cy.fit( self._cy.elements(), layoutPadding);
             /*
-            self._cy.animate({
-                fit: {
-                    eles: self._cy.elements(),
-                    padding: layoutPadding
-                },
-                duration: layoutDuration
-            });
+              self._cy.animate({
+              fit: {
+              eles: self._cy.elements(),
+              padding: layoutPadding
+              },
+              duration: layoutDuration
+              });
             */
         };
 
@@ -756,9 +760,9 @@ define([
 
             toolbarEl.append(printEl);
             toolbarEl.append(zoomEl);
-	    if (!self._readOnly) {
-		toolbarEl.append(layoutEl);
-	    }
+            if (!self._readOnly) {
+                toolbarEl.append(layoutEl);
+            }
 
             toolbarEl.find('#print').on('click', function(){
                 var png = self._cy.png({
@@ -821,8 +825,8 @@ define([
             transitionIDs.map(function(id) {
                 self._selectedNodes.push(id);
                 // highlight the Transition
-                var idTag = id.replace(/\//gm, "\\/");
-                var node = self._cy.$('#'+idTag);
+                var idTag = gmeIdToCySelector(id);
+                var node = self._cy.$(idTag);
                 self.highlight( node );
             });
             WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
@@ -865,8 +869,8 @@ define([
         HFSMVizWidget.prototype.gmePosToCyPos = function(desc) {
             var self = this;
             var cyPos = desc.position;
-            var parentIDTag = desc.parentId.replace(/\//gm, "\\/");
-            var cyParent = self._cy.$('#'+parentIDTag);
+            var parentIDTag = gmeIdToCySelector(desc.parentId);
+            var cyParent = self._cy.$(parentIDTag);
             if (cyParent) {
                 //cyPos.x -= cyParent.width();
                 //cyPos.y -= cyParent.height();
@@ -1058,8 +1062,8 @@ define([
             var parentCyNode = null;
             var parentPos = null;
             if (desc.parentId) {
-                var parentIdTag = desc.parentId.replace(/\//gm, "\\/");
-                var parentCyNode = self._cy.$('#'+parentIdTag);
+                var parentIdTag = gmeIdToCySelector(desc.parentId);
+                var parentCyNode = self._cy.$(parentIdTag);
             }
             if (parentCyNode) {
                 parentPos = parentCyNode.position();
@@ -1109,13 +1113,13 @@ define([
             // TODO: need to have this take into account hidden nodes!
             var self = this;
             if (self._el && self.nodes) {
-                var idTag = gmeId.replace(/\//gm, "\\/");
+                var idTag = gmeIdToCySelector(gmeId);
                 var desc = self.nodes[gmeId];
                 if (desc) {
                     self.forceShowBranch( gmeId );
                     if (!desc.isConnection) {
                         delete self.dependencies.nodes[gmeId];
-                        self._cy.$('#'+idTag).neighborhood().forEach(function(ele) {
+                        self._cy.$(idTag).neighborhood().forEach(function(ele) {
                             if (ele && ele.isEdge()) {
                                 var edgeId = ele.data( 'id' );
                                 var edgeDesc = self.nodes[edgeId];
@@ -1132,7 +1136,7 @@ define([
                     WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
                     delete self.nodes[gmeId];
                     delete self.waitingNodes[gmeId];
-                    self._cy.remove("#" + idTag);
+                    self._cy.remove(idTag);
                     self.updateDependencies();
                     self._simulator.update( );
                 }
@@ -1148,11 +1152,11 @@ define([
                 }
                 var oldDesc = this.nodes[desc.id];
                 if (oldDesc) {
-                    var idTag = desc.id.replace(/\//gm, "\\/");
-                    var cyNode = this._cy.$('#'+idTag);
+                    var idTag = gmeIdToCySelector(desc.id);
+                    var cyNode = this._cy.$(idTag);
                     if (desc.isConnection) {
                         if (desc.src != oldDesc.src || desc.dst != oldDesc.dst) {
-                            this._cy.remove('#' + idTag);
+                            this._cy.remove(idTag);
                             let depsMet = self.checkDependencies( desc );
                             if (depsMet) {
                                 self.createEdge(desc);
@@ -1184,8 +1188,8 @@ define([
 
         HFSMVizWidget.prototype.animateElement = function( eleId ) {
             var self = this;
-            var idTag = eleId.replace(/\//gm, "\\/");
-            var eles = self._cy.$('#'+idTag);
+            var idTag = gmeIdToCySelector(eleId);
+            var eles = self._cy.$(idTag);
             if (eles.length) {
                 eles.flashClass("active", 1000);
             }
@@ -1200,8 +1204,8 @@ define([
                 previousActiveState.data( data );
             }
             if (stateId) {
-                var idTag = stateId.replace(/\//gm, "\\/");
-                var node = self._cy.$('#'+idTag);
+                var idTag = gmeIdToCySelector(stateId);
+                var node = self._cy.$(idTag);
                 if (node.length) {
                     var data = node.data();
                     data.ActiveState = true;
@@ -1355,8 +1359,8 @@ define([
         HFSMVizWidget.prototype._canCreateChildren = function( dragInfo, parentId ) {
             var self = this;
 
-	    if (self._readOnly)
-		return false;
+            if (self._readOnly)
+                return false;
 
             var isValid = dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0;
 
@@ -1409,7 +1413,7 @@ define([
 
                 client.startTransaction();
 
-                var selector = '#' + parentId.replace(/\//gm, "\\/"),
+                var selector = gmeIdToCySelector(parentId);
                     cyNode = self._cy.$(selector),
                     node = client.getNode(baseId);
 
@@ -1436,7 +1440,7 @@ define([
                 client.startTransaction("Creating node instances into " + parentId);
 
                 nodeIds.map(function(nodeId) {
-                    var selector = '#' + parentId.replace(/\//gm, "\\/");
+                    var selector = gmeIdToCySelector(parentId);
                     var cyNode = self._cy.$(selector);
                     var node = client.getNode(nodeId);
 
@@ -1462,7 +1466,7 @@ define([
             if (nodeIds.length > 0) {
                 client.startTransaction("Copying Nodes into " + parentId);
 
-                var selector = '#' + parentId.replace(/\//gm, "\\/");
+                var selector = gmeIdToCySelector(parentId);
                 var cyNode = self._cy.$(selector);
 
                 self.forceShowChildren( cyNode.id() );
@@ -1494,10 +1498,10 @@ define([
                     return;
                 }
 
-		try { 
+                try { 
                     client.startTransaction("Moving nodes into " + parentId);
 
-                    var selector = '#' + parentId.replace(/\//gm, "\\/");
+                    var selector = gmeIdToCySelector(parentId);
                     var cyNode = self._cy.$(selector);
 
                     var params = {parentId: parentId};
@@ -1506,20 +1510,20 @@ define([
                     var pos = self.screenPosToCyPos( childPosition );
 
                     nodeIds.map(function(nodeId) {
-			params[nodeId] = {
+                        params[nodeId] = {
                             'registry': {
-				'position': pos
+                                'position': pos
                             }
-			};
+                        };
                     });
                     
                     client.moveMoreNodes(params);
 
                     client.completeTransaction();
-		}
-		catch (ex) {
-		    alert(ex);
-		}
+                }
+                catch (ex) {
+                    alert(ex);
+                }
             }
         };
 
@@ -1527,39 +1531,36 @@ define([
             var self = this;
 
             if (nodeIds.length > 1) {
-		try {
-		    var options = {
-			name: "grid",
-			fit: false,
-			avoidOverlap: true,
-			nodeDimensionsIncludeLabels: true,
-			condense: true,
-			/*
-			sort: function(a,b) {
-			    // should arrange them so they're grouped by type
-			},
-			*/
-			animate: false,
-			transform: function(node, position) {
-			    var newPos = {
-				x: position.x + modelClickPosition.x,
-				y: position.y + modelClickPosition.y
-			    };
-			    return newPos;
-			}
-		    };
+                try {
+                    var options = {
+                        name: "grid",
+                        fit: false,
+                        avoidOverlap: true,
+                        nodeDimensionsIncludeLabels: true,
+                        condense: true,
+                        /*
+                          sort: function(a,b) {
+                          // should arrange them so they're grouped by type
+                          },
+                        */
+                        animate: false,
+                        transform: function(node, position) {
+                            var newPos = {
+                                x: position.x + modelClickPosition.x,
+                                y: position.y + modelClickPosition.y
+                            };
+                            return newPos;
+                        }
+                    };
 
-		    var selector = nodeIds.map((nodeId) => {
-			return '#'+nodeId.replace(/\//gm, "\\/");
-		    }).join(", ");
-
+                    var selector = nodeIds.map(gmeIdToCySelector).join(", ");
                     var cyNodes = self._cy.$(selector);
-		    var layout = cyNodes.layout(options);
-		    layout.run();
-		}
-		catch (ex) {
-		    alert(ex);
-		}
+                    var layout = cyNodes.layout(options);
+                    layout.run();
+                }
+                catch (ex) {
+                    alert(ex);
+                }
             }
         };
 
@@ -1568,8 +1569,8 @@ define([
             self.clearDropStatus();
             if (self._isDropping && self._hoveredNodeId && self._dropInfo) {
                 var canDrop = !self._readOnly &&
-		    self._canCreateChildren( self._dropInfo, self._hoveredNodeId );
-                var selector = '#' + self._hoveredNodeId.replace(/\//gm, "\\/");
+                    self._canCreateChildren( self._dropInfo, self._hoveredNodeId );
+                var selector = gmeIdToCySelector(self._hoveredNodeId);
                 var node = self._cy.$( selector );
                 if (node.length) {
                     var data = node.data();
@@ -1721,40 +1722,56 @@ define([
 
             function makeOption(src, dst, connId) {
                 var conn = client.getNode(connId);
-                return {
-                    name: conn.getAttribute('name'),
+                var connName = conn.getAttribute('name');
+                var option = {
+                    name: connName,
                     icon: false,
                     fn: function() {
                         self.createNewEdge( parentId, src, dst, connId );
                     }
+                };
+                if (connName.includes('Local Transition')) {
+                    var srcSelector = gmeIdToCySelector(src);
+                    var dstSelector = gmeIdToCySelector(dst);
+                    var srcNode = self._cy.$(srcSelector);
+                    var dstNode = self._cy.$(dstSelector);
+                    var srcDescendants = srcNode.descendants(dstSelector);
+                    var dstDescendants = dstNode.descendants(srcSelector);
+                    // make sure one is a descendant of the other
+                    if (!srcDescendants.contains(dstNode) && !dstDescendants.contains(srcNode)) {
+                        option = null;
+                    }
                 }
+                return option;
             }
 
             // figure out what kind of connections the parent can have
             var parentNode = client.getNode(parentId);
             var validConnections = GMEConcepts.getValidConnectionTypesInAspect(srcId, dstId, parentId, CONSTANTS.ASPECT_ALL);
             
-	    if (validConnections.length > 0) {
-		var options = {};
-		var localKey = "" + validConnections.length;
-		var i = 0;
-		validConnections.map(function(typeId) {
+            if (validConnections.length > 0) {
+                var options = {};
+                var localKey = "" + validConnections.length;
+                var i = 0;
+                validConnections.map(function(typeId) {
                     var key = ""+i;
-                    i++;
                     var option = makeOption( srcId, dstId, typeId);
-                    options[key] = option;
-		});
+                    if (option !== null) {
+                        i++;
+                        options[key] = option;
+                    }
+                });
 
-		var targetPos = self.cyPosition( cyTargets[0] );
-		targetPos = position || self.cyPosToScreenPos( targetPos );
-		targetPos.x += $(self._left).width();
-		targetPos = self._relativeToWindowPos( targetPos );
+                var targetPos = self.cyPosition( cyTargets[0] );
+                targetPos = position || self.cyPosToScreenPos( targetPos );
+                targetPos.x += $(self._left).width();
+                targetPos = self._relativeToWindowPos( targetPos );
 
-		self.createWebGMEContextMenu(options, function(option) {
+                self.createWebGMEContextMenu(options, function(option) {
                     if (options[option] && options[option].fn)
-			options[option].fn();
-		}, targetPos);
-	    }
+                        options[option].fn();
+                }, targetPos);
+            }
         };
 
         HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeMetaId ) {
@@ -1762,29 +1779,29 @@ define([
             var client = self._client;
             var edgeMetaNode = client.getNode(edgeMetaId);
             var edgeType = edgeMetaNode.getAttribute('name');
-	    // default to old case of edge being sibling of src
-	    var edgeParentId = parentId;
-	    // get common parent to make the edge a child of the
-	    // common ancestor of the src and dst
-            var srcSelector = '#' + srcId.replace(/\//gm, "\\/");
-            var dstSelector = '#' + dstId.replace(/\//gm, "\\/");
-	    var srcNode = self._cy.$(srcSelector);
-	    var dstNode = self._cy.$(dstSelector);
-	    var srcAncestors = srcNode.ancestors();
-	    var dstAncestors = dstNode.ancestors();
-	    if (dstAncestors.contains(srcNode)) {
-		// handle the case that the src is an ancestor of the dst
-		edgeParentId = srcId;
-	    } else if (srcAncestors.contains(dstNode)) {
-		// handle the case that the dst is an ancestor of the src
-		edgeParentId = dstId;
-	    } else {
-		// handle the case that the src and dst are in separate sub-graphs
-		var commonAncestorCy = self._cy.$( srcSelector + ',' + dstSelector )
-		    .commonAncestors()
-		    .first();
-		edgeParentId = commonAncestorCy && commonAncestorCy.id();
-	    }
+            // default to old case of edge being sibling of src
+            var edgeParentId = parentId;
+            // get common parent to make the edge a child of the
+            // common ancestor of the src and dst
+            var srcSelector = gmeIdToCySelector(srcId);
+            var dstSelector = gmeIdToCySelector(dstId);
+            var srcNode = self._cy.$(srcSelector);
+            var dstNode = self._cy.$(dstSelector);
+            var srcAncestors = srcNode.ancestors(dstSelector);
+            var dstAncestors = dstNode.ancestors(srcSelector);
+            if (dstAncestors.contains(srcNode)) {
+                // handle the case that the src is an ancestor of the dst
+                edgeParentId = srcId;
+            } else if (srcAncestors.contains(dstNode)) {
+                // handle the case that the dst is an ancestor of the src
+                edgeParentId = dstId;
+            } else {
+                // handle the case that the src and dst are in separate sub-graphs
+                var commonAncestorCy = self._cy.$( srcSelector + ',' + dstSelector )
+                    .commonAncestors()
+                    .first();
+                edgeParentId = commonAncestorCy && commonAncestorCy.id();
+            }
 
             var childCreationParams = {
                 parentId: edgeParentId,
