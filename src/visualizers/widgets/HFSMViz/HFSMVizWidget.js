@@ -1413,7 +1413,7 @@ define([
 
                 client.startTransaction();
 
-                var selector = gmeIdToCySelector(parentId);
+                var selector = gmeIdToCySelector(parentId),
                     cyNode = self._cy.$(selector),
                     node = client.getNode(baseId);
 
