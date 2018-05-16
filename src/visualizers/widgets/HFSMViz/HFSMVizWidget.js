@@ -400,20 +400,23 @@ define([
             var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]';
 
             // CONTEXT MENUS
-            /*
-              self._cy.on('cxttap', 'node, edge', function(e) {
-              clear();
-              var node = this;
-              var id = node.id();
-              if (id) {
-              if (self._selectedNodes.indexOf(id) == -1) {
-              self._selectedNodes.push(id);
-              WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
-              }
-              }
-              highlight( node );
-              });
-            */
+            self._cy.on('cxttap', 'node, edge', function(e) {
+                self.multiSelectionEnabled = e.originalEvent.ctrlKey;
+                // is there a better way of doing this?
+                if (self.multiSelectionEnabled) {
+                    self._cy._private.selectionType = "additive";
+                }
+                else {
+                    self._cy._private.selectionType = "single";
+                    self.unselectAll();
+                }
+                var node = this;
+                var id = node.id();
+                if (id) {
+                    self.selectNode(id);
+                    self.highlight(node);
+                }
+            });
             
             var options = {
                 // List of initial menu items
@@ -467,14 +470,17 @@ define([
                     },
                     {
                         id: 'Remove',
-                        content: 'Remove',
-                        tooltipText: 'Remove',
+                        content: 'Remove This and Selected Objects',
+                        tooltipText: 'Remove this object and all currently selected objects (and their outgoing or incoming transitions)',
                         selector: 'node, edge', 
                         onClickFunction: function ( e ) { // The function to be executed on click
                             var node = e.target;
                             if (node == self._cy) { }
-                            else
-                                self.deleteNode( node.id() );
+                            else {
+                                self.selectNode( node.id() );
+                                self.highlight(node);
+                                self.deleteSelection();
+                            }
                         },
                         coreAsWell: false // Whether core instance have this item on cxttap
                     },
@@ -618,25 +624,17 @@ define([
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    if (self._selectedNodes.indexOf(id) == -1) {
-                        self._selectedNodes.push(id);
-                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
-                    }
+                    self.selectNode(id);
+                    self.highlight(node);
                 }
-                highlight( node );
             });
 
             self._cy.on('unselect', 'node, edge', function(e){
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    self._selectedNodes = self._selectedNodes.filter(function(n) {
-                        return id != n;
-                    });
-                    //self._selectedNodes = [];
-                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+                    self.unselectNode(id);
                 }
-                clear();
             });
 
             // USED FOR KNOWING WHEN NODES ARE MOVED
@@ -675,6 +673,29 @@ define([
         };
 
         /* * * * * * * * Display Functions  * * * * * * * */
+
+        HFSMVizWidget.prototype.selectNode = function(id) {
+            var self = this;
+            if (self._selectedNodes.indexOf(id) == -1) {
+                self._selectedNodes.push(id);
+            }
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+        };
+
+        HFSMVizWidget.prototype.unselectNode = function(id) {
+            var self = this;
+            self._selectedNodes = self._selectedNodes.filter(function(n) {
+                return id != n;
+            });
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+        };
+
+        HFSMVizWidget.prototype.unselectAll = function() {
+            var self = this;
+            self._selectedNodes = [];
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+            self.clear();
+        };
 
         function download(filename, text) {
             var element = document.createElement('a');
@@ -1268,6 +1289,37 @@ define([
                 });
             }
             self._client.deleteNode( nodeId, "Removing " + nodeId );
+
+            self._client.completeTransaction();
+        };
+
+        HFSMVizWidget.prototype.deleteSelection = function( ) {
+            var self = this;
+
+            var selection = self._selectedNodes,
+                edgesTo = [],
+                edgesFrom = [];
+
+            selection.map(id => {
+                edgesTo = _.union(edgesTo, self._simulator.getEdgesToNode( id ));
+                edgesFrom = _.union(edgesFrom, self._simulator.getEdgesFromNode( id ));
+            });
+
+            self._client.startTransaction();
+
+            selection.map(id => {
+                self._client.deleteNode( id, "Removing selected " + id );
+            });
+            if (edgesTo) {
+                edgesTo.map(function(eid) {
+                    self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
+                });
+            }
+            if (edgesFrom) {
+                edgesFrom.map(function(eid) {
+                    self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
+                });
+            }
 
             self._client.completeTransaction();
         };
