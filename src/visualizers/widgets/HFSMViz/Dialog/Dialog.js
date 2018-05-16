@@ -3,26 +3,26 @@
  */
 
 define(['js/util',
-	'bower/mustache.js/mustache.min',
-	'text!./Dialog.html',
-	'text!./Type.html',
-	'css!./Dialog.css'],
+        'bower/mustache.js/mustache.min',
+        'text!./Dialog.html',
+        'text!./Type.html',
+        'css!./Dialog.css'],
        function(Util,
-		mustache,
-		DialogTemplate,
-		TypeTemplate){
+                mustache,
+                DialogTemplate,
+                TypeTemplate){
            'use strict';
-	   
+           
            var Dialog;
 
-	   var ignoreTypes = ['Documentation']
+           var ignoreTypes = ['Documentation']
 
-	   var attrForm = ['<div class="form-group" id="p{{attr}}">',
-			   '<label class="col-sm-4 control-label">{{attr}}</label>',
-			   '<div class="col-sm-8 controls">' ,
-			   '<input type="{{type}}" id="{{attr}}" placeholder="">',
-			   '</div>',
-			   '</div>'].join('\n');
+           var attrForm = ['<div class="form-group" id="p{{attr}}">',
+                           '<label class="col-sm-4 control-label">{{attr}}</label>',
+                           '<div class="col-sm-8 controls">' ,
+                           '<input type="{{type}}" id="{{attr}}" placeholder="">',
+                           '</div>',
+                           '</div>'].join('\n');
 
            /**
             * Dialog Constructor
@@ -37,11 +37,11 @@ define(['js/util',
                // Get element nodes
                this._el = this._dialog.find('.modal-body').first();
 
-	       // forms
-	       this._attrForm = this._dialog.find('#attrForm').first();
-	       this._childSelector = this._dialog.find('#childTypeSelector').first();
+               // forms
+               this._attrForm = this._dialog.find('#attrForm').first();
+               this._childSelector = this._dialog.find('#childTypeSelector').first();
 
-	       // buttons
+               // buttons
                this._btnSave = this._dialog.find('.btn-save').first();
                this._btnClose = this._dialog.find('.close').first();
                this._btnCancel = this._dialog.find('.btn-cancel').first();
@@ -53,50 +53,56 @@ define(['js/util',
             * @param  {Object}     client         Client object for creating nodes and setting attributes
             * @return {void}
             */
-           Dialog.prototype.initialize = function ( desc, client) {
+           Dialog.prototype.initialize = function ( desc, client, position) {
                var self = this;
-	       self.client = client;
+               self.client = client;
 
                // Initialize Modal and append it to main DOM
                this._dialog.modal({ show: false});
 
-	       // add children types to selector
-	       this._childSelector.on('change', this.selectChild.bind(this));
-	       this._childTypes = {};
-	       this._childTypes = self.getValidChildrenTypes( desc, client );
-	       var typeNames = Object.keys(this._childTypes).sort().reverse();
-	       typeNames.map(function(t) {
-		   $(self._childSelector).append(new Option(t, t));
-	       });
-	       $(this._childSelector).val( typeNames[0] );
-	       this.renderChildForm();
+               // add children types to selector
+               this._childSelector.on('change', this.selectChild.bind(this));
+               this._childTypes = {};
+               this._childTypes = self.getValidChildrenTypes( desc, client );
+               var typeNames = Object.keys(this._childTypes).sort().reverse();
+               typeNames.map(function(t) {
+                   $(self._childSelector).append(new Option(t, t));
+               });
+               $(this._childSelector).val( typeNames[0] );
+               this.renderChildForm();
 
                // Event listener on click for SAVE button
                this._btnSave.on('click', function (event) {
                    // Invoke callback to deal with modified text, like save it in client.
-		   var attr = self.getAttributesFromForm();
+                   var attr = self.getAttributesFromForm();
 
-		   client.startTransaction();
-		   var type = self.getSelectedChildType();
-		   var childCreationParams = {
-		       parentId: desc.id,
-		       baseId:   self.getSelectedChildMetaId()
-		   };
-		   var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
-		   var newChildPath = client.createChild( childCreationParams, msg );
-		   //var child = client.getNode( newChildPath );
-		   // save node data here dependent on the type of node
-		   Object.keys(attr).map(function( attrName ) {
-		       var attrVal = attr[attrName];
-		       if (attrVal) {
-			   msg = 'Setting "'+attrName+'" to "'+attrVal+'"';
-			   client.setAttribute( newChildPath, attrName, attrVal, msg );
-		       }
-		   });
-		   client.completeTransaction();
+                   client.startTransaction();
+                   var type = self.getSelectedChildType();
+                   var childCreationParams = {
+                       parentId: desc.id,
+                       baseId:   self.getSelectedChildMetaId(),
+                       position: position,
+                   };
+                   var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
+                   var newChildPath = client.createChild( childCreationParams, msg );
+                   //var child = client.getNode( newChildPath );
+                   // save node data here dependent on the type of node
+                   Object.keys(attr).map(function( attrName ) {
+                       var attrVal = attr[attrName];
+                       if (attrVal) {
+                           msg = 'Setting "'+attrName+'" to "'+attrVal+'"';
+                           client.setAttribute( newChildPath, attrName, attrVal, msg );
+                       }
+                   });
+                   client.completeTransaction('', function(err, result) {
+                       if (err) {
+                       } else {
+                           WebGMEGlobal.State.registerActiveSelection([newChildPath], {invoker: this});
+                       }
+                   });
 
                    // Close dialog
-		   self._dialog.modal({ show: false});
+                   self._dialog.modal({ show: false});
                    self._dialog.modal('hide');
                    event.stopPropagation();
                    event.preventDefault();
@@ -105,7 +111,7 @@ define(['js/util',
                // Event listener on click for CLOSE button
                this._btnClose.on('click', function (event) {
                    // Close dialog
-		   self._dialog.modal({ show: false});
+                   self._dialog.modal({ show: false});
                    self._dialog.modal('hide');
                    event.stopPropagation();
                    event.preventDefault();
@@ -114,7 +120,7 @@ define(['js/util',
                // Event listener on click for CANCEL button
                this._btnCancel.on('click', function (event) {
                    // Close dialog
-		   self._dialog.modal({ show: false});
+                   self._dialog.modal({ show: false});
                    self._dialog.modal('hide');
                    event.stopPropagation();
                    event.preventDefault();
@@ -133,85 +139,85 @@ define(['js/util',
                });
            };
 
-	   // CHILD RELATED FUNCTIONS
+           // CHILD RELATED FUNCTIONS
 
-	   Dialog.prototype.getSelectedChildType = function () {
-	       var self = this;
-	       return $(self._childSelector).val();
-	   };
+           Dialog.prototype.getSelectedChildType = function () {
+               var self = this;
+               return $(self._childSelector).val();
+           };
 
-	   Dialog.prototype.getSelectedChildMetaId = function () {
-	       var self = this;
-	       return self._childTypes[ self.getSelectedChildType() ];
-	   };
+           Dialog.prototype.getSelectedChildMetaId = function () {
+               var self = this;
+               return self._childTypes[ self.getSelectedChildType() ];
+           };
 
-	   Dialog.prototype.getCurrentMetaNode = function() {
-	       var self = this;
-	       return self.client.getNode( self.getSelectedChildMetaId() );
-	   };
+           Dialog.prototype.getCurrentMetaNode = function() {
+               var self = this;
+               return self.client.getNode( self.getSelectedChildMetaId() );
+           };
 
-	   Dialog.prototype.selectChild = function (event) {
-	       var self = this;
-	       //var childSelect = event.target;
-	       //var newChildType = childSelect.options[ childSelect.selectedIndex ].textContent;
-	       self.renderChildForm();
-	   };
+           Dialog.prototype.selectChild = function (event) {
+               var self = this;
+               //var childSelect = event.target;
+               //var newChildType = childSelect.options[ childSelect.selectedIndex ].textContent;
+               self.renderChildForm();
+           };
 
-	   Dialog.prototype.renderChildForm = function() {
-	       var self = this;
-	       self._attrForm.empty();
-	       self._attrForm.append( self.getForm() );
-	   };
+           Dialog.prototype.renderChildForm = function() {
+               var self = this;
+               self._attrForm.empty();
+               self._attrForm.append( self.getForm() );
+           };
 
-	   Dialog.prototype.getValidChildrenTypes = function( desc, client ) {
-	       var node = client.getNode( desc.id );
-	       var validChildTypes = {};
+           Dialog.prototype.getValidChildrenTypes = function( desc, client ) {
+               var node = client.getNode( desc.id );
+               var validChildTypes = {};
 
-	       // figure out what the allowable range is
-	       var validChildren = node.getValidChildrenTypesDetailed( );
-	       Object.keys( validChildren ).map(function( metaId ) {
-		   var child = client.getNode( metaId );
-		   var childType = child.getAttribute('name');
-		   var canCreateMore = validChildren[ metaId ];
-		   if ( canCreateMore &&
-			!child.isAbstract() &&
-			!child.isConnection() &&
-			ignoreTypes.indexOf( childType ) == -1 )
-		       validChildTypes[ childType ] = metaId;
-	       });
+               // figure out what the allowable range is
+               var validChildren = node.getValidChildrenTypesDetailed( );
+               Object.keys( validChildren ).map(function( metaId ) {
+                   var child = client.getNode( metaId );
+                   var childType = child.getAttribute('name');
+                   var canCreateMore = validChildren[ metaId ];
+                   if ( canCreateMore &&
+                        !child.isAbstract() &&
+                        !child.isConnection() &&
+                        ignoreTypes.indexOf( childType ) == -1 )
+                       validChildTypes[ childType ] = metaId;
+               });
 
-	       return validChildTypes;
-	   };
+               return validChildTypes;
+           };
 
-	   // ATTRIBUTE RELATED FUNCTIONS
+           // ATTRIBUTE RELATED FUNCTIONS
 
-	   Dialog.prototype.getCurrentAttributeNames = function () {
-	       var self = this;
-	       return self.getCurrentMetaNode().getAttributeNames().sort();
-	   };
+           Dialog.prototype.getCurrentAttributeNames = function () {
+               var self = this;
+               return self.getCurrentMetaNode().getAttributeNames().sort();
+           };
 
-	   Dialog.prototype.getForm = function ( ) {
-	       var self = this;
-	       var form = '';
-	       var node = self.getCurrentMetaNode();
-	       self.getCurrentAttributeNames().map( function(a) {
-		   form += self.renderAttributeForm( a, node.getAttributeMeta(a).type );
-	       });
-	       return form;
-	   };
+           Dialog.prototype.getForm = function ( ) {
+               var self = this;
+               var form = '';
+               var node = self.getCurrentMetaNode();
+               self.getCurrentAttributeNames().map( function(a) {
+                   form += self.renderAttributeForm( a, node.getAttributeMeta(a).type );
+               });
+               return form;
+           };
 
-	   Dialog.prototype.renderAttributeForm = function ( attr, type ) {
-	       return mustache.render( attrForm, { attr: attr, type: type } );
-	   };
+           Dialog.prototype.renderAttributeForm = function ( attr, type ) {
+               return mustache.render( attrForm, { attr: attr, type: type } );
+           };
 
-	   Dialog.prototype.getAttributesFromForm = function () {
-	       var self = this;
-	       var attr = {};
-	       self.getCurrentAttributeNames().map(function(a) {
-		   attr[a] = $(self._dialog).find('#'+a).first().val();
-	       });
-	       return attr;
-	   };
+           Dialog.prototype.getAttributesFromForm = function () {
+               var self = this;
+               var attr = {};
+               self.getCurrentAttributeNames().map(function(a) {
+                   attr[a] = $(self._dialog).find('#'+a).first().val();
+               });
+               return attr;
+           };
 
            /**
             * Update text in editor area
