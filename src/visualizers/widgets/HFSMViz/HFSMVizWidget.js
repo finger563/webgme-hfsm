@@ -160,11 +160,27 @@ define([
             this._simulator.setLogDisplay( this._right.find('#simulator-logs').first() );
         };
 
+        HFSMVizWidget.prototype._stateActiveSelectionChanged = function(model, activeSelection, opts) {
+            var self = this,
+                selectedIDs = [],
+                len = activeSelection ? activeSelection.length : 0;
+
+            if (opts.invoker !== self) {
+                activeSelection.map(gmeID => {
+                    var idTag = gmeIdToCySelector(gmeID);
+                    if (self._cy) {
+                        var cyNode = self._cy.$(idTag);
+                        self.highlight( cyNode );
+                    }
+                });
+            }
+        };
+
         HFSMVizWidget.prototype._initialize = function () {
             var width = this._el.width(),
                 height = this._el.height(),
                 self = this;
-            
+
             // is the project readonly?
             this._readOnly = this._client.isProjectReadOnly();
 
@@ -604,7 +620,7 @@ define([
                 if (id) {
                     if (self._selectedNodes.indexOf(id) == -1) {
                         self._selectedNodes.push(id);
-                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+                        WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
                     }
                 }
                 highlight( node );
@@ -618,7 +634,7 @@ define([
                         return id != n;
                     });
                     //self._selectedNodes = [];
-                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
                 }
                 clear();
             });
@@ -653,6 +669,9 @@ define([
 
             // USED FOR ZOOMING AFTER INITIALLY LOADING ALL THE NODES (in CreateNode())
             self._debounced_one_time_zoom = _.debounce(_.once(self.onZoomClicked.bind(self)), 250);
+
+
+            this._attachClientEventListeners();
         };
 
         /* * * * * * * * Display Functions  * * * * * * * */
@@ -821,7 +840,7 @@ define([
             var self = this;
             self.clear();
             self._selectedNodes = [];
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
             transitionIDs.map(function(id) {
                 self._selectedNodes.push(id);
                 // highlight the Transition
@@ -829,7 +848,7 @@ define([
                 var node = self._cy.$(idTag);
                 self.highlight( node );
             });
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
         };
 
 
@@ -1133,7 +1152,7 @@ define([
                     self._selectedNodes = self._selectedNodes.filter((id) => {
                         return id != gmeId;
                     });
-                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0));
+                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
                     delete self.nodes[gmeId];
                     delete self.waitingNodes[gmeId];
                     self._cy.remove(idTag);
@@ -1929,15 +1948,29 @@ define([
         };
         
         /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
+        HFSMVizWidget.prototype._attachClientEventListeners = function () {
+            this._detachClientEventListeners();
+            WebGMEGlobal.State.on('change:' + CONSTANTS.STATE_ACTIVE_SELECTION,
+                                  this._stateActiveSelectionChanged, this);
+        }
+
+        HFSMVizWidget.prototype._detachClientEventListeners = function () {
+            WebGMEGlobal.State.off('change:' + CONSTANTS.STATE_ACTIVE_SELECTION,
+                                  this._stateActiveSelectionChanged, this);
+        }
+
         HFSMVizWidget.prototype.destroy = function () {
+            this._detachClientEventListeners();
             this.clearNodes();
             this.shutdown();
         };
 
         HFSMVizWidget.prototype.onActivate = function () {
+            this._attachClientEventListeners();
         };
 
         HFSMVizWidget.prototype.onDeactivate = function () {
+            this._detachClientEventListeners();
         };
 
         return HFSMVizWidget;
