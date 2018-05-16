@@ -87,20 +87,7 @@ define([
 
             this._client = client;
             GMEConcepts.initialize(client);
-
-            // set widget class
-            this._el.addClass(WIDGET_CLASS);
-            // add html to element
-            this._el.append(HFSMHtml);
-
-            // container
-            this._containerTag = '#HFSM_VIZ_DIV';
-            this._container = this._el.find(this._containerTag).first();
-
-            this._cy_container = this._el.find('#cy');
-
             this._initialize();
-            this._makeDroppable();
 
             this._logger.debug('ctor finished');
         };
@@ -177,7 +164,34 @@ define([
             }
         };
 
+        HFSMVizWidget.prototype._branchChanged = function(args) {
+            var self = this;
+            self.branchChanged = false;
+        };
+
+        HFSMVizWidget.prototype._branchStatusChanged = function(args) {
+            var self = this;
+            if (!this.branchChanged) {
+                self._unsavedNodePositions = {};
+                this.branchChanged = true;
+            }
+        };
+
         HFSMVizWidget.prototype._initialize = function () {
+            this.branchChanged = false;
+
+            // set widget class
+            this._el.addClass(WIDGET_CLASS);
+            // add html to element
+            this._el.append(HFSMHtml);
+
+            // container
+            this._containerTag = '#HFSM_VIZ_DIV';
+            this._container = this._el.find(this._containerTag).first();
+
+            this._cy_container = this._el.find('#cy');
+
+
             var width = this._el.width(),
                 height = this._el.height(),
                 self = this;
@@ -672,8 +686,7 @@ define([
                 var id = node.id();
                 if (type && rootTypes.indexOf(type) == -1 && self.nodes[id]) {
                     var pos = self.cyPosToGmePos( node );
-                    //console.log(self.nodes[node.id()].position);
-                    self.nodes[id].position = pos;
+                    self._unsavedNodePositions[id] = pos;
                     self._debouncedSaveNodePositions()
                 }
             });
@@ -683,6 +696,7 @@ define([
 
 
             this._attachClientEventListeners();
+            this._makeDroppable();
         };
 
         /* * * * * * * * Display Functions  * * * * * * * */
@@ -956,26 +970,32 @@ define([
 
         HFSMVizWidget.prototype.saveNodePositions = function() {
             var self = this;
-            if (!self.nodes)
+            if (_.isEmpty(self._unsavedNodePositions))
                 return;
 
-            var keys = Object.keys(self.nodes);
+            var keys = Object.keys(self._unsavedNodePositions);
 
             self._client.startTransaction();
 
             keys.map(function(k) {
                 var id = k;
-                if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1) {
-                    var pos = self.nodes[id].position;
-                    //console.log('saving for '+id);
-                    //console.log(pos);
-                    self._client.setRegistry(id, 'position', pos);
+                if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1 ) {
+                    var pos = self._unsavedNodePositions[id];
+                    var originalPos = self.nodes[id].position;
+                    if (pos.x != originalPos.x || pos.y != originalPos.y) {
+                        //console.log('saving for '+id);
+                        //console.log(pos);
+                        self._client.setRegistry(id, 'position', pos);
+                    }
                 }
             });
 
-            self._client.completeTransaction();
-
-            self._unsavedNodePositions = {};
+            self._client.completeTransaction('', (err, result) => {
+                if (err) {
+                } else {
+                    self._unsavedNodePositions = {};
+                }
+            });
         };
 
         /* * * * * * * * Graph Creation Functions  * * * * * * * */
@@ -1203,7 +1223,7 @@ define([
         HFSMVizWidget.prototype.updateNode = function (desc) {
             var self = this;
             // TODO: need to have this take into account hidden nodes!
-            if (self._el && self.nodes && desc) {
+            if (self._el && desc) {
                 if ( rootTypes.indexOf( desc.type ) > -1 ) {
                     self.HFSMName = desc.name;
                 }
@@ -1235,6 +1255,8 @@ define([
                             }
                         }
                     }
+                } else { // we haven't seen this node before (might be due to branch change)
+                    self.addNode(desc);
                 }
                 this.nodes[desc.id] = desc;
                 self._simulator.update( );
@@ -1998,23 +2020,23 @@ define([
 
         HFSMVizWidget.prototype.clearNodes = function() {
             delete this.nodes;
-            this._cy.nodes().remove();
+            if (this._cy) {
+                this._cy.nodes().remove();
+            }
             // now re-init
             this.nodes = {};
-            this._debounced_one_time_zoom = _.debounce(_.once(this.onZoomClicked.bind(this)), 250);
-            this.initializeSimulator();
+            this._unsavedNodePositions = {};
         };
 
         HFSMVizWidget.prototype.shutdown = function() {
-            if (this._el) {
-                this._el.remove();
-                delete this._el;
-            }
             if (this._simulator) {
                 delete this._simulator;
             }
             if (this._cy) {
                 this._cy.destroy();
+            }
+            if (this._el) {
+                this._el.empty();
             }
         };
         
@@ -2023,11 +2045,19 @@ define([
             this._detachClientEventListeners();
             WebGMEGlobal.State.on('change:' + CONSTANTS.STATE_ACTIVE_SELECTION,
                                   this._stateActiveSelectionChanged, this);
+            this.boundBranchChanged = this._branchChanged.bind(this);
+            this._client.addEventListener(this._client.CONSTANTS.BRANCH_CHANGED,
+                                          this.boundBranchChanged);
+            this.boundBranchStatusChanged = this._branchStatusChanged.bind(this);
+            this._client.addEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED,
+                                          this.boundBranchStatusChanged);
         }
 
         HFSMVizWidget.prototype._detachClientEventListeners = function () {
             WebGMEGlobal.State.off('change:' + CONSTANTS.STATE_ACTIVE_SELECTION,
                                   this._stateActiveSelectionChanged, this);
+            this._client.removeEventListener(this._client.CONSTANTS.BRANCH_CHANGED, this.boundBranchChanged);
+            this._client.removeEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED, this.boundBranchStatusChanged);
         }
 
         HFSMVizWidget.prototype.destroy = function () {
