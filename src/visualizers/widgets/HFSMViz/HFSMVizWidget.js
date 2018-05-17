@@ -155,11 +155,13 @@ define([
             if (opts.invoker !== self) {
                 if (self._cy) {
                     self.clear();
-                    activeSelection.map(gmeID => {
-                        var idTag = gmeIdToCySelector(gmeID);
-                        var cyNode = self._cy.$(idTag);
-                        self.highlight( cyNode );
-                    });
+                    if (len) {
+                        activeSelection.map(gmeID => {
+                            var idTag = gmeIdToCySelector(gmeID);
+                            var cyNode = self._cy.$(idTag);
+                            self.highlight( cyNode );
+                        });
+                    }
                 }
             }
         };
