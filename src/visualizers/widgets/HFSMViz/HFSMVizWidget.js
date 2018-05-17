@@ -681,13 +681,15 @@ define([
             self._debouncedSaveNodePositions = _.debounce(self.saveNodePositions.bind(self), 500);
             self._unsavedNodePositions = {};
             self._cy.on('position', 'node', function(e) {
-                var node = this;
-                var type = node.data('type');
-                var id = node.id();
-                if (type && rootTypes.indexOf(type) == -1 && self.nodes[id]) {
-                    var pos = self.cyPosToGmePos( node );
-                    self._unsavedNodePositions[id] = pos;
-                    self._debouncedSaveNodePositions()
+                if (self._grabbedNode) {
+                    var node = this;
+                    var type = node.data('type');
+                    var id = node.id();
+                    if (type && rootTypes.indexOf(type) == -1 && self.nodes[id]) {
+                        var pos = self.cyPosToGmePos( node );
+                        self._unsavedNodePositions[id] = pos;
+                        self._debouncedSaveNodePositions()
+                    }
                 }
             });
 
@@ -907,10 +909,29 @@ define([
         /* * * * * * * * Node Position Functions  * * * * * * * */
 
         HFSMVizWidget.prototype.cyPosition = function(cyNode, pos) {
-            if (pos == undefined)
-                return cyNode.position();
-            else
-                cyNode.position(pos);
+            // assumes pos is GME position - origin is top left of the
+            // node
+            let w = cyNode.width(),
+                h = cyNode.height(),
+                x = cyNode.position('x'),
+                y = cyNode.position('y'),
+                x1 = x - w/2,
+                y1 = y - h/2;
+            if (pos == undefined) {
+                // always return position with respect to top left
+                return {
+                    x: x1,
+                    y: y1
+                };
+            } else {
+                // cytoscape uses origin at center of the node, so we
+                // must convert before setting
+                let newPos = {
+                    x: pos.x + w/2,
+                    y: pos.y + h/2
+                }
+                cyNode.position(newPos);
+            }
         };
 
         HFSMVizWidget.prototype.cyPosToScreenPos = function(pos) {
@@ -940,23 +961,12 @@ define([
         HFSMVizWidget.prototype.gmePosToCyPos = function(desc) {
             var self = this;
             var cyPos = desc.position;
-            var parentIDTag = gmeIdToCySelector(desc.parentId);
-            var cyParent = self._cy.$(parentIDTag);
-            if (cyParent) {
-                //cyPos.x -= cyParent.width();
-                //cyPos.y -= cyParent.height();
-            }
             return cyPos;
         };
 
         HFSMVizWidget.prototype.cyPosToGmePos = function(cyNode) {
             var self = this;
             var gmePos = self.cyPosition( cyNode );
-            var cyParent = cyNode.parent();
-            if (cyParent) {
-                //gmePos.x += cyParent.width();
-                //gmePos.y += cyParent.height();
-            }
             return gmePos;
         };
 
@@ -982,8 +992,9 @@ define([
                 if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1 ) {
                     var pos = self._unsavedNodePositions[id];
                     var originalPos = self.nodes[id].position;
-                    if (pos.x != originalPos.x || pos.y != originalPos.y) {
+                    if (!_.isEqual(pos, originalPos)) {
                         //console.log('saving for '+id);
+                        //console.log(originalPos);
                         //console.log(pos);
                         self._client.setRegistry(id, 'position', pos);
                     }
@@ -1136,24 +1147,10 @@ define([
                 group: 'nodes',
                 data: data
             };
-            var parentCyNode = null;
-            var parentPos = null;
-            if (desc.parentId) {
-                var parentIdTag = gmeIdToCySelector(desc.parentId);
-                var parentCyNode = self._cy.$(parentIdTag);
-            }
-            if (parentCyNode) {
-                parentPos = parentCyNode.position();
-            }
-            
-            var pos = null;
-
-            if (parentCyNode && parentPos) {
-                pos = self.gmePosToCyPos(desc);
-            }
 
             var n = self._cy.add(node);
 
+            var pos = self.gmePosToCyPos(desc);
             if (pos) {
                 self.cyPosition(n, pos);
             }
@@ -1246,12 +1243,13 @@ define([
                     else {
                         cyNode.data( this.getDescData(desc) );
                         // update position from model
-                        if (rootTypes.indexOf(desc.type) == -1) {
-                            if (self.needToUpdatePosition( desc.position, oldDesc.position ) ) {
-                                var pos = self.gmePosToCyPos( desc );
-                                //console.log('updating '+desc.id);
-                                //console.log(pos);
-                                self.cyPosition(cyNode, pos);
+                        if (!_.isEqual(oldDesc.position, desc.position)) {
+                            //console.log(`${desc.name}: (old, new)`);
+                            //console.log(oldDesc.position);
+                            //console.log(desc.position);
+                            if (rootTypes.indexOf(desc.type) == -1) {
+                                self.cyPosition(cyNode, self.gmePosToCyPos(desc));
+                                delete this._unsavedNodePositions[desc.id];
                             }
                         }
                     }
