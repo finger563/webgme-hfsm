@@ -1,131 +1,135 @@
 {
     "CodeEditor": {
-	"theme": "default",
-	"enableThemeSelection": true,
-	"keyBinding": "emacs",
-	"enableKeybindingSelection": true,
-	"lineWrapping": false,
-	"enableLineWrappingToggle": true,
+        "theme": "default",
+        "enableThemeSelection": true,
+        "keyBinding": "emacs",
+        "enableKeybindingSelection": true,
+        "lineWrapping": false,
+        "enableLineWrappingToggle": true,
         "autoSaveInterval": "2000",
-	"rootTypes": [
-	    "Project"
-	],
-	"excludeTypes": [
-	    "Pseudo State",
-	    "Initial",
-	    "End State"
-	],
-	"loadDepth": -1,
-	"defaultSyntax": "cpp",
-	"syntaxToModeMap": {
-	    "gfm": {
-		"name": "gfm"
-	    },
-	    "bash": {
-		"name": "text/x-sh"
-	    },
-	    "bgs": {
-		"name":"text/x-python",
-		"version": 2,
-		"singleLineStringErrors": false,
-		"extra_keywords": [
-		    "event",
-		    "const",
-		    "call",
-		    "dim",
-		    "procedure",
-		    "export",
-		    "end"
-		],
-		"extra_builtins": [
-		    "system_boot",
-		    "system_script_failure",
-		    "hardware_soft_timer",
-		    "hardware_adc_result",
-		    "hardware_io_port_status",
-		    "hardware_io_port_config_irq",
-		    "hardware_io_port_config_direction",
-		    "hardware_io_port_write",
-		    "hardware_io_port_read",
-		    "hardware_set_soft_timer",
-		    "hardware_adc_read",
-		    "hardware_i2c_write",
-		    "hardware_i2c_read",
-		    "gap_scan_response",
-		    "connection_status",
-		    "connection_disconnect",
-		    "attclient_group_found",
-		    "attclient_find_information_found",
-		    "attclient_procedure_completed",
-		    "attclient_attribute_value"
-		]
-	    },
-	    "c": {
-		"name": "text/x-c++src",
-		"extra_keywords": [
-		    "int8",
-		    "uint8",
-		    "int16",
-		    "uint16",
-		    "int32",
-		    "uint32",
-		    "int64",
-		    "uint64"
-		]
-	    },
-	    "cpp": {
-		"name": "text/x-c++src",
-		"useCPP": true,
-		"extra_keywords": [
-		    "int8",
-		    "uint8",
-		    "int16",
-		    "uint16",
-		    "int32",
-		    "uint32",
-		    "int64",
-		    "uint64"
-		]
-	    },
-	    "python": {
-		"name":"text/x-python",
-		"version": 2
-	    },
-	    "javascript": {
-		"name":"text/javascript"
-	    }
-	},
-	"attrToSyntaxMap": {
-	    "Documentation": {
-		"documentation": "gfm"
-	    },
-	    "State Machine": {
-		"Includes": "cpp",
-		"Initialization": "cpp",
-		"Definitions": "cpp",
-		"Declarations": "cpp"
-	    },
-	    "State": {
-		"Entry": "cpp",
-		"Exit": "cpp",
-		"Tick": "cpp"
-	    },
-	    "Component": {
-		"Definitions": "cpp",
-		"Declarations": "cpp"
-	    },
-	    "External Transition": {
-		"Guard": "cpp",
-		"Action": "cpp"
-	    },
-	    "Internal Transition": {
-		"Guard": "cpp",
-		"Action": "cpp"
-	    }
-	},
+        "rootTypes": [
+            "State Machine",
+            "Library"
+        ],
+        "excludeTypes": [
+            "Deep History Pseudostate",
+            "Shallow History Pseudostate",
+            "Choice Pseudostate",
+            "Initial",
+            "End State"
+        ],
+        "loadDepth": -1,
+        "defaultSyntax": "cpp",
+        "syntaxToModeMap": {
+            "gfm": {
+                "name": "gfm"
+            },
+            "bash": {
+                "name": "text/x-sh"
+            },
+            "bgs": {
+                "name":"text/x-python",
+                "version": 2,
+                "singleLineStringErrors": false,
+                "extra_keywords": [
+                    "event",
+                    "const",
+                    "call",
+                    "dim",
+                    "procedure",
+                    "export",
+                    "end"
+                ],
+                "extra_builtins": [
+                    "system_boot",
+                    "system_script_failure",
+                    "hardware_soft_timer",
+                    "hardware_adc_result",
+                    "hardware_io_port_status",
+                    "hardware_io_port_config_irq",
+                    "hardware_io_port_config_direction",
+                    "hardware_io_port_write",
+                    "hardware_io_port_read",
+                    "hardware_set_soft_timer",
+                    "hardware_adc_read",
+                    "hardware_i2c_write",
+                    "hardware_i2c_read",
+                    "gap_scan_response",
+                    "connection_status",
+                    "connection_disconnect",
+                    "attclient_group_found",
+                    "attclient_find_information_found",
+                    "attclient_procedure_completed",
+                    "attclient_attribute_value"
+                ]
+            },
+            "c": {
+                "name": "text/x-c++src",
+                "extra_keywords": [
+                    "int8",
+                    "uint8",
+                    "int16",
+                    "uint16",
+                    "int32",
+                    "uint32",
+                    "int64",
+                    "uint64"
+                ]
+            },
+            "cpp": {
+                "name": "text/x-c++src",
+                "useCPP": true,
+                "extra_keywords": [
+                    "int8",
+                    "uint8",
+                    "int16",
+                    "uint16",
+                    "int32",
+                    "uint32",
+                    "int64",
+                    "uint64"
+                ]
+            },
+            "python": {
+                "name":"text/x-python",
+                "version": 2
+            },
+            "javascript": {
+                "name":"text/javascript"
+            }
+        },
+        "attrToSyntaxMap": {
+            "Documentation": {
+                "documentation": "gfm"
+            },
+            "State Machine": {
+                "Includes": "cpp",
+                "Initialization": "cpp",
+                "Definitions": "cpp",
+                "Declarations": "cpp"
+            },
+            "State": {
+                "Entry": "cpp",
+                "Exit": "cpp",
+                "Tick": "cpp"
+            },
+            "External Transition": {
+                "Guard": "cpp",
+                "Action": "cpp"
+            },
+            "Local Transition": {
+                "Guard": "cpp",
+                "Action": "cpp"
+            },
+            "Internal Transition": {
+                "Guard": "cpp",
+                "Action": "cpp"
+            }
+        },
         "nameTemplateMap": {
             "Internal Transition": "IT: {{{Event}}}",
-            "External Transition": "ET: {{{Event}}}"
+            "External Transition": "ET: {{{Event}}}",
+            "Local Transition": "LT: {{{Event}}}"
         }
     }
 }
