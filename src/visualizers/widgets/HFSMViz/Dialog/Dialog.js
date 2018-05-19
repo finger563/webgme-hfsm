@@ -17,10 +17,21 @@ define(['js/util',
 
            var ignoreTypes = ['Documentation']
 
-           var attrForm = ['<div class="form-group" id="p{{attr}}">',
+           const typeMap = {
+               'boolean': 'checkbox',
+               'float': 'number'
+           };
+           const valueMap = {
+               'checkbox': function(el) { return el[0].checked; }
+           };
+           var attrToID = function(attr) {
+               return attr.replace(/ /gm, '_');
+           };
+
+           var attrForm = ['<div class="form-group" id="p{{id}}">',
                            '<label class="col-sm-4 control-label">{{attr}}</label>',
                            '<div class="col-sm-8 controls">' ,
-                           '<input type="{{type}}" id="{{attr}}" placeholder="">',
+                           '<input type="{{type}}" id="{{id}}" placeholder="">',
                            '</div>',
                            '</div>'].join('\n');
 
@@ -85,11 +96,11 @@ define(['js/util',
                    };
                    var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
                    var newChildPath = client.createChild( childCreationParams, msg );
-                   //var child = client.getNode( newChildPath );
                    // save node data here dependent on the type of node
                    Object.keys(attr).map(function( attrName ) {
                        var attrVal = attr[attrName];
-                       if (attrVal) {
+                       var currentAttr = client.getNode(newChildPath).getAttribute(attrName);
+                       if (attrVal != currentAttr) {
                            msg = 'Setting "'+attrName+'" to "'+attrVal+'"';
                            client.setAttribute( newChildPath, attrName, attrVal, msg );
                        }
@@ -205,16 +216,23 @@ define(['js/util',
                });
                return form;
            };
-
+           
            Dialog.prototype.renderAttributeForm = function ( attr, type ) {
-               return mustache.render( attrForm, { attr: attr, type: type } );
+               return mustache.render( attrForm, {
+                   attr: attr,
+                   id: attrToID(attr),
+                   type: (typeMap[type] || type)
+               } );
            };
 
            Dialog.prototype.getAttributesFromForm = function () {
                var self = this;
                var attr = {};
                self.getCurrentAttributeNames().map(function(a) {
-                   attr[a] = $(self._dialog).find('#'+a).first().val();
+                   var el = $(self._dialog).find('#'+attrToID(a)).first();
+                   var type = el.type || (el[0] && el[0].type);
+                   var val = valueMap[type] ? valueMap[type](el) : el.val();
+                   attr[a] = val;
                });
                return attr;
            };
