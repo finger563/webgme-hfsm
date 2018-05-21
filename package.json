@@ -12,9 +12,10 @@
   },
   "dependencies": {
     "underscore": "^1.9.0",
-    "webgme": "^2.24.0",
-    "webgme-codeeditor": "^3.6.11",
-    "webgme-to-json": "^1.0.4"
+    "webgme": "^2.26.0",
+    "webgme-codeeditor": "^3.6.16",
+    "webgme-to-json": "^1.0.4",
+    "webgme-ui-replay": "^0.1.1"
   },
   "peerDependencies": {},
   "devDependencies": {

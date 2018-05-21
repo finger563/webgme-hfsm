@@ -169,13 +169,21 @@ define([
         HFSMVizWidget.prototype._branchChanged = function(args) {
             var self = this;
             self.branchChanged = false;
+            self._readOnly = self._client.isReadOnly();
+            if (self._cy) {
+                self._cy.autoungrabify(self._readOnly);
+            }
         };
 
         HFSMVizWidget.prototype._branchStatusChanged = function(args) {
             var self = this;
-            if (!this.branchChanged) {
+            self._readOnly = self._client.isReadOnly();
+            if (self._cy) {
+                self._cy.autoungrabify(self._readOnly);
+            }
+            if (!self.branchChanged) {
                 self._unsavedNodePositions = {};
-                this.branchChanged = true;
+                self.branchChanged = true;
             }
         };
 
@@ -199,7 +207,7 @@ define([
                 self = this;
 
             // is the project readonly?
-            this._readOnly = this._client.isProjectReadOnly();
+            this._readOnly = this._client.isReadOnly();
 
             // Root Info
             this.HFSMName = '';
@@ -409,10 +417,8 @@ define([
                 }
             };
 
-            if (!this._readOnly) {
-                // EDGE HANDLES
-                this._cy.edgehandles( edgeHandleDefaults );
-            }
+            // EDGE HANDLES
+            this._cy.edgehandles( edgeHandleDefaults );
 
             var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]';
 
@@ -446,6 +452,10 @@ define([
                         onClickFunction: function ( e ) {
                             //var node = this;
                             var node = e.target;
+
+                            if (self._readOnly)
+                                return;
+
                             if (node == self._cy) { }
                             else
                                 self.toggleShowChildren( node );
@@ -477,6 +487,10 @@ define([
                         coreAsWell: true,
                         onClickFunction: function ( e ) {
                             var node = e.target;
+
+                            if (self._readOnly)
+                                return;
+
                             if (node == self._cy) { }
                             else {
                                 var childPosition = e.position;
@@ -498,6 +512,10 @@ define([
                         selector: 'node, edge', 
                         onClickFunction: function ( e ) { // The function to be executed on click
                             var node = e.target;
+
+                            if (self._readOnly)
+                                return;
+
                             if (node == self._cy) { }
                             else {
                                 self.selectNode( node.id() );
@@ -514,6 +532,10 @@ define([
                         selector: 'node[NodeType = "Documentation"]', 
                         onClickFunction: function ( e ) { // The function to be executed on click
                             var node = e.target;
+
+                            if (self._readOnly)
+                                return;
+
                             if (node == self._cy) { }
                             else {
                                 self.onEditDocumentation(node.id());
@@ -528,6 +550,10 @@ define([
                         selector: 'node',
                         onClickFunction: function ( e ) {
                             var node = e.target;
+
+                            if (self._readOnly)
+                                return;
+
                             if (node == self._cy) { }
                             else {
                                 self.unselectNode(node.id());
@@ -544,6 +570,10 @@ define([
                         selector: childAvailableSelector,
                         onClickFunction: function ( e ) {
                             var node = e.target;
+
+                            if (self._readOnly)
+                                return;
+
                             if (node == self._cy) { }
                             else {
                                 self.unselectNode(node.id());
@@ -568,9 +598,7 @@ define([
                 ]
             };
 
-            if (!this._readOnly) {
-                var ctxMenuInstance = this._cy.contextMenus( options );
-            }
+            var ctxMenuInstance = this._cy.contextMenus( options );
 
             // PAN ZOOM WIDGET:
 
@@ -835,9 +863,7 @@ define([
 
             toolbarEl.append(printEl);
             toolbarEl.append(zoomEl);
-            if (!self._readOnly) {
-                toolbarEl.append(layoutEl);
-            }
+            toolbarEl.append(layoutEl);
 
             toolbarEl.find('#print').on('click', function(){
                 var png = self._cy.png({
@@ -1458,7 +1484,7 @@ define([
         };
 
         HFSMVizWidget.prototype._isValidDrop = function (dragInfo, parentId) {
-            if (!dragInfo || !parentId)
+            if (!dragInfo || !parentId || this._readOnly)
                 return false;
             var self = this;
 
@@ -1488,6 +1514,9 @@ define([
         HFSMVizWidget.prototype._canCreateChild = function( nodeId, parentId ) {
             var self = this;
             var canCreate = false;
+
+            if (self._readOnly)
+                return false;
 
             var validChildrenTypes,
                 nodeObj,
@@ -1642,6 +1671,9 @@ define([
         HFSMVizWidget.prototype._arrangeNodes = function( nodeIds, modelClickPosition ) {
             var self = this;
 
+            if (self._readOnly)
+                return false;
+
             if (nodeIds.length > 1) {
                 try {
                     var options = {
@@ -1781,6 +1813,9 @@ define([
                     }
                 };
 
+            if (self._readOnly)
+                return;
+
             self.createWebGMEContextMenu(options, function(option) {
                 if (options[option] && options[option].fn)
                     options[option].fn();
@@ -1824,6 +1859,9 @@ define([
             addedEdges.map(function(ae) {
                 ae.remove();
             });
+
+            if (self._readOnly)
+                return;
 
             var srcId = cySource.id();
             var srcDesc = self.nodes[srcId];
@@ -1938,6 +1976,8 @@ define([
 
         HFSMVizWidget.prototype.isValidSource = function( desc ) {
             var self = this;
+            if (self._readOnly)
+                return false;
             if (desc.type == 'End State')
                 return false;
             else if (desc.type == 'Internal Transition')
@@ -1961,6 +2001,8 @@ define([
 
         HFSMVizWidget.prototype.validEdgeLoop = function( desc ) {
             var self = this;
+            if (self._readOnly)
+                return false;
             if (desc && desc.type) {
                 if (desc.type == 'Initial' ||
                     desc.type == 'End State' ||
@@ -1978,6 +2020,8 @@ define([
 
         HFSMVizWidget.prototype.validEdge = function( srcDesc, dstDesc ) {
             var self = this;
+            if (self._readOnly)
+                return false;
             var valid = true;
             var srcType = srcDesc && srcDesc.type || 'Initial';
             var dstType = dstDesc && dstDesc.type || 'Initial';

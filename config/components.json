@@ -1,4 +1,18 @@
 {
+    "GenericUIProjectRepositoryWidget": {
+        "commitBadges": {
+            "UIReplayCommitBadge": {
+                "path": "widgets/UIReplay/UIReplayCommitBadge"
+            }
+        }
+    },
+    "GenericUIFooterControlsPanel": {
+        "extraWidgets": {
+            "UIReplayWidget": {
+                "path": "widgets/UIReplay/UIReplayWidget"
+            }
+        }
+    },
     "CodeEditor": {
         "theme": "default",
         "enableThemeSelection": true,

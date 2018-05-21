@@ -40,10 +40,24 @@
         "secondary": false,
         "widget": "src/visualizers/widgets/CodeEditor",
         "project": "webgme-codeeditor"
+      },
+      "UIReplay": {
+        "src": "panels/UIReplay/UIReplayControllers",
+        "title": "UIReplay",
+        "panel": "src/visualizers/panels/UIReplay",
+        "secondary": true,
+        "widget": "src/visualizers/widgets/UIReplay",
+        "project": "webgme-ui-replay"
       }
     },
     "addons": {},
     "layouts": {},
-    "routers": {}
+    "routers": {
+      "UIRecorder": {
+        "project": "webgme-ui-replay",
+        "path": "node_modules/webgme-ui-replay/src/routers/UIRecorder",
+        "mount": "routers/UIRecorder"
+      }
+    }
   }
 }
