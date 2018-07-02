@@ -11,6 +11,25 @@
     padding: 0;
 }
 
+.search { position: relative; }
+.search input {
+    box-sizing: border-box;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: white;
+    padding: 6px 10px 6px 10px;
+    -webkit-transition: width 0.4s ease-in-out;
+    transition: width 0.4s ease-in-out;
+    text-indent: 2em;
+}
+.search .fa-search { 
+  position: absolute;
+  top: 0.5em;
+  left: 0.5em;
+  font-size: 18px;
+}
+
 #cy {
   width: 100%;
 /*

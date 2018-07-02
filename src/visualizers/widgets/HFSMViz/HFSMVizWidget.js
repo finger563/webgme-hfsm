@@ -226,6 +226,31 @@ define([
             this._left = this._el.find('#hfsmVizLeft');
             this._right = this._el.find('#hfsmVizRight');
 
+            // SEARCH Functionality
+            const search = (text) => {
+                console.log('you searched: ' + text);
+                if (text && text.length) {
+                    self.clear();
+                    var results = [];
+                    // find related nodes
+                    results = Object.values(self.nodes).filter((n) => {
+                        return n.name.toLowerCase().includes(text.toLowerCase())
+                    });
+                    // highlight them
+                    results.map((r) => {
+                        var id = gmeIdToCySelector(r.id);
+                        var node = self._cy.$(id);
+                        self.highlight( node );
+                    });
+                }
+            };
+            this._debouncedSearch = _.debounce(search.bind(self), 350);
+            this._search = this._el.find('#search');
+            this._search.keyup((event) => {
+                var searchText = $(this._search).val();
+                this._debouncedSearch(searchText);
+            });
+
             this._left.css('width', '19.5%');
             this._right.css('width', '80%');
 
@@ -342,6 +367,10 @@ define([
             };
             this._cytoscape_options.layout = self._layout_options;
             this._cy = cytoscape(self._cytoscape_options);
+            // for search
+            this._cy.on('click', () => {
+                $(this._search).blur();
+            });
 
             var edgeHandleIcon = new Image(10,10);
             edgeHandleIcon.src = '/assets/DecoratorSVG/svgs/edgeIcon.svg';
