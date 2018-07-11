@@ -6,6 +6,9 @@
 [![npm](https://img.shields.io/npm/dm/webgme-hfsm.svg)](https://www.npmjs.com/package/webgme-hfsm)
 [![npm](https://img.shields.io/npm/dt/webgme-hfsm.svg)](https://www.npmjs.com/package/webgme-hfsm)
 
+![hfsm.rcps.isis.vanderbilt.edu](https://img.shields.io/website-up-down-green-red/http/hfsm.rcps.isis.vanderbilt.edu/profile/login.svg?label=hfsm.rcps.isis.vanderbilt.edu)
+
+
 WebGME App for creating Executable Heirarchical Finite State Machines
 (HFSMs). Contains metamodel, visualization, simulation, and code
 generation for Heirarchical Finite State Machines (HFSMs) following
