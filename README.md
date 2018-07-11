@@ -6,6 +6,8 @@
 [![npm](https://img.shields.io/npm/dm/webgme-hfsm.svg)](https://www.npmjs.com/package/webgme-hfsm)
 [![npm](https://img.shields.io/npm/dt/webgme-hfsm.svg)](https://www.npmjs.com/package/webgme-hfsm)
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/finger563)
+
 ![hfsm.rcps.isis.vanderbilt.edu](https://img.shields.io/website-up-down-green-red/http/hfsm.rcps.isis.vanderbilt.edu/profile/login.svg?label=hfsm.rcps.isis.vanderbilt.edu)
 
 
