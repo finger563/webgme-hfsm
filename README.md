@@ -8,7 +8,7 @@
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/finger563)
 
-![hfsm.rcps.isis.vanderbilt.edu](https://img.shields.io/website-up-down-green-red/http/hfsm.rcps.isis.vanderbilt.edu/profile/login.svg?label=hfsm.rcps.isis.vanderbilt.edu)
+![hfsm.collaborative-design.org](https://img.shields.io/website-up-down-green-red/http/hfsm.collaborative-design.org/profile/login.svg?label=hfsm.collaborative-design.org)
 
 
 WebGME App for creating Executable Heirarchical Finite State Machines
@@ -18,7 +18,7 @@ the UML State Machine specification, see [Wikipedia UML State Machine](https://e
 
 A public server running this project can be accessed at:
 
-[hfsm.rcps.isis.vanderbilt.edu](http://hfsm.rcps.isis.vanderbilt.edu)
+[hfsm.collaborative-design.org](http://hfsm.collaborative-design.org)
 
 **Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further information, including links to relevant Youtube Videos and specific pages about development process and such.**
 
