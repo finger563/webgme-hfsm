@@ -159,7 +159,7 @@ define([
                         var sel = activeSelection.reduce((s, gmeID) => {
                             var idTag = gmeIdToCySelector(gmeID);
 							if (s.length) {
-								s += ',';
+								s += ",";
 							}
 							return s + ' ' + idTag;
                         }, '');
@@ -254,7 +254,7 @@ define([
 						var selector = results.reduce((s, r) => {
 							var id = gmeIdToCySelector(r.id);
 							if (s.length) {
-								s += ',';
+								s += ",";
 							}
 							return s + ' ' + id;
 						}, '');
@@ -983,7 +983,7 @@ define([
                 // highlight the Transition
                 var idTag = gmeIdToCySelector(id);
 				if (sel.length) {
-					sel += ', ';
+					sel += ",";
 				}
 				return sel + ' ' + idTag;
             }, '');
@@ -1371,7 +1371,7 @@ define([
 			var idTag = eleIds.reduce((tag, id) => {
 				var s = gmeIdToCySelector(id);
 				if (tag.length) {
-					tag += ',';
+					tag += ",";
 				}
 				return tag + ' ' + s;
 			}, '');
