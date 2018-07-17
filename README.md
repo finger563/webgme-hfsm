@@ -6,6 +6,11 @@
 [![npm](https://img.shields.io/npm/dm/webgme-hfsm.svg)](https://www.npmjs.com/package/webgme-hfsm)
 [![npm](https://img.shields.io/npm/dt/webgme-hfsm.svg)](https://www.npmjs.com/package/webgme-hfsm)
 
+[![hfsm.collaborative-design.org](https://img.shields.io/website-up-down-green-red/https/hfsm.collaborative-design.org/profile/login.svg?label=hfsm.collaborative-design.org)](https://hfsm.collaborative-design.org)
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/finger563)
+
+
 WebGME App for creating Executable Heirarchical Finite State Machines
 (HFSMs). Contains metamodel, visualization, simulation, and code
 generation for Heirarchical Finite State Machines (HFSMs) following
@@ -13,7 +18,7 @@ the UML State Machine specification, see [Wikipedia UML State Machine](https://e
 
 A public server running this project can be accessed at:
 
-[hfsm.rcps.isis.vanderbilt.edu](http://hfsm.rcps.isis.vanderbilt.edu)
+[hfsm.collaborative-design.org](http://hfsm.collaborative-design.org)
 
 **Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further information, including links to relevant Youtube Videos and specific pages about development process and such.**
 
