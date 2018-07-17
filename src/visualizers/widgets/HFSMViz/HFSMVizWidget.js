@@ -108,7 +108,7 @@ define([
 
             // Y OFFSET
             windowPos.y += splitPos.top;
-            windowPos.y += centerPanelPos.top;            
+            windowPos.y += centerPanelPos.top;
 
             return windowPos;
         };
@@ -156,11 +156,16 @@ define([
                 if (self._cy) {
                     self.clear();
                     if (len) {
-                        activeSelection.map(gmeID => {
+                        var sel = activeSelection.reduce((s, gmeID) => {
                             var idTag = gmeIdToCySelector(gmeID);
-                            var cyNode = self._cy.$(idTag);
-                            self.highlight( cyNode );
-                        });
+							if (s.length) {
+								s += ',';
+							}
+							return s + ' ' + idTag;
+                        }, '');
+                        var nodes = self._cy.$(sel);
+						nodes.select();
+                        self.highlightNodes( nodes );
                     }
                 }
             }
@@ -227,28 +232,45 @@ define([
             this._right = this._el.find('#hfsmVizRight');
 
             // SEARCH Functionality
+			this._lastSearchText = null;
             const search = (text) => {
+				if (text == this._lastSearchText)
+					return;
+				this._lastSearchText = text;
                 console.log('you searched: ' + text);
+                self.clear();
                 if (text && text.length) {
-                    self.clear();
                     var results = [];
                     // find related nodes
                     results = Object.values(self.nodes).filter((n) => {
-                        return n.name.toLowerCase().includes(text.toLowerCase())
+						var matches = false;
+						matches = n.LABEL.toLowerCase().includes(text.toLowerCase())
+                        return matches;
                     });
-                    // highlight them
-                    results.map((r) => {
-                        var id = gmeIdToCySelector(r.id);
-                        var node = self._cy.$(id);
-                        self.highlight( node );
-                    });
+					console.log(results);
+					if (results.length) {
+						self.selectNodes( results.map(r => r.id) );
+						// highlight them
+						var selector = results.reduce((s, r) => {
+							var id = gmeIdToCySelector(r.id);
+							if (s.length) {
+								s += ',';
+							}
+							return s + ' ' + id;
+						}, '');
+						var nodes = self._cy.$(selector);
+						nodes.select();
+						self.highlightNodes( nodes );
+						self.animateElements( results.map(r => r.id), 'notified' );
+						this._lastSearchText = null;
+					}
                 }
             };
-            this._debouncedSearch = _.debounce(search.bind(self), 350);
+            this._debouncedSearch = _.debounce(search.bind(self), 500);
             this._search = this._el.find('#search');
             this._search.keyup((event) => {
                 var searchText = $(this._search).val();
-                this._debouncedSearch(searchText);
+				this._debouncedSearch(searchText);
             });
 
             this._left.css('width', '19.5%');
@@ -439,7 +461,7 @@ define([
                     // incomplete - nothing has been added ) -
                     // renderedPosition is where the edgehandle was
                     // released, invalidTarget is
-                    
+
                     // a collection on which the handle was released,
                     // but which for other reasons (loopAllowed |
                     // edgeType) is an invalid target
@@ -465,11 +487,10 @@ define([
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    self.selectNode(id);
-                    self.highlight(node);
+					node.select();
                 }
             });
-            
+
             var options = {
                 // List of initial menu items
                 menuItems: [
@@ -503,7 +524,7 @@ define([
                             if (node == self._cy) { }
                             else {
                                 self._simulator.setActiveState( node.id() );
-                                self.unselectNode( node.id() );
+                                self.unselectNodes( [node.id()] );
                             }
                         },
                         coreAsWell: false
@@ -547,8 +568,9 @@ define([
 
                             if (node == self._cy) { }
                             else {
-                                self.selectNode( node.id() );
-                                self.highlight(node);
+                                self.selectNodes( [node.id()] );
+								node.select();
+                                self.highlightNode(node);
                                 self.deleteSelection();
                             }
                         },
@@ -585,7 +607,7 @@ define([
 
                             if (node == self._cy) { }
                             else {
-                                self.unselectNode(node.id());
+                                self.unselectNodes([node.id()]);
                                 self._arrangeNodes( self._selectedNodes, e.position );
                             }
                         },
@@ -605,7 +627,7 @@ define([
 
                             if (node == self._cy) { }
                             else {
-                                self.unselectNode(node.id());
+                                self.unselectNodes([node.id()]);
                                 self._moveNodes(
                                     self._selectedNodes,
                                     node.id(),
@@ -658,17 +680,7 @@ define([
                 resetIcon: 'fa fa-expand'
             };
 
-            self._cy.panzoom( panZoom_defaults );            
-
-            // layout such
-
-            function highlight( node ){
-                self.highlight(node);
-            }
-
-            function clear(){
-                self.clear();
-            }
+            self._cy.panzoom( panZoom_defaults );
 
             // USED FOR DRAG ABILITY
             self._hoveredNodeId = null;
@@ -710,8 +722,8 @@ define([
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    self.selectNode(id);
-                    self.highlight(node);
+                    self.selectNodes([id]);
+                    self.highlightNode(node);
                 }
             });
 
@@ -719,7 +731,7 @@ define([
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    self.unselectNode(id);
+                    self.unselectNodes([id]);
                 }
             });
 
@@ -755,6 +767,7 @@ define([
             // USED FOR ZOOMING AFTER INITIALLY LOADING ALL THE NODES (in CreateNode())
             self._debounced_one_time_zoom = _.debounce(_.once(self.onZoomClicked.bind(self)), 250);
 
+			self._debouncedSelectNodes = _.debounce(self.selectNodes.bind(self), 200);
 
             this._attachClientEventListeners();
             this._makeDroppable();
@@ -762,31 +775,35 @@ define([
 
         /* * * * * * * * Display Functions  * * * * * * * */
 
-        HFSMVizWidget.prototype.selectNode = function(id) {
+        HFSMVizWidget.prototype.selectNodes = function(ids) {
             var self = this;
-            if (self._selectedNodes.indexOf(id) == -1) {
-                self._selectedNodes.push(id);
-            }
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+			// update selected nodes
+			self._selectedNodes = _.union(self._selectedNodes, ids);
+			// register updated selection state
+            WebGMEGlobal.State.registerActiveSelection(
+				self._selectedNodes.slice(0),
+				{invoker: self}
+			);
         };
 
-        HFSMVizWidget.prototype.unselectNode = function(id) {
+        HFSMVizWidget.prototype.unselectNodes = function(ids) {
             var self = this;
-            if (self._selectedNodes.indexOf(id) > -1) {
-                var selector = gmeIdToCySelector(id);
-                self._cy.$(selector).unselect();
-            }
-            self._selectedNodes = self._selectedNodes.filter(function(n) {
-                return id != n;
-            });
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+			// update selected nodes
+			self._selectedNodes = _.difference(self._selectedNodes, ids)
+			// ensure cytoscape unselects the selected nodes
+			self.clear();
+			// register updated selection state
+			self._debouncedSelectNodes([]);
         };
 
         HFSMVizWidget.prototype.unselectAll = function() {
             var self = this;
+			// update selected nodes
             self._selectedNodes = [];
+			// ensure cytoscape unselects the selected nodes
             self.clear();
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+			// register updated selection state
+			self._debouncedSelectNodes([]);
         };
 
         function download(filename, text) {
@@ -906,11 +923,11 @@ define([
             toolbarEl.find('#pan').on('click', function() {
                 self.onPanningClicked();
             });
-            
+
             toolbarEl.find('#select').on('click', function() {
                 self.onBoxSelectClicked();
             });
-            
+
             toolbarEl.find('#zoom').on('click', function(){
                 self.onZoomClicked();
             });
@@ -932,11 +949,15 @@ define([
             });
         };
 
-        HFSMVizWidget.prototype.highlight = function(node) {
+        HFSMVizWidget.prototype.highlightNode = function(node) {
             var self = this;
-            node.select();
             self._simulator.hideStateInfo();
-            self._simulator.displayStateInfo( node.id() );
+			self._simulator.displayStateInfo( node.id() );
+        };
+
+        HFSMVizWidget.prototype.highlightNodes = function(nodes) {
+            var self = this;
+            self._simulator.hideStateInfo();
         };
 
         HFSMVizWidget.prototype.clear = function() {
@@ -950,16 +971,30 @@ define([
         HFSMVizWidget.prototype.showTransitions = function( transitionIDs ) {
             var self = this;
             self.clear();
+			// update selected nodes
             self._selectedNodes = [];
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
-            transitionIDs.map(function(id) {
+			// update selection state
+            WebGMEGlobal.State.registerActiveSelection(
+				self._selectedNodes.slice(0),
+				{invoker: this}
+			);
+            var tidSelector = transitionIDs.reduce((sel, id) => {
                 self._selectedNodes.push(id);
                 // highlight the Transition
                 var idTag = gmeIdToCySelector(id);
-                var node = self._cy.$(idTag);
-                self.highlight( node );
-            });
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+				if (sel.length) {
+					sel += ', ';
+				}
+				return sel + ' ' + idTag;
+            }, '');
+			var edges = self._cy.$(tidSelector);
+			edges.select();
+            self.highlightNodes( edges );
+			// update selection state
+            WebGMEGlobal.State.registerActiveSelection(
+				self._selectedNodes.slice(0),
+				{invoker: this}
+			);
         };
 
 
@@ -1216,7 +1251,7 @@ define([
             self.updateDependencies();
             self._debounced_one_time_zoom();
         };
-        
+
         // Adding/Removing/Updating items
         HFSMVizWidget.prototype.addNode = function (desc) {
             var self = this;
@@ -1261,10 +1296,12 @@ define([
                     else {
                         delete self.dependencies.edges[gmeId];
                     }
-                    self._selectedNodes = self._selectedNodes.filter((id) => {
-                        return id != gmeId;
-                    });
-                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+					if (self._selectedNodes.indexOf(gmeId) > -1) {
+						self._selectedNodes = self._selectedNodes.filter((id) => {
+							return id != gmeId;
+						});
+						WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+					}
                     delete self.nodes[gmeId];
                     delete self.waitingNodes[gmeId];
                     self._cy.remove(idTag);
@@ -1320,12 +1357,27 @@ define([
 
         /* * * * * * * * Active State Display      * * * * * * * */
 
-        HFSMVizWidget.prototype.animateElement = function( eleId ) {
+        HFSMVizWidget.prototype.animateElement = function( eleId, _class="active" ) {
             var self = this;
             var idTag = gmeIdToCySelector(eleId);
             var eles = self._cy.$(idTag);
             if (eles.length) {
-                eles.flashClass("active", 1000);
+                eles.flashClass(_class, 1000);
+            }
+        };
+
+        HFSMVizWidget.prototype.animateElements = function( eleIds, _class="active" ) {
+            var self = this;
+			var idTag = eleIds.reduce((tag, id) => {
+				var s = gmeIdToCySelector(id);
+				if (tag.length) {
+					tag += ',';
+				}
+				return tag + ' ' + s;
+			}, '');
+            var eles = self._cy.$(idTag);
+            if (eles.length) {
+                eles.flashClass(_class, 1000);
             }
         };
 
