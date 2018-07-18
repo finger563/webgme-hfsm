@@ -29,6 +29,7 @@ define([
     "bower/blob-util/dist/blob-util.min",
     "text!./style2.css",
     "q",
+	"underscore",
     // css
     "css!bower/cytoscape-context-menus/cytoscape-context-menus.css",
     "css!bower/cytoscape-panzoom/cytoscape.js-panzoom.css",
@@ -45,7 +46,7 @@ define([
         dropTarget,
         DROP_CONSTANTS,
         DocumentEditorDialog,
-        // cytoscape 
+        // cytoscape
         cytoscape,
         cyEdgehandles,
         cyContext,
@@ -55,7 +56,8 @@ define([
         mustache,
         blobUtil,
         styleText,
-        Q) {
+        Q,
+		_) {
         "use strict";
 
         //console.log(cytoscape);
@@ -234,22 +236,21 @@ define([
             // SEARCH Functionality
 			this._lastSearchText = null;
             const search = (text) => {
-				if (text == this._lastSearchText)
+				if (text === this._lastSearchText) {
 					return;
+				}
 				this._lastSearchText = text;
-                console.log("you searched: " + text);
                 self.clear();
                 if (text && text.length) {
                     var results = [];
                     // find related nodes
                     results = Object.values(self.nodes).filter((n) => {
 						var matches = false;
-						matches = n.LABEL.toLowerCase().includes(text.toLowerCase())
+						matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
                         return matches;
                     });
-					console.log(results);
 					if (results.length) {
-						self.selectNodes( results.map(r => r.id) );
+						self.selectNodes( results.map((r) => r.id) );
 						// highlight them
 						var selector = results.reduce((s, r) => {
 							var id = gmeIdToCySelector(r.id);
@@ -261,7 +262,7 @@ define([
 						var nodes = self._cy.$(selector);
 						nodes.select();
 						self.highlightNodes( nodes );
-						self.animateElements( results.map(r => r.id), "notified" );
+						self.animateElements( results.map((r) => r.id), "notified" );
 						this._lastSearchText = null;
 					}
                 }
@@ -344,15 +345,13 @@ define([
                 pixelRatio: "auto",
             };
 
-            var self = this;
-
             this._layout_options = {
                 "name": "cose-bilkent",
                 // Called on `layoutready`
-                ready: function () {
+                ready () {
                 },
                 // Called on `layoutstop`
-                stop: function () {
+                stop () {
                 },
                 // Whether to fit the network view after when done
                 fit: true,
@@ -409,7 +408,7 @@ define([
                 handleLineWidth: 1, // width of handle line in pixels
                 handleOutlineColor: null,//'#ff0000', // the colour of the handle outline
                 handleOutlineWidth: 1, // the width of the handle outline in pixels
-                handleNodes: function( node ) { //'node', // selector/filter function
+                handleNodes( node ) { //'node', // selector/filter function
                     var desc = self.nodes[node.id()];
                     return self.isValidSource( desc );
                 },
@@ -418,45 +417,46 @@ define([
                 cxt: false, // whether cxt events trigger edgehandles (useful on touch)
                 enabled: true, // whether to start the plugin in the enabled state
                 toggleOffOnLeave: true, // whether an edge is cancelled by leaving a node (true), or whether you need to go over again to cancel (false; allows multiple edges in one pass)
-                edgeType: function( sourceNode, targetNode ) {
+                edgeType( sourceNode, targetNode ) {
                     // can return 'flat' for flat edges between nodes or 'node' for intermediate node between them
                     // returning null/undefined means an edge can't be added between the two nodes
                     var srcDesc = self.nodes[sourceNode.id()];
                     var dstDesc = self.nodes[targetNode.id()];
                     var isValid = self.validEdge( srcDesc, dstDesc );
-                    if (isValid)
+                    if (isValid) {
                         return "flat";
-                    else
+					} else {
                         return null;
+					}
                 },
-                loopAllowed: function( node ) {
+                loopAllowed( node ) {
                     // for the specified node, return whether edges from itself to itself are allowed
                     var desc = self.nodes[node.id()];
                     return self.validEdgeLoop( desc );
                 },
                 nodeLoopOffset: -50, // offset for edgeType: 'node' loops
-                nodeParams: function( sourceNode, targetNode ) {
+                nodeParams( sourceNode, targetNode ) {
                     // for edges between the specified source and target
                     // return element object to be passed to cy.add() for intermediary node
                     return {};
                 },
-                edgeParams: function( sourceNode, targetNode, i ) {
+                edgeParams( sourceNode, targetNode, i ) {
                     // for edges between the specified source and target
                     // return element object to be passed to cy.add() for edge
                     // NB: i indicates edge index in case of edgeType: 'node'
                     return {};
                 },
-                start: function( sourceNode ) {
+                start( sourceNode ) {
                     // fired when edgehandles interaction starts (drag on handle)
                 },
-                complete: function( sourceNode, targetNodes, addedEntities, position ) {
+                complete( sourceNode, targetNodes, addedEntities, position ) {
                     // fired when edgehandles is done and entities are added
                     self.edgeContextMenu( sourceNode, targetNodes, addedEntities, position );
                 },
-                stop: function( sourceNode ) {
+                stop( sourceNode ) {
                     // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
-                }, 
-                cancel: function( sourceNode, renderedPosition, invalidTarget ){
+                },
+                cancel( sourceNode, renderedPosition, invalidTarget ){
                     // fired when edgehandles are cancelled (
                     // incomplete - nothing has been added ) -
                     // renderedPosition is where the edgehandle was
@@ -471,7 +471,7 @@ define([
             // EDGE HANDLES
             this._cy.edgehandles( edgeHandleDefaults );
 
-            var childAvailableSelector = `node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]`;
+            var childAvailableSelector = "node[NodeType = \"State\"],node[NodeType =\"State Machine\"],node[NodeType =\"Library\"]";
 
             // CONTEXT MENUS
             self._cy.on("cxttap", "node, edge", function(e) {
@@ -499,14 +499,15 @@ define([
                         content: "(Un-)Show Children",
                         tooltipText: "Toggle the display of children.",
                         selector: childAvailableSelector,
-                        onClickFunction: function ( e ) {
+                        onClickFunction ( e ) {
                             //var node = this;
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else
                                 self.toggleShowChildren( node );
                         },
@@ -517,11 +518,10 @@ define([
                         id: "setActive",
                         content: "Set Active",
                         tooltipText: "Set as the active state.",
-                        selector: `node[NodeType = "State"]`,
-                        coreAsWell: true,
-                        onClickFunction: function ( e ) {
+                        selector: "node[NodeType = \"State\"]",
+                        onClickFunction ( e ) {
                             var node = e.target;
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 self._simulator.setActiveState( node.id() );
                                 self.unselectNodes( [node.id()] );
@@ -534,14 +534,14 @@ define([
                         content: "Add child...",
                         tooltipText: "Create a new state, internal transition, etc.",
                         selector: childAvailableSelector,
-                        coreAsWell: true,
-                        onClickFunction: function ( e ) {
+                        onClickFunction ( e ) {
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 var childPosition = e.position;
                                 var dialog = new Dialog();
@@ -560,13 +560,14 @@ define([
                         content: "Remove This and Selected Objects",
                         tooltipText: "Remove this object and all currently selected objects (and their outgoing or incoming transitions)",
                         selector: "node, edge",
-                        onClickFunction: function ( e ) { // The function to be executed on click
+                        onClickFunction ( e ) { // The function to be executed on click
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 self.selectNodes( [node.id()] );
 								node.select();
@@ -580,14 +581,15 @@ define([
                         id: "DocumentView",
                         content: "View/Edit Documentation",
                         tooltipText: "Edit and View the rendered Markdown Documentation",
-                        selector: `node[NodeType = "Documentation"]`,
-                        onClickFunction: function ( e ) { // The function to be executed on click
+                        selector: "node[NodeType = \"Documentation\"]",
+                        onClickFunction ( e ) { // The function to be executed on click
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 self.onEditDocumentation(node.id());
                             }
@@ -599,13 +601,14 @@ define([
                         content: "Auto-Arrange Selected Nodes Here",
                         tooltipText: "Arrange selected nodes into a grid with a top left where the user clicked.",
                         selector: "node",
-                        onClickFunction: function ( e ) {
+                        onClickFunction ( e ) {
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 self.unselectNodes([node.id()]);
                                 self._arrangeNodes( self._selectedNodes, e.position );
@@ -619,13 +622,14 @@ define([
                         content: "Move Selected Nodes Here",
                         tooltipText: "Makes the node that was right clicked that parent of the selected node.",
                         selector: childAvailableSelector,
-                        onClickFunction: function ( e ) {
+                        onClickFunction ( e ) {
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 self.unselectNodes([node.id()]);
                                 self._moveNodes(
@@ -667,8 +671,8 @@ define([
                 panInactiveArea: 8, // radius of inactive area in pan drag box
                 panIndicatorMinOpacity: 0.5, // min opacity of pan indicator (the draggable nib); scales from this to 1.0
                 zoomOnly: false, // a minimal version of the ui only with zooming (useful on systems with bad mousewheel resolution)
-                fitSelector: undefined, // selector of elements to fit
-                animateOnFit: function(){ // whether to animate on fit
+                //fitSelector: undefined, // selector of elements to fit
+                animateOnFit(){ // whether to animate on fit
                     return false;
                 },
                 fitAnimationDuration: 1000, // duration of animation on fit
@@ -687,17 +691,19 @@ define([
             self._cy.on("mouseover", childAvailableSelector, function(e) {
                 var node = this;
                 self._hoveredNodeId = node.id();
-                if (self._isDropping)
+                if (self._isDropping) {
                     self.showDropStatus();
-                else
+				} else {
                     self.clearDropStatus();
+				}
             });
             self._cy.on("mouseout", childAvailableSelector, function(e) {
                 self._hoveredNodeId = null;
-                if (self._isDropping)
+                if (self._isDropping) {
                     self.showDropStatus();
-                else
+				} else {
                     self.clearDropStatus();
+				}
             });
             self._el.on("mouseout", function(e) {
                 self._hoveredNodeId = null;
@@ -756,10 +762,10 @@ define([
                     var node = this;
                     var type = node.data("type");
                     var id = node.id();
-                    if (type && rootTypes.indexOf(type) == -1 && self.nodes[id]) {
+                    if (type && rootTypes.indexOf(type) == -1 && self.nodes[id] !== undefined) {
                         var pos = self.cyPosToGmePos( node );
                         self._unsavedNodePositions[id] = pos;
-                        self._debouncedSaveNodePositions()
+                        self._debouncedSaveNodePositions();
                     }
                 }
             });
