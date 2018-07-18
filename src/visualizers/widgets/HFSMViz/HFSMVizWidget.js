@@ -25,6 +25,7 @@ define([
     "cytoscape-panzoom",
     "bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent",
     // utils
+	"./typeahead.jquery",
     "bower/mustache.js/mustache.min",
     "bower/blob-util/dist/blob-util.min",
     "text!./style2.css",
@@ -53,6 +54,7 @@ define([
         cyPanZoom,
         coseBilkent,
         // utils
+		typeahead,
         mustache,
         blobUtil,
         styleText,
@@ -60,6 +62,7 @@ define([
 		_) {
         "use strict";
 
+		console.log(typeahead);
         //console.log(cytoscape);
         //console.log(cyEdgehandles);
         //console.log(cyContext);
@@ -234,45 +237,40 @@ define([
             this._right = this._el.find("#hfsmVizRight");
 
             // SEARCH Functionality
-			this._lastSearchText = null;
             const search = (text) => {
-				if (text === this._lastSearchText) {
-					return;
-				}
-				this._lastSearchText = text;
-                self.clear();
-                if (text && text.length) {
-                    var results = [];
-                    // find related nodes
-                    results = Object.values(self.nodes).filter((n) => {
-						var matches = false;
-						matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
-                        return matches;
-                    });
-					if (results.length) {
-						self.selectNodes( results.map((r) => r.id) );
-						// highlight them
-						var selector = results.reduce((s, r) => {
-							var id = gmeIdToCySelector(r.id);
-							if (s.length) {
-								s += ",";
-							}
-							return s + " " + id;
-						}, "");
-						var nodes = self._cy.$(selector);
-						nodes.select();
-						self.highlightNodes( nodes );
-						self.animateElements( results.map((r) => r.id), "notified" );
-						this._lastSearchText = null;
-					}
-                }
+                var results = [];
+                // find related nodes
+                results = Object.values(self.nodes).filter((n) => {
+					var matches = false;
+					matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
+                    return matches;
+                });
+				return results;
             };
             this._debouncedSearch = _.debounce(search.bind(self), 500);
             this._search = this._el.find("#search");
-            this._search.keyup((event) => {
-                var searchText = $(this._search).val();
-				this._debouncedSearch(searchText);
-            });
+			$(this._search).typeahead({
+				minLength: 3,
+				highlight: true
+			}, {
+				name: 'my-dataset',
+				source(query, syncResults) {
+					console.log(query);
+					syncResults(search(query));
+				},
+				display(result) {
+					console.log(result);
+					return result.LABEL;
+				}
+			});
+			$(this._search).bind('typeahead:select', function(ev, suggestion) {
+				console.log('Selection: ', suggestion);
+				var idTag = gmeIdToCySelector(suggestion.id);
+				var node = self._cy.$(idTag);
+				node.select();
+				self.highlightNode( node );
+				self.animateElements( [suggestion.id], "notified" );
+			});
 
             this._left.css("width", "19.5%");
             this._right.css("width", "80%");
