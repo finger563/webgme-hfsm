@@ -13,7 +13,7 @@
 
 .search {
 	position: absolute;
-	left: 30em;
+	left: 5em;
 	top: 1em;
 	z-index: 9999;
 }
@@ -97,6 +97,7 @@
 #hfsmVizLeft, #hfsmVizRight {
     float:left;
     height:100%;
+	position: relative;
 }
 
 #hfsmVizRight {
