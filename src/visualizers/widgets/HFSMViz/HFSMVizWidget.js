@@ -325,7 +325,23 @@ define([
 				self.clear();
 				node.select();
 				self.highlightNode( node );
-				self.animateElements( [suggestion.id], "notified" );
+				//self._cy.fit( node, 500);
+				self._cy
+					.animate({
+						fit: {
+							eles: self._cy.elements(),
+							padding: 50
+						},
+						duration: 500
+					})
+					.delay(500)
+					.animate({
+						fit: {
+							eles: node,
+							padding: 350
+						},
+						duration: 500
+					});
 			});
 
             this._left.css("width", "19.5%");
