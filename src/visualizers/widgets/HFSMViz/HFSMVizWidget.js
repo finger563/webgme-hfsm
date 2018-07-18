@@ -7,32 +7,35 @@
 
 define([
     // local
-    'text!./HFSM.html',
-    './Dialog/Dialog',
-    './Simulator/Simulator',
-    './Simulator/Choice',
+    "text!./HFSM.html",
+    "./Dialog/Dialog",
+    "./Simulator/Simulator",
+    "./Simulator/Choice",
     // built-ins
-    'js/Constants',
-    'js/Utils/GMEConcepts',
-    'js/Controls/ContextMenu',
-    'js/DragDrop/DropTarget',
-    'js/DragDrop/DragConstants',
-    'decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog',
+    "js/Constants",
+    "js/Utils/GMEConcepts",
+    "js/Controls/ContextMenu",
+    "js/DragDrop/DropTarget",
+    "js/DragDrop/DragConstants",
+    "decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog",
     // cytoscape
-    'bower/cytoscape/dist/cytoscape.min',
-    'cytoscape-edgehandles',
-    'cytoscape-context-menus',
-    'cytoscape-panzoom',
-    'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
+    "bower/cytoscape/dist/cytoscape.min",
+    "cytoscape-edgehandles",
+    "cytoscape-context-menus",
+    "cytoscape-panzoom",
+    "bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent",
     // utils
-    'bower/mustache.js/mustache.min',
-    'bower/blob-util/dist/blob-util.min',
-    'text!./style2.css',
-    'q',
+	"bower/handlebars/handlebars.min",
+	"./typeahead.jquery",
+    "bower/mustache.js/mustache.min",
+    "bower/blob-util/dist/blob-util.min",
+    "text!./style2.css",
+    "q",
+	"underscore",
     // css
-    'css!bower/cytoscape-context-menus/cytoscape-context-menus.css',
-    'css!bower/cytoscape-panzoom/cytoscape.js-panzoom.css',
-    'css!./styles/HFSMVizWidget.css'], function (
+    "css!bower/cytoscape-context-menus/cytoscape-context-menus.css",
+    "css!bower/cytoscape-panzoom/cytoscape.js-panzoom.css",
+    "css!./styles/HFSMVizWidget.css"], function (
         // local
         HFSMHtml,
         Dialog,
@@ -45,18 +48,21 @@ define([
         dropTarget,
         DROP_CONSTANTS,
         DocumentEditorDialog,
-        // cytoscape 
+        // cytoscape
         cytoscape,
         cyEdgehandles,
         cyContext,
         cyPanZoom,
         coseBilkent,
         // utils
+		handlebars,
+		typeahead,
         mustache,
         blobUtil,
         styleText,
-        Q) {
-        'use strict';
+        Q,
+		_) {
+        "use strict";
 
         //console.log(cytoscape);
         //console.log(cyEdgehandles);
@@ -69,19 +75,19 @@ define([
         cytoscape.use( cyPanZoom, $ );
         cytoscape.use( coseBilkent );
 
-        var rootTypes = ['State Machine','Library'];
+        var rootTypes = ["State Machine","Library"];
 
         var HFSMVizWidget,
-            WIDGET_CLASS = 'h-f-s-m-viz';
+            WIDGET_CLASS = "h-f-s-m-viz";
 
         var minPanelWidth = 10; // percent
 
         var gmeIdToCySelector = function(gmeId) {
-            return '#' + gmeId.replace(/\//gm, "\\/");
+            return "#" + gmeId.replace(/\//gm, "\\/");
         };
 
         HFSMVizWidget = function (logger, container, client) {
-            this._logger = logger.fork('Widget');
+            this._logger = logger.fork("Widget");
 
             this._el = container;
 
@@ -89,7 +95,7 @@ define([
             GMEConcepts.initialize(client);
             this._initialize();
 
-            this._logger.debug('ctor finished');
+            this._logger.debug("ctor finished");
         };
 
         HFSMVizWidget.prototype._relativeToWindowPos = function( relativePos ) {
@@ -100,15 +106,15 @@ define([
                 y: relativePos.y
             };
 
-            var splitPos = $(self._container).parents('.panel-base-wh').parent().position();
-            var centerPanelPos = $('.ui-layout-pane-center').position();
+            var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
+            var centerPanelPos = $(".ui-layout-pane-center").position();
             // X OFFSET
             windowPos.x += splitPos.left;
             windowPos.x += centerPanelPos.left;
 
             // Y OFFSET
             windowPos.y += splitPos.top;
-            windowPos.y += centerPanelPos.top;            
+            windowPos.y += centerPanelPos.top;
 
             return windowPos;
         };
@@ -118,8 +124,8 @@ define([
             var x = e.pageX || e.position.x,
                 y = e.pageY || e.position.y;
             var selector = $(self._el).find(self._containerTag);
-            var splitPos = $(self._container).parents('.panel-base-wh').parent().position();
-            var centerPanelPos = $('.ui-layout-pane-center').position();
+            var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
+            var centerPanelPos = $(".ui-layout-pane-center").position();
             // X OFFSET
             x -= splitPos.left;
             x -= centerPanelPos.left;
@@ -144,7 +150,7 @@ define([
             this._simulator.onStateChanged( this.showActiveState.bind(this) );
             this._simulator.onAnimateElement( this.animateElement.bind(this) );
             this._simulator.onShowTransitions( this.showTransitions.bind(this) );
-            this._simulator.setLogDisplay( this._right.find('#simulator-logs').first() );
+            this._simulator.setLogDisplay( this._right.find("#simulator-logs").first() );
         };
 
         HFSMVizWidget.prototype._stateActiveSelectionChanged = function(model, activeSelection, opts) {
@@ -156,11 +162,16 @@ define([
                 if (self._cy) {
                     self.clear();
                     if (len) {
-                        activeSelection.map(gmeID => {
+                        var sel = activeSelection.reduce((s, gmeID) => {
                             var idTag = gmeIdToCySelector(gmeID);
-                            var cyNode = self._cy.$(idTag);
-                            self.highlight( cyNode );
-                        });
+							if (s.length) {
+								s += ",";
+							}
+							return s + " " + idTag;
+                        }, "");
+                        var nodes = self._cy.$(sel);
+						nodes.select();
+                        self.highlightNodes( nodes );
                     }
                 }
             }
@@ -196,10 +207,10 @@ define([
             this._el.append(HFSMHtml);
 
             // container
-            this._containerTag = '#HFSM_VIZ_DIV';
+            this._containerTag = "#HFSM_VIZ_DIV";
             this._container = this._el.find(this._containerTag).first();
 
-            this._cy_container = this._el.find('#cy');
+            this._cy_container = this._el.find("#cy");
 
 
             var width = this._el.width(),
@@ -210,24 +221,129 @@ define([
             this._readOnly = this._client.isReadOnly();
 
             // Root Info
-            this.HFSMName = '';
+            this.HFSMName = "";
 
             // NODE RELATED DATA
             this.nodes = {};
             this.hiddenNodes = {};
             this.dependencies = {
-                'nodes': {},
-                'edges': {}
+                "nodes": {},
+                "edges": {}
             };
             this.waitingNodes = {};
 
             // LAYOUT RELATED DATA
-            this._handle = this._el.find('#hfsmVizHandle');
-            this._left = this._el.find('#hfsmVizLeft');
-            this._right = this._el.find('#hfsmVizRight');
+            this._handle = this._el.find("#hfsmVizHandle");
+            this._left = this._el.find("#hfsmVizLeft");
+            this._right = this._el.find("#hfsmVizRight");
 
-            this._left.css('width', '19.5%');
-            this._right.css('width', '80%');
+            // SEARCH Functionality
+			const suggestionTemplate = handlebars.compile([
+				"<span>",
+				"{{#if isConnection}}",
+				"<span class=\"dataset-transition fa fa-repeat\"/>",
+				"<span class=\"dataset-transition\">{{LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-left\"/>",
+				"<span class=\"dataset-src\">{{src.LABEL}}</span>",
+				"<span class=\"dataset-arrow fa fa-sign-out\"/>",
+				"<span class=\"dataset-dst\">{{dst.LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-right\"/>",
+				"{{else}}",
+				"<span class=\"dataset-state fa fa-square\"/>",
+				"<span class=\"dataset-state\">{{LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-left\"/>",
+				"<span class=\"dataset-parent\">{{parent.LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-right\"/>",
+				"{{/if}}",
+				"</span>",
+			].join(''));
+			const displayTemplate = handlebars.compile([
+				"{{#if isConnection}}",
+				"{{src.LABEL}} -> {{LABEL}} -> {{dst.LABEL}}",
+				"{{else}}",
+				"{{parent.LABEL}} :: {{LABEL}}",
+				"{{/if}}",
+			].join('\n'));
+			const mapResult = (result) => {
+				if (result.isConnection) {
+					let src = self.nodes[result.src];
+					let dst = self.nodes[result.dst];
+					return {
+						isConnection: result.isConnection,
+						LABEL: result.LABEL,
+						src: src,
+						dst: dst,
+						id: result.id
+					};
+				} else {
+					let parent = self.nodes[result.parentId];
+					return {
+						isConnection: result.isConnection,
+						LABEL: result.LABEL,
+						parent: parent,
+						id: result.id
+					};
+				}
+			};
+            const search = (text) => {
+                var results = [];
+                // find related nodes
+				let nodes = Object.values(self.nodes);
+                results.push(...nodes.filter((n) => {
+					var matches = n.LABEL === text;
+                    return matches;
+                }));
+                results.push(...nodes.filter((n) => {
+					var matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
+                    return matches;
+                }));
+				return _.uniq(results).map((r) => mapResult(r));
+            };
+            this._debouncedSearch = _.debounce(search.bind(self), 500);
+            this._search = this._el.find("#search");
+			$(this._search).typeahead({
+				minLength: 1,
+				highlight: true
+			}, {
+				name: 'node-dataset',
+				limit: 15,
+				source(query, syncResults) {
+					syncResults(search(query));
+				},
+				templates: {
+					suggestion: suggestionTemplate
+				},
+				display(result) {
+					return displayTemplate(result);
+				}
+			});
+			$(this._search).bind('typeahead:select', function(ev, suggestion) {
+				var idTag = gmeIdToCySelector(suggestion.id);
+				var node = self._cy.$(idTag);
+				self.clear();
+				node.select();
+				self.highlightNode( node );
+				//self._cy.fit( node, 500);
+				self._cy
+					.animate({
+						fit: {
+							eles: self._cy.elements(),
+							padding: 50
+						},
+						duration: 500
+					})
+					.delay(500)
+					.animate({
+						fit: {
+							eles: node,
+							padding: 350
+						},
+						duration: 500
+					});
+			});
+
+            this._left.css("width", "19.5%");
+            this._right.css("width", "80%");
 
             // SIMULATOR
             this.initializeSimulator();
@@ -254,15 +370,15 @@ define([
                     var leftPercent = Math.max(minPanelWidth, (leftWidth / maxWidth) * 100);
                     var rightPercent = Math.max(minPanelWidth, 100 - leftPercent - handlePercent);
                     leftPercent = 100 - rightPercent - handlePercent;
-                    self._left.css('width', leftPercent + '%');
-                    self._right.css('width', rightPercent + '%');
+                    self._left.css("width", leftPercent + "%");
+                    self._right.css("width", rightPercent + "%");
                 }
             });
 
             /*
               var DOMURL = window.URL || window.webkitURL || window;
               var img = new Image();
-              var svg = new Blob([data], {type: 'image/svg+xml'});
+              var svg = new Blob([data], {type: "image/svg+xml"});
               var url = DOMURL.createObjectURL(svg);
             */
 
@@ -278,7 +394,7 @@ define([
                 panningEnabled: true,
                 userPanningEnabled: true,
                 boxSelectionEnabled: true,
-                selectionType: 'single',
+                selectionType: "single",
                 touchTapThreshold: 8,
                 desktopTapThreshold: 4,
                 autolock: false,
@@ -294,18 +410,16 @@ define([
                 motionBlur: false,
                 motionBlurOpacity: 0.2,
                 wheelSensitivity: 1,
-                pixelRatio: 'auto',
+                pixelRatio: "auto",
             };
 
-            var self = this;
-
             this._layout_options = {
-                'name': 'cose-bilkent',
+                "name": "cose-bilkent",
                 // Called on `layoutready`
-                ready: function () {
+                ready () {
                 },
                 // Called on `layoutstop`
-                stop: function () {
+                stop () {
                 },
                 // Whether to fit the network view after when done
                 fit: true,
@@ -328,7 +442,7 @@ define([
                 // For enabling tiling
                 tile: false,   // true
                 // Type of layout animation. The option set is {'during', 'end', false}
-                animate: 'end',
+                animate: "end",
                 // Represents the amount of the vertical space to put between the zero degree members during the tiling operation(can also be a function)
                 tilingPaddingVertical: 10,
                 // Represents the amount of the horizontal space to put between the zero degree members during the tiling operation(can also be a function)
@@ -342,9 +456,13 @@ define([
             };
             this._cytoscape_options.layout = self._layout_options;
             this._cy = cytoscape(self._cytoscape_options);
+            // for search
+            this._cy.on("click", () => {
+                $(this._search).blur();
+            });
 
             var edgeHandleIcon = new Image(10,10);
-            edgeHandleIcon.src = '/assets/DecoratorSVG/svgs/edgeIcon.svg';
+            edgeHandleIcon.src = "/assets/DecoratorSVG/svgs/edgeIcon.svg";
 
             // the default values of each option are outlined below:
             var edgeHandleDefaults = {
@@ -353,64 +471,65 @@ define([
                 handleSize: 7.5, // the size of the edge handle put on nodes
                 handleHitThreshold: 1, // a threshold for hit detection that makes it easier to grab the handle
                 handleIcon: edgeHandleIcon,
-                handleColor: '#00235b', //  the colour of the handle and the line drawn from it
-                handleLineType: 'ghost', // can be 'ghost' for real edge, 'straight' for a straight line, or 'draw' for a draw-as-you-go line
+                handleColor: "#00235b", //  the colour of the handle and the line drawn from it
+                handleLineType: "ghost", // can be 'ghost' for real edge, 'straight' for a straight line, or 'draw' for a draw-as-you-go line
                 handleLineWidth: 1, // width of handle line in pixels
                 handleOutlineColor: null,//'#ff0000', // the colour of the handle outline
                 handleOutlineWidth: 1, // the width of the handle outline in pixels
-                handleNodes: function( node ) { //'node', // selector/filter function
+                handleNodes( node ) { //'node', // selector/filter function
                     var desc = self.nodes[node.id()];
                     return self.isValidSource( desc );
                 },
-                handlePosition: 'right bottom', // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
+                handlePosition: "right bottom", // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
                 hoverDelay: 150, // time spend over a target node before it is considered a target selection
                 cxt: false, // whether cxt events trigger edgehandles (useful on touch)
                 enabled: true, // whether to start the plugin in the enabled state
                 toggleOffOnLeave: true, // whether an edge is cancelled by leaving a node (true), or whether you need to go over again to cancel (false; allows multiple edges in one pass)
-                edgeType: function( sourceNode, targetNode ) {
+                edgeType( sourceNode, targetNode ) {
                     // can return 'flat' for flat edges between nodes or 'node' for intermediate node between them
                     // returning null/undefined means an edge can't be added between the two nodes
                     var srcDesc = self.nodes[sourceNode.id()];
                     var dstDesc = self.nodes[targetNode.id()];
                     var isValid = self.validEdge( srcDesc, dstDesc );
-                    if (isValid)
-                        return 'flat';
-                    else
+                    if (isValid) {
+                        return "flat";
+					} else {
                         return null;
+					}
                 },
-                loopAllowed: function( node ) {
+                loopAllowed( node ) {
                     // for the specified node, return whether edges from itself to itself are allowed
                     var desc = self.nodes[node.id()];
                     return self.validEdgeLoop( desc );
                 },
                 nodeLoopOffset: -50, // offset for edgeType: 'node' loops
-                nodeParams: function( sourceNode, targetNode ) {
+                nodeParams( sourceNode, targetNode ) {
                     // for edges between the specified source and target
                     // return element object to be passed to cy.add() for intermediary node
                     return {};
                 },
-                edgeParams: function( sourceNode, targetNode, i ) {
+                edgeParams( sourceNode, targetNode, i ) {
                     // for edges between the specified source and target
                     // return element object to be passed to cy.add() for edge
                     // NB: i indicates edge index in case of edgeType: 'node'
                     return {};
                 },
-                start: function( sourceNode ) {
+                start( sourceNode ) {
                     // fired when edgehandles interaction starts (drag on handle)
                 },
-                complete: function( sourceNode, targetNodes, addedEntities, position ) {
+                complete( sourceNode, targetNodes, addedEntities, position ) {
                     // fired when edgehandles is done and entities are added
                     self.edgeContextMenu( sourceNode, targetNodes, addedEntities, position );
                 },
-                stop: function( sourceNode ) {
+                stop( sourceNode ) {
                     // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
-                }, 
-                cancel: function( sourceNode, renderedPosition, invalidTarget ){
+                },
+                cancel( sourceNode, renderedPosition, invalidTarget ){
                     // fired when edgehandles are cancelled (
                     // incomplete - nothing has been added ) -
                     // renderedPosition is where the edgehandle was
                     // released, invalidTarget is
-                    
+
                     // a collection on which the handle was released,
                     // but which for other reasons (loopAllowed |
                     // edgeType) is an invalid target
@@ -420,10 +539,10 @@ define([
             // EDGE HANDLES
             this._cy.edgehandles( edgeHandleDefaults );
 
-            var childAvailableSelector = 'node[NodeType = "State"],node[NodeType ="State Machine"],node[NodeType ="Library"]';
+            var childAvailableSelector = "node[NodeType = \"State\"],node[NodeType =\"State Machine\"],node[NodeType =\"Library\"]";
 
             // CONTEXT MENUS
-            self._cy.on('cxttap', 'node, edge', function(e) {
+            self._cy.on("cxttap", "node, edge", function(e) {
                 self.multiSelectionEnabled = e.originalEvent.ctrlKey;
                 // is there a better way of doing this?
                 if (self.multiSelectionEnabled) {
@@ -436,27 +555,27 @@ define([
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    self.selectNode(id);
-                    self.highlight(node);
+					node.select();
                 }
             });
-            
+
             var options = {
                 // List of initial menu items
                 menuItems: [
                     {
-                        id: 'toggleCollapse',
-                        content: '(Un-)Show Children',
-                        tooltipText: 'Toggle the display of children.',
+                        id: "toggleCollapse",
+                        content: "(Un-)Show Children",
+                        tooltipText: "Toggle the display of children.",
                         selector: childAvailableSelector,
-                        onClickFunction: function ( e ) {
+                        onClickFunction ( e ) {
                             //var node = this;
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else
                                 self.toggleShowChildren( node );
                         },
@@ -464,34 +583,33 @@ define([
                         hasTrailingDivider: true, // Whether the item will have a trailing divider
                     },
                     {
-                        id: 'setActive',
-                        content: 'Set Active',
-                        tooltipText: 'Set as the active state.',
-                        selector: 'node[NodeType = "State"]',
-                        coreAsWell: true,
-                        onClickFunction: function ( e ) {
+                        id: "setActive",
+                        content: "Set Active",
+                        tooltipText: "Set as the active state.",
+                        selector: "node[NodeType = \"State\"]",
+                        onClickFunction ( e ) {
                             var node = e.target;
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 self._simulator.setActiveState( node.id() );
-                                self.unselectNode( node.id() );
+                                self.unselectNodes( [node.id()] );
                             }
                         },
                         coreAsWell: false
                     },
                     {
-                        id: 'newChild',
-                        content: 'Add child...',
-                        tooltipText: 'Create a new state, internal transition, etc.',
+                        id: "newChild",
+                        content: "Add child...",
+                        tooltipText: "Create a new state, internal transition, etc.",
                         selector: childAvailableSelector,
-                        coreAsWell: true,
-                        onClickFunction: function ( e ) {
+                        onClickFunction ( e ) {
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 var childPosition = e.position;
                                 var dialog = new Dialog();
@@ -506,37 +624,40 @@ define([
                         coreAsWell: false
                     },
                     {
-                        id: 'Remove',
-                        content: 'Remove This and Selected Objects',
-                        tooltipText: 'Remove this object and all currently selected objects (and their outgoing or incoming transitions)',
-                        selector: 'node, edge', 
-                        onClickFunction: function ( e ) { // The function to be executed on click
+                        id: "Remove",
+                        content: "Remove This and Selected Objects",
+                        tooltipText: "Remove this object and all currently selected objects (and their outgoing or incoming transitions)",
+                        selector: "node, edge",
+                        onClickFunction ( e ) { // The function to be executed on click
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
-                                self.selectNode( node.id() );
-                                self.highlight(node);
+                                self.selectNodes( [node.id()] );
+								node.select();
+                                self.highlightNode(node);
                                 self.deleteSelection();
                             }
                         },
                         coreAsWell: false // Whether core instance have this item on cxttap
                     },
                     {
-                        id: 'DocumentView',
-                        content: 'View/Edit Documentation',
-                        tooltipText: 'Edit and View the rendered Markdown Documentation',
-                        selector: 'node[NodeType = "Documentation"]', 
-                        onClickFunction: function ( e ) { // The function to be executed on click
+                        id: "DocumentView",
+                        content: "View/Edit Documentation",
+                        tooltipText: "Edit and View the rendered Markdown Documentation",
+                        selector: "node[NodeType = \"Documentation\"]",
+                        onClickFunction ( e ) { // The function to be executed on click
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
                                 self.onEditDocumentation(node.id());
                             }
@@ -544,19 +665,20 @@ define([
                         coreAsWell: false // Whether core instance have this item on cxttap
                     },
                     {
-                        id: 'arrangeSelection',
-                        content: 'Auto-Arrange Selected Nodes Here',
-                        tooltipText: 'Arrange selected nodes into a grid with a top left where the user clicked.',
-                        selector: 'node',
-                        onClickFunction: function ( e ) {
+                        id: "arrangeSelection",
+                        content: "Auto-Arrange Selected Nodes Here",
+                        tooltipText: "Arrange selected nodes into a grid with a top left where the user clicked.",
+                        selector: "node",
+                        onClickFunction ( e ) {
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
-                                self.unselectNode(node.id());
+                                self.unselectNodes([node.id()]);
                                 self._arrangeNodes( self._selectedNodes, e.position );
                             }
                         },
@@ -564,19 +686,20 @@ define([
                         hasTrailingDivider: true, // Whether the item will have a trailing divider
                     },
                     {
-                        id: 'reparentSelection',
-                        content: 'Move Selected Nodes Here',
-                        tooltipText: 'Makes the node that was right clicked that parent of the selected node.',
+                        id: "reparentSelection",
+                        content: "Move Selected Nodes Here",
+                        tooltipText: "Makes the node that was right clicked that parent of the selected node.",
                         selector: childAvailableSelector,
-                        onClickFunction: function ( e ) {
+                        onClickFunction ( e ) {
                             var node = e.target;
 
-                            if (self._readOnly)
+                            if (self._readOnly) {
                                 return;
+							}
 
-                            if (node == self._cy) { }
+                            if (node === self._cy) { }
                             else {
-                                self.unselectNode(node.id());
+                                self.unselectNodes([node.id()]);
                                 self._moveNodes(
                                     self._selectedNodes,
                                     node.id(),
@@ -616,49 +739,41 @@ define([
                 panInactiveArea: 8, // radius of inactive area in pan drag box
                 panIndicatorMinOpacity: 0.5, // min opacity of pan indicator (the draggable nib); scales from this to 1.0
                 zoomOnly: false, // a minimal version of the ui only with zooming (useful on systems with bad mousewheel resolution)
-                fitSelector: undefined, // selector of elements to fit
-                animateOnFit: function(){ // whether to animate on fit
+                //fitSelector: undefined, // selector of elements to fit
+                animateOnFit(){ // whether to animate on fit
                     return false;
                 },
                 fitAnimationDuration: 1000, // duration of animation on fit
 
                 // icon class names
-                sliderHandleIcon: 'fa fa-minus',
-                zoomInIcon: 'fa fa-plus',
-                zoomOutIcon: 'fa fa-minus',
-                resetIcon: 'fa fa-expand'
+                sliderHandleIcon: "fa fa-minus",
+                zoomInIcon: "fa fa-plus",
+                zoomOutIcon: "fa fa-minus",
+                resetIcon: "fa fa-expand"
             };
 
-            self._cy.panzoom( panZoom_defaults );            
-
-            // layout such
-
-            function highlight( node ){
-                self.highlight(node);
-            }
-
-            function clear(){
-                self.clear();
-            }
+            self._cy.panzoom( panZoom_defaults );
 
             // USED FOR DRAG ABILITY
             self._hoveredNodeId = null;
-            self._cy.on('mouseover', childAvailableSelector, function(e) {
+            self._cy.on("mouseover", childAvailableSelector, function(e) {
                 var node = this;
                 self._hoveredNodeId = node.id();
-                if (self._isDropping)
+                if (self._isDropping) {
                     self.showDropStatus();
-                else
+				} else {
                     self.clearDropStatus();
+				}
             });
-            self._cy.on('mouseout', childAvailableSelector, function(e) {
+            self._cy.on("mouseout", childAvailableSelector, function(e) {
                 self._hoveredNodeId = null;
-                if (self._isDropping)
+                if (self._isDropping) {
                     self.showDropStatus();
-                else
+				} else {
                     self.clearDropStatus();
+				}
             });
-            self._el.on('mouseout', function(e) {
+            self._el.on("mouseout", function(e) {
                 self._hoveredNodeId = null;
                 self.clearDropStatus();
             });
@@ -667,7 +782,7 @@ define([
 
             self._selectedNodes = [];
             self.multiSelectionEnabled = false;
-            self._cy.on('tap', 'node, edge', function(e){
+            self._cy.on("tap", "node, edge", function(e){
                 self.multiSelectionEnabled = e.originalEvent.ctrlKey;
                 // is there a better way of doing this?
                 if (self.multiSelectionEnabled) {
@@ -677,48 +792,48 @@ define([
                     self._cy._private.selectionType = "single";
                 }
             });
-            self._cy.on('select', 'node, edge', function(e){
+            self._cy.on("select", "node, edge", function(e){
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    self.selectNode(id);
-                    self.highlight(node);
+                    self.selectNodes([id]);
+                    self.highlightNode(node);
                 }
             });
 
-            self._cy.on('unselect', 'node, edge', function(e){
+            self._cy.on("unselect", "node, edge", function(e){
                 var node = this;
                 var id = node.id();
                 if (id) {
-                    self.unselectNode(id);
+                    self.unselectNodes([id]);
                 }
             });
 
             // USED FOR KNOWING WHEN NODES ARE MOVED
             self._webGME_to_cy_scale = 1;
             self._grabbedNode = null;
-            self._cy.on('grabon', 'node', function(e) {
+            self._cy.on("grabon", "node", function(e) {
                 var node = this;
                 if (node.id()) {
                     self._grabbedNode = node;
                 }
             });
 
-            self._cy.on('free', 'node', function(e) {
+            self._cy.on("free", "node", function(e) {
                 self._grabbedNode = null;
             });
 
             self._debouncedSaveNodePositions = _.debounce(self.saveNodePositions.bind(self), 500);
             self._unsavedNodePositions = {};
-            self._cy.on('position', 'node', function(e) {
+            self._cy.on("position", "node", function(e) {
                 if (self._grabbedNode) {
                     var node = this;
-                    var type = node.data('type');
+                    var type = node.data("type");
                     var id = node.id();
-                    if (type && rootTypes.indexOf(type) == -1 && self.nodes[id]) {
+                    if (type && rootTypes.indexOf(type) == -1 && self.nodes[id] !== undefined) {
                         var pos = self.cyPosToGmePos( node );
                         self._unsavedNodePositions[id] = pos;
-                        self._debouncedSaveNodePositions()
+                        self._debouncedSaveNodePositions();
                     }
                 }
             });
@@ -726,6 +841,7 @@ define([
             // USED FOR ZOOMING AFTER INITIALLY LOADING ALL THE NODES (in CreateNode())
             self._debounced_one_time_zoom = _.debounce(_.once(self.onZoomClicked.bind(self)), 250);
 
+			self._debouncedSelectNodes = _.debounce(self.selectNodes.bind(self), 200);
 
             this._attachClientEventListeners();
             this._makeDroppable();
@@ -733,43 +849,47 @@ define([
 
         /* * * * * * * * Display Functions  * * * * * * * */
 
-        HFSMVizWidget.prototype.selectNode = function(id) {
+        HFSMVizWidget.prototype.selectNodes = function(ids) {
             var self = this;
-            if (self._selectedNodes.indexOf(id) == -1) {
-                self._selectedNodes.push(id);
-            }
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+			// update selected nodes
+			self._selectedNodes = _.union(self._selectedNodes, ids);
+			// register updated selection state
+            WebGMEGlobal.State.registerActiveSelection(
+				self._selectedNodes.slice(0),
+				{invoker: self}
+			);
         };
 
-        HFSMVizWidget.prototype.unselectNode = function(id) {
+        HFSMVizWidget.prototype.unselectNodes = function(ids) {
             var self = this;
-            if (self._selectedNodes.indexOf(id) > -1) {
-                var selector = gmeIdToCySelector(id);
-                self._cy.$(selector).unselect();
-            }
-            self._selectedNodes = self._selectedNodes.filter(function(n) {
-                return id != n;
-            });
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+			// update selected nodes
+			self._selectedNodes = _.difference(self._selectedNodes, ids)
+			// ensure cytoscape unselects the selected nodes
+			self.clear();
+			// register updated selection state
+			self._debouncedSelectNodes([]);
         };
 
         HFSMVizWidget.prototype.unselectAll = function() {
             var self = this;
+			// update selected nodes
             self._selectedNodes = [];
+			// ensure cytoscape unselects the selected nodes
             self.clear();
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: self});
+			// register updated selection state
+			self._debouncedSelectNodes([]);
         };
 
         function download(filename, text) {
-            var element = document.createElement('a');
-            var imgData = text.split(',')[1]; // after the comma is the actual image data
+            var element = document.createElement("a");
+            var imgData = text.split(",")[1]; // after the comma is the actual image data
 
             blobUtil.base64StringToBlob( imgData.toString() ).then(function(blob) {
                 var blobURL = blobUtil.createObjectURL(blob);
 
-                element.setAttribute('href', blobURL);
-                element.setAttribute('download', filename);
-                element.style.display = 'none';
+                element.setAttribute("href", blobURL);
+                element.setAttribute("download", filename);
+                element.style.display = "none";
 
                 document.body.appendChild(element);
 
@@ -777,7 +897,7 @@ define([
 
                 document.body.removeChild(element);
             }).catch(function(err) {
-                console.log('Couldnt make blob from image!');
+                console.log("Couldnt make blob from image!");
                 console.log(err);
             });
         }
@@ -789,9 +909,9 @@ define([
 
             editorDialog.initialize(documentation, function (text) {
                 try {
-                    self._client.setAttribute(gmeId, 'documentation', text, 'updated documentation for ' + gmeId);
+                    self._client.setAttribute(gmeId, "documentation", text, "updated documentation for " + gmeId);
                 } catch (e) {
-                    console.error('Could not save documentation: ');
+                    console.error("Could not save documentation: ");
                     console.error(e);
                 }
             });
@@ -877,11 +997,11 @@ define([
             toolbarEl.find('#pan').on('click', function() {
                 self.onPanningClicked();
             });
-            
+
             toolbarEl.find('#select').on('click', function() {
                 self.onBoxSelectClicked();
             });
-            
+
             toolbarEl.find('#zoom').on('click', function(){
                 self.onZoomClicked();
             });
@@ -890,8 +1010,8 @@ define([
                 // ask if they really want to randomize the layout
                 var choice = new Choice();
                 var choices = [
-                    'Yes, run cose-bilkent layout.',
-                    'No, do not change any positions'
+                    "Yes, run cose-bilkent layout.",
+                    "No, do not change any positions"
                 ];
                 choice.initialize( choices, "Really change the layout?" );
                 choice.show();
@@ -903,16 +1023,20 @@ define([
             });
         };
 
-        HFSMVizWidget.prototype.highlight = function(node) {
+        HFSMVizWidget.prototype.highlightNode = function(node) {
             var self = this;
-            node.select();
             self._simulator.hideStateInfo();
-            self._simulator.displayStateInfo( node.id() );
+			self._simulator.displayStateInfo( node.id() );
+        };
+
+        HFSMVizWidget.prototype.highlightNodes = function(nodes) {
+            var self = this;
+            self._simulator.hideStateInfo();
         };
 
         HFSMVizWidget.prototype.clear = function() {
             var self = this;
-            self._cy.$(':selected').unselect();
+            self._cy.$(":selected").unselect();
             self._simulator.hideStateInfo();
         };
 
@@ -921,16 +1045,30 @@ define([
         HFSMVizWidget.prototype.showTransitions = function( transitionIDs ) {
             var self = this;
             self.clear();
+			// update selected nodes
             self._selectedNodes = [];
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
-            transitionIDs.map(function(id) {
+			// update selection state
+            WebGMEGlobal.State.registerActiveSelection(
+				self._selectedNodes.slice(0),
+				{invoker: this}
+			);
+            var tidSelector = transitionIDs.reduce((sel, id) => {
                 self._selectedNodes.push(id);
                 // highlight the Transition
                 var idTag = gmeIdToCySelector(id);
-                var node = self._cy.$(idTag);
-                self.highlight( node );
-            });
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+				if (sel.length) {
+					sel += ",";
+				}
+				return sel + " " + idTag;
+            }, "");
+			var edges = self._cy.$(tidSelector);
+			edges.select();
+            self.highlightNodes( edges );
+			// update selection state
+            WebGMEGlobal.State.registerActiveSelection(
+				self._selectedNodes.slice(0),
+				{invoker: this}
+			);
         };
 
 
@@ -941,8 +1079,8 @@ define([
             // node
             let w = cyNode.width(),
                 h = cyNode.height(),
-                x = cyNode.position('x'),
-                y = cyNode.position('y'),
+                x = cyNode.position("x"),
+                y = cyNode.position("y"),
                 x1 = x - w/2,
                 y1 = y - h/2;
             if (pos == undefined) {
@@ -1024,12 +1162,12 @@ define([
                         //console.log('saving for '+id);
                         //console.log(originalPos);
                         //console.log(pos);
-                        self._client.setRegistry(id, 'position', pos);
+                        self._client.setRegistry(id, "position", pos);
                     }
                 }
             });
 
-            self._client.completeTransaction('', (err, result) => {
+            self._client.completeTransaction("", (err, result) => {
                 if (err) {
                 } else {
                     self._unsavedNodePositions = {};
@@ -1158,7 +1296,7 @@ define([
                 var data = self.getDescData(desc);
                 if (data) {
                     self._cy.add({
-                        group: 'edges',
+                        group: "edges",
                         data: data,
                     });
                     self.nodes[desc.id] = desc;
@@ -1172,7 +1310,7 @@ define([
             self.forceShowBranch( desc.parentId );
             var data = self.getDescData(desc);
             var node = {
-                group: 'nodes',
+                group: "nodes",
                 data: data
             };
 
@@ -1187,7 +1325,7 @@ define([
             self.updateDependencies();
             self._debounced_one_time_zoom();
         };
-        
+
         // Adding/Removing/Updating items
         HFSMVizWidget.prototype.addNode = function (desc) {
             var self = this;
@@ -1223,7 +1361,7 @@ define([
                         delete self.dependencies.nodes[gmeId];
                         self._cy.$(idTag).neighborhood().forEach(function(ele) {
                             if (ele && ele.isEdge()) {
-                                var edgeId = ele.data( 'id' );
+                                var edgeId = ele.data( "id" );
                                 var edgeDesc = self.nodes[edgeId];
                                 self.checkDependencies(edgeDesc);
                             }
@@ -1232,10 +1370,12 @@ define([
                     else {
                         delete self.dependencies.edges[gmeId];
                     }
-                    self._selectedNodes = self._selectedNodes.filter((id) => {
-                        return id != gmeId;
-                    });
-                    WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+					if (self._selectedNodes.indexOf(gmeId) > -1) {
+						self._selectedNodes = self._selectedNodes.filter((id) => {
+							return id != gmeId;
+						});
+						WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+					}
                     delete self.nodes[gmeId];
                     delete self.waitingNodes[gmeId];
                     self._cy.remove(idTag);
@@ -1291,18 +1431,33 @@ define([
 
         /* * * * * * * * Active State Display      * * * * * * * */
 
-        HFSMVizWidget.prototype.animateElement = function( eleId ) {
+        HFSMVizWidget.prototype.animateElement = function( eleId, _class="active" ) {
             var self = this;
             var idTag = gmeIdToCySelector(eleId);
             var eles = self._cy.$(idTag);
             if (eles.length) {
-                eles.flashClass("active", 1000);
+                eles.flashClass(_class, 1000);
+            }
+        };
+
+        HFSMVizWidget.prototype.animateElements = function( eleIds, _class="active" ) {
+            var self = this;
+			var idTag = eleIds.reduce((tag, id) => {
+				var s = gmeIdToCySelector(id);
+				if (tag.length) {
+					tag += ",";
+				}
+				return tag + " " + s;
+			}, "");
+            var eles = self._cy.$(idTag);
+            if (eles.length) {
+                eles.flashClass(_class, 1000);
             }
         };
 
         HFSMVizWidget.prototype.showActiveState = function( stateId ) {
             var self = this;
-            var previousActiveState = self._cy.nodes('[ActiveState]');
+            var previousActiveState = self._cy.nodes("[ActiveState]");
             if (previousActiveState.length) {
                 var data = previousActiveState.data();
                 data.ActiveState = undefined;
@@ -1425,11 +1580,11 @@ define([
             if (node.isParent()) {
                 // add node background
                 node.style({
-                    'background-image': 'assets/DecoratorSVG/svgs/stateDiagram.svg',
-                    'background-image-opacity': 1.0,
-                    'background-width': '90%',
-                    'width': 80,
-                    'height': 40,
+                    "background-image": "assets/DecoratorSVG/svgs/stateDiagram.svg",
+                    "background-image-opacity": 1.0,
+                    "background-width": "90%",
+                    "width": 80,
+                    "height": 40,
                 });
                 // currently true, disable show children
                 var children, descendants, edges;
@@ -1452,10 +1607,10 @@ define([
             else if (hidden && hidden.nodes && hidden.edges) {
                 // remove node background
                 node.style({
-                    'background-image': null,
-                    'background-image-opacity': 0,
-                    'width': 10,
-                    'height': 10,
+                    "background-image": null,
+                    "background-image-opacity": 0,
+                    "width": 10,
+                    "height": 10,
                 });
                 // currently false, reenable show children
                 hidden.nodes.restore();
@@ -1474,7 +1629,7 @@ define([
             var validChildren = node.getValidChildrenTypesDetailed(null, true);
             Object.keys( validChildren ).map(function( metaId ) {
                 var child = client.getNode( metaId );
-                var childType = child.getAttribute('name');
+                var childType = child.getAttribute("name");
                 var canCreateMore = validChildren[ metaId ];
                 if ( canCreateMore &&
                      !child.isAbstract() )
@@ -1531,10 +1686,10 @@ define([
                 );
 
                 nodeObj = self._client.getNode(nodeId);
-                nodeName = nodeObj.getAttribute('name');
+                nodeName = nodeObj.getAttribute("name");
                 metaObj = self._client.getNode(nodeObj.getMetaTypeId());
                 if (metaObj) {
-                    metaName = metaObj.getAttribute('name');
+                    metaName = metaObj.getAttribute("name");
                 }
 
                 canCreate = validChildrenTypes && metaName &&
@@ -1565,9 +1720,9 @@ define([
                     position: pos
                 };
 
-                var newChildPath = client.createChild(childCreationParams, 'Creating new child');
-                
-                client.completeTransaction('', function(err, result) {
+                var newChildPath = client.createChild(childCreationParams, "Creating new child");
+
+                client.completeTransaction("", function(err, result) {
                     WebGMEGlobal.State.registerActiveSelection([newChildPath]);
                 });
             }
@@ -1595,7 +1750,7 @@ define([
                     };
                     client.createChild(childCreationParams);
                 });
-                
+
                 client.completeTransaction();
             }
         };
@@ -1616,12 +1771,12 @@ define([
 
                 nodeIds.map(function(nodeId) {
                     params[nodeId] = {
-                        'registry': {
-                            'position': pos
+                        "registry": {
+                            "position": pos
                         }
                     };
                 });
-                
+
                 client.copyMoreNodes(params);
 
                 client.completeTransaction();
@@ -1634,12 +1789,12 @@ define([
 
             if (nodeIds.length > 0) {
                 if (nodeIds.indexOf(parentId) != -1) {
-                    alert('Error!\n'+
-                          'Cannot reparent to a node in the selection!');
+                    alert("Error!\n"+
+                          "Cannot reparent to a node in the selection!");
                     return;
                 }
 
-                try { 
+                try {
                     client.startTransaction("Moving nodes into " + parentId);
 
                     var selector = gmeIdToCySelector(parentId);
@@ -1652,12 +1807,12 @@ define([
 
                     nodeIds.map(function(nodeId) {
                         params[nodeId] = {
-                            'registry': {
-                                'position': pos
+                            "registry": {
+                                "position": pos
                             }
                         };
                     });
-                    
+
                     client.moveMoreNodes(params);
 
                     client.completeTransaction();
@@ -1729,13 +1884,13 @@ define([
 
         HFSMVizWidget.prototype.clearDropStatus = function () {
             var self = this;
-            var invalidDrops = self._cy.nodes('[InvalidDrop]');
+            var invalidDrops = self._cy.nodes("[InvalidDrop]");
             if (invalidDrops.length) {
                 var data = invalidDrops.data();
                 data.InvalidDrop = undefined;
                 invalidDrops.data( data );
             }
-            var validDrops = self._cy.nodes('[ValidDrop]');
+            var validDrops = self._cy.nodes("[ValidDrop]");
             if (validDrops.length) {
                 var data = validDrops.data();
                 data.ValidDrop = undefined;
@@ -1758,7 +1913,7 @@ define([
             var menuPos = {x: event.pageX, y: event.pageY},
                 childPosition = self._getContainerPosFromEvent(event),
                 parentId = self._hoveredNodeId;
-            
+
             childPosition.x -= $(self._left).width();
 
             if (self._isValidDrop(dragInfo, parentId)) {
@@ -1771,15 +1926,15 @@ define([
                         childPosition
                     );
                 }
-            } 
+            }
         };
 
         HFSMVizWidget.prototype.showDropMenu = function (menuPosition, childPosition, dragInfo) {
             var self = this,
                 parentId = self._hoveredNodeId,
                 options = {
-                    '0': {
-                        name: 'Create Instance',
+                    "0": {
+                        name: "Create Instance",
                         icon: false,
                         fn: function() {
                             self._instanceNodes(
@@ -1789,8 +1944,8 @@ define([
                             );
                         }
                     },
-                    '1': {
-                        name: 'Move Here',
+                    "1": {
+                        name: "Move Here",
                         icon: false,
                         fn: function() {
                             self._moveNodes(
@@ -1800,8 +1955,8 @@ define([
                             );
                         }
                     },
-                    '2': {
-                        name: 'Copy Here',
+                    "2": {
+                        name: "Copy Here",
                         icon: false,
                         fn: function() {
                             self._copyNodes(
@@ -1826,7 +1981,7 @@ define([
             var self = this,
                 desc;
             self._isDropping = false;
-            self._right.addClass('drop-area');
+            self._right.addClass("drop-area");
             //self._div.append(self.__iconAssignNullPointer);
 
             dropTarget.makeDroppable(self._right, {
@@ -1872,7 +2027,7 @@ define([
 
             function makeOption(src, dst, connId) {
                 var conn = client.getNode(connId);
-                var connName = conn.getAttribute('name');
+                var connName = conn.getAttribute("name");
                 var option = {
                     name: connName,
                     icon: false,
@@ -1880,7 +2035,7 @@ define([
                         self.createNewEdge( parentId, src, dst, connId );
                     }
                 };
-                if (connName.includes('Local Transition')) {
+                if (connName.includes("Local Transition")) {
                     var srcSelector = gmeIdToCySelector(src);
                     var dstSelector = gmeIdToCySelector(dst);
                     var srcNode = self._cy.$(srcSelector);
@@ -1898,7 +2053,7 @@ define([
             // figure out what kind of connections the parent can have
             var parentNode = client.getNode(parentId);
             var validConnections = GMEConcepts.getValidConnectionTypesInAspect(srcId, dstId, parentId, CONSTANTS.ASPECT_ALL);
-            
+
             if (validConnections.length > 0) {
                 var options = {};
                 var localKey = "" + validConnections.length;
@@ -1928,7 +2083,7 @@ define([
             var self = this;
             var client = self._client;
             var edgeMetaNode = client.getNode(edgeMetaId);
-            var edgeType = edgeMetaNode.getAttribute('name');
+            var edgeType = edgeMetaNode.getAttribute("name");
             // default to old case of edge being sibling of src
             var edgeParentId = parentId;
             // get common parent to make the edge a child of the
@@ -1947,7 +2102,7 @@ define([
                 edgeParentId = dstId;
             } else {
                 // handle the case that the src and dst are in separate sub-graphs
-                var commonAncestorCy = self._cy.$( srcSelector + ',' + dstSelector )
+                var commonAncestorCy = self._cy.$( srcSelector + "," + dstSelector )
                     .commonAncestors()
                     .first();
                 edgeParentId = commonAncestorCy && commonAncestorCy.id();
@@ -1960,13 +2115,13 @@ define([
 
             client.startTransaction();
 
-            var msg = 'Creating ' + edgeType + ' between ' + srcId + ' and '+dstId;
+            var msg = "Creating " + edgeType + " between " + srcId + " and "+dstId;
             var newEdgePath = client.createChild( childCreationParams, msg);
             if (newEdgePath) {
-                msg = 'Setting src pointer for ' + newEdgePath + ' to ' + srcId;
-                client.setPointer( newEdgePath, 'src', srcId, msg );
-                msg = 'Setting dst pointer for ' + newEdgePath + ' to ' + dstId;
-                client.setPointer( newEdgePath, 'dst', dstId, msg );
+                msg = "Setting src pointer for " + newEdgePath + " to " + srcId;
+                client.setPointer( newEdgePath, "src", srcId, msg );
+                msg = "Setting dst pointer for " + newEdgePath + " to " + dstId;
+                client.setPointer( newEdgePath, "dst", dstId, msg );
             }
 
             client.completeTransaction();
@@ -1978,19 +2133,19 @@ define([
             var self = this;
             if (self._readOnly)
                 return false;
-            if (desc.type == 'End State')
+            if (desc.type == "End State")
                 return false;
-            else if (desc.type == 'Internal Transition')
+            else if (desc.type == "Internal Transition")
                 return false;
-            else if (desc.type == 'Deep History Pseudostate')
+            else if (desc.type == "Deep History Pseudostate")
                 return false;
-            else if (desc.type == 'Shallow History Pseudostate')
+            else if (desc.type == "Shallow History Pseudostate")
                 return false;
-            else if (desc.type == 'State Machine')
+            else if (desc.type == "State Machine")
                 return false;
-            else if (desc.type == 'Documentation')
+            else if (desc.type == "Documentation")
                 return false;
-            else if (desc.type == 'Initial') {
+            else if (desc.type == "Initial") {
                 // if initial already has transition, don't allow more
                 var initialEdges = self._simulator.getEdgesFromNode( desc.id );
                 if (initialEdges.length)
@@ -2004,12 +2159,12 @@ define([
             if (self._readOnly)
                 return false;
             if (desc && desc.type) {
-                if (desc.type == 'Initial' ||
-                    desc.type == 'End State' ||
-                    desc.type == 'Internal Transition' ||
-                    desc.type == 'Deep History Pseudostate' ||
-                    desc.type == 'Shallow History Pseudostate' ||
-                    desc.type == 'Choice Pseudostate')
+                if (desc.type == "Initial" ||
+                    desc.type == "End State" ||
+                    desc.type == "Internal Transition" ||
+                    desc.type == "Deep History Pseudostate" ||
+                    desc.type == "Shallow History Pseudostate" ||
+                    desc.type == "Choice Pseudostate")
                     return false;
                 else
                     return true;
@@ -2023,26 +2178,26 @@ define([
             if (self._readOnly)
                 return false;
             var valid = true;
-            var srcType = srcDesc && srcDesc.type || 'Initial';
-            var dstType = dstDesc && dstDesc.type || 'Initial';
-            if (dstType == 'Initial')
+            var srcType = srcDesc && srcDesc.type || "Initial";
+            var dstType = dstDesc && dstDesc.type || "Initial";
+            if (dstType == "Initial")
                 valid = false;
-            else if (dstType == 'State Machine')
+            else if (dstType == "State Machine")
                 valid = false;
-            else if (dstType == 'Internal Transition')
+            else if (dstType == "Internal Transition")
                 valid = false;
-            else if (srcType == 'Internal Transition')
+            else if (srcType == "Internal Transition")
                 valid = false;
-            else if (srcType == 'End State')
+            else if (srcType == "End State")
                 valid = false;
-            else if (srcType == 'Deep History Pseudostate')
+            else if (srcType == "Deep History Pseudostate")
                 valid = false;
-            else if (srcType == 'Shallow History Pseudostate')
+            else if (srcType == "Shallow History Pseudostate")
                 valid = false;
-            else if (srcType == 'Initial') {
-                if (dstType == 'Deep History Pseudostate' ||
-                    dstType == 'Shallow History Pseudostate' ||
-                    dstType == 'End State')
+            else if (srcType == "Initial") {
+                if (dstType == "Deep History Pseudostate" ||
+                    dstType == "Shallow History Pseudostate" ||
+                    dstType == "End State")
                     valid = false;
             }
             return valid;
@@ -2083,11 +2238,11 @@ define([
                 this._el.empty();
             }
         };
-        
+
         /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
         HFSMVizWidget.prototype._attachClientEventListeners = function () {
             this._detachClientEventListeners();
-            WebGMEGlobal.State.on('change:' + CONSTANTS.STATE_ACTIVE_SELECTION,
+            WebGMEGlobal.State.on("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
                                   this._stateActiveSelectionChanged, this);
             this.boundBranchChanged = this._branchChanged.bind(this);
             this._client.addEventListener(this._client.CONSTANTS.BRANCH_CHANGED,
@@ -2098,7 +2253,7 @@ define([
         }
 
         HFSMVizWidget.prototype._detachClientEventListeners = function () {
-            WebGMEGlobal.State.off('change:' + CONSTANTS.STATE_ACTIVE_SELECTION,
+            WebGMEGlobal.State.off("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
                                   this._stateActiveSelectionChanged, this);
             this._client.removeEventListener(this._client.CONSTANTS.BRANCH_CHANGED, this.boundBranchChanged);
             this._client.removeEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED, this.boundBranchStatusChanged);

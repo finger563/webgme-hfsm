@@ -202,6 +202,12 @@ edge[type = "Local Transition"] {
     display: none;
 }
 
+.notified {
+    border-width: 4;
+	width: 4;
+    font-weight: bold;
+}
+
 .active {
     color: blue;
     line-color: blue;
