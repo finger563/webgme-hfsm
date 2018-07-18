@@ -25,6 +25,7 @@ define([
     "cytoscape-panzoom",
     "bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent",
     // utils
+	"bower/handlebars/handlebars.min",
 	"./typeahead.jquery",
     "bower/mustache.js/mustache.min",
     "bower/blob-util/dist/blob-util.min",
@@ -54,6 +55,7 @@ define([
         cyPanZoom,
         coseBilkent,
         // utils
+		handlebars,
 		typeahead,
         mustache,
         blobUtil,
@@ -62,7 +64,7 @@ define([
 		_) {
         "use strict";
 
-		console.log(typeahead);
+		console.log(handlebars);
         //console.log(cytoscape);
         //console.log(cyEdgehandles);
         //console.log(cyContext);
@@ -237,36 +239,90 @@ define([
             this._right = this._el.find("#hfsmVizRight");
 
             // SEARCH Functionality
+			const suggestionTemplate = handlebars.compile([
+				"<span>",
+				"{{#if isConnection}}",
+				"<span class=\"dataset-transition fa fa-repeat\"/>",
+				"<span class=\"dataset-transition\">{{LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-left\"/>",
+				"<span class=\"dataset-src\">{{src.LABEL}}</span>",
+				"<span class=\"dataset-arrow fa fa-sign-out\"/>",
+				"<span class=\"dataset-dst\">{{dst.LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-right\"/>",
+				"{{else}}",
+				"<span class=\"dataset-state fa fa-square\"/>",
+				"<span class=\"dataset-state\">{{LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-left\"/>",
+				"<span class=\"dataset-parent\">{{parent.LABEL}}</span>",
+				"<span class=\"dataset-sep fa fa-angle-double-right\"/>",
+				"{{/if}}",
+				"</span>",
+			].join(''));
+			const displayTemplate = handlebars.compile([
+				"{{#if isConnection}}",
+				"{{src.LABEL}} -> {{LABEL}} -> {{dst.LABEL}}",
+				"{{else}}",
+				"{{parent.LABEL}} :: {{LABEL}}",
+				"{{/if}}",
+			].join('\n'));
+			const mapResult = (result) => {
+				if (result.isConnection) {
+					let src = self.nodes[result.src];
+					let dst = self.nodes[result.dst];
+					return {
+						isConnection: result.isConnection,
+						LABEL: result.LABEL,
+						src: src,
+						dst: dst,
+						id: result.id
+					};
+				} else {
+					let parent = self.nodes[result.parentId];
+					return {
+						isConnection: result.isConnection,
+						LABEL: result.LABEL,
+						parent: parent,
+						id: result.id
+					};
+				}
+			};
             const search = (text) => {
                 var results = [];
                 // find related nodes
-                results = Object.values(self.nodes).filter((n) => {
-					var matches = false;
-					matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
+				let nodes = Object.values(self.nodes);
+                results.push(...nodes.filter((n) => {
+					var matches = n.LABEL === text;
                     return matches;
-                });
-				return results;
+                }));
+                results.push(...nodes.filter((n) => {
+					var matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
+                    return matches;
+                }));
+				return _.uniq(results).map((r) => mapResult(r));
             };
             this._debouncedSearch = _.debounce(search.bind(self), 500);
             this._search = this._el.find("#search");
 			$(this._search).typeahead({
-				minLength: 3,
+				minLength: 1,
 				highlight: true
 			}, {
-				name: 'my-dataset',
+				name: 'node-dataset',
+				limit: 15,
 				source(query, syncResults) {
-					console.log(query);
 					syncResults(search(query));
 				},
+				templates: {
+					suggestion: suggestionTemplate
+				},
 				display(result) {
-					console.log(result);
-					return result.LABEL;
+					return displayTemplate(result);
 				}
 			});
 			$(this._search).bind('typeahead:select', function(ev, suggestion) {
 				console.log('Selection: ', suggestion);
 				var idTag = gmeIdToCySelector(suggestion.id);
 				var node = self._cy.$(idTag);
+				self.clear();
 				node.select();
 				self.highlightNode( node );
 				self.animateElements( [suggestion.id], "notified" );
