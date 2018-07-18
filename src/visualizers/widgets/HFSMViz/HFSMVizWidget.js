@@ -64,7 +64,6 @@ define([
 		_) {
         "use strict";
 
-		console.log(handlebars);
         //console.log(cytoscape);
         //console.log(cyEdgehandles);
         //console.log(cyContext);
@@ -319,7 +318,6 @@ define([
 				}
 			});
 			$(this._search).bind('typeahead:select', function(ev, suggestion) {
-				console.log('Selection: ', suggestion);
 				var idTag = gmeIdToCySelector(suggestion.id);
 				var node = self._cy.$(idTag);
 				self.clear();
