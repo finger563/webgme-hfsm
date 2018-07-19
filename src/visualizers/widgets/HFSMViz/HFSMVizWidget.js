@@ -258,11 +258,14 @@ define([
 				"</span>",
 			].join(''));
 			const displayTemplate = handlebars.compile([
+				"{{LABEL}}"
+				/*
 				"{{#if isConnection}}",
 				"{{src.LABEL}} -> {{LABEL}} -> {{dst.LABEL}}",
 				"{{else}}",
 				"{{parent.LABEL}} :: {{LABEL}}",
 				"{{/if}}",
+				*/
 			].join('\n'));
 			const mapResult = (result) => {
 				if (result.isConnection) {
