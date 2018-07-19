@@ -300,7 +300,10 @@ define([
 					var matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
                     return matches;
                 }));
-				return _.uniq(results).map((r) => mapResult(r));
+				return _.uniq(results).map((r) => mapResult(r)).sort((a,b) => {
+					return (a.LABEL.toLowerCase().localeCompare(b.LABEL.toLowerCase())) +
+						(a.isConnection ? 1 : -1) + (b.isConnection ? -1 : 1);
+				});
             };
             this._debouncedSearch = _.debounce(search.bind(self), 500);
             this._search = this._el.find("#search");
