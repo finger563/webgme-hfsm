@@ -44,6 +44,17 @@
 	padding: 5px, 10px;
 }
 
+.dataset-header {
+	padding: 5px 10px;
+	font-weght: bold;
+	font-style: italic;
+	color: darkslategray;
+}
+
+.dataset-not-found {
+	color: red;
+}
+
 .dataset-sep,
 .dataset-arrow {
 	color: light-blue;

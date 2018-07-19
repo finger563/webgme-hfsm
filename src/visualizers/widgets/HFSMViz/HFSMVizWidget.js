@@ -238,6 +238,28 @@ define([
             this._right = this._el.find("#hfsmVizRight");
 
             // SEARCH Functionality
+			const searchLimit = 25;
+			handlebars.registerHelper('equals', function(a, b, options) {
+				if (a === b) {
+					return options.fn(this);
+				} else {
+					return options.inverse(this);
+				}
+			});
+			const notFoundTemplate = handlebars.compile([
+				"<span>",
+				"<span class=\"dataset-not-found\">No results for '{{query}}'</span>",
+				"</span>",
+			].join(''));
+			const headerTemplate = handlebars.compile([
+				"<span>",
+				"{{#equals suggestions.length 25}}",
+				"<span class=\"dataset-header\">Showing first {{suggestions.length}} results:</span>",
+				"{{else}}",
+				"<span class=\"dataset-header\">Found {{suggestions.length}} results:</span>",
+				"{{/equals}}",
+				"</span>",
+			].join(''));
 			const suggestionTemplate = handlebars.compile([
 				"<span>",
 				"{{#if isConnection}}",
@@ -259,13 +281,6 @@ define([
 			].join(''));
 			const displayTemplate = handlebars.compile([
 				"{{LABEL}}"
-				/*
-				"{{#if isConnection}}",
-				"{{src.LABEL}} -> {{LABEL}} -> {{dst.LABEL}}",
-				"{{else}}",
-				"{{parent.LABEL}} :: {{LABEL}}",
-				"{{/if}}",
-				*/
 			].join('\n'));
 			const mapResult = (result) => {
 				if (result.isConnection) {
@@ -291,19 +306,22 @@ define([
             const search = (text) => {
                 var results = [];
                 // find related nodes
-				let nodes = Object.values(self.nodes);
-                results.push(...nodes.filter((n) => {
-					var matches = n.LABEL === text;
+				let nodes = Object.values(self.nodes).filter((n) => n.LABEL.length);
+                results.push(...(nodes.filter((n) => {
+					var matches = n.LABEL.toLowerCase() === text.toLowerCase();
                     return matches;
-                }));
-                results.push(...nodes.filter((n) => {
-					var matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
-                    return matches;
-                }));
-				return _.uniq(results).map((r) => mapResult(r)).sort((a,b) => {
+                })).sort((a,b) => {
 					return (a.LABEL.toLowerCase().localeCompare(b.LABEL.toLowerCase())) +
 						(a.isConnection ? 1 : -1) + (b.isConnection ? -1 : 1);
-				});
+				}));
+                results.push(...(nodes.filter((n) => {
+					var matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
+                    return matches;
+                })).sort((a,b) => {
+					return (a.LABEL.toLowerCase().localeCompare(b.LABEL.toLowerCase())) +
+						(a.isConnection ? 1 : -1) + (b.isConnection ? -1 : 1);
+				}));
+				return _.uniq(results).map((r) => mapResult(r));
             };
             this._debouncedSearch = _.debounce(search.bind(self), 500);
             this._search = this._el.find("#search");
@@ -312,11 +330,13 @@ define([
 				highlight: true
 			}, {
 				name: 'node-dataset',
-				limit: 15,
+				limit: searchLimit,
 				source(query, syncResults) {
 					syncResults(search(query));
 				},
 				templates: {
+					notFound: notFoundTemplate,
+					header: headerTemplate,
 					suggestion: suggestionTemplate
 				},
 				display(result) {
