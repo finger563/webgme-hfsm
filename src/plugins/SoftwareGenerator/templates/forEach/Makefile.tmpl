@@ -96,10 +96,8 @@ end:
 clean:
 	@echo
 	@echo Cleaning Project: {{{name}}}
-	{{#each this.[State Machine_list]}}
 	$(REMOVE) {{{sanitizedName}}}_test
 	$(REMOVE) {{{sanitizedName}}}_test_DEBUG
-	{{/each}}
 	$(REMOVE) $(CPPSRC:.cpp=.s) 
 	$(REMOVE) $(CPPSRC:.cpp=.d)
 	$(REMOVE) $(LST)
