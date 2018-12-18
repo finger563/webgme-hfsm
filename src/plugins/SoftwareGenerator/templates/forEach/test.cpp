@@ -46,8 +46,7 @@ void handleAllEvents() {
   StateMachine::Event* e = eventFactory->getNextEvent();
   while (e != nullptr) {
     bool handled = {{{sanitizedName}}}_root->handleEvent( e );
-    // free the memory that was allocated during "spawnEvent"
-    eventFactory->consumeEvent( e );
+    // log whether we handled the event or not
     if (handled) {
 #if DEBUG_OUTPUT
       std::cout << "Handled " << StateMachine::Event::toString( e ) << std::endl;
@@ -62,8 +61,12 @@ void handleAllEvents() {
       std::cout << "Did not handle event." << std::endl;
 #endif
     }
+    // free the memory that was allocated during "spawnEvent"
+    eventFactory->consumeEvent( e );
+    // now get the next event
     e = eventFactory->getNextEvent();
 #if DEBUG_OUTPUT
+    // print the events currently in the queue
     std::cout << eventFactory->toString() << std::endl;
 #endif
   }
