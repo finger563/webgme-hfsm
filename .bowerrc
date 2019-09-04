@@ -1,4 +1,5 @@
 {
   "directory": "./bower_components",
+  "registry": "https://registry.bower.io",
   "allow_root": true
 }
