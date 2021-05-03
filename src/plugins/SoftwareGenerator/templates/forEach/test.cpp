@@ -34,7 +34,7 @@ int getUserSelection() {
 }
 
 void makeEvent(int eventIndex) {
-  if ( eventIndex < {{{eventNames.length}}} && eventIndex > -1 ) {
+  if ( eventIndex < numEvents && eventIndex > -1 ) {
     eventFactory->spawnEvent( eventTypes[ eventIndex ] );
   }
 }
