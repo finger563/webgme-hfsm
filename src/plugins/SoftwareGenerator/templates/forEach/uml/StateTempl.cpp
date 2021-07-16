@@ -48,9 +48,9 @@ bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
   switch ( event->type() ) {
     {{#each UnhandledEvents}}
   case Event::Type::{{{.}}}:
+    {{/each}}
     handled = true;
     break;
-    {{/each}}
   default:
     break;
   }
