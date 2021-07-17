@@ -3,7 +3,10 @@
 
 namespace StateMachine {
 
-class Event;
+  class EventBase {
+  public:
+    virtual ~EventBase() {}
+  };
 
 /**
  * States contain other states and can consume generic
@@ -21,8 +24,8 @@ class Event;
  */
 class StateBase {
 public:
-  StateBase(void) : _activeState(this), _parentState(nullptr) {}
-  StateBase(StateBase *_parent) : _activeState(this), _parentState(_parent) {}
+  StateBase(StateBase *root) : _activeState(this), _root(root) _parentState(nullptr) {}
+  StateBase(StateBase *root, StateBase *parent) : _activeState(this), _parentState(parent) {}
   ~StateBase(void) {}
 
   /**
@@ -69,7 +72,7 @@ public:
    *
    * @return true if event is consumed, falsed otherwise
    */
-  virtual bool handleEvent(StateMachine::Event *event) { return false; }
+  virtual bool handleEvent(StateMachine::EventBase *event) { return false; }
 
   /**
    * @brief Will be known from the model so will be generated in
@@ -182,6 +185,11 @@ protected:
    * Pointer to the parent state of this state.
    */
   StateMachine::StateBase *_parentState;
+
+  /**
+   * Pointer to the root of the HFSM.
+   */
+  StateMachine::StateBase *_root;
 };
 
 }; // namespace StateMachine

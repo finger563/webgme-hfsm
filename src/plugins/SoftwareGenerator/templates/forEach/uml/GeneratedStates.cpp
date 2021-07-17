@@ -1,4 +1,3 @@
-#include "{{{sanitizedName}}}_Events.hpp"
 {{#each dependencies}}
 #include "{{{.}}}"
 {{/each}}
@@ -7,23 +6,16 @@
 #include <iostream>
 #endif
 
-namespace StateMachine {
-
-{{> PointerTemplCpp this}}
-
-{{#END}}
-StateMachine::StateBase {{{pointerName}}_stateObj{{#if parent.pointerName}}( {{{parent.pointerName}}} ){{/if}};
-StateMachine::StateBase *const {{{pointerName}}} = &{{{pointerName}}}_stateObj;
-{{~/END}}
+using namespace StateMachine::{{{sanitizedName}};
 
 // User Definitions for the HFSM
 //::::{{{path}}}::::Definitions::::
 {{{ Definitions }}}
 
-/* * *  Definitions for {{{sanitizedName}}} : {{{path}}}  * * */
+/* * *  Definitions for Root : {{{path}}}  * * */
 // Generated Definitions for the root state
-void {{{fullyQualifiedName}}}::initialize(void) {
-// Run the model's Initialization code
+void Root::initialize(void) {
+  // Run the model's Initialization code
 #ifdef DEBUG_OUTPUT
   std::cout << "{{{name}}}:{{{path}}} HFSM Initialization" << std::endl;
 #endif
@@ -33,18 +25,18 @@ void {{{fullyQualifiedName}}}::initialize(void) {
   {{> InitializeTempl}}
 };
 
-void {{{fullyQualifiedName}}}::terminate(void) {
+void Root::terminate(void) {
   // will call exit() and exitChildren() on _activeState if it
   // exists
   exitChildren();
 };
 
-void {{{fullyQualifiedName}}}::restart(void) {
+void Root::restart(void) {
   terminate();
   initialize();
 };
 
-bool {{{fullyQualifiedName}}}::hasStopped(void) {
+bool Root::hasStopped(void) {
   bool reachedEnd = false;
   {{#END}}
   // Get the currently active leaf state
@@ -57,7 +49,7 @@ bool {{{fullyQualifiedName}}}::hasStopped(void) {
   return reachedEnd;
 };
 
-bool {{{fullyQualifiedName}}}::handleEvent(StateMachine::Event *event) {
+bool Root::handleEvent(Event *event) {
   bool handled = false;
 
   // Get the currently active leaf state
@@ -71,13 +63,7 @@ bool {{{fullyQualifiedName}}}::handleEvent(StateMachine::Event *event) {
 
   return handled;
 }
+
 {{#each Substates}}
 {{> StateTemplCpp}}
 {{~/each}}
-}; // namespace StateMachine
-
-// Root of the HFSM
-StateMachine::{{{sanitizedName}}} *const {{{sanitizedName}}}_root = &StateMachine::{{{pointerName}}}_stateObj;
-// Event Factory
-StateMachine::EventFactory EVENT_FACTORY;
-StateMachine::EventFactory *const eventFactory = &EVENT_FACTORY;
