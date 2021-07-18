@@ -367,6 +367,21 @@ define(['js/util',
            choice.show();
            return choice.waitForChoice()
              .then(function(choice) {
+               // choice will be undefined if they press the `None`
+               // button, but will be an empty string if there is a
+               // choice of no guard - we will force both of those to
+               // be the same
+               if (choice === undefined) {
+                 // the user pressed the `None` button
+                 const choices = Object.keys(choiceToEdgeId);
+                 if (choices.indexOf("") != -1) {
+                   // there was an empty transition with no guard, and
+                   // the user pressed the None button, so we will
+                   // make choice be ""
+                   choice = "";
+                   self.log(`User selected 'None' when evaluating choice pseudostate with a default transition, taking the default transition!`);
+                 }
+               }
                var retObj = {
                  choice: choice,
                  transitionId: choiceToEdgeId[ choice ]
@@ -708,8 +723,16 @@ define(['js/util',
                // if the initial state points to a child pseudostate,
                // we'll come here through the recursion
                self.handleChoice( state.id, function(s) {
+                 if (s === null || s === undefined) {
+                   // the choice state did not go to an actual state!
+                   self.log(`WARNING: Initial choice pseudostate of ${state.parentId} did not resolve to an initial state!`);
+                 }
                  deferred.resolve(s);
                });
+             }
+             else if (state.type == 'End State') {
+               // This means that the initial state is wired to an end state!
+               self.handleEnd(state.id);
              }
              else {
                // we'll come here if 1) we have no children and 2) we
