@@ -1,13 +1,10 @@
 {{#if isState}}
 /* * *  Definitions for {{{fullyQualifiedName}}} : {{{path}}}  * * */
-// Timer period
-const double {{{fullyQualifiedName}}}::timerPeriod = {{{this.[Timer Period]}}};
-
-void {{{fullyQualifiedName}}}::initialize ( void ) {
+void Root::{{{fullyQualifiedName}}}::initialize ( void ) {
   {{> InitializeTempl }}
 }
 
-void {{{fullyQualifiedName}}}::entry ( void ) {
+void Root::{{{fullyQualifiedName}}}::entry ( void ) {
   #ifdef DEBUG_OUTPUT
   std::cout << "ENTRY::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
   #endif
@@ -16,7 +13,7 @@ void {{{fullyQualifiedName}}}::entry ( void ) {
   {{{Entry}}}
 }
 
-void {{{fullyQualifiedName}}}::exit ( void ) {
+void Root::{{{fullyQualifiedName}}}::exit ( void ) {
   #ifdef DEBUG_OUTPUT
   std::cout << "EXIT::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
   #endif
@@ -25,7 +22,7 @@ void {{{fullyQualifiedName}}}::exit ( void ) {
   {{{Exit}}}
 }
 
-void {{{fullyQualifiedName}}}::tick ( void ) {
+void Root::{{{fullyQualifiedName}}}::tick ( void ) {
   #ifdef DEBUG_OUTPUT
   std::cout << "TICK::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
   #endif
@@ -36,11 +33,11 @@ void {{{fullyQualifiedName}}}::tick ( void ) {
     _activeState->tick();
 }
 
-double {{{fullyQualifiedName}}}::getTimerPeriod ( void ) {
-  return timerPeriod;
+double Root::{{{fullyQualifiedName}}}::getTimerPeriod ( void ) {
+  return (double)({{{this.[Timer Period]}}});
 }
 
-bool {{{fullyQualifiedName}}}::handleEvent ( StateMachine::Event* event ) {
+bool Root::{{{fullyQualifiedName}}}::handleEvent ( Event* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
