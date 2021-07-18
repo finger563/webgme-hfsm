@@ -11,17 +11,17 @@
     "url": "http://github.com/finger563/webgme-hfsm.git"
   },
   "dependencies": {
-    "underscore": "^1.9.0",
-    "webgme": "^2.26.0",
-    "webgme-codeeditor": "^3.6.16",
+    "underscore": "^1.13.1",
+    "webgme": "^2.42.1",
+    "webgme-codeeditor": "^3.6.19",
     "webgme-to-json": "^1.0.4",
     "webgme-ui-replay": "^0.1.1"
   },
   "peerDependencies": {},
   "devDependencies": {
+    "chai": "^3.0.0",
     "mocha": "^2.2.5",
-    "rimraf": "^2.4.0",
-    "chai": "^3.0.0"
+    "rimraf": "^2.7.1"
   },
   "description": "WebGME Domain for creating Executable Heirarchical Finite State Machines (HFSMs). Contains metamodel, visualization, simulation, and code generation for Heirarchical Finite State Machines (HFSMs) following the UML State Machine specification.",
   "main": "app.js",
