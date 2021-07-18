@@ -20,7 +20,7 @@ else if ( true ) {
   {{#if nextState.isChoice}}
   {{> ChoiceStateTempl nextState}}
   {{else if nextState.isState}}
-  {{nextState.pointerName}}->initialize();
+  _root->{{nextState.pointerName}}.initialize();
   {{/if}}
 }
 {{/addTransition}}
