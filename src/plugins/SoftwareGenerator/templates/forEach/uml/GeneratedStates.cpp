@@ -6,7 +6,7 @@
 #include <iostream>
 #endif
 
-using namespace StateMachine::{{{sanitizedName}};
+using namespace StateMachine::{{{sanitizedName}}};
 
 // User Definitions for the HFSM
 //::::{{{path}}}::::Definitions::::
@@ -42,7 +42,7 @@ bool Root::hasStopped(void) {
   // Get the currently active leaf state
   StateMachine::StateBase *activeLeaf = getActiveLeaf();
   if (activeLeaf != nullptr && activeLeaf != this &&
-      activeLeaf == {{{pointerName}}}) {
+      activeLeaf == static_cast<StateBase*>(&_root->{{{pointerName}}})) {
     reachedEnd = true;
   }
   {{/END}}

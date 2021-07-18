@@ -18,6 +18,11 @@ namespace StateMachine {
 
   namespace {{{sanitizedName}}} {
 
+    /**
+     * @brief Class representing all events that this HFSM can respond
+     * to / handle. Intended to be created / managed by the
+     * EventFactory (below).
+     */
     class Event : public EventBase {
     public:
       enum class Type {
@@ -25,14 +30,8 @@ namespace StateMachine {
         {{{.}}},
         {{/each}}
       }; // ENUMS GENERATED FROM MODEL
-
-      /**
-       * @brief Constructor for initializing the type.
-       */
       Event(Type t) : _t(t) {}
-
       Type type(void) { return _t; }
-
 #ifdef DEBUG_OUTPUT
       static std::string toString(Event *e) {
         std::string eventString = "";
@@ -48,11 +47,9 @@ namespace StateMachine {
         return eventString;
       }
 #endif
-
     protected:
       Type _t;
-    };
-
+    }; // Class Event
 
     /**
      * @brief Class handling all Event creation, memory management, and
@@ -60,39 +57,22 @@ namespace StateMachine {
      */
     class EventFactory {
     public:
-      /**
-       * @brief Destructor; ensures all memory for all Events is
-       * deallocated.
-       */
       ~EventFactory(void) { clearEvents(); }
 
-      /**
-       * @brief Allocates new memory for a new Event of type t and adds
-       * it to the Q.
-       *
-       * @param[in]  Event::Type  t  The type of the event to create
-       */
+      // allocate memory for an event and add it to the Q
       void spawnEvent(Event::Type t) {
         Event *newEvent = new Event(t);
         _eventQ.push_back(newEvent);
       }
 
-      /**
-       * @brief Frees the memory associated with the Event.
-       *
-       * @param[in]  Event*       e  Pointer to the event to consume
-       */
+      // free the memory associated with the event
       void consumeEvent(Event *e) {
         delete e;
         e = nullptr;
       }
 
-      /**
-       * @brief Retrieves the pointer to the next event in the queue, or
-       * nullptr if the Q is empty.
-       *
-       * @return     Event*          Oldest Event that was in the Queue
-       */
+      // Retrieves the pointer to the next event in the queue, or
+      // nullptr if it doesn't exist
       Event *getNextEvent(void) {
         Event *ptr = nullptr;
         if (_eventQ.size()) {
@@ -102,10 +82,7 @@ namespace StateMachine {
         return ptr;
       }
 
-      /**
-       * @brief Clears the event queue and frees all memory associated
-       * with the events.
-       */
+      // Clears the event queue and frees all event memory
       void clearEvents(void) {
         Event *ptr = getNextEvent();
         while (ptr != nullptr) {
@@ -127,10 +104,13 @@ namespace StateMachine {
 
     protected:
       std::deque<Event *> _eventQ;
-    };
+    }; // class EventFactory
 
-    // ROOT OF THE HFSM
-    class Root : public StateMachine::StateBase {
+    /**
+     * @brief The ROOT of the HFSM - contains the declarations from
+     *  the user as well as the entire substate tree.
+     */
+    class Root : public StateBase {
     public:
       // User Declarations for the HFSM
       //::::{{{path}}}::::Declarations::::
@@ -152,6 +132,9 @@ namespace StateMachine {
       {{{ pointerName }}} ( this, this ),
       {{/if}}
       {{/each}}
+      {{#END}}
+      {{{ pointerName }}} ( this ),
+      {{/END}}
       _root(this)
       {}
       ~Root(void) {}
@@ -188,7 +171,7 @@ namespace StateMachine {
        *
        * @return true if event is consumed, false otherwise
        */
-      bool handleEvent(StateMachine::EventBase * event) {
+      bool handleEvent(EventBase * event) {
         return handleEvent( static_cast<Event*>(event) );
       }
 
@@ -220,5 +203,6 @@ namespace StateMachine {
       End_State {{{pointerName}}};
       {{/END}}
     }; // class Root
+
   }; // namespace {{{sanitizedName}}}
 }; // namespace StateMachine
