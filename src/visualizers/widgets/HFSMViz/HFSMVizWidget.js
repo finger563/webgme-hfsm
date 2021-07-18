@@ -6,2298 +6,2298 @@
  */
 
 define([
+  // local
+  "text!./HFSM.html",
+  "./Dialog/Dialog",
+  "./Simulator/Simulator",
+  "./Simulator/Choice",
+  // built-ins
+  "js/Constants",
+  "js/Utils/GMEConcepts",
+  "js/Controls/ContextMenu",
+  "js/DragDrop/DropTarget",
+  "js/DragDrop/DragConstants",
+  "decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog",
+  // cytoscape
+  "bower/cytoscape/dist/cytoscape.min",
+  "cytoscape-edgehandles",
+  "cytoscape-context-menus",
+  "cytoscape-panzoom",
+  "bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent",
+  // utils
+  "bower/handlebars/handlebars.min",
+  "./typeahead.jquery",
+  "bower/mustache.js/mustache.min",
+  "bower/blob-util/dist/blob-util.min",
+  "text!./style2.css",
+  "q",
+  "underscore",
+  // css
+  "css!bower/cytoscape-context-menus/cytoscape-context-menus.css",
+  "css!bower/cytoscape-panzoom/cytoscape.js-panzoom.css",
+  "css!./styles/HFSMVizWidget.css"], function (
     // local
-    "text!./HFSM.html",
-    "./Dialog/Dialog",
-    "./Simulator/Simulator",
-    "./Simulator/Choice",
+    HFSMHtml,
+    Dialog,
+    Simulator,
+    Choice,
     // built-ins
-    "js/Constants",
-    "js/Utils/GMEConcepts",
-    "js/Controls/ContextMenu",
-    "js/DragDrop/DropTarget",
-    "js/DragDrop/DragConstants",
-    "decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog",
+    CONSTANTS,
+    GMEConcepts,
+    ContextMenu,
+    dropTarget,
+    DROP_CONSTANTS,
+    DocumentEditorDialog,
     // cytoscape
-    "bower/cytoscape/dist/cytoscape.min",
-    "cytoscape-edgehandles",
-    "cytoscape-context-menus",
-    "cytoscape-panzoom",
-    "bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent",
+    cytoscape,
+    cyEdgehandles,
+    cyContext,
+    cyPanZoom,
+    coseBilkent,
     // utils
-	"bower/handlebars/handlebars.min",
-	"./typeahead.jquery",
-    "bower/mustache.js/mustache.min",
-    "bower/blob-util/dist/blob-util.min",
-    "text!./style2.css",
-    "q",
-	"underscore",
-    // css
-    "css!bower/cytoscape-context-menus/cytoscape-context-menus.css",
-    "css!bower/cytoscape-panzoom/cytoscape.js-panzoom.css",
-    "css!./styles/HFSMVizWidget.css"], function (
-        // local
-        HFSMHtml,
-        Dialog,
-        Simulator,
-        Choice,
-        // built-ins
-        CONSTANTS,
-        GMEConcepts,
-        ContextMenu,
-        dropTarget,
-        DROP_CONSTANTS,
-        DocumentEditorDialog,
-        // cytoscape
-        cytoscape,
-        cyEdgehandles,
-        cyContext,
-        cyPanZoom,
-        coseBilkent,
-        // utils
-		handlebars,
-		typeahead,
-        mustache,
-        blobUtil,
-        styleText,
-        Q,
-		_) {
-        "use strict";
-
-        //console.log(cytoscape);
-        //console.log(cyEdgehandles);
-        //console.log(cyContext);
-        //console.log(cyPanZoom);
-        //console.log(coseBilkent);
-
-        cytoscape.use( cyEdgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
-        cytoscape.use( cyContext, $ );
-        cytoscape.use( cyPanZoom, $ );
-        cytoscape.use( coseBilkent );
-
-        var rootTypes = ["State Machine","Library"];
-
-        var HFSMVizWidget,
-            WIDGET_CLASS = "h-f-s-m-viz";
-
-        var minPanelWidth = 10; // percent
-
-        var gmeIdToCySelector = function(gmeId) {
-            return "#" + gmeId.replace(/\//gm, "\\/");
-        };
-
-        HFSMVizWidget = function (logger, container, client) {
-            this._logger = logger.fork("Widget");
-
-            this._el = container;
-
-            this._client = client;
-            GMEConcepts.initialize(client);
-            this._initialize();
-
-            this._logger.debug("ctor finished");
-        };
-
-        HFSMVizWidget.prototype._relativeToWindowPos = function( relativePos ) {
-            var self = this;
-
-            var windowPos = {
-                x: relativePos.x,
-                y: relativePos.y
-            };
-
-            var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
-            var centerPanelPos = $(".ui-layout-pane-center").position();
-            // X OFFSET
-            windowPos.x += splitPos.left;
-            windowPos.x += centerPanelPos.left;
-
-            // Y OFFSET
-            windowPos.y += splitPos.top;
-            windowPos.y += centerPanelPos.top;
-
-            return windowPos;
-        };
-
-        HFSMVizWidget.prototype._getContainerPosFromEvent = function( e ) {
-            var self = this;
-            var x = e.pageX || e.position.x,
-                y = e.pageY || e.position.y;
-            var selector = $(self._el).find(self._containerTag);
-            var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
-            var centerPanelPos = $(".ui-layout-pane-center").position();
-            // X OFFSET
-            x -= splitPos.left;
-            x -= centerPanelPos.left;
-
-            // Y OFFSET
-            y -= splitPos.top;
-            y -= centerPanelPos.top;
-
-            return {
-                x: x,
-                y: y
-            };
-        };
-
-        HFSMVizWidget.prototype.initializeSimulator = function() {
-            if (this._simulator) {
-                delete this._simulator;
-            }
-            // SIMULATOR
-            this._simulator = new Simulator();
-            this._simulator.initialize( this._left, this.nodes, this._client );
-            this._simulator.onStateChanged( this.showActiveState.bind(this) );
-            this._simulator.onAnimateElement( this.animateElement.bind(this) );
-            this._simulator.onShowTransitions( this.showTransitions.bind(this) );
-            this._simulator.setLogDisplay( this._right.find("#simulator-logs").first() );
-        };
-
-        HFSMVizWidget.prototype._stateActiveSelectionChanged = function(model, activeSelection, opts) {
-            var self = this,
-                selectedIDs = [],
-                len = activeSelection ? activeSelection.length : 0;
-
-            if (opts.invoker !== self) {
-                if (self._cy) {
-                    self.clear();
-                    if (len) {
-                        var sel = activeSelection.reduce((s, gmeID) => {
-                            var idTag = gmeIdToCySelector(gmeID);
-							if (s.length) {
-								s += ",";
-							}
-							return s + " " + idTag;
-                        }, "");
-                        var nodes = self._cy.$(sel);
-						nodes.select();
-                        self.highlightNodes( nodes );
-                    }
-                }
-            }
-        };
-
-        HFSMVizWidget.prototype._branchChanged = function(args) {
-            var self = this;
-            self.branchChanged = false;
-            self._readOnly = self._client.isReadOnly();
-            if (self._cy) {
-                self._cy.autoungrabify(self._readOnly);
-            }
-        };
-
-        HFSMVizWidget.prototype._branchStatusChanged = function(args) {
-            var self = this;
-            self._readOnly = self._client.isReadOnly();
-            if (self._cy) {
-                self._cy.autoungrabify(self._readOnly);
-            }
-            if (!self.branchChanged) {
-                self._unsavedNodePositions = {};
-                self.branchChanged = true;
-            }
-        };
-
-        HFSMVizWidget.prototype._initialize = function () {
-            this.branchChanged = false;
-
-            // set widget class
-            this._el.addClass(WIDGET_CLASS);
-            // add html to element
-            this._el.append(HFSMHtml);
-
-            // container
-            this._containerTag = "#HFSM_VIZ_DIV";
-            this._container = this._el.find(this._containerTag).first();
-
-            this._cy_container = this._el.find("#cy");
-
-
-            var width = this._el.width(),
-                height = this._el.height(),
-                self = this;
-
-            // is the project readonly?
-            this._readOnly = this._client.isReadOnly();
-
-            // Root Info
-            this.HFSMName = "";
-
-            // NODE RELATED DATA
-            this.nodes = {};
-            this.hiddenNodes = {};
-            this.dependencies = {
-                "nodes": {},
-                "edges": {}
-            };
-            this.waitingNodes = {};
-
-            // LAYOUT RELATED DATA
-            this._handle = this._el.find("#hfsmVizHandle");
-            this._left = this._el.find("#hfsmVizLeft");
-            this._right = this._el.find("#hfsmVizRight");
-
-            // SEARCH Functionality
-			const searchLimit = 25;
-			handlebars.registerHelper('equals', function(a, b, options) {
-				if (a === b) {
-					return options.fn(this);
-				} else {
-					return options.inverse(this);
-				}
-			});
-			const notFoundTemplate = handlebars.compile([
-				"<span>",
-				"<span class=\"dataset-not-found\">No results for '{{query}}'</span>",
-				"</span>",
-			].join(''));
-			const headerTemplate = handlebars.compile([
-				"<span>",
-				"{{#equals suggestions.length 25}}",
-				"<span class=\"dataset-header\">Showing first {{suggestions.length}} results:</span>",
-				"{{else}}",
-				"<span class=\"dataset-header\">Found {{suggestions.length}} results:</span>",
-				"{{/equals}}",
-				"</span>",
-			].join(''));
-			const suggestionTemplate = handlebars.compile([
-				"<span>",
-				"{{#if isConnection}}",
-				"<span class=\"dataset-transition fa fa-repeat\"/>",
-				"<span class=\"dataset-transition\">{{LABEL}}</span>",
-				"<span class=\"dataset-sep fa fa-angle-double-left\"/>",
-				"<span class=\"dataset-src\">{{src.LABEL}}</span>",
-				"<span class=\"dataset-arrow fa fa-sign-out\"/>",
-				"<span class=\"dataset-dst\">{{dst.LABEL}}</span>",
-				"<span class=\"dataset-sep fa fa-angle-double-right\"/>",
-				"{{else}}",
-				"<span class=\"dataset-state fa fa-square\"/>",
-				"<span class=\"dataset-state\">{{LABEL}}</span>",
-				"<span class=\"dataset-sep fa fa-angle-double-left\"/>",
-				"<span class=\"dataset-parent\">{{parent.LABEL}}</span>",
-				"<span class=\"dataset-sep fa fa-angle-double-right\"/>",
-				"{{/if}}",
-				"</span>",
-			].join(''));
-			const displayTemplate = handlebars.compile([
-				"{{LABEL}}"
-			].join('\n'));
-			const mapResult = (result) => {
-				if (result.isConnection) {
-					let src = self.nodes[result.src];
-					let dst = self.nodes[result.dst];
-					return {
-						isConnection: result.isConnection,
-						LABEL: result.LABEL,
-						src: src,
-						dst: dst,
-						id: result.id
-					};
-				} else {
-					let parent = self.nodes[result.parentId];
-					return {
-						isConnection: result.isConnection,
-						LABEL: result.LABEL,
-						parent: parent,
-						id: result.id
-					};
-				}
-			};
-            const search = (text) => {
-                var results = [];
-                // find related nodes
-				let nodes = Object.values(self.nodes).filter((n) => n.LABEL.length);
-                results.push(...(nodes.filter((n) => {
-					var matches = n.LABEL.toLowerCase() === text.toLowerCase();
-                    return matches;
-                })).sort((a,b) => {
-					return (a.LABEL.toLowerCase().localeCompare(b.LABEL.toLowerCase())) +
-						(a.isConnection ? 1 : -1) + (b.isConnection ? -1 : 1);
-				}));
-                results.push(...(nodes.filter((n) => {
-					var matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
-                    return matches;
-                })).sort((a,b) => {
-					return (a.LABEL.toLowerCase().localeCompare(b.LABEL.toLowerCase())) +
-						(a.isConnection ? 1 : -1) + (b.isConnection ? -1 : 1);
-				}));
-				return _.uniq(results).map((r) => mapResult(r));
-            };
-            this._debouncedSearch = _.debounce(search.bind(self), 500);
-            this._search = this._el.find("#search");
-			$(this._search).typeahead({
-				minLength: 1,
-				highlight: true
-			}, {
-				name: 'node-dataset',
-				limit: searchLimit,
-				source(query, syncResults) {
-					syncResults(search(query));
-				},
-				templates: {
-					notFound: notFoundTemplate,
-					header: headerTemplate,
-					suggestion: suggestionTemplate
-				},
-				display(result) {
-					return displayTemplate(result);
-				}
-			});
-			$(this._search).bind('typeahead:select', function(ev, suggestion) {
-				var idTag = gmeIdToCySelector(suggestion.id);
-				var node = self._cy.$(idTag);
-				self.clear();
-				node.select();
-				self.highlightNode( node );
-				//self._cy.fit( node, 500);
-				self._cy
-					.animate({
-						fit: {
-							eles: self._cy.elements(),
-							padding: 50
-						},
-						duration: 500
-					})
-					.delay(500)
-					.animate({
-						fit: {
-							eles: node,
-							padding: 350
-						},
-						duration: 500
-					});
-			});
-
-            this._left.css("width", "19.5%");
-            this._right.css("width", "80%");
-
-            // SIMULATOR
-            this.initializeSimulator();
-
-            // DRAGGING INFO
-            this.isDragging = false;
-
-            this._handle.mousedown(function(e) {
-                self.isDragging = true;
-                e.preventDefault();
-            });
-            this._container.mouseup(function() {
-                self.isDragging = false;
-                self._cy.resize();
-            }).mousemove(function(e) {
-                if (self.isDragging) {
-                    var selector = $(self._el).find(self._containerTag);
-                    var mousePosX = self._getContainerPosFromEvent( e ).x;
-                    var maxWidth = selector.width();
-                    var handlePercent = 0.5;
-                    var minX = 0;
-                    var maxX = selector.width() + minX;
-                    var leftWidth = mousePosX - minX;
-                    var leftPercent = Math.max(minPanelWidth, (leftWidth / maxWidth) * 100);
-                    var rightPercent = Math.max(minPanelWidth, 100 - leftPercent - handlePercent);
-                    leftPercent = 100 - rightPercent - handlePercent;
-                    self._left.css("width", leftPercent + "%");
-                    self._right.css("width", rightPercent + "%");
-                }
-            });
-
-            /*
-              var DOMURL = window.URL || window.webkitURL || window;
-              var img = new Image();
-              var svg = new Blob([data], {type: "image/svg+xml"});
-              var url = DOMURL.createObjectURL(svg);
-            */
-
-            this._cytoscape_options = {
-                container: this._cy_container,
-                //style: styleText,
-                style: styleText, //+ 'node { background-image: '+url + ';}',
-                // interaction options:
-                minZoom: 1e-50,
-                maxZoom: 1e50,
-                zoomingEnabled: true,
-                userZoomingEnabled: true,
-                panningEnabled: true,
-                userPanningEnabled: true,
-                boxSelectionEnabled: true,
-                selectionType: "single",
-                touchTapThreshold: 8,
-                desktopTapThreshold: 4,
-                autolock: false,
-                autoungrabify: this._readOnly,
-                autounselectify: false,
-
-                // rendering options:
-                headless: false,
-                styleEnabled: true,
-                hideEdgesOnViewport: false,
-                hideLabelsOnViewport: false,
-                textureOnViewport: false,
-                motionBlur: false,
-                motionBlurOpacity: 0.2,
-                wheelSensitivity: 1,
-                pixelRatio: "auto",
-            };
-
-            this._layout_options = {
-                "name": "cose-bilkent",
-                // Called on `layoutready`
-                ready () {
-                },
-                // Called on `layoutstop`
-                stop () {
-                },
-                // Whether to fit the network view after when done
-                fit: true,
-                // Padding on fit
-                padding: 10,
-                // Whether to enable incremental mode
-                randomize: true,
-                // Node repulsion (non overlapping) multiplier
-                nodeRepulsion: 5500, // 4500
-                // Ideal edge (non nested) length
-                idealEdgeLength: 100,   // 50
-                // Divisor to compute edge forces
-                edgeElasticity: 0.45,
-                // Nesting factor (multiplier) to compute ideal edge length for nested edges
-                nestingFactor: 0.1,
-                // Gravity force (constant)
-                gravity: 0.1,  // 0.25
-                // Maximum number of iterations to perform
-                numIter: 2500,
-                // For enabling tiling
-                tile: false,   // true
-                // Type of layout animation. The option set is {'during', 'end', false}
-                animate: "end",
-                // Represents the amount of the vertical space to put between the zero degree members during the tiling operation(can also be a function)
-                tilingPaddingVertical: 10,
-                // Represents the amount of the horizontal space to put between the zero degree members during the tiling operation(can also be a function)
-                tilingPaddingHorizontal: 50,
-                // Gravity range (constant) for compounds
-                gravityRangeCompound: 1.5,
-                // Gravity force (constant) for compounds
-                gravityCompound: 1.0,
-                // Gravity range (constant)
-                gravityRange: 3.8
-            };
-            this._cytoscape_options.layout = self._layout_options;
-            this._cy = cytoscape(self._cytoscape_options);
-            // for search
-            this._cy.on("click", () => {
-                $(this._search).blur();
-            });
-
-            var edgeHandleIcon = new Image(10,10);
-            edgeHandleIcon.src = "/assets/DecoratorSVG/svgs/edgeIcon.svg";
-
-            // the default values of each option are outlined below:
-            var edgeHandleDefaults = {
-                preview: true, // whether to show added edges preview before releasing selection
-                stackOrder: 4, // Controls stack order of edgehandles canvas element by setting it's z-index
-                handleSize: 7.5, // the size of the edge handle put on nodes
-                handleHitThreshold: 1, // a threshold for hit detection that makes it easier to grab the handle
-                handleIcon: edgeHandleIcon,
-                handleColor: "#00235b", //  the colour of the handle and the line drawn from it
-                handleLineType: "ghost", // can be 'ghost' for real edge, 'straight' for a straight line, or 'draw' for a draw-as-you-go line
-                handleLineWidth: 1, // width of handle line in pixels
-                handleOutlineColor: null,//'#ff0000', // the colour of the handle outline
-                handleOutlineWidth: 1, // the width of the handle outline in pixels
-                handleNodes( node ) { //'node', // selector/filter function
-                    var desc = self.nodes[node.id()];
-                    return self.isValidSource( desc );
-                },
-                handlePosition: "right bottom", // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
-                hoverDelay: 150, // time spend over a target node before it is considered a target selection
-                cxt: false, // whether cxt events trigger edgehandles (useful on touch)
-                enabled: true, // whether to start the plugin in the enabled state
-                toggleOffOnLeave: true, // whether an edge is cancelled by leaving a node (true), or whether you need to go over again to cancel (false; allows multiple edges in one pass)
-                edgeType( sourceNode, targetNode ) {
-                    // can return 'flat' for flat edges between nodes or 'node' for intermediate node between them
-                    // returning null/undefined means an edge can't be added between the two nodes
-                    var srcDesc = self.nodes[sourceNode.id()];
-                    var dstDesc = self.nodes[targetNode.id()];
-                    var isValid = self.validEdge( srcDesc, dstDesc );
-                    if (isValid) {
-                        return "flat";
-					} else {
-                        return null;
-					}
-                },
-                loopAllowed( node ) {
-                    // for the specified node, return whether edges from itself to itself are allowed
-                    var desc = self.nodes[node.id()];
-                    return self.validEdgeLoop( desc );
-                },
-                nodeLoopOffset: -50, // offset for edgeType: 'node' loops
-                nodeParams( sourceNode, targetNode ) {
-                    // for edges between the specified source and target
-                    // return element object to be passed to cy.add() for intermediary node
-                    return {};
-                },
-                edgeParams( sourceNode, targetNode, i ) {
-                    // for edges between the specified source and target
-                    // return element object to be passed to cy.add() for edge
-                    // NB: i indicates edge index in case of edgeType: 'node'
-                    return {};
-                },
-                start( sourceNode ) {
-                    // fired when edgehandles interaction starts (drag on handle)
-                },
-                complete( sourceNode, targetNodes, addedEntities, position ) {
-                    // fired when edgehandles is done and entities are added
-                    self.edgeContextMenu( sourceNode, targetNodes, addedEntities, position );
-                },
-                stop( sourceNode ) {
-                    // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
-                },
-                cancel( sourceNode, renderedPosition, invalidTarget ){
-                    // fired when edgehandles are cancelled (
-                    // incomplete - nothing has been added ) -
-                    // renderedPosition is where the edgehandle was
-                    // released, invalidTarget is
-
-                    // a collection on which the handle was released,
-                    // but which for other reasons (loopAllowed |
-                    // edgeType) is an invalid target
-                }
-            };
-
-            // EDGE HANDLES
-            this._cy.edgehandles( edgeHandleDefaults );
-
-            var childAvailableSelector = "node[NodeType = \"State\"],node[NodeType =\"State Machine\"],node[NodeType =\"Library\"]";
-
-            // CONTEXT MENUS
-            self._cy.on("cxttap", "node, edge", function(e) {
-                self.multiSelectionEnabled = e.originalEvent.ctrlKey;
-                // is there a better way of doing this?
-                if (self.multiSelectionEnabled) {
-                    self._cy._private.selectionType = "additive";
-                }
-                else {
-                    self._cy._private.selectionType = "single";
-                    self.unselectAll();
-                }
-                var node = this;
-                var id = node.id();
-                if (id) {
-					node.select();
-                }
-            });
-
-            var options = {
-                // List of initial menu items
-                menuItems: [
-                    {
-                        id: "toggleCollapse",
-                        content: "(Un-)Show Children",
-                        tooltipText: "Toggle the display of children.",
-                        selector: childAvailableSelector,
-                        onClickFunction ( e ) {
-                            //var node = this;
-                            var node = e.target;
-
-                            if (self._readOnly) {
-                                return;
-							}
-
-                            if (node === self._cy) { }
-                            else
-                                self.toggleShowChildren( node );
-                        },
-                        coreAsWell: false,
-                        hasTrailingDivider: true, // Whether the item will have a trailing divider
-                    },
-                    {
-                        id: "setActive",
-                        content: "Set Active",
-                        tooltipText: "Set as the active state.",
-                        selector: "node[NodeType = \"State\"]",
-                        onClickFunction ( e ) {
-                            var node = e.target;
-                            if (node === self._cy) { }
-                            else {
-                                self._simulator.setActiveState( node.id() );
-                                self.unselectNodes( [node.id()] );
-                            }
-                        },
-                        coreAsWell: false
-                    },
-                    {
-                        id: "newChild",
-                        content: "Add child...",
-                        tooltipText: "Create a new state, internal transition, etc.",
-                        selector: childAvailableSelector,
-                        onClickFunction ( e ) {
-                            var node = e.target;
-
-                            if (self._readOnly) {
-                                return;
-							}
-
-                            if (node === self._cy) { }
-                            else {
-                                var childPosition = e.position;
-                                var dialog = new Dialog();
-                                dialog.initialize(
-                                    self.nodes[ node.id() ],
-                                    self._client,
-                                    childPosition
-                                );
-                                dialog.show();
-                            }
-                        },
-                        coreAsWell: false
-                    },
-                    {
-                        id: "Remove",
-                        content: "Remove This and Selected Objects",
-                        tooltipText: "Remove this object and all currently selected objects (and their outgoing or incoming transitions)",
-                        selector: "node, edge",
-                        onClickFunction ( e ) { // The function to be executed on click
-                            var node = e.target;
-
-                            if (self._readOnly) {
-                                return;
-							}
-
-                            if (node === self._cy) { }
-                            else {
-                                self.selectNodes( [node.id()] );
-								node.select();
-                                self.highlightNode(node);
-                                self.deleteSelection();
-                            }
-                        },
-                        coreAsWell: false // Whether core instance have this item on cxttap
-                    },
-                    {
-                        id: "DocumentView",
-                        content: "View/Edit Documentation",
-                        tooltipText: "Edit and View the rendered Markdown Documentation",
-                        selector: "node[NodeType = \"Documentation\"]",
-                        onClickFunction ( e ) { // The function to be executed on click
-                            var node = e.target;
-
-                            if (self._readOnly) {
-                                return;
-							}
-
-                            if (node === self._cy) { }
-                            else {
-                                self.onEditDocumentation(node.id());
-                            }
-                        },
-                        coreAsWell: false // Whether core instance have this item on cxttap
-                    },
-                    {
-                        id: "arrangeSelection",
-                        content: "Auto-Arrange Selected Nodes Here",
-                        tooltipText: "Arrange selected nodes into a grid with a top left where the user clicked.",
-                        selector: "node",
-                        onClickFunction ( e ) {
-                            var node = e.target;
-
-                            if (self._readOnly) {
-                                return;
-							}
-
-                            if (node === self._cy) { }
-                            else {
-                                self.unselectNodes([node.id()]);
-                                self._arrangeNodes( self._selectedNodes, e.position );
-                            }
-                        },
-                        coreAsWell: false,
-                        hasTrailingDivider: true, // Whether the item will have a trailing divider
-                    },
-                    {
-                        id: "reparentSelection",
-                        content: "Move Selected Nodes Here",
-                        tooltipText: "Makes the node that was right clicked that parent of the selected node.",
-                        selector: childAvailableSelector,
-                        onClickFunction ( e ) {
-                            var node = e.target;
-
-                            if (self._readOnly) {
-                                return;
-							}
-
-                            if (node === self._cy) { }
-                            else {
-                                self.unselectNodes([node.id()]);
-                                self._moveNodes(
-                                    self._selectedNodes,
-                                    node.id(),
-                                    self.cyPosToScreenPos(e.position)
-                                );
-                            }
-                        },
-                        coreAsWell: false,
-                        hasTrailingDivider: true, // Whether the item will have a trailing divider
-                    },
-                ],
-                // css classes that menu items will have
-                menuItemClasses: [
-                    // add class names to this list
-                ],
-                // css classes that context menu will have
-                contextMenuClasses: [
-                    // add class names to this list
-                ]
-            };
-
-            var ctxMenuInstance = this._cy.contextMenus( options );
-
-            // PAN ZOOM WIDGET:
-
-            // the default values of each option are outlined below:
-            var panZoom_defaults = {
-                zoomFactor: 0.05, // zoom factor per zoom tick
-                zoomDelay: 45, // how many ms between zoom ticks
-                minZoom: 0.1, // min zoom level
-                maxZoom: 10, // max zoom level
-                fitPadding: 50, // padding when fitting
-                panSpeed: 10, // how many ms in between pan ticks
-                panDistance: 10, // max pan distance per tick
-                panDragAreaSize: 75, // the length of the pan drag box in which the vector for panning is calculated (bigger = finer control of pan speed and direction)
-                panMinPercentSpeed: 0.25, // the slowest speed we can pan by (as a percent of panSpeed)
-                panInactiveArea: 8, // radius of inactive area in pan drag box
-                panIndicatorMinOpacity: 0.5, // min opacity of pan indicator (the draggable nib); scales from this to 1.0
-                zoomOnly: false, // a minimal version of the ui only with zooming (useful on systems with bad mousewheel resolution)
-                //fitSelector: undefined, // selector of elements to fit
-                animateOnFit(){ // whether to animate on fit
-                    return false;
-                },
-                fitAnimationDuration: 1000, // duration of animation on fit
-
-                // icon class names
-                sliderHandleIcon: "fa fa-minus",
-                zoomInIcon: "fa fa-plus",
-                zoomOutIcon: "fa fa-minus",
-                resetIcon: "fa fa-expand"
-            };
-
-            self._cy.panzoom( panZoom_defaults );
-
-            // USED FOR DRAG ABILITY
-            self._hoveredNodeId = null;
-            self._cy.on("mouseover", childAvailableSelector, function(e) {
-                var node = this;
-                self._hoveredNodeId = node.id();
-                if (self._isDropping) {
-                    self.showDropStatus();
-				} else {
-                    self.clearDropStatus();
-				}
-            });
-            self._cy.on("mouseout", childAvailableSelector, function(e) {
-                self._hoveredNodeId = null;
-                if (self._isDropping) {
-                    self.showDropStatus();
-				} else {
-                    self.clearDropStatus();
-				}
-            });
-            self._el.on("mouseout", function(e) {
-                self._hoveredNodeId = null;
-                self.clearDropStatus();
-            });
-
-            // USED FOR NODE SELECTION AND MULTI-SELECTION
-
-            self._selectedNodes = [];
-            self.multiSelectionEnabled = false;
-            self._cy.on("tap", "node, edge", function(e){
-                self.multiSelectionEnabled = e.originalEvent.ctrlKey;
-                // is there a better way of doing this?
-                if (self.multiSelectionEnabled) {
-                    self._cy._private.selectionType = "additive";
-                }
-                else {
-                    self._cy._private.selectionType = "single";
-                }
-            });
-            self._cy.on("select", "node, edge", function(e){
-                var node = this;
-                var id = node.id();
-                if (id) {
-                    self.selectNodes([id]);
-                    self.highlightNode(node);
-                }
-            });
-
-            self._cy.on("unselect", "node, edge", function(e){
-                var node = this;
-                var id = node.id();
-                if (id) {
-                    self.unselectNodes([id]);
-                }
-            });
-
-            // USED FOR KNOWING WHEN NODES ARE MOVED
-            self._webGME_to_cy_scale = 1;
-            self._grabbedNode = null;
-            self._cy.on("grabon", "node", function(e) {
-                var node = this;
-                if (node.id()) {
-                    self._grabbedNode = node;
-                }
-            });
-
-            self._cy.on("free", "node", function(e) {
-                self._grabbedNode = null;
-            });
-
-            self._debouncedSaveNodePositions = _.debounce(self.saveNodePositions.bind(self), 500);
-            self._unsavedNodePositions = {};
-            self._cy.on("position", "node", function(e) {
-                if (self._grabbedNode) {
-                    var node = this;
-                    var type = node.data("type");
-                    var id = node.id();
-                    if (type && rootTypes.indexOf(type) == -1 && self.nodes[id] !== undefined) {
-                        var pos = self.cyPosToGmePos( node );
-                        self._unsavedNodePositions[id] = pos;
-                        self._debouncedSaveNodePositions();
-                    }
-                }
-            });
-
-            // USED FOR ZOOMING AFTER INITIALLY LOADING ALL THE NODES (in CreateNode())
-            self._debounced_one_time_zoom = _.debounce(_.once(self.onZoomClicked.bind(self)), 250);
-
-			self._debouncedSelectNodes = _.debounce(self.selectNodes.bind(self), 200);
-
-            this._attachClientEventListeners();
-            this._makeDroppable();
-        };
-
-        /* * * * * * * * Display Functions  * * * * * * * */
-
-        HFSMVizWidget.prototype.selectNodes = function(ids) {
-            var self = this;
-			// update selected nodes
-			self._selectedNodes = _.union(self._selectedNodes, ids);
-			// register updated selection state
-            WebGMEGlobal.State.registerActiveSelection(
-				self._selectedNodes.slice(0),
-				{invoker: self}
-			);
-        };
-
-        HFSMVizWidget.prototype.unselectNodes = function(ids) {
-            var self = this;
-			// update selected nodes
-			self._selectedNodes = _.difference(self._selectedNodes, ids)
-			// ensure cytoscape unselects the selected nodes
-			self.clear();
-			// register updated selection state
-			self._debouncedSelectNodes([]);
-        };
-
-        HFSMVizWidget.prototype.unselectAll = function() {
-            var self = this;
-			// update selected nodes
-            self._selectedNodes = [];
-			// ensure cytoscape unselects the selected nodes
-            self.clear();
-			// register updated selection state
-			self._debouncedSelectNodes([]);
-        };
-
-        function download(filename, text) {
-            var element = document.createElement("a");
-            var imgData = text.split(",")[1]; // after the comma is the actual image data
-
-            blobUtil.base64StringToBlob( imgData.toString() ).then(function(blob) {
-                var blobURL = blobUtil.createObjectURL(blob);
-
-                element.setAttribute("href", blobURL);
-                element.setAttribute("download", filename);
-                element.style.display = "none";
-
-                document.body.appendChild(element);
-
-                element.click();
-
-                document.body.removeChild(element);
-            }).catch(function(err) {
-                console.log("Couldnt make blob from image!");
-                console.log(err);
-            });
-        }
-
-        HFSMVizWidget.prototype.onEditDocumentation = function(gmeId) {
-            var self = this;
-            var documentation = self.nodes[gmeId].documentation;
-            var editorDialog = new DocumentEditorDialog();
-
-            editorDialog.initialize(documentation, function (text) {
-                try {
-                    self._client.setAttribute(gmeId, "documentation", text, "updated documentation for " + gmeId);
-                } catch (e) {
-                    console.error("Could not save documentation: ");
-                    console.error(e);
-                }
-            });
-
-            editorDialog.show();
-        };
-
-        HFSMVizWidget.prototype.onPanningClicked = function() {
-            var self = this;
-            self._cy.userPanningEnabled(true);
-            self._cy.boxSelectionEnabled(false);
-            self._cy.autoungrabify(false);
-        };
-
-        HFSMVizWidget.prototype.onBoxSelectClicked = function() {
-            var self = this;
-            self._cy.userPanningEnabled(false);
-            self._cy.boxSelectionEnabled(true);
-            self._cy.autoungrabify(true);
-        };
-
-        HFSMVizWidget.prototype.onZoomClicked = function() {
-            var self = this;
-            var layoutPadding = 50;
-            self._cy.fit( self._cy.elements(), layoutPadding);
-            /*
-              self._cy.animate({
-              fit: {
-              eles: self._cy.elements(),
-              padding: layoutPadding
-              },
-              duration: layoutDuration
-              });
-            */
-        };
-
-        HFSMVizWidget.prototype._addSplitPanelToolbarBtns = function(toolbarEl) {
-            var self = this;
-
-            // BUTTON EVENT HANDLERS
-
-            var printEl = [
-                '<span id="print" class="split-panel-toolbar-btn fa fa-print">',
-                '</span>',
-            ].join('\n');
-
-            var moveEl = [
-                '<span id="pan" class="split-panel-toolbar-btn fa fa-arrows">',
-                '</span>',
-            ].join('\n');
-
-            var selectEl = [
-                '<span id="select" class="split-panel-toolbar-btn fa fa-crop">',
-                '</span>',
-            ].join('\n');
-
-            var zoomEl = [
-                '<span id="zoom" class="split-panel-toolbar-btn fa fa-home">',
-                '</span>',
-            ].join('\n');
-
-            var layoutEl = [
-                '<span id="layout" class="split-panel-toolbar-btn fa fa-random">',
-                '</span>',
-            ].join('\n');
-
-            //toolbarEl.append(moveEl);
-            //toolbarEl.append(selectEl);
-
-            toolbarEl.append(printEl);
-            toolbarEl.append(zoomEl);
-            toolbarEl.append(layoutEl);
-
-            toolbarEl.find('#print').on('click', function(){
-                var png = self._cy.png({
-                    full: true,
-                    scale: 6,
-                    bg: 'white'
-                });
-                download( self.HFSMName + '-HFSM.png', png );
-            });
-
-            toolbarEl.find('#pan').on('click', function() {
-                self.onPanningClicked();
-            });
-
-            toolbarEl.find('#select').on('click', function() {
-                self.onBoxSelectClicked();
-            });
-
-            toolbarEl.find('#zoom').on('click', function(){
-                self.onZoomClicked();
-            });
-
-            toolbarEl.find('#layout').on('click', function(){
-                // ask if they really want to randomize the layout
-                var choice = new Choice();
-                var choices = [
-                    "Yes, run cose-bilkent layout.",
-                    "No, do not change any positions"
-                ];
-                choice.initialize( choices, "Really change the layout?" );
-                choice.show();
-                return choice.waitForChoice()
-                    .then(function(choice) {
-                        if (choice == choices[0])
-                            self.reLayout();
-                    });
-            });
-        };
-
-        HFSMVizWidget.prototype.highlightNode = function(node) {
-            var self = this;
-            self._simulator.hideStateInfo();
-			self._simulator.displayStateInfo( node.id() );
-        };
-
-        HFSMVizWidget.prototype.highlightNodes = function(nodes) {
-            var self = this;
-            self._simulator.hideStateInfo();
-        };
-
-        HFSMVizWidget.prototype.clear = function() {
-            var self = this;
-            self._cy.$(":selected").unselect();
-            self._simulator.hideStateInfo();
-        };
-
-        /* * * * * * * * Transition Selection  * * * * * * * */
-
-        HFSMVizWidget.prototype.showTransitions = function( transitionIDs ) {
-            var self = this;
-            self.clear();
-			// update selected nodes
-            self._selectedNodes = [];
-			// update selection state
-            WebGMEGlobal.State.registerActiveSelection(
-				self._selectedNodes.slice(0),
-				{invoker: this}
-			);
-            var tidSelector = transitionIDs.reduce((sel, id) => {
-                self._selectedNodes.push(id);
-                // highlight the Transition
-                var idTag = gmeIdToCySelector(id);
-				if (sel.length) {
-					sel += ",";
-				}
-				return sel + " " + idTag;
+    handlebars,
+    typeahead,
+    mustache,
+    blobUtil,
+    styleText,
+    Q,
+    _) {
+    "use strict";
+
+    //console.log(cytoscape);
+    //console.log(cyEdgehandles);
+    //console.log(cyContext);
+    //console.log(cyPanZoom);
+    //console.log(coseBilkent);
+
+    cytoscape.use( cyEdgehandles, _.debounce.bind( _ ), _.throttle.bind( _ ) );
+    cytoscape.use( cyContext, $ );
+    cytoscape.use( cyPanZoom, $ );
+    cytoscape.use( coseBilkent );
+
+    var rootTypes = ["State Machine","Library"];
+
+    var HFSMVizWidget,
+        WIDGET_CLASS = "h-f-s-m-viz";
+
+    var minPanelWidth = 10; // percent
+
+    var gmeIdToCySelector = function(gmeId) {
+      return "#" + gmeId.replace(/\//gm, "\\/");
+    };
+
+    HFSMVizWidget = function (logger, container, client) {
+      this._logger = logger.fork("Widget");
+
+      this._el = container;
+
+      this._client = client;
+      GMEConcepts.initialize(client);
+      this._initialize();
+
+      this._logger.debug("ctor finished");
+    };
+
+    HFSMVizWidget.prototype._relativeToWindowPos = function( relativePos ) {
+      var self = this;
+
+      var windowPos = {
+        x: relativePos.x,
+        y: relativePos.y
+      };
+
+      var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
+      var centerPanelPos = $(".ui-layout-pane-center").position();
+      // X OFFSET
+      windowPos.x += splitPos.left;
+      windowPos.x += centerPanelPos.left;
+
+      // Y OFFSET
+      windowPos.y += splitPos.top;
+      windowPos.y += centerPanelPos.top;
+
+      return windowPos;
+    };
+
+    HFSMVizWidget.prototype._getContainerPosFromEvent = function( e ) {
+      var self = this;
+      var x = e.pageX || e.position.x,
+          y = e.pageY || e.position.y;
+      var selector = $(self._el).find(self._containerTag);
+      var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
+      var centerPanelPos = $(".ui-layout-pane-center").position();
+      // X OFFSET
+      x -= splitPos.left;
+      x -= centerPanelPos.left;
+
+      // Y OFFSET
+      y -= splitPos.top;
+      y -= centerPanelPos.top;
+
+      return {
+        x: x,
+        y: y
+      };
+    };
+
+    HFSMVizWidget.prototype.initializeSimulator = function() {
+      if (this._simulator) {
+        delete this._simulator;
+      }
+      // SIMULATOR
+      this._simulator = new Simulator();
+      this._simulator.initialize( this._left, this.nodes, this._client );
+      this._simulator.onStateChanged( this.showActiveState.bind(this) );
+      this._simulator.onAnimateElement( this.animateElement.bind(this) );
+      this._simulator.onShowTransitions( this.showTransitions.bind(this) );
+      this._simulator.setLogDisplay( this._right.find("#simulator-logs").first() );
+    };
+
+    HFSMVizWidget.prototype._stateActiveSelectionChanged = function(model, activeSelection, opts) {
+      var self = this,
+          selectedIDs = [],
+          len = activeSelection ? activeSelection.length : 0;
+
+      if (opts.invoker !== self) {
+        if (self._cy) {
+          self.clear();
+          if (len) {
+            var sel = activeSelection.reduce((s, gmeID) => {
+              var idTag = gmeIdToCySelector(gmeID);
+              if (s.length) {
+                s += ",";
+              }
+              return s + " " + idTag;
             }, "");
-			var edges = self._cy.$(tidSelector);
-			edges.select();
-            self.highlightNodes( edges );
-			// update selection state
-            WebGMEGlobal.State.registerActiveSelection(
-				self._selectedNodes.slice(0),
-				{invoker: this}
-			);
-        };
+            var nodes = self._cy.$(sel);
+            nodes.select();
+            self.highlightNodes( nodes );
+          }
+        }
+      }
+    };
+
+    HFSMVizWidget.prototype._branchChanged = function(args) {
+      var self = this;
+      self.branchChanged = false;
+      self._readOnly = self._client.isReadOnly();
+      if (self._cy) {
+        self._cy.autoungrabify(self._readOnly);
+      }
+    };
+
+    HFSMVizWidget.prototype._branchStatusChanged = function(args) {
+      var self = this;
+      self._readOnly = self._client.isReadOnly();
+      if (self._cy) {
+        self._cy.autoungrabify(self._readOnly);
+      }
+      if (!self.branchChanged) {
+        self._unsavedNodePositions = {};
+        self.branchChanged = true;
+      }
+    };
+
+    HFSMVizWidget.prototype._initialize = function () {
+      this.branchChanged = false;
+
+      // set widget class
+      this._el.addClass(WIDGET_CLASS);
+      // add html to element
+      this._el.append(HFSMHtml);
+
+      // container
+      this._containerTag = "#HFSM_VIZ_DIV";
+      this._container = this._el.find(this._containerTag).first();
+
+      this._cy_container = this._el.find("#cy");
 
 
-        /* * * * * * * * Node Position Functions  * * * * * * * */
+      var width = this._el.width(),
+          height = this._el.height(),
+          self = this;
 
-        HFSMVizWidget.prototype.cyPosition = function(cyNode, pos) {
-            // assumes pos is GME position - origin is top left of the
-            // node
-            let w = cyNode.width(),
-                h = cyNode.height(),
-                x = cyNode.position("x"),
-                y = cyNode.position("y"),
-                x1 = x - w/2,
-                y1 = y - h/2;
-            if (pos == undefined) {
-                // always return position with respect to top left
-                return {
-                    x: x1,
-                    y: y1
-                };
-            } else {
-                // cytoscape uses origin at center of the node, so we
-                // must convert before setting
-                let newPos = {
-                    x: pos.x + w/2,
-                    y: pos.y + h/2
-                }
-                cyNode.position(newPos);
-            }
-        };
+      // is the project readonly?
+      this._readOnly = this._client.isReadOnly();
 
-        HFSMVizWidget.prototype.cyPosToScreenPos = function(pos) {
-            var self = this;
-            var extent = self._cy.extent(); // returns bounding box of model positions visible
-            var width = $(self._cy_container).width();
-            var height = $(self._cy_container).height();
-            var newPos = {
-                x: (pos.x - extent.x1) / extent.w  * width,
-                y: (pos.y - extent.y1) / extent.h  * height,
-            };
-            return newPos;
-        };
+      // Root Info
+      this.HFSMName = "";
 
-        HFSMVizWidget.prototype.screenPosToCyPos = function(pos) {
-            var self = this;
-            var extent = self._cy.extent(); // returns bounding box of model positions visible
-            var width = $(self._cy_container).width();
-            var height = $(self._cy_container).height();
-            var newPos = {
-                x: (pos.x / width) * extent.w + extent.x1,
-                y: (pos.y / height) * extent.h + extent.y1,
-            };
-            return newPos;
-        };
+      // NODE RELATED DATA
+      this.nodes = {};
+      this.hiddenNodes = {};
+      this.dependencies = {
+        "nodes": {},
+        "edges": {}
+      };
+      this.waitingNodes = {};
 
-        HFSMVizWidget.prototype.gmePosToCyPos = function(desc) {
-            var self = this;
-            var cyPos = desc.position;
-            return cyPos;
-        };
+      // LAYOUT RELATED DATA
+      this._handle = this._el.find("#hfsmVizHandle");
+      this._left = this._el.find("#hfsmVizLeft");
+      this._right = this._el.find("#hfsmVizRight");
 
-        HFSMVizWidget.prototype.cyPosToGmePos = function(cyNode) {
-            var self = this;
-            var gmePos = self.cyPosition( cyNode );
-            return gmePos;
-        };
+      // SEARCH Functionality
+      const searchLimit = 25;
+      handlebars.registerHelper('equals', function(a, b, options) {
+        if (a === b) {
+          return options.fn(this);
+        } else {
+          return options.inverse(this);
+        }
+      });
+      const notFoundTemplate = handlebars.compile([
+        "<span>",
+        "<span class=\"dataset-not-found\">No results for '{{query}}'</span>",
+        "</span>",
+      ].join(''));
+      const headerTemplate = handlebars.compile([
+        "<span>",
+        "{{#equals suggestions.length 25}}",
+        "<span class=\"dataset-header\">Showing first {{suggestions.length}} results:</span>",
+        "{{else}}",
+        "<span class=\"dataset-header\">Found {{suggestions.length}} results:</span>",
+        "{{/equals}}",
+        "</span>",
+      ].join(''));
+      const suggestionTemplate = handlebars.compile([
+        "<span>",
+        "{{#if isConnection}}",
+        "<span class=\"dataset-transition fa fa-repeat\"/>",
+        "<span class=\"dataset-transition\">{{LABEL}}</span>",
+        "<span class=\"dataset-sep fa fa-angle-double-left\"/>",
+        "<span class=\"dataset-src\">{{src.LABEL}}</span>",
+        "<span class=\"dataset-arrow fa fa-sign-out\"/>",
+        "<span class=\"dataset-dst\">{{dst.LABEL}}</span>",
+        "<span class=\"dataset-sep fa fa-angle-double-right\"/>",
+        "{{else}}",
+        "<span class=\"dataset-state fa fa-square\"/>",
+        "<span class=\"dataset-state\">{{LABEL}}</span>",
+        "<span class=\"dataset-sep fa fa-angle-double-left\"/>",
+        "<span class=\"dataset-parent\">{{parent.LABEL}}</span>",
+        "<span class=\"dataset-sep fa fa-angle-double-right\"/>",
+        "{{/if}}",
+        "</span>",
+      ].join(''));
+      const displayTemplate = handlebars.compile([
+        "{{LABEL}}"
+      ].join('\n'));
+      const mapResult = (result) => {
+        if (result.isConnection) {
+          let src = self.nodes[result.src];
+          let dst = self.nodes[result.dst];
+          return {
+            isConnection: result.isConnection,
+            LABEL: result.LABEL,
+            src: src,
+            dst: dst,
+            id: result.id
+          };
+        } else {
+          let parent = self.nodes[result.parentId];
+          return {
+            isConnection: result.isConnection,
+            LABEL: result.LABEL,
+            parent: parent,
+            id: result.id
+          };
+        }
+      };
+      const search = (text) => {
+        var results = [];
+        // find related nodes
+        let nodes = Object.values(self.nodes).filter((n) => n.LABEL.length);
+        results.push(...(nodes.filter((n) => {
+          var matches = n.LABEL.toLowerCase() === text.toLowerCase();
+          return matches;
+        })).sort((a,b) => {
+          return (a.LABEL.toLowerCase().localeCompare(b.LABEL.toLowerCase())) +
+            (a.isConnection ? 1 : -1) + (b.isConnection ? -1 : 1);
+        }));
+        results.push(...(nodes.filter((n) => {
+          var matches = n.LABEL.toLowerCase().includes(text.toLowerCase());
+          return matches;
+        })).sort((a,b) => {
+          return (a.LABEL.toLowerCase().localeCompare(b.LABEL.toLowerCase())) +
+            (a.isConnection ? 1 : -1) + (b.isConnection ? -1 : 1);
+        }));
+        return _.uniq(results).map((r) => mapResult(r));
+      };
+      this._debouncedSearch = _.debounce(search.bind(self), 500);
+      this._search = this._el.find("#search");
+      $(this._search).typeahead({
+        minLength: 1,
+        highlight: true
+      }, {
+        name: 'node-dataset',
+        limit: searchLimit,
+        source(query, syncResults) {
+          syncResults(search(query));
+        },
+        templates: {
+          notFound: notFoundTemplate,
+          header: headerTemplate,
+          suggestion: suggestionTemplate
+        },
+        display(result) {
+          return displayTemplate(result);
+        }
+      });
+      $(this._search).bind('typeahead:select', function(ev, suggestion) {
+        var idTag = gmeIdToCySelector(suggestion.id);
+        var node = self._cy.$(idTag);
+        self.clear();
+        node.select();
+        self.highlightNode( node );
+        //self._cy.fit( node, 500);
+        self._cy
+          .animate({
+            fit: {
+              eles: self._cy.elements(),
+              padding: 50
+            },
+            duration: 500
+          })
+          .delay(500)
+          .animate({
+            fit: {
+              eles: node,
+              padding: 350
+            },
+            duration: 500
+          });
+      });
 
-        HFSMVizWidget.prototype.needToUpdatePosition = function(pos1, pos2) {
-            var dx = Math.abs(pos1.x - pos2.x);
-            var dy = Math.abs(pos1.y - pos2.y);
-            var dyThresh = 0.01;
-            var dxThresh = 0.01;
-            return (dy > dyThresh || dx > dxThresh);
-        };
+      this._left.css("width", "19.5%");
+      this._right.css("width", "80%");
 
-        HFSMVizWidget.prototype.saveNodePositions = function() {
-            var self = this;
-            if (_.isEmpty(self._unsavedNodePositions))
+      // SIMULATOR
+      this.initializeSimulator();
+
+      // DRAGGING INFO
+      this.isDragging = false;
+
+      this._handle.mousedown(function(e) {
+        self.isDragging = true;
+        e.preventDefault();
+      });
+      this._container.mouseup(function() {
+        self.isDragging = false;
+        self._cy.resize();
+      }).mousemove(function(e) {
+        if (self.isDragging) {
+          var selector = $(self._el).find(self._containerTag);
+          var mousePosX = self._getContainerPosFromEvent( e ).x;
+          var maxWidth = selector.width();
+          var handlePercent = 0.5;
+          var minX = 0;
+          var maxX = selector.width() + minX;
+          var leftWidth = mousePosX - minX;
+          var leftPercent = Math.max(minPanelWidth, (leftWidth / maxWidth) * 100);
+          var rightPercent = Math.max(minPanelWidth, 100 - leftPercent - handlePercent);
+          leftPercent = 100 - rightPercent - handlePercent;
+          self._left.css("width", leftPercent + "%");
+          self._right.css("width", rightPercent + "%");
+        }
+      });
+
+      /*
+        var DOMURL = window.URL || window.webkitURL || window;
+        var img = new Image();
+        var svg = new Blob([data], {type: "image/svg+xml"});
+        var url = DOMURL.createObjectURL(svg);
+      */
+
+      this._cytoscape_options = {
+        container: this._cy_container,
+        //style: styleText,
+        style: styleText, //+ 'node { background-image: '+url + ';}',
+        // interaction options:
+        minZoom: 1e-50,
+        maxZoom: 1e50,
+        zoomingEnabled: true,
+        userZoomingEnabled: true,
+        panningEnabled: true,
+        userPanningEnabled: true,
+        boxSelectionEnabled: true,
+        selectionType: "single",
+        touchTapThreshold: 8,
+        desktopTapThreshold: 4,
+        autolock: false,
+        autoungrabify: this._readOnly,
+        autounselectify: false,
+
+        // rendering options:
+        headless: false,
+        styleEnabled: true,
+        hideEdgesOnViewport: false,
+        hideLabelsOnViewport: false,
+        textureOnViewport: false,
+        motionBlur: false,
+        motionBlurOpacity: 0.2,
+        wheelSensitivity: 1,
+        pixelRatio: "auto",
+      };
+
+      this._layout_options = {
+        "name": "cose-bilkent",
+        // Called on `layoutready`
+        ready () {
+        },
+        // Called on `layoutstop`
+        stop () {
+        },
+        // Whether to fit the network view after when done
+        fit: true,
+        // Padding on fit
+        padding: 10,
+        // Whether to enable incremental mode
+        randomize: true,
+        // Node repulsion (non overlapping) multiplier
+        nodeRepulsion: 5500, // 4500
+        // Ideal edge (non nested) length
+        idealEdgeLength: 100,   // 50
+        // Divisor to compute edge forces
+        edgeElasticity: 0.45,
+        // Nesting factor (multiplier) to compute ideal edge length for nested edges
+        nestingFactor: 0.1,
+        // Gravity force (constant)
+        gravity: 0.1,  // 0.25
+        // Maximum number of iterations to perform
+        numIter: 2500,
+        // For enabling tiling
+        tile: false,   // true
+        // Type of layout animation. The option set is {'during', 'end', false}
+        animate: "end",
+        // Represents the amount of the vertical space to put between the zero degree members during the tiling operation(can also be a function)
+        tilingPaddingVertical: 10,
+        // Represents the amount of the horizontal space to put between the zero degree members during the tiling operation(can also be a function)
+        tilingPaddingHorizontal: 50,
+        // Gravity range (constant) for compounds
+        gravityRangeCompound: 1.5,
+        // Gravity force (constant) for compounds
+        gravityCompound: 1.0,
+        // Gravity range (constant)
+        gravityRange: 3.8
+      };
+      this._cytoscape_options.layout = self._layout_options;
+      this._cy = cytoscape(self._cytoscape_options);
+      // for search
+      this._cy.on("click", () => {
+        $(this._search).blur();
+      });
+
+      var edgeHandleIcon = new Image(10,10);
+      edgeHandleIcon.src = "/assets/DecoratorSVG/svgs/edgeIcon.svg";
+
+      // the default values of each option are outlined below:
+      var edgeHandleDefaults = {
+        preview: true, // whether to show added edges preview before releasing selection
+        stackOrder: 4, // Controls stack order of edgehandles canvas element by setting it's z-index
+        handleSize: 7.5, // the size of the edge handle put on nodes
+        handleHitThreshold: 1, // a threshold for hit detection that makes it easier to grab the handle
+        handleIcon: edgeHandleIcon,
+        handleColor: "#00235b", //  the colour of the handle and the line drawn from it
+        handleLineType: "ghost", // can be 'ghost' for real edge, 'straight' for a straight line, or 'draw' for a draw-as-you-go line
+        handleLineWidth: 1, // width of handle line in pixels
+        handleOutlineColor: null,//'#ff0000', // the colour of the handle outline
+        handleOutlineWidth: 1, // the width of the handle outline in pixels
+        handleNodes( node ) { //'node', // selector/filter function
+          var desc = self.nodes[node.id()];
+          return self.isValidSource( desc );
+        },
+        handlePosition: "right bottom", // sets the position of the handle in the format of "X-AXIS Y-AXIS" such as "left top", "middle top"
+        hoverDelay: 150, // time spend over a target node before it is considered a target selection
+        cxt: false, // whether cxt events trigger edgehandles (useful on touch)
+        enabled: true, // whether to start the plugin in the enabled state
+        toggleOffOnLeave: true, // whether an edge is cancelled by leaving a node (true), or whether you need to go over again to cancel (false; allows multiple edges in one pass)
+        edgeType( sourceNode, targetNode ) {
+          // can return 'flat' for flat edges between nodes or 'node' for intermediate node between them
+          // returning null/undefined means an edge can't be added between the two nodes
+          var srcDesc = self.nodes[sourceNode.id()];
+          var dstDesc = self.nodes[targetNode.id()];
+          var isValid = self.validEdge( srcDesc, dstDesc );
+          if (isValid) {
+            return "flat";
+          } else {
+            return null;
+          }
+        },
+        loopAllowed( node ) {
+          // for the specified node, return whether edges from itself to itself are allowed
+          var desc = self.nodes[node.id()];
+          return self.validEdgeLoop( desc );
+        },
+        nodeLoopOffset: -50, // offset for edgeType: 'node' loops
+        nodeParams( sourceNode, targetNode ) {
+          // for edges between the specified source and target
+          // return element object to be passed to cy.add() for intermediary node
+          return {};
+        },
+        edgeParams( sourceNode, targetNode, i ) {
+          // for edges between the specified source and target
+          // return element object to be passed to cy.add() for edge
+          // NB: i indicates edge index in case of edgeType: 'node'
+          return {};
+        },
+        start( sourceNode ) {
+          // fired when edgehandles interaction starts (drag on handle)
+        },
+        complete( sourceNode, targetNodes, addedEntities, position ) {
+          // fired when edgehandles is done and entities are added
+          self.edgeContextMenu( sourceNode, targetNodes, addedEntities, position );
+        },
+        stop( sourceNode ) {
+          // fired when edgehandles interaction is stopped (either complete with added edges or incomplete)
+        },
+        cancel( sourceNode, renderedPosition, invalidTarget ){
+          // fired when edgehandles are cancelled (
+          // incomplete - nothing has been added ) -
+          // renderedPosition is where the edgehandle was
+          // released, invalidTarget is
+
+          // a collection on which the handle was released,
+          // but which for other reasons (loopAllowed |
+          // edgeType) is an invalid target
+        }
+      };
+
+      // EDGE HANDLES
+      this._cy.edgehandles( edgeHandleDefaults );
+
+      var childAvailableSelector = "node[NodeType = \"State\"],node[NodeType =\"State Machine\"],node[NodeType =\"Library\"]";
+
+      // CONTEXT MENUS
+      self._cy.on("cxttap", "node, edge", function(e) {
+        self.multiSelectionEnabled = e.originalEvent.ctrlKey;
+        // is there a better way of doing this?
+        if (self.multiSelectionEnabled) {
+          self._cy._private.selectionType = "additive";
+        }
+        else {
+          self._cy._private.selectionType = "single";
+          self.unselectAll();
+        }
+        var node = this;
+        var id = node.id();
+        if (id) {
+          node.select();
+        }
+      });
+
+      var options = {
+        // List of initial menu items
+        menuItems: [
+          {
+            id: "toggleCollapse",
+            content: "(Un-)Show Children",
+            tooltipText: "Toggle the display of children.",
+            selector: childAvailableSelector,
+            onClickFunction ( e ) {
+              //var node = this;
+              var node = e.target;
+
+              if (self._readOnly) {
                 return;
+              }
 
-            var keys = Object.keys(self._unsavedNodePositions);
+              if (node === self._cy) { }
+              else
+                self.toggleShowChildren( node );
+            },
+            coreAsWell: false,
+            hasTrailingDivider: true, // Whether the item will have a trailing divider
+          },
+          {
+            id: "setActive",
+            content: "Set Active",
+            tooltipText: "Set as the active state.",
+            selector: "node[NodeType = \"State\"]",
+            onClickFunction ( e ) {
+              var node = e.target;
+              if (node === self._cy) { }
+              else {
+                self._simulator.setActiveState( node.id() );
+                self.unselectNodes( [node.id()] );
+              }
+            },
+            coreAsWell: false
+          },
+          {
+            id: "newChild",
+            content: "Add child...",
+            tooltipText: "Create a new state, internal transition, etc.",
+            selector: childAvailableSelector,
+            onClickFunction ( e ) {
+              var node = e.target;
 
-            self._client.startTransaction();
+              if (self._readOnly) {
+                return;
+              }
 
-            keys.map(function(k) {
-                var id = k;
-                if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1 ) {
-                    var pos = self._unsavedNodePositions[id];
-                    var originalPos = self.nodes[id].position;
-                    if (!_.isEqual(pos, originalPos)) {
-                        //console.log('saving for '+id);
-                        //console.log(originalPos);
-                        //console.log(pos);
-                        self._client.setRegistry(id, "position", pos);
-                    }
-                }
-            });
+              if (node === self._cy) { }
+              else {
+                var childPosition = e.position;
+                var dialog = new Dialog();
+                dialog.initialize(
+                  self.nodes[ node.id() ],
+                  self._client,
+                  childPosition
+                );
+                dialog.show();
+              }
+            },
+            coreAsWell: false
+          },
+          {
+            id: "Remove",
+            content: "Remove This and Selected Objects",
+            tooltipText: "Remove this object and all currently selected objects (and their outgoing or incoming transitions)",
+            selector: "node, edge",
+            onClickFunction ( e ) { // The function to be executed on click
+              var node = e.target;
 
-            self._client.completeTransaction("", (err, result) => {
-                if (err) {
-                } else {
-                    self._unsavedNodePositions = {};
-                }
-            });
+              if (self._readOnly) {
+                return;
+              }
+
+              if (node === self._cy) { }
+              else {
+                self.selectNodes( [node.id()] );
+                node.select();
+                self.highlightNode(node);
+                self.deleteSelection();
+              }
+            },
+            coreAsWell: false // Whether core instance have this item on cxttap
+          },
+          {
+            id: "DocumentView",
+            content: "View/Edit Documentation",
+            tooltipText: "Edit and View the rendered Markdown Documentation",
+            selector: "node[NodeType = \"Documentation\"]",
+            onClickFunction ( e ) { // The function to be executed on click
+              var node = e.target;
+
+              if (self._readOnly) {
+                return;
+              }
+
+              if (node === self._cy) { }
+              else {
+                self.onEditDocumentation(node.id());
+              }
+            },
+            coreAsWell: false // Whether core instance have this item on cxttap
+          },
+          {
+            id: "arrangeSelection",
+            content: "Auto-Arrange Selected Nodes Here",
+            tooltipText: "Arrange selected nodes into a grid with a top left where the user clicked.",
+            selector: "node",
+            onClickFunction ( e ) {
+              var node = e.target;
+
+              if (self._readOnly) {
+                return;
+              }
+
+              if (node === self._cy) { }
+              else {
+                self.unselectNodes([node.id()]);
+                self._arrangeNodes( self._selectedNodes, e.position );
+              }
+            },
+            coreAsWell: false,
+            hasTrailingDivider: true, // Whether the item will have a trailing divider
+          },
+          {
+            id: "reparentSelection",
+            content: "Move Selected Nodes Here",
+            tooltipText: "Makes the node that was right clicked that parent of the selected node.",
+            selector: childAvailableSelector,
+            onClickFunction ( e ) {
+              var node = e.target;
+
+              if (self._readOnly) {
+                return;
+              }
+
+              if (node === self._cy) { }
+              else {
+                self.unselectNodes([node.id()]);
+                self._moveNodes(
+                  self._selectedNodes,
+                  node.id(),
+                  self.cyPosToScreenPos(e.position)
+                );
+              }
+            },
+            coreAsWell: false,
+            hasTrailingDivider: true, // Whether the item will have a trailing divider
+          },
+        ],
+        // css classes that menu items will have
+        menuItemClasses: [
+          // add class names to this list
+        ],
+        // css classes that context menu will have
+        contextMenuClasses: [
+          // add class names to this list
+        ]
+      };
+
+      var ctxMenuInstance = this._cy.contextMenus( options );
+
+      // PAN ZOOM WIDGET:
+
+      // the default values of each option are outlined below:
+      var panZoom_defaults = {
+        zoomFactor: 0.05, // zoom factor per zoom tick
+        zoomDelay: 45, // how many ms between zoom ticks
+        minZoom: 0.1, // min zoom level
+        maxZoom: 10, // max zoom level
+        fitPadding: 50, // padding when fitting
+        panSpeed: 10, // how many ms in between pan ticks
+        panDistance: 10, // max pan distance per tick
+        panDragAreaSize: 75, // the length of the pan drag box in which the vector for panning is calculated (bigger = finer control of pan speed and direction)
+        panMinPercentSpeed: 0.25, // the slowest speed we can pan by (as a percent of panSpeed)
+        panInactiveArea: 8, // radius of inactive area in pan drag box
+        panIndicatorMinOpacity: 0.5, // min opacity of pan indicator (the draggable nib); scales from this to 1.0
+        zoomOnly: false, // a minimal version of the ui only with zooming (useful on systems with bad mousewheel resolution)
+        //fitSelector: undefined, // selector of elements to fit
+        animateOnFit(){ // whether to animate on fit
+          return false;
+        },
+        fitAnimationDuration: 1000, // duration of animation on fit
+
+        // icon class names
+        sliderHandleIcon: "fa fa-minus",
+        zoomInIcon: "fa fa-plus",
+        zoomOutIcon: "fa fa-minus",
+        resetIcon: "fa fa-expand"
+      };
+
+      self._cy.panzoom( panZoom_defaults );
+
+      // USED FOR DRAG ABILITY
+      self._hoveredNodeId = null;
+      self._cy.on("mouseover", childAvailableSelector, function(e) {
+        var node = this;
+        self._hoveredNodeId = node.id();
+        if (self._isDropping) {
+          self.showDropStatus();
+        } else {
+          self.clearDropStatus();
+        }
+      });
+      self._cy.on("mouseout", childAvailableSelector, function(e) {
+        self._hoveredNodeId = null;
+        if (self._isDropping) {
+          self.showDropStatus();
+        } else {
+          self.clearDropStatus();
+        }
+      });
+      self._el.on("mouseout", function(e) {
+        self._hoveredNodeId = null;
+        self.clearDropStatus();
+      });
+
+      // USED FOR NODE SELECTION AND MULTI-SELECTION
+
+      self._selectedNodes = [];
+      self.multiSelectionEnabled = false;
+      self._cy.on("tap", "node, edge", function(e){
+        self.multiSelectionEnabled = e.originalEvent.ctrlKey;
+        // is there a better way of doing this?
+        if (self.multiSelectionEnabled) {
+          self._cy._private.selectionType = "additive";
+        }
+        else {
+          self._cy._private.selectionType = "single";
+        }
+      });
+      self._cy.on("select", "node, edge", function(e){
+        var node = this;
+        var id = node.id();
+        if (id) {
+          self.selectNodes([id]);
+          self.highlightNode(node);
+        }
+      });
+
+      self._cy.on("unselect", "node, edge", function(e){
+        var node = this;
+        var id = node.id();
+        if (id) {
+          self.unselectNodes([id]);
+        }
+      });
+
+      // USED FOR KNOWING WHEN NODES ARE MOVED
+      self._webGME_to_cy_scale = 1;
+      self._grabbedNode = null;
+      self._cy.on("grabon", "node", function(e) {
+        var node = this;
+        if (node.id()) {
+          self._grabbedNode = node;
+        }
+      });
+
+      self._cy.on("free", "node", function(e) {
+        self._grabbedNode = null;
+      });
+
+      self._debouncedSaveNodePositions = _.debounce(self.saveNodePositions.bind(self), 500);
+      self._unsavedNodePositions = {};
+      self._cy.on("position", "node", function(e) {
+        if (self._grabbedNode) {
+          var node = this;
+          var type = node.data("type");
+          var id = node.id();
+          if (type && rootTypes.indexOf(type) == -1 && self.nodes[id] !== undefined) {
+            var pos = self.cyPosToGmePos( node );
+            self._unsavedNodePositions[id] = pos;
+            self._debouncedSaveNodePositions();
+          }
+        }
+      });
+
+      // USED FOR ZOOMING AFTER INITIALLY LOADING ALL THE NODES (in CreateNode())
+      self._debounced_one_time_zoom = _.debounce(_.once(self.onZoomClicked.bind(self)), 250);
+
+      self._debouncedSelectNodes = _.debounce(self.selectNodes.bind(self), 200);
+
+      this._attachClientEventListeners();
+      this._makeDroppable();
+    };
+
+    /* * * * * * * * Display Functions  * * * * * * * */
+
+    HFSMVizWidget.prototype.selectNodes = function(ids) {
+      var self = this;
+      // update selected nodes
+      self._selectedNodes = _.union(self._selectedNodes, ids);
+      // register updated selection state
+      WebGMEGlobal.State.registerActiveSelection(
+        self._selectedNodes.slice(0),
+        {invoker: self}
+      );
+    };
+
+    HFSMVizWidget.prototype.unselectNodes = function(ids) {
+      var self = this;
+      // update selected nodes
+      self._selectedNodes = _.difference(self._selectedNodes, ids)
+      // ensure cytoscape unselects the selected nodes
+      self.clear();
+      // register updated selection state
+      self._debouncedSelectNodes([]);
+    };
+
+    HFSMVizWidget.prototype.unselectAll = function() {
+      var self = this;
+      // update selected nodes
+      self._selectedNodes = [];
+      // ensure cytoscape unselects the selected nodes
+      self.clear();
+      // register updated selection state
+      self._debouncedSelectNodes([]);
+    };
+
+    function download(filename, text) {
+      var element = document.createElement("a");
+      var imgData = text.split(",")[1]; // after the comma is the actual image data
+
+      blobUtil.base64StringToBlob( imgData.toString() ).then(function(blob) {
+        var blobURL = blobUtil.createObjectURL(blob);
+
+        element.setAttribute("href", blobURL);
+        element.setAttribute("download", filename);
+        element.style.display = "none";
+
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+      }).catch(function(err) {
+        console.log("Couldnt make blob from image!");
+        console.log(err);
+      });
+    }
+
+    HFSMVizWidget.prototype.onEditDocumentation = function(gmeId) {
+      var self = this;
+      var documentation = self.nodes[gmeId].documentation;
+      var editorDialog = new DocumentEditorDialog();
+
+      editorDialog.initialize(documentation, function (text) {
+        try {
+          self._client.setAttribute(gmeId, "documentation", text, "updated documentation for " + gmeId);
+        } catch (e) {
+          console.error("Could not save documentation: ");
+          console.error(e);
+        }
+      });
+
+      editorDialog.show();
+    };
+
+    HFSMVizWidget.prototype.onPanningClicked = function() {
+      var self = this;
+      self._cy.userPanningEnabled(true);
+      self._cy.boxSelectionEnabled(false);
+      self._cy.autoungrabify(false);
+    };
+
+    HFSMVizWidget.prototype.onBoxSelectClicked = function() {
+      var self = this;
+      self._cy.userPanningEnabled(false);
+      self._cy.boxSelectionEnabled(true);
+      self._cy.autoungrabify(true);
+    };
+
+    HFSMVizWidget.prototype.onZoomClicked = function() {
+      var self = this;
+      var layoutPadding = 50;
+      self._cy.fit( self._cy.elements(), layoutPadding);
+      /*
+        self._cy.animate({
+        fit: {
+        eles: self._cy.elements(),
+        padding: layoutPadding
+        },
+        duration: layoutDuration
+        });
+      */
+    };
+
+    HFSMVizWidget.prototype._addSplitPanelToolbarBtns = function(toolbarEl) {
+      var self = this;
+
+      // BUTTON EVENT HANDLERS
+
+      var printEl = [
+        '<span id="print" class="split-panel-toolbar-btn fa fa-print">',
+        '</span>',
+      ].join('\n');
+
+      var moveEl = [
+        '<span id="pan" class="split-panel-toolbar-btn fa fa-arrows">',
+        '</span>',
+      ].join('\n');
+
+      var selectEl = [
+        '<span id="select" class="split-panel-toolbar-btn fa fa-crop">',
+        '</span>',
+      ].join('\n');
+
+      var zoomEl = [
+        '<span id="zoom" class="split-panel-toolbar-btn fa fa-home">',
+        '</span>',
+      ].join('\n');
+
+      var layoutEl = [
+        '<span id="layout" class="split-panel-toolbar-btn fa fa-random">',
+        '</span>',
+      ].join('\n');
+
+      //toolbarEl.append(moveEl);
+      //toolbarEl.append(selectEl);
+
+      toolbarEl.append(printEl);
+      toolbarEl.append(zoomEl);
+      toolbarEl.append(layoutEl);
+
+      toolbarEl.find('#print').on('click', function(){
+        var png = self._cy.png({
+          full: true,
+          scale: 6,
+          bg: 'white'
+        });
+        download( self.HFSMName + '-HFSM.png', png );
+      });
+
+      toolbarEl.find('#pan').on('click', function() {
+        self.onPanningClicked();
+      });
+
+      toolbarEl.find('#select').on('click', function() {
+        self.onBoxSelectClicked();
+      });
+
+      toolbarEl.find('#zoom').on('click', function(){
+        self.onZoomClicked();
+      });
+
+      toolbarEl.find('#layout').on('click', function(){
+        // ask if they really want to randomize the layout
+        var choice = new Choice();
+        var choices = [
+          "Yes, run cose-bilkent layout.",
+          "No, do not change any positions"
+        ];
+        choice.initialize( choices, "Really change the layout?" );
+        choice.show();
+        return choice.waitForChoice()
+          .then(function(choice) {
+            if (choice == choices[0])
+              self.reLayout();
+          });
+      });
+    };
+
+    HFSMVizWidget.prototype.highlightNode = function(node) {
+      var self = this;
+      self._simulator.hideStateInfo();
+      self._simulator.displayStateInfo( node.id() );
+    };
+
+    HFSMVizWidget.prototype.highlightNodes = function(nodes) {
+      var self = this;
+      self._simulator.hideStateInfo();
+    };
+
+    HFSMVizWidget.prototype.clear = function() {
+      var self = this;
+      self._cy.$(":selected").unselect();
+      self._simulator.hideStateInfo();
+    };
+
+    /* * * * * * * * Transition Selection  * * * * * * * */
+
+    HFSMVizWidget.prototype.showTransitions = function( transitionIDs ) {
+      var self = this;
+      self.clear();
+      // update selected nodes
+      self._selectedNodes = [];
+      // update selection state
+      WebGMEGlobal.State.registerActiveSelection(
+        self._selectedNodes.slice(0),
+        {invoker: this}
+      );
+      var tidSelector = transitionIDs.reduce((sel, id) => {
+        self._selectedNodes.push(id);
+        // highlight the Transition
+        var idTag = gmeIdToCySelector(id);
+        if (sel.length) {
+          sel += ",";
+        }
+        return sel + " " + idTag;
+      }, "");
+      var edges = self._cy.$(tidSelector);
+      edges.select();
+      self.highlightNodes( edges );
+      // update selection state
+      WebGMEGlobal.State.registerActiveSelection(
+        self._selectedNodes.slice(0),
+        {invoker: this}
+      );
+    };
+
+
+    /* * * * * * * * Node Position Functions  * * * * * * * */
+
+    HFSMVizWidget.prototype.cyPosition = function(cyNode, pos) {
+      // assumes pos is GME position - origin is top left of the
+      // node
+      let w = cyNode.width(),
+          h = cyNode.height(),
+          x = cyNode.position("x"),
+          y = cyNode.position("y"),
+          x1 = x - w/2,
+          y1 = y - h/2;
+      if (pos == undefined) {
+        // always return position with respect to top left
+        return {
+          x: x1,
+          y: y1
         };
+      } else {
+        // cytoscape uses origin at center of the node, so we
+        // must convert before setting
+        let newPos = {
+          x: pos.x + w/2,
+          y: pos.y + h/2
+        }
+        cyNode.position(newPos);
+      }
+    };
 
-        /* * * * * * * * Graph Creation Functions  * * * * * * * */
+    HFSMVizWidget.prototype.cyPosToScreenPos = function(pos) {
+      var self = this;
+      var extent = self._cy.extent(); // returns bounding box of model positions visible
+      var width = $(self._cy_container).width();
+      var height = $(self._cy_container).height();
+      var newPos = {
+        x: (pos.x - extent.x1) / extent.w  * width,
+        y: (pos.y - extent.y1) / extent.h  * height,
+      };
+      return newPos;
+    };
+
+    HFSMVizWidget.prototype.screenPosToCyPos = function(pos) {
+      var self = this;
+      var extent = self._cy.extent(); // returns bounding box of model positions visible
+      var width = $(self._cy_container).width();
+      var height = $(self._cy_container).height();
+      var newPos = {
+        x: (pos.x / width) * extent.w + extent.x1,
+        y: (pos.y / height) * extent.h + extent.y1,
+      };
+      return newPos;
+    };
+
+    HFSMVizWidget.prototype.gmePosToCyPos = function(desc) {
+      var self = this;
+      var cyPos = desc.position;
+      return cyPos;
+    };
+
+    HFSMVizWidget.prototype.cyPosToGmePos = function(cyNode) {
+      var self = this;
+      var gmePos = self.cyPosition( cyNode );
+      return gmePos;
+    };
+
+    HFSMVizWidget.prototype.needToUpdatePosition = function(pos1, pos2) {
+      var dx = Math.abs(pos1.x - pos2.x);
+      var dy = Math.abs(pos1.y - pos2.y);
+      var dyThresh = 0.01;
+      var dxThresh = 0.01;
+      return (dy > dyThresh || dx > dxThresh);
+    };
+
+    HFSMVizWidget.prototype.saveNodePositions = function() {
+      var self = this;
+      if (_.isEmpty(self._unsavedNodePositions))
+        return;
+
+      var keys = Object.keys(self._unsavedNodePositions);
+
+      self._client.startTransaction();
+
+      keys.map(function(k) {
+        var id = k;
+        if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1 ) {
+          var pos = self._unsavedNodePositions[id];
+          var originalPos = self.nodes[id].position;
+          if (!_.isEqual(pos, originalPos)) {
+            //console.log('saving for '+id);
+            //console.log(originalPos);
+            //console.log(pos);
+            self._client.setRegistry(id, "position", pos);
+          }
+        }
+      });
+
+      self._client.completeTransaction("", (err, result) => {
+        if (err) {
+        } else {
+          self._unsavedNodePositions = {};
+        }
+      });
+    };
+
+    /* * * * * * * * Graph Creation Functions  * * * * * * * */
 
 
-        HFSMVizWidget.prototype.checkDependencies = function(desc) {
-            var self = this;
-            // dependencies will always be either parentId (nodes & edges) or connection (edges)
-            var deps = [];
-            if (desc.parentId && !self.nodes[desc.parentId]) {
-                deps.push(desc.parentId);
-            }
-            if (desc.isConnection) {
-                if (!self.nodes[desc.src])
-                    deps.push(desc.src);
-                if (!self.nodes[desc.dst])
-                    deps.push(desc.dst);
-            }
-            var depsMet = (deps.length == 0);
-            if (!depsMet) {
-                if (desc.isConnection)
-                    self.dependencies.edges[desc.id] = deps;
-                else 
-                    self.dependencies.nodes[desc.id] = deps;
-                self.waitingNodes[desc.id] = desc;
-                if (self.nodes[desc.id])
-                    delete self.nodes[desc.id];
-            }
-            return depsMet;
+    HFSMVizWidget.prototype.checkDependencies = function(desc) {
+      var self = this;
+      // dependencies will always be either parentId (nodes & edges) or connection (edges)
+      var deps = [];
+      if (desc.parentId && !self.nodes[desc.parentId]) {
+        deps.push(desc.parentId);
+      }
+      if (desc.isConnection) {
+        if (!self.nodes[desc.src])
+          deps.push(desc.src);
+        if (!self.nodes[desc.dst])
+          deps.push(desc.dst);
+      }
+      var depsMet = (deps.length == 0);
+      if (!depsMet) {
+        if (desc.isConnection)
+          self.dependencies.edges[desc.id] = deps;
+        else
+          self.dependencies.nodes[desc.id] = deps;
+        self.waitingNodes[desc.id] = desc;
+        if (self.nodes[desc.id])
+          delete self.nodes[desc.id];
+      }
+      return depsMet;
+    };
+
+    HFSMVizWidget.prototype.updateDependencies = function() {
+      var self = this;
+      var nodePaths = Object.keys(self.dependencies.nodes);
+      var edgePaths = Object.keys(self.dependencies.edges);
+      // create any nodes whose depenencies are fulfilled now
+      nodePaths.map(function(nodePath) {
+        var depPaths = self.dependencies.nodes[nodePath];
+        if (depPaths && depPaths.length > 0) {
+          depPaths = depPaths.filter(function(objPath) { return self.nodes[objPath] == undefined; });
+          if (!depPaths.length) {
+            var desc = self.waitingNodes[nodePath];
+            delete self.waitingNodes[nodePath];
+            delete self.dependencies.nodes[nodePath];
+            self.createNode(desc);
+          }
+          else {
+            self.dependencies.nodes[nodePath] = depPaths;
+          }
+        }
+        else {
+          delete self.dependencies.nodes[nodePath];
+        }
+      });
+      // Create any edges whose dependencies are fulfilled now
+      edgePaths.map(function(edgePath) {
+        var depPaths = self.dependencies.edges[edgePath];
+        if (depPaths && depPaths.length > 0) {
+          depPaths = depPaths.filter(function(objPath) { return self.nodes[objPath] == undefined; });
+          if (!depPaths.length) {
+            var connDesc = self.waitingNodes[edgePath];
+            delete self.waitingNodes[edgePath];
+            delete self.dependencies.edges[edgePath];
+            self.createEdge(connDesc);
+          }
+          else {
+            self.dependencies.edges[edgePath] = depPaths;
+          }
+        }
+        else {
+          delete self.dependencies.edges[edgePath];
+        }
+      });
+    };
+
+    HFSMVizWidget.prototype.reLayout = function() {
+      var self = this;
+      var layout = self._cy.layout(self._layout_options);
+      layout.run();
+    };
+
+    HFSMVizWidget.prototype.getDescData = function(desc) {
+      var self = this;
+      var data = {};
+      if (desc.isConnection) {
+        var from = self.nodes[desc.src];
+        var to = self.nodes[desc.dst];
+        if (from && to) {
+          data = {
+            id: desc.id,
+            type: desc.type,
+            interaction: desc.type,
+            source: from.id,
+            target: to.id,
+            name: desc.name,
+            // source-label
+            // target-label
+            label: desc.LABEL,
+            Enabled: (desc.Enabled) ? "True" : "False"
+          };
+        }
+      }
+      else {
+        data = {
+          id: desc.id,
+          parent: desc.parentId,
+          type: desc.type,
+          NodeType: desc.type,
+          name: desc.name,
+          label: desc.LABEL,
+          isIncomplete: (desc.type == "State" && !desc.isComplete) ? "True" : "False"
         };
+      }
+      return data;
+    };
 
-        HFSMVizWidget.prototype.updateDependencies = function() {
-            var self = this;
-            var nodePaths = Object.keys(self.dependencies.nodes);
-            var edgePaths = Object.keys(self.dependencies.edges);
-            // create any nodes whose depenencies are fulfilled now
-            nodePaths.map(function(nodePath) {
-                var depPaths = self.dependencies.nodes[nodePath];
-                if (depPaths && depPaths.length > 0) {
-                    depPaths = depPaths.filter(function(objPath) { return self.nodes[objPath] == undefined; });
-                    if (!depPaths.length) {
-                        var desc = self.waitingNodes[nodePath];
-                        delete self.waitingNodes[nodePath];
-                        delete self.dependencies.nodes[nodePath];
-                        self.createNode(desc);
-                    }
-                    else {
-                        self.dependencies.nodes[nodePath] = depPaths;
-                    }
-                }
-                else {
-                    delete self.dependencies.nodes[nodePath];
-                }
+    HFSMVizWidget.prototype.createEdge = function(desc) {
+      var self = this;
+      if (desc && desc.src && desc.dst) {
+        self.forceShowBranch( desc.parentId );
+        var data = self.getDescData(desc);
+        if (data) {
+          self._cy.add({
+            group: "edges",
+            data: data,
+          });
+          self.nodes[desc.id] = desc;
+          self.updateDependencies();
+        }
+      }
+    };
+
+    HFSMVizWidget.prototype.createNode = function(desc) {
+      var self = this;
+      self.forceShowBranch( desc.parentId );
+      var data = self.getDescData(desc);
+      var node = {
+        group: "nodes",
+        data: data
+      };
+
+      var n = self._cy.add(node);
+
+      var pos = self.gmePosToCyPos(desc);
+      if (pos) {
+        self.cyPosition(n, pos);
+      }
+
+      self.nodes[desc.id] = desc;
+      self.updateDependencies();
+      self._debounced_one_time_zoom();
+    };
+
+    // Adding/Removing/Updating items
+    HFSMVizWidget.prototype.addNode = function (desc) {
+      var self = this;
+      if (self._el && self.nodes && desc) {
+        if ( rootTypes.indexOf( desc.type ) > -1 ) {
+          self.HFSMName = desc.name;
+        }
+        var depsMet = self.checkDependencies(desc);
+        // Add node to a table of nodes
+        if (desc.isConnection) {  // if this is an edge
+          if (depsMet) { // ready to make edge
+            self.createEdge(desc);
+          }
+        }
+        else {
+          if (depsMet) { // ready to make node
+            self.createNode(desc);
+          }
+        }
+        self._simulator.update( );
+      }
+    };
+
+    HFSMVizWidget.prototype.removeNode = function (gmeId) {
+      // TODO: need to have this take into account hidden nodes!
+      var self = this;
+      if (self._el && self.nodes) {
+        var idTag = gmeIdToCySelector(gmeId);
+        var desc = self.nodes[gmeId];
+        if (desc) {
+          self.forceShowBranch( gmeId );
+          if (!desc.isConnection) {
+            delete self.dependencies.nodes[gmeId];
+            self._cy.$(idTag).neighborhood().forEach(function(ele) {
+              if (ele && ele.isEdge()) {
+                var edgeId = ele.data( "id" );
+                var edgeDesc = self.nodes[edgeId];
+                self.checkDependencies(edgeDesc);
+              }
             });
-            // Create any edges whose dependencies are fulfilled now
-            edgePaths.map(function(edgePath) {
-                var depPaths = self.dependencies.edges[edgePath];
-                if (depPaths && depPaths.length > 0) {
-                    depPaths = depPaths.filter(function(objPath) { return self.nodes[objPath] == undefined; });
-                    if (!depPaths.length) {
-                        var connDesc = self.waitingNodes[edgePath];
-                        delete self.waitingNodes[edgePath];
-                        delete self.dependencies.edges[edgePath];
-                        self.createEdge(connDesc);
-                    }
-                    else {
-                        self.dependencies.edges[edgePath] = depPaths;
-                    }
-                }
-                else {
-                    delete self.dependencies.edges[edgePath];
-                }
+          }
+          else {
+            delete self.dependencies.edges[gmeId];
+          }
+          if (self._selectedNodes.indexOf(gmeId) > -1) {
+            self._selectedNodes = self._selectedNodes.filter((id) => {
+              return id != gmeId;
             });
-        };
+            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+          }
+          delete self.nodes[gmeId];
+          delete self.waitingNodes[gmeId];
+          self._cy.remove(idTag);
+          self.updateDependencies();
+          self._simulator.update( );
+        }
+      }
+    };
 
-        HFSMVizWidget.prototype.reLayout = function() {
-            var self = this;
-            var layout = self._cy.layout(self._layout_options);
-            layout.run();
-        };
-
-        HFSMVizWidget.prototype.getDescData = function(desc) {
-            var self = this;
-            var data = {};
-            if (desc.isConnection) {
-                var from = self.nodes[desc.src];
-                var to = self.nodes[desc.dst];
-                if (from && to) {
-                    data = {
-                        id: desc.id,
-                        type: desc.type,
-                        interaction: desc.type,
-                        source: from.id,
-                        target: to.id,
-                        name: desc.name,
-                        // source-label
-                        // target-label
-                        label: desc.LABEL,
-                        Enabled: (desc.Enabled) ? "True" : "False"
-                    };
-                }
+    HFSMVizWidget.prototype.updateNode = function (desc) {
+      var self = this;
+      // TODO: need to have this take into account hidden nodes!
+      if (self._el && desc) {
+        if ( rootTypes.indexOf( desc.type ) > -1 ) {
+          self.HFSMName = desc.name;
+        }
+        var oldDesc = this.nodes[desc.id];
+        if (oldDesc) {
+          var idTag = gmeIdToCySelector(desc.id);
+          var cyNode = this._cy.$(idTag);
+          if (desc.isConnection) {
+            if (desc.src != oldDesc.src || desc.dst != oldDesc.dst) {
+              this._cy.remove(idTag);
+              let depsMet = self.checkDependencies( desc );
+              if (depsMet) {
+                self.createEdge(desc);
+              }
             }
             else {
-                data = {
-                    id: desc.id,
-                    parent: desc.parentId,
-                    type: desc.type,
-                    NodeType: desc.type,
-                    name: desc.name,
-                    label: desc.LABEL,
-                    isIncomplete: (desc.type == "State" && !desc.isComplete) ? "True" : "False"
-                };
+              cyNode.data( this.getDescData(desc) );
             }
-            return data;
+          }
+          else {
+            cyNode.data( this.getDescData(desc) );
+            // update position from model
+            if (!_.isEqual(oldDesc.position, desc.position)) {
+              //console.log(`${desc.name}: (old, new)`);
+              //console.log(oldDesc.position);
+              //console.log(desc.position);
+              if (rootTypes.indexOf(desc.type) == -1) {
+                self.cyPosition(cyNode, self.gmePosToCyPos(desc));
+                delete this._unsavedNodePositions[desc.id];
+              }
+            }
+          }
+        } else { // we haven't seen this node before (might be due to branch change)
+          self.addNode(desc);
+        }
+        this.nodes[desc.id] = desc;
+        self._simulator.update( );
+      }
+    };
+
+    /* * * * * * * * Active State Display      * * * * * * * */
+
+    HFSMVizWidget.prototype.animateElement = function( eleId, _class="active" ) {
+      var self = this;
+      var idTag = gmeIdToCySelector(eleId);
+      var eles = self._cy.$(idTag);
+      if (eles.length) {
+        eles.flashClass(_class, 1000);
+      }
+    };
+
+    HFSMVizWidget.prototype.animateElements = function( eleIds, _class="active" ) {
+      var self = this;
+      var idTag = eleIds.reduce((tag, id) => {
+        var s = gmeIdToCySelector(id);
+        if (tag.length) {
+          tag += ",";
+        }
+        return tag + " " + s;
+      }, "");
+      var eles = self._cy.$(idTag);
+      if (eles.length) {
+        eles.flashClass(_class, 1000);
+      }
+    };
+
+    HFSMVizWidget.prototype.showActiveState = function( stateId ) {
+      var self = this;
+      var previousActiveState = self._cy.nodes("[ActiveState]");
+      if (previousActiveState.length) {
+        var data = previousActiveState.data();
+        data.ActiveState = undefined;
+        previousActiveState.data( data );
+      }
+      if (stateId) {
+        var idTag = gmeIdToCySelector(stateId);
+        var node = self._cy.$(idTag);
+        if (node.length) {
+          var data = node.data();
+          data.ActiveState = true;
+          node.data( data );
+        }
+      }
+    };
+
+    /* * * * * * * * Context Menu Functions    * * * * * * * */
+
+    HFSMVizWidget.prototype.createWebGMEContextMenu = function(menuItems, fnCallback, position) {
+      var self = this;
+
+      var menu = new ContextMenu({
+        items: menuItems,
+        callback: function(key) {
+          if (fnCallback)
+            fnCallback(key);
+        }
+      });
+
+      position = position || {x: 200, y:200};
+      menu.show(position);
+    };
+
+    HFSMVizWidget.prototype.deleteNode = function( nodeId ) {
+      var self = this;
+      var edgesTo = self._simulator.getEdgesToNode( nodeId );
+      var edgesFrom = self._simulator.getEdgesFromNode( nodeId );
+
+      self._client.startTransaction();
+
+      if (edgesTo) {
+        edgesTo.map(function(eid) {
+          self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
+        });
+      }
+      if (edgesFrom) {
+        edgesFrom.map(function(eid) {
+          self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
+        });
+      }
+      self._client.deleteNode( nodeId, "Removing " + nodeId );
+
+      self._client.completeTransaction();
+    };
+
+    HFSMVizWidget.prototype.deleteSelection = function( ) {
+      var self = this;
+
+      var selection = self._selectedNodes,
+          edgesTo = [],
+          edgesFrom = [];
+
+      selection.map(id => {
+        edgesTo = _.union(edgesTo, self._simulator.getEdgesToNode( id ));
+        edgesFrom = _.union(edgesFrom, self._simulator.getEdgesFromNode( id ));
+      });
+
+      self._client.startTransaction();
+
+      selection.map(id => {
+        self._client.deleteNode( id, "Removing selected " + id );
+      });
+      if (edgesTo) {
+        edgesTo.map(function(eid) {
+          self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
+        });
+      }
+      if (edgesFrom) {
+        edgesFrom.map(function(eid) {
+          self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
+        });
+      }
+
+      self._client.completeTransaction();
+    };
+
+    HFSMVizWidget.prototype.getHiddenChildren = function( nodeId ) {
+      var self = this;
+      return self.hiddenNodes[ nodeId ];
+    };
+
+    HFSMVizWidget.prototype.hasHiddenChildren = function( nodeId ) {
+      var self = this;
+      return self.getHiddenChildren( nodeId ) != null;
+    };
+
+    HFSMVizWidget.prototype.forceShowBranch = function ( nodeId ) {
+      var self = this;
+      var node = self.nodes[ nodeId ];
+      if ( node && node.parentId ) {
+        self.forceShowBranch( node.parentId );
+      }
+      self.forceShowChildren( nodeId );
+    };
+
+    HFSMVizWidget.prototype.forceShowChildren = function ( nodeId ) {
+      var self = this;
+      var hidden = self.getHiddenChildren( nodeId );
+      if (hidden && hidden.nodes && hidden.edges) {
+        // currently false, reenable show children
+        hidden.nodes.restore();
+        hidden.edges.restore();
+        delete self.hiddenNodes[nodeId];
+      }
+    };
+
+    HFSMVizWidget.prototype.toggleShowChildren = function ( node ) {
+      var self = this;
+      var hidden = self.getHiddenChildren( node.id() );
+      if (node.isParent()) {
+        // add node background
+        node.style({
+          "background-image": "assets/DecoratorSVG/svgs/stateDiagram.svg",
+          "background-image-opacity": 1.0,
+          "background-width": "90%",
+          "width": 80,
+          "height": 40,
+        });
+        // currently true, disable show children
+        var children, descendants, edges;
+        children = node.children();
+        if (self.hiddenNodes[node.id()]) {
+          descendants = self.hiddenNodes[node.id()].nodes;
+          edges = self.hiddenNodes[node.id()].edges;
+        }
+        else {
+          descendants = node.descendants();
+          edges = descendants.connectedEdges();
+        }
+        self._cy.remove(edges);
+        self._cy.remove(descendants);
+        self.hiddenNodes[node.id()] = {
+          nodes: descendants,
+          edges: edges,
+        };
+      }
+      else if (hidden && hidden.nodes && hidden.edges) {
+        // remove node background
+        node.style({
+          "background-image": null,
+          "background-image-opacity": 0,
+          "width": 10,
+          "height": 10,
+        });
+        // currently false, reenable show children
+        hidden.nodes.restore();
+        hidden.edges.restore();
+        delete self.hiddenNodes[node.id()];
+      }
+    };
+
+    /* * * * * * * Drag & Drop Related Functions * * * * * * */
+
+    function getValidChildrenTypes( desc, client ) {
+      var node = client.getNode( desc.id );
+      var validChildTypes = {};
+
+      // figure out what the allowable range is
+      var validChildren = node.getValidChildrenTypesDetailed(null, true);
+      Object.keys( validChildren ).map(function( metaId ) {
+        var child = client.getNode( metaId );
+        var childType = child.getAttribute("name");
+        var canCreateMore = validChildren[ metaId ];
+        if ( canCreateMore &&
+             !child.isAbstract() )
+          validChildTypes[ childType ] = metaId;
+      });
+      return validChildTypes;
+    };
+
+    HFSMVizWidget.prototype._isValidDrop = function (dragInfo, parentId) {
+      if (!dragInfo || !parentId || this._readOnly)
+        return false;
+      var self = this;
+
+      // default to true if there are dropped items
+      return self._canCreateChildren( dragInfo, parentId );
+    };
+
+    HFSMVizWidget.prototype._canCreateChildren = function( dragInfo, parentId ) {
+      var self = this;
+
+      if (self._readOnly)
+        return false;
+
+      var isValid = dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0;
+
+      for (var i=0; i<dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length; i++) {
+        var nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][i];
+        if (!self._canCreateChild( nodeId, parentId )) {
+          isValid = false;
+          break;
+        }
+      }
+
+      return isValid;
+    };
+
+    HFSMVizWidget.prototype._canCreateChild = function( nodeId, parentId ) {
+      var self = this;
+      var canCreate = false;
+
+      if (self._readOnly)
+        return false;
+
+      var validChildrenTypes,
+          nodeObj,
+          nodeName,
+          metaObj,
+          metaName;
+
+      if (parentId && nodeId) {
+        validChildrenTypes = getValidChildrenTypes(
+          self.nodes[ parentId ],
+          self._client
+        );
+
+        nodeObj = self._client.getNode(nodeId);
+        nodeName = nodeObj.getAttribute("name");
+        metaObj = self._client.getNode(nodeObj.getMetaTypeId());
+        if (metaObj) {
+          metaName = metaObj.getAttribute("name");
+        }
+
+        canCreate = validChildrenTypes && metaName &&
+          ( validChildrenTypes[ metaName ] == nodeId ||
+            validChildrenTypes[ metaName ] == nodeObj.getMetaTypeId() );
+      }
+      return canCreate;
+    };
+
+    HFSMVizWidget.prototype._createNode = function( baseId, parentId, childPosition ) {
+      var self = this,
+          client = self._client;
+
+      if (baseId) {
+
+        client.startTransaction();
+
+        var selector = gmeIdToCySelector(parentId),
+            cyNode = self._cy.$(selector),
+            node = client.getNode(baseId);
+
+        self.forceShowChildren( cyNode.id() );
+
+        var pos = self.screenPosToCyPos( childPosition );
+        var childCreationParams = {
+          parentId: parentId,
+          baseId: baseId,
+          position: pos
         };
 
-        HFSMVizWidget.prototype.createEdge = function(desc) {
-            var self = this;
-            if (desc && desc.src && desc.dst) {
-                self.forceShowBranch( desc.parentId );
-                var data = self.getDescData(desc);
-                if (data) {
-                    self._cy.add({
-                        group: "edges",
-                        data: data,
-                    });
-                    self.nodes[desc.id] = desc;
-                    self.updateDependencies();
-                }
-            }
-        };
+        var newChildPath = client.createChild(childCreationParams, "Creating new child");
 
-        HFSMVizWidget.prototype.createNode = function(desc) {
-            var self = this;
-            self.forceShowBranch( desc.parentId );
-            var data = self.getDescData(desc);
-            var node = {
-                group: "nodes",
-                data: data
+        client.completeTransaction("", function(err, result) {
+          WebGMEGlobal.State.registerActiveSelection([newChildPath]);
+        });
+      }
+    };
+
+    HFSMVizWidget.prototype._instanceNodes = function( nodeIds, parentId, childPosition ) {
+      var self = this,
+          client = self._client;
+
+      if (nodeIds.length > 0) {
+        client.startTransaction("Creating node instances into " + parentId);
+
+        nodeIds.map(function(nodeId) {
+          var selector = gmeIdToCySelector(parentId);
+          var cyNode = self._cy.$(selector);
+          var node = client.getNode(nodeId);
+
+          self.forceShowChildren( cyNode.id() );
+          var pos = self.screenPosToCyPos( childPosition );
+
+          var childCreationParams = {
+            parentId: parentId,
+            baseId: nodeId,
+            position: pos
+          };
+          client.createChild(childCreationParams);
+        });
+
+        client.completeTransaction();
+      }
+    };
+
+    HFSMVizWidget.prototype._copyNodes = function( nodeIds, parentId, childPosition ) {
+      var self = this,
+          client = self._client;
+
+      if (nodeIds.length > 0) {
+        client.startTransaction("Copying Nodes into " + parentId);
+
+        var selector = gmeIdToCySelector(parentId);
+        var cyNode = self._cy.$(selector);
+
+        self.forceShowChildren( cyNode.id() );
+        var pos = self.screenPosToCyPos( childPosition );
+        var params = {parentId: parentId};
+
+        nodeIds.map(function(nodeId) {
+          params[nodeId] = {
+            "registry": {
+              "position": pos
+            }
+          };
+        });
+
+        client.copyMoreNodes(params);
+
+        client.completeTransaction();
+      }
+    };
+
+    HFSMVizWidget.prototype._moveNodes = function( nodeIds, parentId, childPosition ) {
+      var self = this,
+          client = self._client;
+
+      if (nodeIds.length > 0) {
+        if (nodeIds.indexOf(parentId) != -1) {
+          alert("Error!\n"+
+                "Cannot reparent to a node in the selection!");
+          return;
+        }
+
+        try {
+          client.startTransaction("Moving nodes into " + parentId);
+
+          var selector = gmeIdToCySelector(parentId);
+          var cyNode = self._cy.$(selector);
+
+          var params = {parentId: parentId};
+
+          self.forceShowChildren( cyNode.id() );
+          var pos = self.screenPosToCyPos( childPosition );
+
+          nodeIds.map(function(nodeId) {
+            params[nodeId] = {
+              "registry": {
+                "position": pos
+              }
             };
+          });
 
-            var n = self._cy.add(node);
+          client.moveMoreNodes(params);
 
-            var pos = self.gmePosToCyPos(desc);
-            if (pos) {
-                self.cyPosition(n, pos);
+          client.completeTransaction();
+        }
+        catch (ex) {
+          alert(ex);
+        }
+      }
+    };
+
+    HFSMVizWidget.prototype._arrangeNodes = function( nodeIds, modelClickPosition ) {
+      var self = this;
+
+      if (self._readOnly)
+        return false;
+
+      if (nodeIds.length > 1) {
+        try {
+          var options = {
+            name: "grid",
+            fit: false,
+            avoidOverlap: true,
+            nodeDimensionsIncludeLabels: true,
+            condense: true,
+            /*
+              sort: function(a,b) {
+              // should arrange them so they're grouped by type
+              },
+            */
+            animate: false,
+            transform: function(node, position) {
+              var newPos = {
+                x: position.x + modelClickPosition.x,
+                y: position.y + modelClickPosition.y
+              };
+              return newPos;
             }
+          };
 
-            self.nodes[desc.id] = desc;
-            self.updateDependencies();
-            self._debounced_one_time_zoom();
-        };
+          var selector = nodeIds.map(gmeIdToCySelector).join(", ");
+          var cyNodes = self._cy.$(selector);
+          var layout = cyNodes.layout(options);
+          layout.run();
+        }
+        catch (ex) {
+          alert(ex);
+        }
+      }
+    };
 
-        // Adding/Removing/Updating items
-        HFSMVizWidget.prototype.addNode = function (desc) {
-            var self = this;
-            if (self._el && self.nodes && desc) {
-                if ( rootTypes.indexOf( desc.type ) > -1 ) {
-                    self.HFSMName = desc.name;
-                }
-                var depsMet = self.checkDependencies(desc);
-                // Add node to a table of nodes
-                if (desc.isConnection) {  // if this is an edge
-                    if (depsMet) { // ready to make edge
-                        self.createEdge(desc);
-                    }
-                }
-                else {
-                    if (depsMet) { // ready to make node
-                        self.createNode(desc);
-                    }
-                }
-                self._simulator.update( );
-            }
-        };
+    HFSMVizWidget.prototype.showDropStatus = function () {
+      var self = this;
+      self.clearDropStatus();
+      if (self._isDropping && self._hoveredNodeId && self._dropInfo) {
+        var canDrop = !self._readOnly &&
+            self._canCreateChildren( self._dropInfo, self._hoveredNodeId );
+        var selector = gmeIdToCySelector(self._hoveredNodeId);
+        var node = self._cy.$( selector );
+        if (node.length) {
+          var data = node.data();
+          if (canDrop)
+            data.ValidDrop = true;
+          else
+            data.InvalidDrop = true;
+          node.data( data );
+        }
+      }
+    };
 
-        HFSMVizWidget.prototype.removeNode = function (gmeId) {
-            // TODO: need to have this take into account hidden nodes!
-            var self = this;
-            if (self._el && self.nodes) {
-                var idTag = gmeIdToCySelector(gmeId);
-                var desc = self.nodes[gmeId];
-                if (desc) {
-                    self.forceShowBranch( gmeId );
-                    if (!desc.isConnection) {
-                        delete self.dependencies.nodes[gmeId];
-                        self._cy.$(idTag).neighborhood().forEach(function(ele) {
-                            if (ele && ele.isEdge()) {
-                                var edgeId = ele.data( "id" );
-                                var edgeDesc = self.nodes[edgeId];
-                                self.checkDependencies(edgeDesc);
-                            }
-                        });
-                    }
-                    else {
-                        delete self.dependencies.edges[gmeId];
-                    }
-					if (self._selectedNodes.indexOf(gmeId) > -1) {
-						self._selectedNodes = self._selectedNodes.filter((id) => {
-							return id != gmeId;
-						});
-						WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
-					}
-                    delete self.nodes[gmeId];
-                    delete self.waitingNodes[gmeId];
-                    self._cy.remove(idTag);
-                    self.updateDependencies();
-                    self._simulator.update( );
-                }
-            }
-        };
+    HFSMVizWidget.prototype.clearDropStatus = function () {
+      var self = this;
+      var invalidDrops = self._cy.nodes("[InvalidDrop]");
+      if (invalidDrops.length) {
+        var data = invalidDrops.data();
+        data.InvalidDrop = undefined;
+        invalidDrops.data( data );
+      }
+      var validDrops = self._cy.nodes("[ValidDrop]");
+      if (validDrops.length) {
+        var data = validDrops.data();
+        data.ValidDrop = undefined;
+        validDrops.data( data );
+      }
+    };
 
-        HFSMVizWidget.prototype.updateNode = function (desc) {
-            var self = this;
-            // TODO: need to have this take into account hidden nodes!
-            if (self._el && desc) {
-                if ( rootTypes.indexOf( desc.type ) > -1 ) {
-                    self.HFSMName = desc.name;
-                }
-                var oldDesc = this.nodes[desc.id];
-                if (oldDesc) {
-                    var idTag = gmeIdToCySelector(desc.id);
-                    var cyNode = this._cy.$(idTag);
-                    if (desc.isConnection) {
-                        if (desc.src != oldDesc.src || desc.dst != oldDesc.dst) {
-                            this._cy.remove(idTag);
-                            let depsMet = self.checkDependencies( desc );
-                            if (depsMet) {
-                                self.createEdge(desc);
-                            }
-                        }
-                        else {
-                            cyNode.data( this.getDescData(desc) );
-                        }
-                    }
-                    else {
-                        cyNode.data( this.getDescData(desc) );
-                        // update position from model
-                        if (!_.isEqual(oldDesc.position, desc.position)) {
-                            //console.log(`${desc.name}: (old, new)`);
-                            //console.log(oldDesc.position);
-                            //console.log(desc.position);
-                            if (rootTypes.indexOf(desc.type) == -1) {
-                                self.cyPosition(cyNode, self.gmePosToCyPos(desc));
-                                delete this._unsavedNodePositions[desc.id];
-                            }
-                        }
-                    }
-                } else { // we haven't seen this node before (might be due to branch change)
-                    self.addNode(desc);
-                }
-                this.nodes[desc.id] = desc;
-                self._simulator.update( );
-            }
-        };
+    HFSMVizWidget.prototype.dropRequiresMenu = function(dragInfo) {
+      var self = this,
+          client = self._client;
+      // default to all items require a drop menu
+      var requiresMenu = dragInfo && dragInfo[DROP_CONSTANTS.DRAG_EFFECTS].length > 1;
 
-        /* * * * * * * * Active State Display      * * * * * * * */
+      return requiresMenu;
+    };
 
-        HFSMVizWidget.prototype.animateElement = function( eleId, _class="active" ) {
-            var self = this;
-            var idTag = gmeIdToCySelector(eleId);
-            var eles = self._cy.$(idTag);
-            if (eles.length) {
-                eles.flashClass(_class, 1000);
-            }
-        };
+    HFSMVizWidget.prototype.handleDrop = function (event, dragInfo) {
+      var self = this;
 
-        HFSMVizWidget.prototype.animateElements = function( eleIds, _class="active" ) {
-            var self = this;
-			var idTag = eleIds.reduce((tag, id) => {
-				var s = gmeIdToCySelector(id);
-				if (tag.length) {
-					tag += ",";
-				}
-				return tag + " " + s;
-			}, "");
-            var eles = self._cy.$(idTag);
-            if (eles.length) {
-                eles.flashClass(_class, 1000);
-            }
-        };
+      var menuPos = {x: event.pageX, y: event.pageY},
+          childPosition = self._getContainerPosFromEvent(event),
+          parentId = self._hoveredNodeId;
 
-        HFSMVizWidget.prototype.showActiveState = function( stateId ) {
-            var self = this;
-            var previousActiveState = self._cy.nodes("[ActiveState]");
-            if (previousActiveState.length) {
-                var data = previousActiveState.data();
-                data.ActiveState = undefined;
-                previousActiveState.data( data );
-            }
-            if (stateId) {
-                var idTag = gmeIdToCySelector(stateId);
-                var node = self._cy.$(idTag);
-                if (node.length) {
-                    var data = node.data();
-                    data.ActiveState = true;
-                    node.data( data );
-                }
-            }
-        };
+      childPosition.x -= $(self._left).width();
 
-        /* * * * * * * * Context Menu Functions    * * * * * * * */
+      if (self._isValidDrop(dragInfo, parentId)) {
+        if (self.dropRequiresMenu(dragInfo))
+          self.showDropMenu(menuPos, childPosition, dragInfo);
+        else {
+          self._createNode(
+            dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+            parentId,
+            childPosition
+          );
+        }
+      }
+    };
 
-        HFSMVizWidget.prototype.createWebGMEContextMenu = function(menuItems, fnCallback, position) {
-            var self = this;
-
-            var menu = new ContextMenu({
-                items: menuItems,
-                callback: function(key) {
-                    if (fnCallback)
-                        fnCallback(key);
-                }
-            });
-
-            position = position || {x: 200, y:200};
-            menu.show(position);
-        };
-
-        HFSMVizWidget.prototype.deleteNode = function( nodeId ) {
-            var self = this;
-            var edgesTo = self._simulator.getEdgesToNode( nodeId );
-            var edgesFrom = self._simulator.getEdgesFromNode( nodeId );
-
-            self._client.startTransaction();
-
-            if (edgesTo) {
-                edgesTo.map(function(eid) {
-                    self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
-                });
-            }
-            if (edgesFrom) {
-                edgesFrom.map(function(eid) {
-                    self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
-                });
-            }
-            self._client.deleteNode( nodeId, "Removing " + nodeId );
-
-            self._client.completeTransaction();
-        };
-
-        HFSMVizWidget.prototype.deleteSelection = function( ) {
-            var self = this;
-
-            var selection = self._selectedNodes,
-                edgesTo = [],
-                edgesFrom = [];
-
-            selection.map(id => {
-                edgesTo = _.union(edgesTo, self._simulator.getEdgesToNode( id ));
-                edgesFrom = _.union(edgesFrom, self._simulator.getEdgesFromNode( id ));
-            });
-
-            self._client.startTransaction();
-
-            selection.map(id => {
-                self._client.deleteNode( id, "Removing selected " + id );
-            });
-            if (edgesTo) {
-                edgesTo.map(function(eid) {
-                    self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
-                });
-            }
-            if (edgesFrom) {
-                edgesFrom.map(function(eid) {
-                    self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
-                });
-            }
-
-            self._client.completeTransaction();
-        };
-
-        HFSMVizWidget.prototype.getHiddenChildren = function( nodeId ) {
-            var self = this;
-            return self.hiddenNodes[ nodeId ];
-        };
-
-        HFSMVizWidget.prototype.hasHiddenChildren = function( nodeId ) {
-            var self = this;
-            return self.getHiddenChildren( nodeId ) != null;
-        };
-
-        HFSMVizWidget.prototype.forceShowBranch = function ( nodeId ) {
-            var self = this;
-            var node = self.nodes[ nodeId ];
-            if ( node && node.parentId ) {
-                self.forceShowBranch( node.parentId );
-            }
-            self.forceShowChildren( nodeId );
-        };
-
-        HFSMVizWidget.prototype.forceShowChildren = function ( nodeId ) {
-            var self = this;
-            var hidden = self.getHiddenChildren( nodeId );
-            if (hidden && hidden.nodes && hidden.edges) {
-                // currently false, reenable show children
-                hidden.nodes.restore();
-                hidden.edges.restore();
-                delete self.hiddenNodes[nodeId];
-            }
-        };
-
-        HFSMVizWidget.prototype.toggleShowChildren = function ( node ) {
-            var self = this;
-            var hidden = self.getHiddenChildren( node.id() );
-            if (node.isParent()) {
-                // add node background
-                node.style({
-                    "background-image": "assets/DecoratorSVG/svgs/stateDiagram.svg",
-                    "background-image-opacity": 1.0,
-                    "background-width": "90%",
-                    "width": 80,
-                    "height": 40,
-                });
-                // currently true, disable show children
-                var children, descendants, edges;
-                children = node.children();
-                if (self.hiddenNodes[node.id()]) {
-                    descendants = self.hiddenNodes[node.id()].nodes;
-                    edges = self.hiddenNodes[node.id()].edges;
-                }
-                else {
-                    descendants = node.descendants();
-                    edges = descendants.connectedEdges();
-                }
-                self._cy.remove(edges);
-                self._cy.remove(descendants);
-                self.hiddenNodes[node.id()] = {
-                    nodes: descendants,
-                    edges: edges,
-                };
-            }
-            else if (hidden && hidden.nodes && hidden.edges) {
-                // remove node background
-                node.style({
-                    "background-image": null,
-                    "background-image-opacity": 0,
-                    "width": 10,
-                    "height": 10,
-                });
-                // currently false, reenable show children
-                hidden.nodes.restore();
-                hidden.edges.restore();
-                delete self.hiddenNodes[node.id()];
-            }
-        };
-
-        /* * * * * * * Drag & Drop Related Functions * * * * * * */
-
-        function getValidChildrenTypes( desc, client ) {
-            var node = client.getNode( desc.id );
-            var validChildTypes = {};
-
-            // figure out what the allowable range is
-            var validChildren = node.getValidChildrenTypesDetailed(null, true);
-            Object.keys( validChildren ).map(function( metaId ) {
-                var child = client.getNode( metaId );
-                var childType = child.getAttribute("name");
-                var canCreateMore = validChildren[ metaId ];
-                if ( canCreateMore &&
-                     !child.isAbstract() )
-                    validChildTypes[ childType ] = metaId;
-            });
-            return validChildTypes;
-        };
-
-        HFSMVizWidget.prototype._isValidDrop = function (dragInfo, parentId) {
-            if (!dragInfo || !parentId || this._readOnly)
-                return false;
-            var self = this;
-
-            // default to true if there are dropped items
-            return self._canCreateChildren( dragInfo, parentId );
-        };
-
-        HFSMVizWidget.prototype._canCreateChildren = function( dragInfo, parentId ) {
-            var self = this;
-
-            if (self._readOnly)
-                return false;
-
-            var isValid = dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0;
-
-            for (var i=0; i<dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length; i++) {
-                var nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][i];
-                if (!self._canCreateChild( nodeId, parentId )) {
-                    isValid = false;
-                    break;
-                }
-            }
-
-            return isValid;
-        };
-
-        HFSMVizWidget.prototype._canCreateChild = function( nodeId, parentId ) {
-            var self = this;
-            var canCreate = false;
-
-            if (self._readOnly)
-                return false;
-
-            var validChildrenTypes,
-                nodeObj,
-                nodeName,
-                metaObj,
-                metaName;
-
-            if (parentId && nodeId) {
-                validChildrenTypes = getValidChildrenTypes(
-                    self.nodes[ parentId ],
-                    self._client
+    HFSMVizWidget.prototype.showDropMenu = function (menuPosition, childPosition, dragInfo) {
+      var self = this,
+          parentId = self._hoveredNodeId,
+          options = {
+            "0": {
+              name: "Create Instance",
+              icon: false,
+              fn: function() {
+                self._instanceNodes(
+                  dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                  parentId,
+                  childPosition
                 );
-
-                nodeObj = self._client.getNode(nodeId);
-                nodeName = nodeObj.getAttribute("name");
-                metaObj = self._client.getNode(nodeObj.getMetaTypeId());
-                if (metaObj) {
-                    metaName = metaObj.getAttribute("name");
-                }
-
-                canCreate = validChildrenTypes && metaName &&
-                    ( validChildrenTypes[ metaName ] == nodeId ||
-                      validChildrenTypes[ metaName ] == nodeObj.getMetaTypeId() );
+              }
+            },
+            "1": {
+              name: "Move Here",
+              icon: false,
+              fn: function() {
+                self._moveNodes(
+                  dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                  parentId,
+                  childPosition
+                );
+              }
+            },
+            "2": {
+              name: "Copy Here",
+              icon: false,
+              fn: function() {
+                self._copyNodes(
+                  dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                  parentId,
+                  childPosition
+                );
+              }
             }
-            return canCreate;
-        };
-
-        HFSMVizWidget.prototype._createNode = function( baseId, parentId, childPosition ) {
-            var self = this,
-                client = self._client;
-
-            if (baseId) {
-
-                client.startTransaction();
-
-                var selector = gmeIdToCySelector(parentId),
-                    cyNode = self._cy.$(selector),
-                    node = client.getNode(baseId);
-
-                self.forceShowChildren( cyNode.id() );
-
-                var pos = self.screenPosToCyPos( childPosition );
-                var childCreationParams = {
-                    parentId: parentId,
-                    baseId: baseId,
-                    position: pos
-                };
-
-                var newChildPath = client.createChild(childCreationParams, "Creating new child");
-
-                client.completeTransaction("", function(err, result) {
-                    WebGMEGlobal.State.registerActiveSelection([newChildPath]);
-                });
-            }
-        };
-
-        HFSMVizWidget.prototype._instanceNodes = function( nodeIds, parentId, childPosition ) {
-            var self = this,
-                client = self._client;
-
-            if (nodeIds.length > 0) {
-                client.startTransaction("Creating node instances into " + parentId);
-
-                nodeIds.map(function(nodeId) {
-                    var selector = gmeIdToCySelector(parentId);
-                    var cyNode = self._cy.$(selector);
-                    var node = client.getNode(nodeId);
-
-                    self.forceShowChildren( cyNode.id() );
-                    var pos = self.screenPosToCyPos( childPosition );
-
-                    var childCreationParams = {
-                        parentId: parentId,
-                        baseId: nodeId,
-                        position: pos
-                    };
-                    client.createChild(childCreationParams);
-                });
-
-                client.completeTransaction();
-            }
-        };
-
-        HFSMVizWidget.prototype._copyNodes = function( nodeIds, parentId, childPosition ) {
-            var self = this,
-                client = self._client;
-
-            if (nodeIds.length > 0) {
-                client.startTransaction("Copying Nodes into " + parentId);
-
-                var selector = gmeIdToCySelector(parentId);
-                var cyNode = self._cy.$(selector);
-
-                self.forceShowChildren( cyNode.id() );
-                var pos = self.screenPosToCyPos( childPosition );
-                var params = {parentId: parentId};
-
-                nodeIds.map(function(nodeId) {
-                    params[nodeId] = {
-                        "registry": {
-                            "position": pos
-                        }
-                    };
-                });
-
-                client.copyMoreNodes(params);
-
-                client.completeTransaction();
-            }
-        };
-
-        HFSMVizWidget.prototype._moveNodes = function( nodeIds, parentId, childPosition ) {
-            var self = this,
-                client = self._client;
-
-            if (nodeIds.length > 0) {
-                if (nodeIds.indexOf(parentId) != -1) {
-                    alert("Error!\n"+
-                          "Cannot reparent to a node in the selection!");
-                    return;
-                }
-
-                try {
-                    client.startTransaction("Moving nodes into " + parentId);
-
-                    var selector = gmeIdToCySelector(parentId);
-                    var cyNode = self._cy.$(selector);
-
-                    var params = {parentId: parentId};
-
-                    self.forceShowChildren( cyNode.id() );
-                    var pos = self.screenPosToCyPos( childPosition );
-
-                    nodeIds.map(function(nodeId) {
-                        params[nodeId] = {
-                            "registry": {
-                                "position": pos
-                            }
-                        };
-                    });
-
-                    client.moveMoreNodes(params);
-
-                    client.completeTransaction();
-                }
-                catch (ex) {
-                    alert(ex);
-                }
-            }
-        };
-
-        HFSMVizWidget.prototype._arrangeNodes = function( nodeIds, modelClickPosition ) {
-            var self = this;
-
-            if (self._readOnly)
-                return false;
-
-            if (nodeIds.length > 1) {
-                try {
-                    var options = {
-                        name: "grid",
-                        fit: false,
-                        avoidOverlap: true,
-                        nodeDimensionsIncludeLabels: true,
-                        condense: true,
-                        /*
-                          sort: function(a,b) {
-                          // should arrange them so they're grouped by type
-                          },
-                        */
-                        animate: false,
-                        transform: function(node, position) {
-                            var newPos = {
-                                x: position.x + modelClickPosition.x,
-                                y: position.y + modelClickPosition.y
-                            };
-                            return newPos;
-                        }
-                    };
-
-                    var selector = nodeIds.map(gmeIdToCySelector).join(", ");
-                    var cyNodes = self._cy.$(selector);
-                    var layout = cyNodes.layout(options);
-                    layout.run();
-                }
-                catch (ex) {
-                    alert(ex);
-                }
-            }
-        };
-
-        HFSMVizWidget.prototype.showDropStatus = function () {
-            var self = this;
-            self.clearDropStatus();
-            if (self._isDropping && self._hoveredNodeId && self._dropInfo) {
-                var canDrop = !self._readOnly &&
-                    self._canCreateChildren( self._dropInfo, self._hoveredNodeId );
-                var selector = gmeIdToCySelector(self._hoveredNodeId);
-                var node = self._cy.$( selector );
-                if (node.length) {
-                    var data = node.data();
-                    if (canDrop)
-                        data.ValidDrop = true;
-                    else
-                        data.InvalidDrop = true;
-                    node.data( data );
-                }
-            }
-        };
-
-        HFSMVizWidget.prototype.clearDropStatus = function () {
-            var self = this;
-            var invalidDrops = self._cy.nodes("[InvalidDrop]");
-            if (invalidDrops.length) {
-                var data = invalidDrops.data();
-                data.InvalidDrop = undefined;
-                invalidDrops.data( data );
-            }
-            var validDrops = self._cy.nodes("[ValidDrop]");
-            if (validDrops.length) {
-                var data = validDrops.data();
-                data.ValidDrop = undefined;
-                validDrops.data( data );
-            }
-        };
-
-        HFSMVizWidget.prototype.dropRequiresMenu = function(dragInfo) {
-            var self = this,
-                client = self._client;
-            // default to all items require a drop menu
-            var requiresMenu = dragInfo && dragInfo[DROP_CONSTANTS.DRAG_EFFECTS].length > 1;
-
-            return requiresMenu;
-        };
-
-        HFSMVizWidget.prototype.handleDrop = function (event, dragInfo) {
-            var self = this;
-
-            var menuPos = {x: event.pageX, y: event.pageY},
-                childPosition = self._getContainerPosFromEvent(event),
-                parentId = self._hoveredNodeId;
-
-            childPosition.x -= $(self._left).width();
-
-            if (self._isValidDrop(dragInfo, parentId)) {
-                if (self.dropRequiresMenu(dragInfo))
-                    self.showDropMenu(menuPos, childPosition, dragInfo);
-                else {
-                    self._createNode(
-                        dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
-                        parentId,
-                        childPosition
-                    );
-                }
-            }
-        };
-
-        HFSMVizWidget.prototype.showDropMenu = function (menuPosition, childPosition, dragInfo) {
-            var self = this,
-                parentId = self._hoveredNodeId,
-                options = {
-                    "0": {
-                        name: "Create Instance",
-                        icon: false,
-                        fn: function() {
-                            self._instanceNodes(
-                                dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
-                                parentId,
-                                childPosition
-                            );
-                        }
-                    },
-                    "1": {
-                        name: "Move Here",
-                        icon: false,
-                        fn: function() {
-                            self._moveNodes(
-                                dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
-                                parentId,
-                                childPosition
-                            );
-                        }
-                    },
-                    "2": {
-                        name: "Copy Here",
-                        icon: false,
-                        fn: function() {
-                            self._copyNodes(
-                                dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
-                                parentId,
-                                childPosition
-                            );
-                        }
-                    }
-                };
-
-            if (self._readOnly)
-                return;
-
-            self.createWebGMEContextMenu(options, function(option) {
-                if (options[option] && options[option].fn)
-                    options[option].fn();
-            }, menuPosition);
-        };
-
-        HFSMVizWidget.prototype._makeDroppable = function () {
-            var self = this,
-                desc;
-            self._isDropping = false;
-            self._right.addClass("drop-area");
-            //self._div.append(self.__iconAssignNullPointer);
-
-            dropTarget.makeDroppable(self._right, {
-                over: function (event, dragInfo) {
-                    self._isDropping = true;
-                    self._dropInfo = dragInfo;
-                },
-                out: function (/*event, dragInfo*/) {
-                    self._isDropping = false;
-                    self._dropInfo = null;
-                },
-                drop: function (event, dragInfo) {
-                    self.handleDrop(event, dragInfo);
-                    self._isDropping = false;
-                    self._dropInfo = null;
-                }
-            });
-        };
-
-        /* * * * * * * * Edge Creation Functions   * * * * * * * */
-
-        HFSMVizWidget.prototype.edgeContextMenu = function(cySource, cyTargets, addedEdges, position) {
-            var self = this,
-                client = self._client;
-            // get the valid connections that can be made
-            if (!cySource || !cyTargets || !addedEdges) {
-            }
-
-            // remove the temporary edges
-            addedEdges.map(function(ae) {
-                ae.remove();
-            });
-
-            if (self._readOnly)
-                return;
-
-            var srcId = cySource.id();
-            var srcDesc = self.nodes[srcId];
-            var dstId = cyTargets[0].id();
-            var dstDesc = self.nodes[dstId];
-
-            var parentId = srcDesc.parentId;
-
-            function makeOption(src, dst, connId) {
-                var conn = client.getNode(connId);
-                var connName = conn.getAttribute("name");
-                var option = {
-                    name: connName,
-                    icon: false,
-                    fn: function() {
-                        self.createNewEdge( parentId, src, dst, connId );
-                    }
-                };
-                if (connName.includes("Local Transition")) {
-                    var srcSelector = gmeIdToCySelector(src);
-                    var dstSelector = gmeIdToCySelector(dst);
-                    var srcNode = self._cy.$(srcSelector);
-                    var dstNode = self._cy.$(dstSelector);
-                    var srcDescendants = srcNode.descendants(dstSelector);
-                    var dstDescendants = dstNode.descendants(srcSelector);
-                    // make sure one is a descendant of the other
-                    if (!srcDescendants.contains(dstNode) && !dstDescendants.contains(srcNode)) {
-                        option = null;
-                    }
-                }
-                return option;
-            }
-
-            // figure out what kind of connections the parent can have
-            var parentNode = client.getNode(parentId);
-            var validConnections = GMEConcepts.getValidConnectionTypesInAspect(srcId, dstId, parentId, CONSTANTS.ASPECT_ALL);
-
-            if (validConnections.length > 0) {
-                var options = {};
-                var localKey = "" + validConnections.length;
-                var i = 0;
-                validConnections.map(function(typeId) {
-                    var key = ""+i;
-                    var option = makeOption( srcId, dstId, typeId);
-                    if (option !== null) {
-                        i++;
-                        options[key] = option;
-                    }
-                });
-
-                var targetPos = self.cyPosition( cyTargets[0] );
-                targetPos = position || self.cyPosToScreenPos( targetPos );
-                targetPos.x += $(self._left).width();
-                targetPos = self._relativeToWindowPos( targetPos );
-
-                self.createWebGMEContextMenu(options, function(option) {
-                    if (options[option] && options[option].fn)
-                        options[option].fn();
-                }, targetPos);
-            }
-        };
-
-        HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeMetaId ) {
-            var self = this;
-            var client = self._client;
-            var edgeMetaNode = client.getNode(edgeMetaId);
-            var edgeType = edgeMetaNode.getAttribute("name");
-            // default to old case of edge being sibling of src
-            var edgeParentId = parentId;
-            // get common parent to make the edge a child of the
-            // common ancestor of the src and dst
-            var srcSelector = gmeIdToCySelector(srcId);
-            var dstSelector = gmeIdToCySelector(dstId);
-            var srcNode = self._cy.$(srcSelector);
-            var dstNode = self._cy.$(dstSelector);
-            var srcAncestors = srcNode.ancestors(dstSelector);
-            var dstAncestors = dstNode.ancestors(srcSelector);
-            if (dstAncestors.contains(srcNode)) {
-                // handle the case that the src is an ancestor of the dst
-                edgeParentId = srcId;
-            } else if (srcAncestors.contains(dstNode)) {
-                // handle the case that the dst is an ancestor of the src
-                edgeParentId = dstId;
-            } else {
-                // handle the case that the src and dst are in separate sub-graphs
-                var commonAncestorCy = self._cy.$( srcSelector + "," + dstSelector )
-                    .commonAncestors()
-                    .first();
-                edgeParentId = commonAncestorCy && commonAncestorCy.id();
-            }
-
-            var childCreationParams = {
-                parentId: edgeParentId,
-                baseId: edgeMetaId,
-            };
-
-            client.startTransaction();
-
-            var msg = "Creating " + edgeType + " between " + srcId + " and "+dstId;
-            var newEdgePath = client.createChild( childCreationParams, msg);
-            if (newEdgePath) {
-                msg = "Setting src pointer for " + newEdgePath + " to " + srcId;
-                client.setPointer( newEdgePath, "src", srcId, msg );
-                msg = "Setting dst pointer for " + newEdgePath + " to " + dstId;
-                client.setPointer( newEdgePath, "dst", dstId, msg );
-            }
-
-            client.completeTransaction();
-
-            return newEdgePath;
-        };
-
-        HFSMVizWidget.prototype.isValidSource = function( desc ) {
-            var self = this;
-            if (self._readOnly)
-                return false;
-            if (desc.type == "End State")
-                return false;
-            else if (desc.type == "Internal Transition")
-                return false;
-            else if (desc.type == "Deep History Pseudostate")
-                return false;
-            else if (desc.type == "Shallow History Pseudostate")
-                return false;
-            else if (desc.type == "State Machine")
-                return false;
-            else if (desc.type == "Documentation")
-                return false;
-            else if (desc.type == "Initial") {
-                // if initial already has transition, don't allow more
-                var initialEdges = self._simulator.getEdgesFromNode( desc.id );
-                if (initialEdges.length)
-                    return false;
-            }
-            return true;
-        };
-
-        HFSMVizWidget.prototype.validEdgeLoop = function( desc ) {
-            var self = this;
-            if (self._readOnly)
-                return false;
-            if (desc && desc.type) {
-                if (desc.type == "Initial" ||
-                    desc.type == "End State" ||
-                    desc.type == "Internal Transition" ||
-                    desc.type == "Deep History Pseudostate" ||
-                    desc.type == "Shallow History Pseudostate" ||
-                    desc.type == "Choice Pseudostate")
-                    return false;
-                else
-                    return true;
-            } else {
-                return false;
-            }
-        };
-
-        HFSMVizWidget.prototype.validEdge = function( srcDesc, dstDesc ) {
-            var self = this;
-            if (self._readOnly)
-                return false;
-            var valid = true;
-            var srcType = srcDesc && srcDesc.type || "Initial";
-            var dstType = dstDesc && dstDesc.type || "Initial";
-            if (dstType == "Initial")
-                valid = false;
-            else if (dstType == "State Machine")
-                valid = false;
-            else if (dstType == "Internal Transition")
-                valid = false;
-            else if (srcType == "Internal Transition")
-                valid = false;
-            else if (srcType == "End State")
-                valid = false;
-            else if (srcType == "Deep History Pseudostate")
-                valid = false;
-            else if (srcType == "Shallow History Pseudostate")
-                valid = false;
-            else if (srcType == "Initial") {
-                if (dstType == "Deep History Pseudostate" ||
-                    dstType == "Shallow History Pseudostate" ||
-                    dstType == "End State")
-                    valid = false;
-            }
-            return valid;
-        };
-
-        /* * * * * * * * Visualizer event handlers * * * * * * * */
-
-        HFSMVizWidget.prototype.onWidgetContainerResize = function (width, height) {
-            this._cy.resize();
-        };
-
-        HFSMVizWidget.prototype.onNodeClick = function (/*id*/) {
-            // This currently changes the active node to the given id and
-            // this is overridden in the controller.
-        };
-
-        HFSMVizWidget.prototype.onBackgroundDblClick = function () {
-        };
-
-        HFSMVizWidget.prototype.clearNodes = function() {
-            delete this.nodes;
-            if (this._cy) {
-                this._cy.nodes().remove();
-            }
-            // now re-init
-            this.nodes = {};
-            this._unsavedNodePositions = {};
-        };
-
-        HFSMVizWidget.prototype.shutdown = function() {
-            if (this._simulator) {
-                delete this._simulator;
-            }
-            if (this._cy) {
-                this._cy.destroy();
-            }
-            if (this._el) {
-                this._el.empty();
-            }
-        };
-
-        /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
-        HFSMVizWidget.prototype._attachClientEventListeners = function () {
-            this._detachClientEventListeners();
-            WebGMEGlobal.State.on("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
-                                  this._stateActiveSelectionChanged, this);
-            this.boundBranchChanged = this._branchChanged.bind(this);
-            this._client.addEventListener(this._client.CONSTANTS.BRANCH_CHANGED,
-                                          this.boundBranchChanged);
-            this.boundBranchStatusChanged = this._branchStatusChanged.bind(this);
-            this._client.addEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED,
-                                          this.boundBranchStatusChanged);
+          };
+
+      if (self._readOnly)
+        return;
+
+      self.createWebGMEContextMenu(options, function(option) {
+        if (options[option] && options[option].fn)
+          options[option].fn();
+      }, menuPosition);
+    };
+
+    HFSMVizWidget.prototype._makeDroppable = function () {
+      var self = this,
+          desc;
+      self._isDropping = false;
+      self._right.addClass("drop-area");
+      //self._div.append(self.__iconAssignNullPointer);
+
+      dropTarget.makeDroppable(self._right, {
+        over: function (event, dragInfo) {
+          self._isDropping = true;
+          self._dropInfo = dragInfo;
+        },
+        out: function (/*event, dragInfo*/) {
+          self._isDropping = false;
+          self._dropInfo = null;
+        },
+        drop: function (event, dragInfo) {
+          self.handleDrop(event, dragInfo);
+          self._isDropping = false;
+          self._dropInfo = null;
         }
+      });
+    };
 
-        HFSMVizWidget.prototype._detachClientEventListeners = function () {
-            WebGMEGlobal.State.off("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
-                                  this._stateActiveSelectionChanged, this);
-            this._client.removeEventListener(this._client.CONSTANTS.BRANCH_CHANGED, this.boundBranchChanged);
-            this._client.removeEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED, this.boundBranchStatusChanged);
+    /* * * * * * * * Edge Creation Functions   * * * * * * * */
+
+    HFSMVizWidget.prototype.edgeContextMenu = function(cySource, cyTargets, addedEdges, position) {
+      var self = this,
+          client = self._client;
+      // get the valid connections that can be made
+      if (!cySource || !cyTargets || !addedEdges) {
+      }
+
+      // remove the temporary edges
+      addedEdges.map(function(ae) {
+        ae.remove();
+      });
+
+      if (self._readOnly)
+        return;
+
+      var srcId = cySource.id();
+      var srcDesc = self.nodes[srcId];
+      var dstId = cyTargets[0].id();
+      var dstDesc = self.nodes[dstId];
+
+      var parentId = srcDesc.parentId;
+
+      function makeOption(src, dst, connId) {
+        var conn = client.getNode(connId);
+        var connName = conn.getAttribute("name");
+        var option = {
+          name: connName,
+          icon: false,
+          fn: function() {
+            self.createNewEdge( parentId, src, dst, connId );
+          }
+        };
+        if (connName.includes("Local Transition")) {
+          var srcSelector = gmeIdToCySelector(src);
+          var dstSelector = gmeIdToCySelector(dst);
+          var srcNode = self._cy.$(srcSelector);
+          var dstNode = self._cy.$(dstSelector);
+          var srcDescendants = srcNode.descendants(dstSelector);
+          var dstDescendants = dstNode.descendants(srcSelector);
+          // make sure one is a descendant of the other
+          if (!srcDescendants.contains(dstNode) && !dstDescendants.contains(srcNode)) {
+            option = null;
+          }
         }
+        return option;
+      }
 
-        HFSMVizWidget.prototype.destroy = function () {
-            this._detachClientEventListeners();
-            this.clearNodes();
-            this.shutdown();
-        };
+      // figure out what kind of connections the parent can have
+      var parentNode = client.getNode(parentId);
+      var validConnections = GMEConcepts.getValidConnectionTypesInAspect(srcId, dstId, parentId, CONSTANTS.ASPECT_ALL);
 
-        HFSMVizWidget.prototype.onActivate = function () {
-            this._attachClientEventListeners();
-        };
+      if (validConnections.length > 0) {
+        var options = {};
+        var localKey = "" + validConnections.length;
+        var i = 0;
+        validConnections.map(function(typeId) {
+          var key = ""+i;
+          var option = makeOption( srcId, dstId, typeId);
+          if (option !== null) {
+            i++;
+            options[key] = option;
+          }
+        });
 
-        HFSMVizWidget.prototype.onDeactivate = function () {
-            this._detachClientEventListeners();
-        };
+        var targetPos = self.cyPosition( cyTargets[0] );
+        targetPos = position || self.cyPosToScreenPos( targetPos );
+        targetPos.x += $(self._left).width();
+        targetPos = self._relativeToWindowPos( targetPos );
 
-        return HFSMVizWidget;
-    });
+        self.createWebGMEContextMenu(options, function(option) {
+          if (options[option] && options[option].fn)
+            options[option].fn();
+        }, targetPos);
+      }
+    };
+
+    HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeMetaId ) {
+      var self = this;
+      var client = self._client;
+      var edgeMetaNode = client.getNode(edgeMetaId);
+      var edgeType = edgeMetaNode.getAttribute("name");
+      // default to old case of edge being sibling of src
+      var edgeParentId = parentId;
+      // get common parent to make the edge a child of the
+      // common ancestor of the src and dst
+      var srcSelector = gmeIdToCySelector(srcId);
+      var dstSelector = gmeIdToCySelector(dstId);
+      var srcNode = self._cy.$(srcSelector);
+      var dstNode = self._cy.$(dstSelector);
+      var srcAncestors = srcNode.ancestors(dstSelector);
+      var dstAncestors = dstNode.ancestors(srcSelector);
+      if (dstAncestors.contains(srcNode)) {
+        // handle the case that the src is an ancestor of the dst
+        edgeParentId = srcId;
+      } else if (srcAncestors.contains(dstNode)) {
+        // handle the case that the dst is an ancestor of the src
+        edgeParentId = dstId;
+      } else {
+        // handle the case that the src and dst are in separate sub-graphs
+        var commonAncestorCy = self._cy.$( srcSelector + "," + dstSelector )
+            .commonAncestors()
+            .first();
+        edgeParentId = commonAncestorCy && commonAncestorCy.id();
+      }
+
+      var childCreationParams = {
+        parentId: edgeParentId,
+        baseId: edgeMetaId,
+      };
+
+      client.startTransaction();
+
+      var msg = "Creating " + edgeType + " between " + srcId + " and "+dstId;
+      var newEdgePath = client.createChild( childCreationParams, msg);
+      if (newEdgePath) {
+        msg = "Setting src pointer for " + newEdgePath + " to " + srcId;
+        client.setPointer( newEdgePath, "src", srcId, msg );
+        msg = "Setting dst pointer for " + newEdgePath + " to " + dstId;
+        client.setPointer( newEdgePath, "dst", dstId, msg );
+      }
+
+      client.completeTransaction();
+
+      return newEdgePath;
+    };
+
+    HFSMVizWidget.prototype.isValidSource = function( desc ) {
+      var self = this;
+      if (self._readOnly)
+        return false;
+      if (desc.type == "End State")
+        return false;
+      else if (desc.type == "Internal Transition")
+        return false;
+      else if (desc.type == "Deep History Pseudostate")
+        return false;
+      else if (desc.type == "Shallow History Pseudostate")
+        return false;
+      else if (desc.type == "State Machine")
+        return false;
+      else if (desc.type == "Documentation")
+        return false;
+      else if (desc.type == "Initial") {
+        // if initial already has transition, don't allow more
+        var initialEdges = self._simulator.getEdgesFromNode( desc.id );
+        if (initialEdges.length)
+          return false;
+      }
+      return true;
+    };
+
+    HFSMVizWidget.prototype.validEdgeLoop = function( desc ) {
+      var self = this;
+      if (self._readOnly)
+        return false;
+      if (desc && desc.type) {
+        if (desc.type == "Initial" ||
+            desc.type == "End State" ||
+            desc.type == "Internal Transition" ||
+            desc.type == "Deep History Pseudostate" ||
+            desc.type == "Shallow History Pseudostate" ||
+            desc.type == "Choice Pseudostate")
+          return false;
+        else
+          return true;
+      } else {
+        return false;
+      }
+    };
+
+    HFSMVizWidget.prototype.validEdge = function( srcDesc, dstDesc ) {
+      var self = this;
+      if (self._readOnly)
+        return false;
+      var valid = true;
+      var srcType = srcDesc && srcDesc.type || "Initial";
+      var dstType = dstDesc && dstDesc.type || "Initial";
+      if (dstType == "Initial")
+        valid = false;
+      else if (dstType == "State Machine")
+        valid = false;
+      else if (dstType == "Internal Transition")
+        valid = false;
+      else if (srcType == "Internal Transition")
+        valid = false;
+      else if (srcType == "End State")
+        valid = false;
+      else if (srcType == "Deep History Pseudostate")
+        valid = false;
+      else if (srcType == "Shallow History Pseudostate")
+        valid = false;
+      else if (srcType == "Initial") {
+        if (dstType == "Deep History Pseudostate" ||
+            dstType == "Shallow History Pseudostate" ||
+            dstType == "End State")
+          valid = false;
+      }
+      return valid;
+    };
+
+    /* * * * * * * * Visualizer event handlers * * * * * * * */
+
+    HFSMVizWidget.prototype.onWidgetContainerResize = function (width, height) {
+      this._cy.resize();
+    };
+
+    HFSMVizWidget.prototype.onNodeClick = function (/*id*/) {
+      // This currently changes the active node to the given id and
+      // this is overridden in the controller.
+    };
+
+    HFSMVizWidget.prototype.onBackgroundDblClick = function () {
+    };
+
+    HFSMVizWidget.prototype.clearNodes = function() {
+      delete this.nodes;
+      if (this._cy) {
+        this._cy.nodes().remove();
+      }
+      // now re-init
+      this.nodes = {};
+      this._unsavedNodePositions = {};
+    };
+
+    HFSMVizWidget.prototype.shutdown = function() {
+      if (this._simulator) {
+        delete this._simulator;
+      }
+      if (this._cy) {
+        this._cy.destroy();
+      }
+      if (this._el) {
+        this._el.empty();
+      }
+    };
+
+    /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
+    HFSMVizWidget.prototype._attachClientEventListeners = function () {
+      this._detachClientEventListeners();
+      WebGMEGlobal.State.on("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
+                            this._stateActiveSelectionChanged, this);
+      this.boundBranchChanged = this._branchChanged.bind(this);
+      this._client.addEventListener(this._client.CONSTANTS.BRANCH_CHANGED,
+                                    this.boundBranchChanged);
+      this.boundBranchStatusChanged = this._branchStatusChanged.bind(this);
+      this._client.addEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED,
+                                    this.boundBranchStatusChanged);
+    }
+
+    HFSMVizWidget.prototype._detachClientEventListeners = function () {
+      WebGMEGlobal.State.off("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
+                             this._stateActiveSelectionChanged, this);
+      this._client.removeEventListener(this._client.CONSTANTS.BRANCH_CHANGED, this.boundBranchChanged);
+      this._client.removeEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED, this.boundBranchStatusChanged);
+    }
+
+    HFSMVizWidget.prototype.destroy = function () {
+      this._detachClientEventListeners();
+      this.clearNodes();
+      this.shutdown();
+    };
+
+    HFSMVizWidget.prototype.onActivate = function () {
+      this._attachClientEventListeners();
+    };
+
+    HFSMVizWidget.prototype.onDeactivate = function () {
+      this._detachClientEventListeners();
+    };
+
+    return HFSMVizWidget;
+  });
