@@ -1,16 +1,16 @@
-#ifndef __STATE_BASE__INCLUDE_GUARD
-#define __STATE_BASE__INCLUDE_GUARD
+#pragma once
 
 namespace StateMachine {
 
+  // Base Class for Events
   class EventBase {
   public:
     virtual ~EventBase() {}
-  };
+  }; // class EventBase
 
 /**
  * States contain other states and can consume generic
- * StateMachine::Event objects if they have internal or external
+ * StateMachine::EventBase objects if they have internal or external
  * transitions on those events and if those transitions' guards are
  * satisfied. Only one transition can consume an event in a given
  * state machine.
@@ -24,8 +24,8 @@ namespace StateMachine {
  */
 class StateBase {
 public:
-  StateBase(StateBase *root) : _activeState(this), _root(root) _parentState(nullptr) {}
-  StateBase(StateBase *root, StateBase *parent) : _activeState(this), _parentState(parent) {}
+  StateBase() : _activeState(this), _parentState(nullptr) {}
+  StateBase(StateBase *parent) : _activeState(this), _parentState(parent) {}
   ~StateBase(void) {}
 
   /**
@@ -47,6 +47,15 @@ public:
   virtual void exit(void){};
 
   /**
+   * @brief Calls handleEvent on the activeLeaf.
+   *
+   * @param[in] EventBase* Event needing to be handled
+   *
+   * @return true if event is consumed, false otherwise
+   */
+  virtual bool handleEvent(EventBase * event) { return false; }
+
+  /**
    * @brief Will be generated to run the tick() function defined in
    *  the model and then call _activeState->tick().
    */
@@ -60,21 +69,6 @@ public:
   virtual double getTimerPeriod(void) { return 0; }
 
   /**
-   * @brief Calls _activeState->handleEvent( event ), then if the
-   *  event is not nullptr (meaning the event was not consumed by
-   *  the child subtree), it checks the event against all internal
-   *  transitions associated with that Event.  If the event is still
-   *  not a nullptr (meaning the event was not consumed by the
-   *  internal transitions), then it checks the event against all
-   *  external transitions associated with that Event.
-   *
-   * @param[in] StateMachine::Event* Event needing to be handled
-   *
-   * @return true if event is consumed, falsed otherwise
-   */
-  virtual bool handleEvent(StateMachine::EventBase *event) { return false; }
-
-  /**
    * @brief Will be known from the model so will be generated in
    *  derived classes to immediately return the correct initial
    *  state pointer for quickly transitioning to the proper state
@@ -82,7 +76,7 @@ public:
    *
    * @return StateBase*  Pointer to initial substate
    */
-  virtual StateMachine::StateBase *getInitial(void) { return this; };
+  virtual StateBase *getInitial(void) { return this; };
 
   /**
    * @brief Recurses down to the leaf state and calls the exit
@@ -101,7 +95,7 @@ public:
    *
    * @return StateBase*  Pointer to last active substate
    */
-  StateMachine::StateBase *getActiveChild(void) { return _activeState; }
+  StateBase *getActiveChild(void) { return _activeState; }
 
   /**
    * @brief Will return the active leaf state, otherwise will return
@@ -109,7 +103,7 @@ public:
    *
    * @return StateBase*  Pointer to last active leaf state.
    */
-  StateMachine::StateBase *getActiveLeaf(void) {
+  StateBase *getActiveLeaf(void) {
     if (_activeState != nullptr && _activeState != this)
       return _activeState->getActiveLeaf();
     else
@@ -132,7 +126,7 @@ public:
   /**
    * @brief Update the active child state.
    */
-  void setActiveChild(StateMachine::StateBase *childState) {
+  void setActiveChild(StateBase *childState) {
     _activeState = childState;
   }
 
@@ -165,33 +159,21 @@ public:
   /**
    * @brief Will set the parent state.
    */
-  void setParentState(StateMachine::StateBase *parent) {
+  void setParentState(StateBase *parent) {
     _parentState = parent;
   }
 
   /**
    * @brief Will return the parent state.
    */
-  StateMachine::StateBase *getParentState(void) { return _parentState; }
+  StateBase *getParentState(void) { return _parentState; }
 
-protected:
-  /**
-   * Pointer to the currently or most recently active substate of
-   * this state.
-   */
-  StateMachine::StateBase *_activeState;
+  // Pointer to the currently or most recently active substate of this
+  // state.
+  StateBase *_activeState;
 
-  /**
-   * Pointer to the parent state of this state.
-   */
-  StateMachine::StateBase *_parentState;
-
-  /**
-   * Pointer to the root of the HFSM.
-   */
-  StateMachine::StateBase *_root;
-};
+  // Pointer to the parent state of this state.
+  StateBase *_parentState;
+}; // class StateBase
 
 }; // namespace StateMachine
-
-#endif // __STATE_BASE__INCLUDE_GUARD
