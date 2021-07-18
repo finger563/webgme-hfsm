@@ -568,23 +568,6 @@ define([
       var childAvailableSelector = "node[NodeType = \"State\"],node[NodeType =\"State Machine\"],node[NodeType =\"Library\"]";
 
       // CONTEXT MENUS
-      self._cy.on("cxttap", "node, edge", function(e) {
-        self.multiSelectionEnabled = e.originalEvent.ctrlKey;
-        // is there a better way of doing this?
-        if (self.multiSelectionEnabled) {
-          self._cy._private.selectionType = "additive";
-        }
-        else {
-          self._cy._private.selectionType = "single";
-          self.unselectAll();
-        }
-        var node = this;
-        var id = node.id();
-        if (id) {
-          node.select();
-        }
-      });
-
       var options = {
         // List of initial menu items
         menuItems: [
@@ -618,7 +601,6 @@ define([
               if (node === self._cy) { }
               else {
                 self._simulator.setActiveState( node.id() );
-                self.unselectNodes( [node.id()] );
               }
             },
             coreAsWell: false
@@ -704,7 +686,6 @@ define([
 
               if (node === self._cy) { }
               else {
-                self.unselectNodes([node.id()]);
                 self._arrangeNodes( self._selectedNodes, e.position );
               }
             },
@@ -714,7 +695,7 @@ define([
           {
             id: "reparentSelection",
             content: "Move Selected Nodes Here",
-            tooltipText: "Makes the node that was right clicked that parent of the selected node.",
+            tooltipText: "Makes the node that was right clicked the parent of the selected node(s).",
             selector: childAvailableSelector,
             onClickFunction ( e ) {
               var node = e.target;
@@ -725,7 +706,6 @@ define([
 
               if (node === self._cy) { }
               else {
-                self.unselectNodes([node.id()]);
                 self._moveNodes(
                   self._selectedNodes,
                   node.id(),
