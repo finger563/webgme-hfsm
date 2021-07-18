@@ -159,10 +159,11 @@ define(['js/util',
            var self = this;
            self.updateEventButtons();
            self.updateActiveState();
-           if (self._activeState)
+           if (self._activeState) {
             self._stateChangedCallback( self._activeState.id );
-           else 
+           } else {
              self._stateChangedCallback( null );
+           }
          };
 
          Simulator.prototype.onStateChanged = function(stateChangedCallback) {
@@ -207,8 +208,9 @@ define(['js/util',
                if (self._activeState) {
                  self.hideStateInfo();
                  self.displayStateInfo( self._activeState.id );
-                 if (self._stateChangedCallback)
-                 self._stateChangedCallback( self._activeState.id );
+                 if (self._stateChangedCallback) {
+                   self._stateChangedCallback( self._activeState.id );
+                 }
                }
              });
          };
@@ -231,8 +233,9 @@ define(['js/util',
          Simulator.prototype.clearActiveState = function( ) {
            var self = this;
            self._activeState = null;
-           if (self._stateChangedCallback)
-            self._stateChangedCallback( null );
+           if (self._stateChangedCallback) {
+             self._stateChangedCallback( null );
+           }
          };
 
          Simulator.prototype.getActiveStateId = function( ) {
@@ -561,8 +564,9 @@ define(['js/util',
                // update all rendering!
                self.hideStateInfo();
                self.displayStateInfo( self._activeState.id );
-               if (self._stateChangedCallback)
-               self._stateChangedCallback( self._activeState.id );
+               if (self._stateChangedCallback) {
+                 self._stateChangedCallback( self._activeState.id );
+               }
              }
            }
          };
@@ -667,10 +671,19 @@ define(['js/util',
            if (state) {
              var init = state.childrenIds.filter(function (cid) {
                var child = self.nodes[ cid ];
-               if (child)
-               return child.type == 'Initial';
+               if (child) {
+                 return child.type == 'Initial';
+               }
              });
+             // check to make sure that if we have children, we have
+             // an initial state
+             if (state.childrenIds.length && init.length != 1) {
+               self.log(`WARNING: '${state.name}' (${stateId}) has children, but no initial state defined!`);
+             }
              if (init.length == 1) {
+               // this means we have a child of type Initial State -
+               // which means we should also have a transition from
+               // this child to another child of ours
                var initId = init[0];
                var initEdgeIds = self.getEdgesFromNode( initId );
                if (initEdgeIds.length == 1) {
@@ -682,19 +695,33 @@ define(['js/util',
                  var childInitId = edge.dst;
                  var msg = `Initial transition ${edge.id} to ${childInitId}`;
                  self.log(msg);
+                 // make sure to set the initial state of whatever
+                 // child state the initial state points to a real state
                  deferred.resolve( self.getInitialState( childInitId, animate ) );
+               } else {
+                 // Initial State not connected through transition to child state!
+                 self.log(`WARNING: Initial State of '${state.name}' (${stateId}) not connected through transition to a child state!`);
+                 deferred.resolve(initState);
                }
              }
              else if (state.type == 'Choice Pseudostate') {
+               // if the initial state points to a child pseudostate,
+               // we'll come here through the recursion
                self.handleChoice( state.id, function(s) {
                  deferred.resolve(s);
                });
              }
              else {
+               // we'll come here if 1) we have no children and 2) we
+               // are connected to the initial state via a transition
                deferred.resolve(initState);
              }
            }
            else {
+             // we should only come here if we cannot get the state
+             // from the stateId - e.g. while the page and the model
+             // are loading - simply resolve and it will figure itself
+             // out eventually
              deferred.resolve(initState);
            }
            return deferred.promise.then(function(s) {
