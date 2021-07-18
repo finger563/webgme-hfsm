@@ -3,7 +3,6 @@
 #include "DeepHistoryState.hpp"
 #include "ShallowHistoryState.hpp"
 #include "StateBase.hpp"
-#include "EventBase.hpp"
 
 #include <deque>
 
@@ -38,10 +37,10 @@ namespace StateMachine {
       static std::string toString(Event *e) {
         std::string eventString = "";
         switch (e->_t) {
-          {{#each eventNames}}
+        {{#each eventNames}}
         case Type::{{{.}}}:
-        eventString = "{{{.}}}";
-        break;
+          eventString = "{{{.}}}";
+          break;
         {{/each}}
         default:
           break;
@@ -137,16 +136,24 @@ namespace StateMachine {
       //::::{{{path}}}::::Declarations::::
       {{{Declarations}}}
 
+    public:
       // event factory for spawning / ordering events
       EventFactory eventFactory;
 
-      // END STATE
-      {{> EndStateTemplHpp}}
-      {{~/END}}
-
       // Constructors
-      Root(void) : StateBase() {}
-      Root(StateBase * _parent) : StateBase(_parent) {}
+      Root() : StateBase(),
+      {{#each Substates}}
+      {{> ConstructorTempl this}}
+      {{#if isDeepHistory}}
+      {{{ pointerName }}} ( this ),
+      {{else if isShallowHistory}}
+      {{{ pointerName }}} ( this ),
+      {{else if isState}}
+      {{{ pointerName }}} ( this, this ),
+      {{/if}}
+      {{/each}}
+      _root(this)
+      {}
       ~Root(void) {}
 
       /**
@@ -181,20 +188,37 @@ namespace StateMachine {
        *
        * @return true if event is consumed, false otherwise
        */
+      bool handleEvent(StateMachine::EventBase * event) {
+        return handleEvent( static_cast<Event*>(event) );
+      }
+
+      /**
+       * @brief Calls handleEvent on the activeLeaf.
+       *
+       * @param[in] Event* Event needing to be handled
+       *
+       * @return true if event is consumed, false otherwise
+       */
       bool handleEvent(Event * event);
 
       // Child Substates
       {{#each Substates}}
       {{> StateTemplHpp}}
       {{/each}}
-      {{#END}}
 
-      // state objects
+      // END STATE
+      {{#END}}
+      {{> EndStateTemplHpp}}
+      {{~/END}}
+
+      // Keep a _root for easier templating, it will point to us
+      Root *_root;
+      // State Objects
       {{> PointerTemplHpp this}}
       {{#END}}
       // END state object
-      StateMachine::StateBase {{{pointerName}}};
-      {{~/END}}
+      End_State {{{pointerName}}};
+      {{/END}}
     }; // class Root
   }; // namespace {{{sanitizedName}}}
 }; // namespace StateMachine
