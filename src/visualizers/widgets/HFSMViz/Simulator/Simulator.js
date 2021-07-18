@@ -353,7 +353,7 @@ define(['js/util',
              var tidArray = groupedTIDs[ g ];
              if (tidArray && tidArray.length > 1) {
                // more than one transition has the same guard!
-               alert('Warning!\n'+
+               alert('WARNING:\n'+
                      'More than one transition has the same guard!\n'+
                      'NOT TRANSITIONING!');
                return new Q.Promise(function(resolve, reject) { resolve(); });
@@ -456,7 +456,7 @@ define(['js/util',
                break;
              }
              else if (guardless.length > 1 || (guardless.length != transitionIds.length)) {
-               alert('Warning!\n'+
+               alert('WARNING:\n'+
                      'Cannot have more than one END TRANSITION!\n'+
                      'NOT TRANSITIONING!');
                deferred.resolve(self._activeState);
@@ -464,7 +464,7 @@ define(['js/util',
              }
              else if (transitionIds.length) {
                // we have event-less transitions but they have guards this is illegal!
-               alert('Warning!\n'+
+               alert('WARNING:\n'+
                      'END TRANSITIONS cannot have guards!\n'+
                      'NOT TRANSITIONING!');
                deferred.resolve(self._activeState);
@@ -478,7 +478,7 @@ define(['js/util',
                break;
              }
              else if (transitionIds.length == 0) {
-               alert('Warning!\n'+
+               alert('WARNING:\n'+
                      'END states must be followed by END TRANSITIONS in non-root states!\n'+
                      'NOT TRANSITIONING!');
                deferred.resolve(self._activeState);
@@ -517,7 +517,7 @@ define(['js/util',
              //nextStateCallback( self.getNextState( trans.id ) );
            }
            else if (guardless.length > 1) {
-             alert('Warning!\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
+             alert('WARNING:\nMore than one transition has same Event and no guard!\nNOT TRANSITIONING!');
              nextStateCallback( null );
            }
            else if (transitionIds.length) {

@@ -23,6 +23,8 @@ transitions into / out of.
   event) leaving the state
 * States cannot have more than one End Transition
 * End Transitions cannot have guard conditions
+* Choice pseudostates must have a default (unguarded) transition -
+  this is currently reported as a `WARNING` in the log panel.
 
 Note: the simulator does _NOT_ (to better enable iterative
 development) check the following conditions:
