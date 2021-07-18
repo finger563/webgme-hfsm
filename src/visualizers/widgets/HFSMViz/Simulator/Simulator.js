@@ -379,7 +379,7 @@ define(['js/util',
                    // the user pressed the None button, so we will
                    // make choice be ""
                    choice = "";
-                   self.log(`User selected 'None' when evaluating choice pseudostate with a default transition, taking the default transition!`);
+                   self.log(`User selected 'None' when evaluating transition guards which had a default (unguarded) transition, taking the default transition!`);
                  }
                }
                var retObj = {
@@ -396,6 +396,14 @@ define(['js/util',
            // prompt the user for which guard condition should
            // evaluate to true.
            var edgeIds = self.getEdgesFromNode( stateId );
+           // check here to make sure that there exists at least one
+           // default (unguarded) transition from the choice
+           // psuedostate
+           const choices = Object.keys(self.getChoices( edgeIds ));
+           if (choices.indexOf("") == -1 ) {
+             // there is no default / unguarded transition, warn the user!
+             self.log(`WARNING: choice psuedostate ${stateId} has no default (unguarded) exit transition. This will result in an incorrectly constructed HFSM if not fixed!`);
+           }
            var title = 'Choice Pseudostate '+stateId+':';
            return self.selectGuard( edgeIds, title )
              .then(function(selectedEdge) {
