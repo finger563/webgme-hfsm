@@ -13,7 +13,7 @@ else if ( true ) {
 {{#if nextState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
-  if (false) { } // makes geneeration easier :)
+  if (false) { } // makes generation easier :)
 {{#each nextState.ExternalTransitions}}
 {{#addTransition trans=.. previous=../previousTransitions}}
 {{> InitTransitionTempl }}
@@ -23,6 +23,6 @@ else if ( true ) {
   // Transitioning states!
 {{#renderTransition exit="false" entry="true" transition=.}}{{/renderTransition}}
   // now initialize the actual next state
-  {{{nextState.pointerName}}}->initialize();
+  _root->{{{nextState.pointerName}}}.initialize();
 {{/if}}
 }
