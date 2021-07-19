@@ -1,5 +1,10 @@
 {{#if isState}}
 /* * *  Definitions for {{{fullyQualifiedName}}} : {{{path}}}  * * */
+
+// User Definitions for the HFSM
+//::::{{{path}}}::::Definitions::::
+{{{ Definitions }}}
+
 void Root::{{{fullyQualifiedName}}}::initialize ( void ) {
   {{> InitializeTempl }}
 }
