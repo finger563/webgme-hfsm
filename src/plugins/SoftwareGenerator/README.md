@@ -55,7 +55,7 @@ Additionally, the following constraints must be true:
 - [x] End Transitions cannot have guard conditions
 - [x] Choice pseudostate transitions (out of the choice) cannot have
       events
-- [ ] Cannot have multiple events with similar names
+- [x] Cannot have multiple events with similar names
   (e.g. capitalization difference)
 - [x] Choice pseudostates must have a default (unguarded) transition
 - [x] No two transitions out of a state should have the same Event /

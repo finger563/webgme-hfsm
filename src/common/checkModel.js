@@ -51,6 +51,8 @@ define([], function() {
        */
       var self = this;
       var topLevelStateNames = [];
+      var eventNames = [];
+      var topLevelObject = null;
       var objPaths = Object.keys(model.objects);
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
@@ -58,6 +60,8 @@ define([], function() {
             obj.type == 'State Machine') {
           // checks: name
           self.checkName( obj );
+          // save reference to this
+          topLevelObject = obj;
         }
         else if (obj.type == 'External Transition') {
           // checks: src, dst, Event, Guard,
@@ -67,6 +71,8 @@ define([], function() {
           self.badProperty(obj, 'src');
           if ( dst == undefined )
           self.badProperty(obj, 'dst');
+          // store the event name for later
+          eventNames.push(obj.Event);
         }
         else if (obj.type == 'Local Transition') {
           // checks: src, dst, Event, Guard,
@@ -85,11 +91,16 @@ define([], function() {
           if ( !self.hasEvent( obj ) ) {
             self.error(obj, "LOCAL TRANSITIONS MUST HAVE EVENTS");
           }
+          // store the event name for later
+          eventNames.push(obj.Event);
         }
         else if (obj.type == 'Internal Transition') {
           // checks: event
-          if ( !self.hasEvent( obj ) )
-          self.error(obj, "INTERNAL TRANSITIONS MUST HAVE EVENTS");
+          if ( !self.hasEvent( obj ) ) {
+            self.error(obj, "INTERNAL TRANSITIONS MUST HAVE EVENTS");
+          }
+          // store the event name for later
+          eventNames.push(obj.Event);
         }
         else if (obj.type == 'End State') {
         }
@@ -245,6 +256,25 @@ define([], function() {
           }
         }
       });
+      // now that we've processed the model, check a few extras:
+      // checks: event name uniqueness
+      if (eventNames) {
+        eventNames.reduce((_map, event) => {
+          var e = event.trim().toLowerCase();
+          if (e in _map) {
+            if (_map[e].indexOf(event) == -1) {
+              var msg = "Cannot have multiple events with similar names!";
+              msg += `\n name "${event}" will collide with "${_map[e][0]}"`;
+              self.error(topLevelObject, msg);
+            } else {
+              // we're fine, this is the exact same event we already had :)
+            }
+          } else {
+            _map[e] = [event];
+          }
+          return _map;
+        }, {});
+      }
     },
     // MODEL TRAVERSAL
     getEndTransitions: function( stateObj, objDict ) {
