@@ -37,7 +37,7 @@ The Software Generator also checks the HFSM for consistency.
 - [x] Choice pseudostates must have a default (unguarded) transition
 - [x] No two transitions out of a state should have the same Event /
       Guard combination
-- [ ] All complete states containing children must have an initial
+- [x] All complete states containing children must have an initial
   state configured and properly wired up to transition to one of their
   children
 - [x] All leaf states must have a valid non-zero timer period (note:

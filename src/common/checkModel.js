@@ -191,6 +191,7 @@ define([], function() {
             if (initTrans.length != 1) {
               self.error(obj, "State must have an initial sub state selected!");
             }
+            self.checkInitialState(obj.Initial_list[0], model.objects);
           }
           // No two transitions have the same Event / Guard combination
           var allTransitions = self.getTransitionsOutOf( obj, model.objects );
@@ -217,7 +218,7 @@ define([], function() {
                 return !self.hasGuard(t);
               });
               if (guardless.length > 1) {
-                var ids = guardless.map((t) => t.id);
+                var ids = guardless.map((t) => t.path);
                 var msg = "Two unguarded transitions have the same Event!";
                 msg += `\nTransitions: ${ids}`;
                 self.error(obj, msg);
@@ -283,11 +284,72 @@ define([], function() {
         return !self.hasEvent( t );
       });
     },
-    getInitialState: function( stateObj, objDict ) {
+
+    // this function takes a choice state object as input and returns
+    // all destinations the outgoing transitions go to
+    getChoiceDestinations: function( stateObj, objDict, seenChoices = []) {
+      var self = this;
+      var transitions = self.getTransitionsOutOf(stateObj, objDict);
+      var destinations = transitions.map((t) => {
+        return objDict[t.pointers['dst']];
+      });
+      var validStates = destinations.filter((s) => {
+        return s.type != 'Choice Pseudostate';
+      });
+      var choices = destinations.filter((s) => {
+        return s.type == 'Choice Pseudostate';
+      });
+      seenChoices.push(stateObj);
+      choices.map((c) => {
+        // ensure we don't loop back on ourselves and we don't get the
+        // same choices multiple times
+        if (c.path != stateObj.path && seenChoices.indexOf(c) === -1) {
+          validStates = validStates.concat(self.getChoiceDestinations(c, objDict, seenChoices));
+        }
+      });
+      return validStates;
+    },
+    checkInitialState: function( stateObj, objDict ) {
+      var self = this;
       // finds the 'Initial' state in the state and traverses it
       // (potentially through choice pseudostates) to find the actual
       // initial state. All states potentially reachable on this path
       // must be within this state object.
+      var parentObj = objDict[stateObj.parentPath];
+
+      var transitions = self.getTransitionsOutOf(stateObj, objDict);
+      var dest = objDict[transitions[0].pointers['dst']];
+      if (dest.type == 'State') {
+        // check that it's a sibling
+        if (!self.hasParentChildRelationship(dest, parentObj)) {
+          self.error(dest, 'Initial state must be within the parent!');
+        }
+      } else if (dest.type == 'Choice Pseudostate') {
+        var destinations  = self.getChoiceDestinations(dest, objDict);
+        // ensure all choice pseudostate transitions along this
+        // path stay within the parent state
+        destinations.map((d) => {
+          // check that it's a sibling
+          if (!self.hasParentChildRelationship(d, parentObj)) {
+            self.error(d, 'Initial state must be within the parent!');
+          }
+        });
+      } else if (dest.type == 'Deep History Pseudostate') {
+        // check that it's a sibling
+        if (!self.hasParentChildRelationship(dest, parentObj)) {
+          self.error(dest, 'Initial state must be within the parent!');
+        }
+      } else if (dest.type == 'Shallow History Pseudostate') {
+        // check that it's a sibling
+        if (!self.hasParentChildRelationship(dest, parentObj)) {
+          self.error(dest, 'Initial state must be within the parent!');
+        }
+      } else if (dest.type == 'End State') {
+        // check that it's a sibling
+        if (!self.hasParentChildRelationship(dest, parentObj)) {
+          self.error(dest, 'Initial state must be within the parent!');
+        }
+      }
     },
     getTransitionsOutOf: function( srcObj, objDict ) {
       return Object.keys( objDict ).filter(function(path) {
