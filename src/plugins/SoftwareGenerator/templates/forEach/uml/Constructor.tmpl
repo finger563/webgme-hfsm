@@ -1,0 +1,10 @@
+      {{#each Substates}}
+      {{> ConstructorTempl}}
+      {{#if isDeepHistory}}
+      {{{ pointerName }}} ( &{{{parent.pointerName}}} ),
+      {{else if isShallowHistory}}
+      {{{ pointerName }}} ( &{{{parent.pointerName}}} ),
+      {{else if isState}}
+      {{{ pointerName }}} ( this, &{{{parent.pointerName}}} ),
+      {{/if}}
+      {{/each}}

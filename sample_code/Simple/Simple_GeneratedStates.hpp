@@ -11,12 +11,12 @@
 #endif
 
 // User Includes for the HFSM
-//::::{{{path}}}::::Includes::::
-{{{ Includes }}}
+//::::/9::::Includes::::
+
 
 namespace StateMachine {
 
-  namespace {{{sanitizedName}}} {
+  namespace Simple {
 
     /**
      * @brief Class representing all events that this HFSM can respond
@@ -26,9 +26,7 @@ namespace StateMachine {
     class Event : public EventBase {
     public:
       enum class Type {
-        {{#each eventNames}}
-        {{{.}}},
-        {{/each}}
+        INPUTEVENT,
       }; // ENUMS GENERATED FROM MODEL
       Event(Type t) : _t(t) {}
       Type type(void) { return _t; }
@@ -36,11 +34,9 @@ namespace StateMachine {
       static std::string toString(Event *e) {
         std::string eventString = "";
         switch (e->_t) {
-        {{#each eventNames}}
-        case Type::{{{.}}}:
-          eventString = "{{{.}}}";
+        case Type::INPUTEVENT:
+          eventString = "INPUTEVENT";
           break;
-        {{/each}}
         default:
           break;
         }
@@ -113,8 +109,8 @@ namespace StateMachine {
     class Root : public StateBase {
     public:
       // User Declarations for the HFSM
-      //::::{{{path}}}::::Declarations::::
-      {{{Declarations}}}
+      //::::/9::::Declarations::::
+        bool buttonPressed{false};
 
     public:
       // event factory for spawning / ordering events
@@ -122,20 +118,10 @@ namespace StateMachine {
 
       // Constructors
       Root() : StateBase(),
-      {{#each Substates}}
-      {{> ConstructorTempl this}}
-      {{#if isDeepHistory}}
-      {{{ pointerName }}} ( this ),
-      {{else if isShallowHistory}}
-      {{{ pointerName }}} ( this ),
-      {{else if isState}}
-      {{{ pointerName }}} ( this, this ),
-      {{/if}}
-      {{/each}}
-      {{#END}}
-      {{{ pointerName }}} ( this ),
-      {{/END}}
-      _root(this)
+            SIMPLE_OBJ__STATE_2_OBJ__STATE_OBJ ( this, &SIMPLE_OBJ__STATE_2_OBJ ),
+                  SIMPLE_OBJ__STATE_2_OBJ ( this, this ),
+            SIMPLE_OBJ__STATE_1_OBJ ( this, this ),
+            _root(this)
       {}
       ~Root(void) {}
 
@@ -185,24 +171,97 @@ namespace StateMachine {
       bool handleEvent(Event * event);
 
       // Child Substates
-      {{#each Substates}}
-      {{> StateTemplHpp}}
-      {{/each}}
+      // Declaration for State_2 : /9/v
+      class State_2 : public StateMachine::StateBase {
+      public:
+        // User Declarations for the State
+        //::::/9/v::::Declarations::::
+        
+      
+      public:
+        // Pointer to the root of the HFSM.
+        Root *_root;
+      
+        // Constructors
+        State_2  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
+        ~State_2 ( void ) {}
+      
+        // StateBase Interface
+        void   initialize ( void );
+        void   entry ( void );
+        void   exit ( void );
+        void   tick ( void );
+        double getTimerPeriod ( void );
+        bool   handleEvent ( StateMachine::EventBase* event ) {
+          return handleEvent( static_cast<Event*>(event) );
+        }
+        bool   handleEvent ( Event* event );
+      
+        // Declaration for State_2::State : /9/v/C
+        class State : public StateMachine::StateBase {
+        public:
+          // User Declarations for the State
+          //::::/9/v/C::::Declarations::::
+          
+        
+        public:
+          // Pointer to the root of the HFSM.
+          Root *_root;
+        
+          // Constructors
+          State  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
+          ~State ( void ) {}
+        
+          // StateBase Interface
+          void   initialize ( void );
+          void   entry ( void );
+          void   exit ( void );
+          void   tick ( void );
+          double getTimerPeriod ( void );
+          bool   handleEvent ( StateMachine::EventBase* event ) {
+            return handleEvent( static_cast<Event*>(event) );
+          }
+          bool   handleEvent ( Event* event );
+        
+        };
+      };
+      // Declaration for State_1 : /9/Y
+      class State_1 : public StateMachine::StateBase {
+      public:
+        // User Declarations for the State
+        //::::/9/Y::::Declarations::::
+        
+      
+      public:
+        // Pointer to the root of the HFSM.
+        Root *_root;
+      
+        // Constructors
+        State_1  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
+        ~State_1 ( void ) {}
+      
+        // StateBase Interface
+        void   initialize ( void );
+        void   entry ( void );
+        void   exit ( void );
+        void   tick ( void );
+        double getTimerPeriod ( void );
+        bool   handleEvent ( StateMachine::EventBase* event ) {
+          return handleEvent( static_cast<Event*>(event) );
+        }
+        bool   handleEvent ( Event* event );
+      
+      };
 
       // END STATE
-      {{#END}}
-      {{> EndStateTemplHpp}}
-      {{~/END}}
 
       // Keep a _root for easier templating, it will point to us
       Root *_root;
       // State Objects
-      {{> PointerTemplHpp this}}
-      {{#END}}
-      // END state object
-      End_State {{{pointerName}}};
-      {{/END}}
+      State_2 SIMPLE_OBJ__STATE_2_OBJ;
+      State_2::State SIMPLE_OBJ__STATE_2_OBJ__STATE_OBJ;
+      State_1 SIMPLE_OBJ__STATE_1_OBJ;
     }; // class Root
 
-  }; // namespace {{{sanitizedName}}}
+  }; // namespace Simple
 }; // namespace StateMachine

@@ -1,11 +1,9 @@
 {{#if isDeepHistory}}
-extern StateMachine::DeepHistoryState *const {{{pointerName}}};
+StateMachine::DeepHistoryState {{{pointerName}}};
 {{else if isShallowHistory}}
-extern StateMachine::ShallowHistoryState *const {{{pointerName}}};
+StateMachine::ShallowHistoryState {{{pointerName}}};
 {{else if isState}}
-extern StateMachine::{{{fullyQualifiedName}}} *const {{{pointerName}}};
-{{else if isRoot}}
-extern StateMachine::{{{fullyQualifiedName}}} *const {{{pointerName}}};
+{{{fullyQualifiedName}}} {{{pointerName}}};
 {{/if}}
 {{#each Substates}}
 {{> PointerTemplHpp }}
