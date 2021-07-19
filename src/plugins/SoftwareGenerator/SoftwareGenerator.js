@@ -56,16 +56,38 @@ define([
     var self = this;
     var prefix = self.projectId + '::' + self.projectName + '::' + level + '::';
     var max_msg_len = 100;
-    if (level=='error')
-     self.logger.error(msg);
-    else if (level=='debug')
-     self.logger.debug(msg);
-    else if (level=='info')
-     self.logger.info(msg);
-    else if (level=='warning')
-     self.logger.warn(msg);
-    self.createMessage(self.activeNode, msg, level);
-    self.sendNotification(prefix+msg);
+    if (level=='error') {
+      // try to set active node based on error message
+	const re = /(\/\w+)+/g; // match paths like /v/a/w/2/g
+	if (re.test(msg)) {
+	    const path = msg.match(re)[0];
+	    const rootPath = self.core.getPath(self.activeNode);
+	    self.core.loadByPath(self.activeNode, path.replace(rootPath, '')).then((node) => {
+		if (node) {
+		    self.activeNode = node;
+		}
+		self.logger.error(msg);
+		self.createMessage(self.activeNode, msg, level);
+		self.sendNotification(prefix+msg);
+	    });
+	} else {
+	    self.logger.error(msg);
+	    self.createMessage(self.activeNode, msg, level);
+	    self.sendNotification(prefix+msg);
+	}
+    } else if (level=='debug') {
+      self.logger.debug(msg);
+	self.createMessage(self.activeNode, msg, level);
+	self.sendNotification(prefix+msg);
+    } else if (level=='info') {
+      self.logger.info(msg);
+	self.createMessage(self.activeNode, msg, level);
+	self.sendNotification(prefix+msg);
+    } else if (level=='warning') {
+      self.logger.warn(msg);
+	self.createMessage(self.activeNode, msg, level);
+	self.sendNotification(prefix+msg);
+    }
   };
 
   /**
