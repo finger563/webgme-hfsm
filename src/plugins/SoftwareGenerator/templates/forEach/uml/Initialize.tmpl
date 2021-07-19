@@ -3,7 +3,7 @@
 {{#if nextState.isChoice}}
 // Going into a choice pseudo-state, let it handle its
 // guards and perform the state transition
-if (false) { } // makes geneeration easier :)
+if (false) { } // makes generation easier :)
 {{#each nextState.ExternalTransitions}}
 {{#addTransition trans=.. previous=../previousTransitions}}
 {{> InitTransitionTempl }}
@@ -12,7 +12,7 @@ if (false) { } // makes geneeration easier :)
 {{else}}
 {{#renderTransition exit="false" entry="true" transition=.}}{{/renderTransition}}
 // initialize our new active state
-{{{nextState.pointerName}}}->initialize();
+_root->{{{nextState.pointerName}}}.initialize();
 {{/if}}
 {{~/each}}
 {{else}}

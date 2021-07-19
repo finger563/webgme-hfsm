@@ -4,27 +4,12 @@
  */
 class {{{sanitizedName}}} : public StateMachine::StateBase {
 public:
-  
-  /**
-   * @brief Empty function for the END STATE.
-   */
+  {{{sanitizedName}}} ( StateBase* parent ) : StateBase(parent) {}
   void entry ( void ) {}
-
-  /**
-   * @brief Empty function for the END STATE.
-   */
   void exit ( void ) {}
-
-  /**
-   * @brief Empty function for the END STATE.
-   */
   void tick ( void ) {}
-
-  /**
-   * @brief Empty function for the END STATE. Simply returns true
-   *  since the END STATE trivially handles all events.
-   *
-   * @return true 
-   */
-  bool handleEvent ( StateMachine::Event* event ) { return true; }
+  // Simply returns true since the END STATE trivially handles all
+  // events.
+  bool handleEvent ( StateMachine::EventBase* event ) { return true; }
+  bool handleEvent ( Event* event ) { return true; }
 };
