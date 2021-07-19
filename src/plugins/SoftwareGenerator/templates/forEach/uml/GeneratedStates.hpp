@@ -194,14 +194,14 @@ namespace StateMachine {
       {{> EndStateTemplHpp}}
       {{~/END}}
 
-      // Keep a _root for easier templating, it will point to us
-      Root *_root;
       // State Objects
       {{> PointerTemplHpp this}}
       {{#END}}
       // END state object
       End_State {{{pointerName}}};
       {{/END}}
+      // Keep a _root for easier templating, it will point to us
+      Root *_root;
     }; // class Root
 
   }; // namespace {{{sanitizedName}}}
