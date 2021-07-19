@@ -47,6 +47,8 @@ Additionally, the following constraints must be true:
 - [x] No two sibling states can have the same name
 - [x] States cannot have more than one initial state
 - [x] States must have an initial sub state selected
+- [x] States should not have any transitions without an Event unless
+  they contain an End State
 - [x] Any substate containing an End State must have an End Transition
   (no event) leaving the state
 - [x] States cannot have more than one End Transition
@@ -55,17 +57,14 @@ Additionally, the following constraints must be true:
       events
 - [ ] Cannot have multiple events with similar names
   (e.g. capitalization difference)
-- [ ] Choice pseudostates must have a default (unguarded) transition -
-  this is currently reported as a `WARNING` in the log panel.
-- [ ] States should not have any transitions without an Event unless
-  they contain an End State
-- [ ] No two transitions out of a state should have the same Event /
+- [x] Choice pseudostates must have a default (unguarded) transition
+- [x] No two transitions out of a state should have the same Event /
       Guard combination
 - [ ] All complete states containing children must have an initial
   state configured and properly wired up to transition to one of their
   children (this is a `WARNING` log in the log panel instead of an
   alert)
-- [ ] All leaf states must have a valid non-zero timer period (note:
+- [x] All leaf states must have a valid non-zero timer period (note:
   timer periods for non-leaf states are unused)
-- [ ] No substates (e.g. any state other than the root) should have
+- [x] No substates (e.g. any state other than the root) should have
   `Includes` set.

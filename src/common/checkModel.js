@@ -136,6 +136,7 @@ define([], function() {
           // checks:
           // * name is good,
           // * name is unique within siblings
+          // * cannot have 'Includes' set
           // * must have 'Initial' if there are children
           // * can only one 'Initial'
           // * must have transition path from 'Initial' to a child state if 'Initial' exists
@@ -145,6 +146,10 @@ define([], function() {
           // * timer period is non-zero if it has no child states
           self.checkName( obj );
           var parentObj = model.objects[obj.parentPath];
+          // cannot have includes set
+          if (obj.Includes.trim().length > 0) {
+            self.error(obj, "States cannot have 'Includes'");
+          }
           // make sure no direct siblings of this state share its name
           obj.parentState = null;
           if (parentObj && parentObj.type != 'Project') {
@@ -177,13 +182,46 @@ define([], function() {
             }
           }
           // No two transitions have the same Event / Guard combination
-          var transitions = self.getTransitionsOutOf( obj, model.objects );
-          if (transitions && transitions.length) {
-            var guardless = transitions.filter((t) => {
-              return !self.hasGuard(t);
+          var allTransitions = self.getTransitionsOutOf( obj, model.objects );
+          if (allTransitions && allTransitions.length) {
+            // make a map of all events -> all transitions
+            var eventTransitionMap = allTransitions.reduce((_map, t) => {
+              if (t.Event in _map) {
+                _map[t.Event].push(t);
+              } else {
+                _map[t.Event] = [t];
+              }
+              return _map;
+            }, {});
+            Object.entries(eventTransitionMap).forEach(([event, transitions]) => {
+              // if this event is empty, then we need to make sure
+              // there is a child End State
+              if (!event || event.trim().length == 0) {
+                if (!obj['End State_list']) {
+                  self.error(obj, "State has end transition (without Event), but does not have a child End State!");
+                }
+              }
+              // ensure only one guardless for this event
+              var guardless = transitions.filter((t) => {
+                return !self.hasGuard(t);
+              });
+              if (guardless.length > 1) {
+                var ids = guardless.map((t) => t.id);
+                var msg = "Two unguarded transitions have the same Event!";
+                msg += `\nTransitions: ${ids}`;
+                self.error(obj, msg);
+              }
+              // ensure no two transitions for this event have the same guard
+              var guards = transitions.filter(self.hasGuard.bind(self)).map(self.getGuard.bind(self));
+              var guardMap = {};
+              guards.forEach((g) => {
+                if (g in guardMap) {
+                  self.error(obj, "Two transitions have the same Event / Guard combination!");
+                } else {
+                  guardMap[g] = true;
+                }
+              });
             });
-            // ensure only one guardless (with the same Event)
-            var guarded = transitions.filter(self.hasGuard);
           }
           // only one END TRANSITION and it has no guard
           var endTrans = self.getEndTransitions( obj, model.objects );
