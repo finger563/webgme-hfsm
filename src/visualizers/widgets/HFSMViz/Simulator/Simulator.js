@@ -699,10 +699,19 @@ define(['js/util',
                }
              });
              // check to make sure that if we have children, we have
-             // an initial state
-             if (state.childrenIds.length && init.length != 1) {
+             // an initial state - but we _DO ALLOW_ Internal
+             // Transitions
+             var hasChildren = state.childrenIds.filter(function (cid) {
+               var child = self.nodes[ cid ];
+               if (child) {
+                 return child.type != 'Internal Transition';
+               }
+             }).length > 0;
+             if (hasChildren && init.length != 1) {
                self.log(`WARNING: '${state.name}' (${stateId}) has children, but no initial state defined!`);
-             }
+             } else if (!hasChildren && init.length != 0) {
+               self.log(`WARNING: '${state.name}' (${stateId}) has initial state, but no substates!`);
+	     }
              if (init.length == 1) {
                // this means we have a child of type Initial State -
                // which means we should also have a transition from
