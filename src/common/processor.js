@@ -70,7 +70,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
           delete model.objects[objPath];
         }
       });
-      
+
       checkModel.checkModel(model);
       // THIS FUNCTION HANDLES CREATION OF SOME CONVENIENCE MEMBERS
       // FOR SELECT OBJECTS IN THE MODEL
