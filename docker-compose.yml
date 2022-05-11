@@ -1,0 +1,38 @@
+# To build and launch (first time):
+#   $ docker-compose up -d
+# To create new images (--no-cache) to force building from scratch:
+#   $ docker-compose build
+# To launch again (leave out -d for non daemon launch):
+#   $ docker-compose up -d
+# Short command for rebuilding and restarting
+#   $ docker-compose up -d --build
+# To stop containers:
+#  $ docker-compose stop
+# To clean up containers/images/networks:
+#  $ docker system prune
+version: '3'
+networks:
+  database:
+    driver: bridge
+services:
+  webgme-server:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      - NODE_ENV=docker
+    links:
+      - "mongo:mongo"
+    ports:
+      - 8081:8081
+    networks:
+      - database
+  mongo:
+    image: mongo:latest
+    restart: unless-stopped
+    ports:
+      - 27017:27017
+    networks:
+      - database

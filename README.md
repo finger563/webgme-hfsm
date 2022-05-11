@@ -109,6 +109,28 @@ State Machines have the following attributes:
 
 ### Setting up the WebGME-HFSM Server
 
+#### Docker
+
+Build the dockerfile for the webgme-hfsm docker image
+
+``` bash
+docker build -t webgme-hfsm .
+```
+
+Now run the mongodb docker and the webgme-hfsm docker
+
+``` bash
+docker run --name mongo -d -p 27017:27017 mongo
+docker run --name webgme-hfsm -d -p 8081:8081 --link mongo:mongo webgme-hfsm:latest
+```
+You can also use docker-compose:
+
+``` bash
+docker-compose up -d
+```
+
+#### Native
+
 Dependencies:
 * [nodejs ^6.0](https://www.nodejs.org)
 * [mongodb](https://www.mongodb.com)
