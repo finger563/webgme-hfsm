@@ -1,5 +1,6 @@
 define(['bower/handlebars/handlebars.min',
         'underscore',
+        'text!./magic_enum.hpp',
         'text!./StateBase.hpp',
         'text!./DeepHistoryState.hpp',
         'text!./ShallowHistoryState.hpp',
@@ -15,10 +16,12 @@ define(['bower/handlebars/handlebars.min',
         'text!./ChoiceState.tmpl',
         'text!./Pointer.hpp',
         'text!./Constructor.tmpl',
+        'text!./GeneratedEventData.hpp',
         'text!./GeneratedStates.hpp',
         'text!./GeneratedStates.cpp'],
        function(handlebars,
                 _,
+                MagicEnumData,
                 StateBaseData,
                 DeepHistoryData,
                 ShallowHistoryData,
@@ -34,11 +37,13 @@ define(['bower/handlebars/handlebars.min',
                 ChoiceStateTempl,
                 PointerTemplHpp,
                 ConstructorTempl,
+                GeneratedEventDataTemplHpp,
                 GeneratedStatesTemplHpp,
                 GeneratedStatesTemplCpp) {
          'use strict';
 
          var staticFiles = {
+           'magic_enum.hpp': MagicEnumData,
            'StateBase.hpp': StateBaseData,
            'DeepHistoryState.hpp': DeepHistoryData,
            'ShallowHistoryState.hpp': ShallowHistoryData,
@@ -57,14 +62,18 @@ define(['bower/handlebars/handlebars.min',
            ChoiceStateTempl: ChoiceStateTempl,
            PointerTemplHpp: PointerTemplHpp,
            ConstructorTempl: ConstructorTempl,
+           GeneratedEventDataTemplHpp: GeneratedEventDataTemplHpp,
            GeneratedStatesTemplHpp: GeneratedStatesTemplHpp,
            GeneratedStatesTemplCpp: GeneratedStatesTemplCpp,
          };
 
-         var rootTemplates = ["GeneratedStatesTemplHpp",
-                              "GeneratedStatesTemplCpp" ];
+         var rootTemplates = [
+             "GeneratedEventDataTemplHpp",
+             "GeneratedStatesTemplHpp",
+             "GeneratedStatesTemplCpp" ];
 
          var keyTemplates = {
+           'GeneratedEventDataTemplHpp': '{{{sanitizedName}}}_EventData.hpp',
            'GeneratedStatesTemplHpp': '{{{sanitizedName}}}_GeneratedStates.hpp',
            'GeneratedStatesTemplCpp': '{{{sanitizedName}}}_GeneratedStates.cpp',
          };

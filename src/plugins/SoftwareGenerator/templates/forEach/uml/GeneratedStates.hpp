@@ -5,10 +5,9 @@
 #include "StateBase.hpp"
 
 #include <deque>
-
-#ifdef DEBUG_OUTPUT
 #include <string>
-#endif
+#include "magic_enum.hpp"
+#include "{{{sanitizedName}}}_EventData.hpp"
 
 // User Includes for the HFSM
 //::::{{{path}}}::::Includes::::
@@ -18,38 +17,45 @@ namespace StateMachine {
 
   namespace {{{sanitizedName}}} {
 
+    enum class EventType {
+      {{#each eventNames}}
+      {{{.}}},
+      {{/each}}
+    }; // ENUMS GENERATED FROM MODEL
+
+    /**
+     * @brief Class representing all events that this HFSM can respond
+     * to / handle. Used as abstract interface for handleEvent().
+     */
+    class GeneratedEventBase : public EventBase {
+    protected:
+      EventType type;
+    public:
+      explicit GeneratedEventBase(const EventType& t) : type(t) {}
+      virtual ~GeneratedEventBase() {}
+      EventType get_type() const { return type; }
+      virtual std::string to_string() const {
+        return std::string(magic_enum::enum_name(type));
+      }
+    }; // Class GeneratedEventBase
+
     /**
      * @brief Class representing all events that this HFSM can respond
      * to / handle. Intended to be created / managed by the
      * EventFactory (below).
      */
-    class Event : public EventBase {
+    template <typename T>
+    class Event : public GeneratedEventBase {
+      T data;
     public:
-      enum class Type {
-        {{#each eventNames}}
-        {{{.}}},
-        {{/each}}
-      }; // ENUMS GENERATED FROM MODEL
-      Event(Type t) : _t(t) {}
-      Type type(void) { return _t; }
-#ifdef DEBUG_OUTPUT
-      static std::string toString(Event *e) {
-        std::string eventString = "";
-        switch (e->_t) {
-        {{#each eventNames}}
-        case Type::{{{.}}}:
-          eventString = "{{{.}}}";
-          break;
-        {{/each}}
-        default:
-          break;
-        }
-        return eventString;
-      }
-#endif
-    protected:
-      Type _t;
+      explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
+      virtual ~Event() {}
+      T get_data() const { return data; }
     }; // Class Event
+
+    {{#each eventNames}}
+    typedef Event<{{{.}}}EventData> {{{.}}}Event;
+    {{/each}}
 
     /**
      * @brief Class handling all Event creation, memory management, and
@@ -59,22 +65,23 @@ namespace StateMachine {
     public:
       ~EventFactory(void) { clearEvents(); }
 
-      // allocate memory for an event and add it to the Q
-      void spawnEvent(Event::Type t) {
-        Event *newEvent = new Event(t);
-        _eventQ.push_back(newEvent);
+      {{#each eventNames}}
+      void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
+        GeneratedEventBase *new_event = new {{{.}}}Event{EventType::{{{.}}}, data};
+        _eventQ.push_back(new_event);
       }
+      {{/each}}
 
       // free the memory associated with the event
-      void consumeEvent(Event *e) {
+      void consumeEvent(GeneratedEventBase *e) {
         delete e;
         e = nullptr;
       }
 
       // Retrieves the pointer to the next event in the queue, or
       // nullptr if it doesn't exist
-      Event *getNextEvent(void) {
-        Event *ptr = nullptr;
+      GeneratedEventBase *getNextEvent(void) {
+        GeneratedEventBase *ptr = nullptr;
         if (_eventQ.size()) {
           ptr = _eventQ.front();
           _eventQ.pop_front(); // remove the event from the Q
@@ -84,26 +91,24 @@ namespace StateMachine {
 
       // Clears the event queue and frees all event memory
       void clearEvents(void) {
-        Event *ptr = getNextEvent();
+        GeneratedEventBase *ptr = getNextEvent();
         while (ptr != nullptr) {
           consumeEvent(ptr);
           ptr = getNextEvent();
         }
       }
 
-#ifdef DEBUG_OUTPUT
-      std::string toString(void) {
+      std::string to_string(void) {
         std::string qStr = "[ ";
         for (int i = 0; i < _eventQ.size(); i++) {
-          qStr += Event::toString(_eventQ[i]);
+          qStr += _eventQ[i]->to_string();
         }
         qStr += " ]";
         return qStr;
       }
-#endif
 
     protected:
-      std::deque<Event *> _eventQ;
+      std::deque<GeneratedEventBase*> _eventQ;
     }; // class EventFactory
 
     /**
@@ -167,22 +172,22 @@ namespace StateMachine {
       /**
        * @brief Calls handleEvent on the activeLeaf.
        *
-       * @param[in] Event* Event needing to be handled
+       * @param[in] EventBase* Event needing to be handled
        *
        * @return true if event is consumed, false otherwise
        */
       bool handleEvent(EventBase * event) {
-        return handleEvent( static_cast<Event*>(event) );
+        return handleEvent( static_cast<GeneratedEventBase*>(event) );
       }
 
       /**
        * @brief Calls handleEvent on the activeLeaf.
        *
-       * @param[in] Event* Event needing to be handled
+       * @param[in] EventBase* Event needing to be handled
        *
        * @return true if event is consumed, false otherwise
        */
-      bool handleEvent(Event * event);
+      bool handleEvent(GeneratedEventBase * event);
 
       // Child Substates
       {{#each Substates}}

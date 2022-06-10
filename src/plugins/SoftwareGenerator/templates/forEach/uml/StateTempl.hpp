@@ -20,10 +20,10 @@ public:
   void   exit ( void );
   void   tick ( void );
   double getTimerPeriod ( void );
-  bool   handleEvent ( StateMachine::EventBase* event ) {
-    return handleEvent( static_cast<Event*>(event) );
+  virtual bool   handleEvent ( EventBase* event ) {
+    return handleEvent( static_cast<GeneratedEventBase*>(event) );
   }
-  bool   handleEvent ( Event* event );
+  virtual bool   handleEvent ( GeneratedEventBase* event );
 
   {{#each Substates}}
   {{> StateTemplHpp }}

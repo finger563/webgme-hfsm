@@ -8,12 +8,6 @@ const int TickSelection    = numEvents + 1;
 const int RestartSelection = numEvents + 2;
 const int ExitSelection    = numEvents + 3;
 
-StateMachine::{{{sanitizedName}}}::Event::Type eventTypes[] = {
-  {{#eventNames}}
-  StateMachine::{{{../sanitizedName}}}::Event::Type::{{{.}}},
-  {{/eventNames}}
-};
-
 void displayEventMenu() {
   std::cout << "Select which event to spawn:" << std::endl <<
     {{#eventNames}}
@@ -34,47 +28,45 @@ int getUserSelection() {
 
 void makeEvent(StateMachine::{{{sanitizedName}}}::EventFactory& eventFactory, int eventIndex) {
   if ( eventIndex < numEvents && eventIndex > -1 ) {
-    eventFactory.spawnEvent( eventTypes[ eventIndex ] );
+    switch (eventIndex) {
+      {{#eventNames}}
+      case {{{@index}}}: {
+        StateMachine::{{{../sanitizedName}}}::{{{.}}}EventData data{};
+        eventFactory.spawn_{{{.}}}_event(data);
+        break;
+      }
+      {{/eventNames}}
+      default:
+        break;
+    }
   }
 }
 
 void handleAllEvents(StateMachine::{{{sanitizedName}}}::Root &root) {
   auto &eventFactory = root.eventFactory;
-#if DEBUG_OUTPUT
-  std::cout << eventFactory.toString() << std::endl;
-#endif
-  StateMachine::{{{sanitizedName}}}::Event* e = eventFactory.getNextEvent();
+  std::cout << eventFactory.to_string() << std::endl;
+  StateMachine::{{{sanitizedName}}}::GeneratedEventBase* e = eventFactory.getNextEvent();
   while (e != nullptr) {
     bool handled = root.handleEvent( e );
     // log whether we handled the event or not
     if (handled) {
-#if DEBUG_OUTPUT
-      std::cout << "Handled " << StateMachine::{{{sanitizedName}}}::Event::toString( e ) << std::endl;
-#else
-      std::cout << "Handled event." << std::endl;
-#endif
+      std::cout << "Handled " << e->to_string() << std::endl;
     }
     else {
-#if DEBUG_OUTPUT
-      std::cout << "Did not handle " << StateMachine::{{{sanitizedName}}}::Event::toString( e ) << std::endl;
-#else
-      std::cout << "Did not handle event." << std::endl;
-#endif
+      std::cout << "Did not handle " << e->to_string() << std::endl;
     }
     // free the memory that was allocated during "spawnEvent"
     eventFactory.consumeEvent( e );
     // now get the next event
     e = eventFactory.getNextEvent();
-#if DEBUG_OUTPUT
     // print the events currently in the queue
-    std::cout << eventFactory.toString() << std::endl;
-#endif
+    std::cout << eventFactory.to_string() << std::endl;
   }
 }
 
 int main( int argc, char** argv ) {
 
-  StateMachine::{{{sanitizedName}}}::Event* e = nullptr;
+  StateMachine::{{{sanitizedName}}}::GeneratedEventBase* e = nullptr;
   bool handled = false;
 
   // create the HFSM

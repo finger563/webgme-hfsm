@@ -11,5 +11,4 @@ public:
   // Simply returns true since the END STATE trivially handles all
   // events.
   bool handleEvent ( StateMachine::EventBase* event ) { return true; }
-  bool handleEvent ( Event* event ) { return true; }
 };
