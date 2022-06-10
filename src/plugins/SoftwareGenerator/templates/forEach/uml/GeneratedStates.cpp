@@ -49,7 +49,7 @@ bool Root::hasStopped(void) {
   return reachedEnd;
 };
 
-bool Root::handleEvent(Event *event) {
+bool Root::handleEvent(GeneratedEventBase *event) {
   bool handled = false;
 
   // Get the currently active leaf state

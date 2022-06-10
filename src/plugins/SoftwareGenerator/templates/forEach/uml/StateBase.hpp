@@ -1,11 +1,13 @@
 #pragma once
+#include <string>
 
 namespace StateMachine {
 
-  // Base Class for Events
+  // Base Class for Events, abstract so you never instantiate.
   class EventBase {
   public:
     virtual ~EventBase() {}
+    virtual std::string to_string() const = 0;
   }; // class EventBase
 
 /**

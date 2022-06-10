@@ -42,14 +42,14 @@ double Root::{{{fullyQualifiedName}}}::getTimerPeriod ( void ) {
   return (double)({{{this.[Timer Period]}}});
 }
 
-bool Root::{{{fullyQualifiedName}}}::handleEvent ( Event* event ) {
+bool Root::{{{fullyQualifiedName}}}::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
     {{#each UnhandledEvents}}
-  case Event::Type::{{{.}}}:
+  case EventType::{{{.}}}:
     {{/each}}
     handled = true;
     break;
@@ -63,7 +63,7 @@ bool Root::{{{fullyQualifiedName}}}::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   {{#each InternalEvents}}
   {{> InternalEventTempl }}
   {{~/each}}
@@ -72,7 +72,7 @@ bool Root::{{{fullyQualifiedName}}}::handleEvent ( Event* event ) {
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
+    switch ( event->get_type() ) {
     {{#each ExternalEvents}}
     {{> ExternalEventTempl }}
     {{~/each}}
