@@ -9,14 +9,14 @@ const int RestartSelection = numEvents + 2;
 const int ExitSelection    = numEvents + 3;
 
 void displayEventMenu() {
-  std::cout << "Select which event to spawn:" << std::endl <<
+  std::cout << "\n-----\nSelect which event to spawn:" << std::endl <<
     {{#eventNames}}
-    "{{{@index}}}. {{{.}}}" << std::endl <<
+    "\t{{{@index}}}. {{{.}}}" << std::endl <<
     {{/eventNames}}
-    "{{{eventNames.length}}}. None" << std::endl <<
-    TickSelection << ". HFSM Tick" << std::endl <<
-    RestartSelection << ". Restart HFSM" << std::endl <<
-    ExitSelection << ". Exit HFSM" << std::endl <<
+    "\t{{{eventNames.length}}}. None" << std::endl <<
+    "\t" << TickSelection << ". HFSM Tick" << std::endl <<
+    "\t" << RestartSelection << ". Restart HFSM" << std::endl <<
+    "\t" << ExitSelection << ". Exit HFSM" << std::endl <<
     "selection: ";
 }
 
