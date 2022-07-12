@@ -26,13 +26,13 @@ int getUserSelection() {
   return s;
 }
 
-void makeEvent(StateMachine::{{{sanitizedName}}}::EventFactory& eventFactory, int eventIndex) {
+void makeEvent(StateMachine::{{{sanitizedName}}}::Root& root, int eventIndex) {
   if ( eventIndex < numEvents && eventIndex > -1 ) {
     switch (eventIndex) {
       {{#eventNames}}
       case {{{@index}}}: {
         StateMachine::{{{../sanitizedName}}}::{{{.}}}EventData data{};
-        eventFactory.spawn_{{{.}}}_event(data);
+        root.spawn_{{{.}}}_event(data);
         break;
       }
       {{/eventNames}}
@@ -43,9 +43,9 @@ void makeEvent(StateMachine::{{{sanitizedName}}}::EventFactory& eventFactory, in
 }
 
 void handleAllEvents(StateMachine::{{{sanitizedName}}}::Root &root) {
-  auto &eventFactory = root.eventFactory;
-  std::cout << eventFactory.to_string() << std::endl;
-  StateMachine::{{{sanitizedName}}}::GeneratedEventBase* e = eventFactory.getNextEvent();
+  auto &event_factory = root.event_factory;
+  std::cout << event_factory.to_string() << std::endl;
+  StateMachine::{{{sanitizedName}}}::GeneratedEventBase* e = event_factory.getNextEvent();
   while (e != nullptr) {
     bool handled = root.handleEvent( e );
     // log whether we handled the event or not
@@ -56,11 +56,11 @@ void handleAllEvents(StateMachine::{{{sanitizedName}}}::Root &root) {
       std::cout << "Did not handle " << e->to_string() << std::endl;
     }
     // free the memory that was allocated during "spawnEvent"
-    eventFactory.consumeEvent( e );
+    event_factory.consumeEvent( e );
     // now get the next event
-    e = eventFactory.getNextEvent();
+    e = event_factory.getNextEvent();
     // print the events currently in the queue
-    std::cout << eventFactory.to_string() << std::endl;
+    std::cout << event_factory.to_string() << std::endl;
   }
 }
 
@@ -88,7 +88,7 @@ int main( int argc, char** argv ) {
       {{{sanitizedName}}}_root.tick();
     }
     else {
-      makeEvent( {{{sanitizedName}}}_root.eventFactory, selection );
+      makeEvent( {{{sanitizedName}}}_root, selection );
     }
     handleAllEvents({{{sanitizedName}}}_root);
   }
