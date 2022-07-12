@@ -164,7 +164,8 @@ namespace StateMachine {
         GeneratedEventBase* e;
         // get the next event and check if it's nullptr
         while ((e = event_factory.get_next_event())) {
-          bool handled = handleEvent( e );
+          // TODO: add back debug logging for if the event was handled or not
+          handleEvent( e );
           // free the memory that was allocated when it was spawned
           consume_event( e );
           // print the events currently in the queue
