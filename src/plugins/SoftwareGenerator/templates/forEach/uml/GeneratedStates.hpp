@@ -6,6 +6,7 @@
 
 #include <deque>
 #include <string>
+#include <mutex>
 #include "magic_enum.hpp"
 #include "{{{sanitizedName}}}_EventData.hpp"
 
@@ -53,6 +54,11 @@ namespace StateMachine {
       T get_data() const { return data; }
     }; // Class Event
 
+    // free the memory associated with the event
+    static void consume_event(GeneratedEventBase *e) {
+      delete e;
+    }
+
     {{#each eventNames}}
     typedef Event<{{{.}}}EventData> {{{.}}}Event;
     {{/each}}
@@ -63,24 +69,20 @@ namespace StateMachine {
      */
     class EventFactory {
     public:
-      ~EventFactory(void) { clearEvents(); }
+      ~EventFactory(void) { clear_events(); }
 
       {{#each eventNames}}
       void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
         GeneratedEventBase *new_event = new {{{.}}}Event{EventType::{{{.}}}, data};
+        std::lock_guard<std::mutex> lock(queue_mutex_);
         _eventQ.push_back(new_event);
       }
       {{/each}}
 
-      // free the memory associated with the event
-      void consumeEvent(GeneratedEventBase *e) {
-        delete e;
-        e = nullptr;
-      }
-
       // Retrieves the pointer to the next event in the queue, or
       // nullptr if it doesn't exist
-      GeneratedEventBase *getNextEvent(void) {
+      GeneratedEventBase *get_next_event(void) {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
         GeneratedEventBase *ptr = nullptr;
         if (_eventQ.size()) {
           ptr = _eventQ.front();
@@ -90,15 +92,16 @@ namespace StateMachine {
       }
 
       // Clears the event queue and frees all event memory
-      void clearEvents(void) {
-        GeneratedEventBase *ptr = getNextEvent();
+      void clear_events(void) {
+        GeneratedEventBase *ptr = get_next_event();
         while (ptr != nullptr) {
-          consumeEvent(ptr);
-          ptr = getNextEvent();
+          consume_event(ptr);
+          ptr = get_next_event();
         }
       }
 
       std::string to_string(void) {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
         std::string qStr = "[ ";
         for (int i = 0; i < _eventQ.size(); i++) {
           qStr += _eventQ[i]->to_string();
@@ -109,6 +112,7 @@ namespace StateMachine {
 
     protected:
       std::deque<GeneratedEventBase*> _eventQ;
+      std::mutex queue_mutex_;
     }; // class EventFactory
 
     /**
@@ -127,7 +131,9 @@ namespace StateMachine {
 
       // helper functions for spawning events into the HFSM
       {{#each eventNames}}
-      void spawn_{{{.}}}_event(const {{{.}}}EventData &data) { event_factory.spawn_{{{.}}}_event(data); }
+      void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
+        event_factory.spawn_{{{.}}}_event(data);
+      }
       {{/each}}
 
       // Constructors
@@ -155,6 +161,18 @@ namespace StateMachine {
        *  initial transition and entry actions accordingly.
        */
       void initialize(void);
+
+      void handle_all_events(void) {
+        GeneratedEventBase* e;
+        // get the next event and check if it's nullptr
+        while ((e = event_factory.get_next_event())) {
+          bool handled = handleEvent( e );
+          // free the memory that was allocated when it was spawned
+          consume_event( e );
+          // print the events currently in the queue
+          // std::cout << event_factory.to_string() << std::endl;
+        }
+      }
 
       /**
        * @brief Terminates the HFSM, calling exit functions for the

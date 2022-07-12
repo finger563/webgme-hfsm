@@ -44,24 +44,9 @@ void makeEvent(StateMachine::{{{sanitizedName}}}::Root& root, int eventIndex) {
 
 void handleAllEvents(StateMachine::{{{sanitizedName}}}::Root &root) {
   auto &event_factory = root.event_factory;
-  std::cout << event_factory.to_string() << std::endl;
-  StateMachine::{{{sanitizedName}}}::GeneratedEventBase* e = event_factory.getNextEvent();
-  while (e != nullptr) {
-    bool handled = root.handleEvent( e );
-    // log whether we handled the event or not
-    if (handled) {
-      std::cout << "Handled " << e->to_string() << std::endl;
-    }
-    else {
-      std::cout << "Did not handle " << e->to_string() << std::endl;
-    }
-    // free the memory that was allocated during "spawnEvent"
-    event_factory.consumeEvent( e );
-    // now get the next event
-    e = event_factory.getNextEvent();
-    // print the events currently in the queue
-    std::cout << event_factory.to_string() << std::endl;
-  }
+  std::cout << "Before: " << event_factory.to_string() << std::endl;
+  root.handle_all_events();
+  std::cout << "After:  " << event_factory.to_string() << std::endl;
 }
 
 int main( int argc, char** argv ) {
