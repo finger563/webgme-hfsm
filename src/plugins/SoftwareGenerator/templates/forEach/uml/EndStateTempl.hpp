@@ -4,7 +4,7 @@
  */
 class {{{sanitizedName}}} : public StateMachine::StateBase {
 public:
-  {{{sanitizedName}}} ( StateBase* parent ) : StateBase(parent) {}
+  explicit {{{sanitizedName}}} ( StateBase* parent ) : StateBase(parent) {}
   void entry ( void ) {}
   void exit ( void ) {}
   void tick ( void ) {}
