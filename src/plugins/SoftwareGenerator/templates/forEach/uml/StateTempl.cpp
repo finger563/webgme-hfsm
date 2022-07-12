@@ -54,6 +54,7 @@ bool Root::{{{fullyQualifiedName}}}::handleEvent ( GeneratedEventBase* event ) {
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -68,6 +69,7 @@ bool Root::{{{fullyQualifiedName}}}::handleEvent ( GeneratedEventBase* event ) {
   {{> InternalEventTempl }}
   {{~/each}}
   default:
+    handled = false;
     break;
   }
   if (!handled) {
@@ -77,6 +79,7 @@ bool Root::{{{fullyQualifiedName}}}::handleEvent ( GeneratedEventBase* event ) {
     {{> ExternalEventTempl }}
     {{~/each}}
     default:
+      handled = false;
       break;
     }
   }
