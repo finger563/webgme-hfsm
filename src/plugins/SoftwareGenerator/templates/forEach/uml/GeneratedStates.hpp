@@ -131,9 +131,7 @@ namespace StateMachine {
 
       // helper functions for spawning events into the HFSM
       {{#each eventNames}}
-      void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
-        event_factory.spawn_{{{.}}}_event(data);
-      }
+      void spawn_{{{.}}}_event(const {{{.}}}EventData &data) { event_factory.spawn_{{{.}}}_event(data); }
       {{/each}}
 
       // Constructors

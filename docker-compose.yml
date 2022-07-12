@@ -11,28 +11,16 @@
 # To clean up containers/images/networks:
 #  $ docker system prune
 version: '3'
-networks:
-  database:
-    driver: bridge
 services:
-  webgme-server:
-    build:
-      context: .
-    restart: unless-stopped
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+  webgme-hfsm:
+    image: webgme-hfsm
     depends_on:
       - mongo
     environment:
-      - NODE_ENV=docker
-    links:
-      - "mongo:mongo"
+      - "NODE_ENV=docker"
     ports:
-      - 8081:8081
-    networks:
-      - database
-  mongo:
-    image: mongo:latest
-    restart: unless-stopped
-    ports:
-      - 27017:27017
-    networks:
-      - database
+      - "8081:8081"

@@ -31,12 +31,12 @@
 # $ docker run -d -p 27017:27017 -v ~/dockershare/db:/data/db --name mongo mongo
 #
 # Finally start the webgme app container from the image built here.
-# $ docker run -d -p 8888:8888 -v ~/dockershare:/dockershare --link mongo:mongo --name=webgme webgme
+# $ docker run -d -p 8888:8888 -v ~/dockershare:/dockershare --link mongo:mongo --name=webgme-hfsm webgme-hfsm
 #
 # After successful startup, you should be able to connect to your dockerized webgme on the 8888 port of the host.
 
 # Node 10
-FROM node:dubnium
+FROM node:16
 MAINTAINER William Emfinger <waemfinger@gmail.com>
 
 # Install git
@@ -51,7 +51,7 @@ WORKDIR /usr/app
 ADD . /usr/app/
 
 # webgme is a peer dependency and needs to be installed explicitly
-RUN npm install webgme
+# RUN npm install webgme
 
 # Install node-modules
 RUN npm install -g bower
@@ -60,8 +60,6 @@ RUN npm install -g bower
 RUN npm install
 
 # Set environment variable in order to use ./config/config.docker.js
-ENV NODE_ENV docker
-
-EXPOSE 8081
+# ENV NODE_ENV docker
 
 CMD ["npm", "start"]

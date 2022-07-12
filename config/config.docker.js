@@ -3,10 +3,12 @@
 var config = require('./config.default'),
     validateConfig = require('webgme/config/validator');
 
-// var mongo = 'mongodb://' + process.env.MONGO_PORT_27017_TCP_ADDR + ':' + process.env.MONGO_PORT_27017_TCP_PORT;
-var mongo = 'mongodb://' + 'mongo' + ':' + '27017';
-
-console.log('MONGO: "' + mongo + '"')
+var mongo = 'mongodb://localhost:27017';
+if (process.env.MONGO_PORT_27017_TCP_ADDR) {
+  mongo = 'mongodb://' + process.env.MONGO_PORT_27017_TCP_ADDR + ':' + process.env.MONGO_PORT_27017_TCP_PORT;
+} else {
+  mongo = 'mongodb://mongo:27017';
+}
 
 config.rest.components['UIRecorder'] = {
   src: __dirname + '/../node_modules/webgme-ui-replay/src/routers/UIRecorder/UIRecorder.js',
@@ -22,4 +24,5 @@ config.rest.components['UIRecorder'] = {
 config.mongo.uri = mongo+'/webgme_hfsm';
 
 validateConfig(config);
+
 module.exports = config;
