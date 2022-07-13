@@ -10,6 +10,10 @@
 #include "magic_enum.hpp"
 #include "{{{sanitizedName}}}_EventData.hpp"
 
+#ifdef DEBUG_OUTPUT
+#include <iostream>
+#endif
+
 // User Includes for the HFSM
 //::::{{{path}}}::::Includes::::
 {{{ Includes }}}
@@ -73,6 +77,9 @@ namespace StateMachine {
 
       {{#each eventNames}}
       void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
+        #ifdef DEBUG_OUTPUT
+        std::cout << "\033[32mSPAWN: {{{.}}}\033[0m" << std::endl;
+        #endif
         GeneratedEventBase *new_event = new {{{.}}}Event{EventType::{{{.}}}, data};
         std::lock_guard<std::mutex> lock(queue_mutex_);
         _eventQ.push_back(new_event);
@@ -160,18 +167,13 @@ namespace StateMachine {
        */
       void initialize(void);
 
-      void handle_all_events(void) {
-        GeneratedEventBase* e;
-        // get the next event and check if it's nullptr
-        while ((e = event_factory.get_next_event())) {
-          // TODO: add back debug logging for if the event was handled or not
-          handleEvent( e );
-          // free the memory that was allocated when it was spawned
-          consume_event( e );
-          // print the events currently in the queue
-          // std::cout << event_factory.to_string() << std::endl;
-        }
-      }
+      /**
+       * @brief Handles all events in the event queue, ensuring to free the
+       * memory. This will ensure that any events spawned from other event
+       * transitions / actions are handled. Returns once there are no more
+       * events in the queue to process.
+       */
+      void handle_all_events(void);
 
       /**
        * @brief Terminates the HFSM, calling exit functions for the

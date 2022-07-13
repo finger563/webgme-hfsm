@@ -11,7 +11,7 @@ void Root::{{{fullyQualifiedName}}}::initialize ( void ) {
 
 void Root::{{{fullyQualifiedName}}}::entry ( void ) {
   #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
+  std::cout << "\033[36mENTRY::{{{fullyQualifiedName}}}::{{{path}}}\033[0m" << std::endl;
   #endif
   // Entry action for this state
   //::::{{{path}}}::::Entry::::
@@ -20,7 +20,7 @@ void Root::{{{fullyQualifiedName}}}::entry ( void ) {
 
 void Root::{{{fullyQualifiedName}}}::exit ( void ) {
   #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
+  std::cout << "\033[36mEXIT::{{{fullyQualifiedName}}}::{{{path}}}\033[0m" << std::endl;
   #endif
   // Call the Exit Action for this state
   //::::{{{path}}}::::Exit::::
@@ -29,7 +29,7 @@ void Root::{{{fullyQualifiedName}}}::exit ( void ) {
 
 void Root::{{{fullyQualifiedName}}}::tick ( void ) {
   #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::{{{fullyQualifiedName}}}::{{{path}}}" << std::endl;
+  std::cout << "\033[36mTICK::{{{fullyQualifiedName}}}::{{{path}}}\033[0m" << std::endl;
   #endif
   // Call the Tick Action for this state
   //::::{{{path}}}::::Tick::::

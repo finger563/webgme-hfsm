@@ -2,10 +2,6 @@
 #include "{{{.}}}"
 {{/each}}
 
-#ifdef DEBUG_OUTPUT
-#include <iostream>
-#endif
-
 using namespace StateMachine::{{{sanitizedName}}};
 
 // User Definitions for the HFSM
@@ -17,13 +13,30 @@ using namespace StateMachine::{{{sanitizedName}}};
 void Root::initialize(void) {
   // Run the model's Initialization code
 #ifdef DEBUG_OUTPUT
-  std::cout << "{{{name}}}:{{{path}}} HFSM Initialization" << std::endl;
+  std::cout << "\033[36m{{{name}}}:{{{path}}} HFSM Initialization\033[0m" << std::endl;
 #endif
   //::::{{{path}}}::::Initialization::::
   {{{Initialization}}}
   // now set the states up properly
   {{> InitializeTempl}}
 };
+
+void Root::handle_all_events(void) {
+  GeneratedEventBase* e;
+  // get the next event and check if it's nullptr
+  while ((e = event_factory.get_next_event())) {
+    [[maybe_unused]] bool did_handle = handleEvent( e );
+#ifdef DEBUG_OUTPUT
+    std::cout << "\033[0mHANDLED " <<
+      e->to_string() << ": " <<
+      (did_handle ? "\033[32mtrue" : "\033[31mfalse") <<
+      "\033[0m" <<
+      std::endl;
+#endif
+    // free the memory that was allocated when it was spawned
+    consume_event( e );
+  }
+}
 
 void Root::terminate(void) {
   // will call exit() and exitChildren() on _activeState if it

@@ -6,12 +6,12 @@ case EventType::{{{name}}}:
   //::::{{{path}}}::::Guard::::
   else if ( {{{Guard}}} ) {
     #ifdef DEBUG_OUTPUT
-    std::cout << "GUARD [ {{{Guard}}} ] for INTERNAL TRANSITION:{{{path}}} evaluated to TRUE" << std::endl;
+    std::cout << "\033[37mGUARD [ {{{Guard}}} ] for INTERNAL TRANSITION:{{{path}}} evaluated to TRUE\033[0m" << std::endl;
     #endif
   {{else}}
   else if (true) {
     #ifdef DEBUG_OUTPUT
-    std::cout << "NO GUARD on INTERNAL TRANSITION:{{{path}}}" << std::endl;
+    std::cout << "\033[37mNO GUARD on INTERNAL TRANSITION:{{{path}}}\033[0m" << std::endl;
     #endif
   {{/if}}
     // run transition action

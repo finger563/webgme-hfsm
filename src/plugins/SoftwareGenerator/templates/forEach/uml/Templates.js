@@ -239,7 +239,7 @@ define(['bower/handlebars/handlebars.min',
            else {
              a = a.concat([
                '#ifdef DEBUG_OUTPUT',
-               'std::cout << "TRANSITION::ACTION for '+obj.path+'" << std::endl;',
+               'std::cout << "\\033[36mTRANSITION::ACTION for '+obj.path+'\\033[0m" << std::endl;',
                '#endif',
                '',
                '//::::'+obj.path+'::::'+key+'::::',
@@ -255,8 +255,8 @@ define(['bower/handlebars/handlebars.min',
            if (start.fullyQualifiedName) {
              a = a.concat([
                '#ifdef DEBUG_OUTPUT',
-               'std::cout << "STATE TRANSITION: '+
-                 start.fullyQualifiedName+'->'+end.fullyQualifiedName+'" << std::endl;',
+               'std::cout << "\\033[31mSTATE TRANSITION: '+
+                 start.fullyQualifiedName+'->'+end.fullyQualifiedName+'\\033[0m" << std::endl;',
                '#endif',
                ''
              ]);

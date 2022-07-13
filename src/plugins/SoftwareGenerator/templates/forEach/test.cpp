@@ -42,13 +42,6 @@ void makeEvent(StateMachine::{{{sanitizedName}}}::Root& root, int eventIndex) {
   }
 }
 
-void handleAllEvents(StateMachine::{{{sanitizedName}}}::Root &root) {
-  auto &event_factory = root.event_factory;
-  std::cout << "Before: " << event_factory.to_string() << std::endl;
-  root.handle_all_events();
-  std::cout << "After:  " << event_factory.to_string() << std::endl;
-}
-
 int main( int argc, char** argv ) {
 
   StateMachine::{{{sanitizedName}}}::GeneratedEventBase* e = nullptr;
@@ -75,7 +68,7 @@ int main( int argc, char** argv ) {
     else {
       makeEvent( {{{sanitizedName}}}_root, selection );
     }
-    handleAllEvents({{{sanitizedName}}}_root);
+    {{{sanitizedName}}}_root.handle_all_events();
   }
 
   return 0;
