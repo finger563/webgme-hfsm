@@ -191,7 +191,7 @@ namespace StateMachine {
       /**
        * @brief Returns true if the HFSM has reached its END State
        */
-      bool hasStopped(void);
+      bool has_stopped(void);
 
       /**
        * @brief Calls handleEvent on the activeLeaf.

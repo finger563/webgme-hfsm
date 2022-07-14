@@ -49,7 +49,7 @@ void Root::restart(void) {
   initialize();
 };
 
-bool Root::hasStopped(void) {
+bool Root::has_stopped(void) {
   bool reachedEnd = false;
   {{#END}}
   // Get the currently active leaf state
