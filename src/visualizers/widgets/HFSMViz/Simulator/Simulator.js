@@ -704,11 +704,11 @@ define(['js/util',
              var hasChildren = state.childrenIds.filter(function (cid) {
                var child = self.nodes[ cid ];
                if (child) {
-                 return child.type != 'Internal Transition';
+                 return child.type != 'Internal Transition' && child.type != 'Documentation';
                }
              }).length > 0;
              if (hasChildren && init.length != 1) {
-               self.log(`WARNING: '${state.name}' (${stateId}) has children, but no initial state defined!`);
+               self.log(`WARNING: '${state.name}' (${stateId}) has child states, but no initial state defined!`);
              } else if (!hasChildren && init.length != 0) {
                self.log(`WARNING: '${state.name}' (${stateId}) has initial state, but no substates!`);
 	     }
