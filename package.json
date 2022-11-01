@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "chai": "^3.0.0",
-    "mocha": "^2.2.5",
+    "mocha": "^10.1.0",
     "rimraf": "^2.7.1"
   },
   "description": "WebGME Domain for creating Executable Heirarchical Finite State Machines (HFSMs). Contains metamodel, visualization, simulation, and code generation for Heirarchical Finite State Machines (HFSMs) following the UML State Machine specification.",
