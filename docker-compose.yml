@@ -14,6 +14,9 @@ version: '3'
 services:
   mongo:
     image: mongo
+    networks:
+      - mongo_network
+      - default
     ports:
       - "27017:27017"
   webgme-hfsm:
@@ -22,5 +25,13 @@ services:
       - mongo
     environment:
       - "NODE_ENV=docker"
+    networks:
+      - mongo_network
+      - default
     ports:
       - "8081:8081"
+networks:
+  mongo_network:
+    driver: bridge
+  default:
+    driver: bridge

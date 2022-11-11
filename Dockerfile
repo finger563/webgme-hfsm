@@ -60,6 +60,8 @@ RUN npm install -g bower
 RUN npm install
 
 # Set environment variable in order to use ./config/config.docker.js
-# ENV NODE_ENV docker
+ENV NODE_ENV docker
+
+EXPOSE 8081
 
 CMD ["npm", "start"]
