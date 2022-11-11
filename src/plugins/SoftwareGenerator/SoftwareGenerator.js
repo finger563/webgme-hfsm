@@ -12,7 +12,7 @@ define([
   'plugin/PluginConfig',
   'text!./metadata.json',
   'plugin/PluginBase',
-  './templates/forEach/MetaTemplates',
+  './templates/MetaTemplates',
   'webgme-to-json/webgme-to-json',
   'hfsm/processor',
   'q'

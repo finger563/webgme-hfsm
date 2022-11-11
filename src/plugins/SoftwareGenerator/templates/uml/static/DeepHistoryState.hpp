@@ -1,5 +1,4 @@
-#ifndef __DEEP_HISTORY_STATE_INCLUDE_GUARD__
-#define __DEEP_HISTORY_STATE_INCLUDE_GUARD__
+#pragma once
 
 #include "StateBase.hpp"
 
@@ -21,10 +20,8 @@ namespace StateMachine {
      */
     void                      makeActive ( ) {
       if (_parentState) {
-	_parentState->setDeepHistory();
+        _parentState->setDeepHistory();
       }
     }
   };
 };
-
-#endif // __DEEP_HISTORY_STATE_INCLUDE_GUARD__
