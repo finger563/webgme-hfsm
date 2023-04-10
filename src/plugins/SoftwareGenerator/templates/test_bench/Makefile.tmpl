@@ -23,7 +23,7 @@ COPY           = cp
 #
 #-------------------------------------------------------------------------------
 CPPSRC =
-CPPSRC += {{{sanitizedName}}}_GeneratedStates.cpp
+CPPSRC += {{{sanitizedName}}}_generated_states.cpp
 CPPSRC += {{{sanitizedName}}}_test.cpp
 
 #-------------------------------------------------------------------------------
@@ -113,10 +113,10 @@ $(CPPOBJ) : %.o : %.cpp
 
 {{{sanitizedName}}}_test:
 	@echo Compiling {{{sanitizedName}}}_test
-	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS)
+	g++ -o {{{sanitizedName}}}_test {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_generated_states.cpp $(ALL_CFLAGS)
 {{{sanitizedName}}}_test_DEBUG:
 	@echo Compiling {{{sanitizedName}}}_test_DEBUG
-	g++ -o {{{sanitizedName}}}_test_DEBUG {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_GeneratedStates.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
+	g++ -o {{{sanitizedName}}}_test_DEBUG {{{sanitizedName}}}_test.cpp {{{sanitizedName}}}_generated_states.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
 run_{{{sanitizedName}}}_test: {{{sanitizedName}}}_test
 	@echo
 	@echo Running {{{sanitizedName}}}_test

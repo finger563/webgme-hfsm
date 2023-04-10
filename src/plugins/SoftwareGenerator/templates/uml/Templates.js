@@ -1,9 +1,9 @@
 define(['bower/handlebars/handlebars.min',
         'underscore',
         'text!./static/magic_enum.hpp',
-        'text!./static/StateBase.hpp',
-        'text!./static/DeepHistoryState.hpp',
-        'text!./static/ShallowHistoryState.hpp',
+        'text!./static/state_base.hpp',
+        'text!./static/deep_history_state.hpp',
+        'text!./static/shallow_history_state.hpp',
         'text!./InternalEvent.tmpl',
         'text!./ExternalEvent.tmpl',
         'text!./ExternalTransition.tmpl',
@@ -44,9 +44,9 @@ define(['bower/handlebars/handlebars.min',
 
          var staticFiles = {
            'magic_enum.hpp': MagicEnumData,
-           'StateBase.hpp': StateBaseData,
-           'DeepHistoryState.hpp': DeepHistoryData,
-           'ShallowHistoryState.hpp': ShallowHistoryData,
+           'state_base.hpp': StateBaseData,
+           'deep_history_state.hpp': DeepHistoryData,
+           'shallow_history_state.hpp': ShallowHistoryData,
          };
 
          var Partials = {
@@ -73,9 +73,9 @@ define(['bower/handlebars/handlebars.min',
              "GeneratedStatesTemplCpp" ];
 
          var keyTemplates = {
-           'GeneratedEventDataTemplHpp': '{{{sanitizedName}}}_EventData.hpp',
-           'GeneratedStatesTemplHpp': '{{{sanitizedName}}}_GeneratedStates.hpp',
-           'GeneratedStatesTemplCpp': '{{{sanitizedName}}}_GeneratedStates.cpp',
+           'GeneratedEventDataTemplHpp': '{{{sanitizedName}}}_event_data.hpp',
+           'GeneratedStatesTemplHpp': '{{{sanitizedName}}}_generated_states.hpp',
+           'GeneratedStatesTemplCpp': '{{{sanitizedName}}}_generated_states.cpp',
          };
 
          var dependencies = {

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "DeepHistoryState.hpp"
-#include "ShallowHistoryState.hpp"
-#include "StateBase.hpp"
+#include "state_base.hpp"
+#include "deep_history_state.hpp"
+#include "shallow_history_state.hpp"
 
 #include <deque>
 #include <string>
 #include <mutex>
 #include "magic_enum.hpp"
-#include "{{{sanitizedName}}}_EventData.hpp"
+#include "{{{sanitizedName}}}_event_data.hpp"
 
 #ifdef DEBUG_OUTPUT
 #include <iostream>
@@ -18,7 +18,7 @@
 //::::{{{path}}}::::Includes::::
 {{{ Includes }}}
 
-namespace StateMachine {
+namespace state_machine {
 
   namespace {{{sanitizedName}}} {
 
@@ -234,4 +234,4 @@ namespace StateMachine {
     }; // class Root
 
   }; // namespace {{{sanitizedName}}}
-}; // namespace StateMachine
+}; // namespace state_machine
