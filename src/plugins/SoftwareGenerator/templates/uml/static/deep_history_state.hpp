@@ -1,8 +1,8 @@
 #pragma once
 
-#include "StateBase.hpp"
+#include "state_base.hpp"
 
-namespace StateMachine {
+namespace state_machine {
 
   /**
    * @brief Deep History Pseudostates exist purely to re-implement the
@@ -24,4 +24,4 @@ namespace StateMachine {
       }
     }
   };
-};
+} // namespace state_machine

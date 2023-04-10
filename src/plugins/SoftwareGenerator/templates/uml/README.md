@@ -25,7 +25,7 @@ executable C++ code.
 # States
 
 States get generated into their own class definitions which are
-instantiated once and which inherit from StateMachine::StateBase.  A
+instantiated once and which inherit from state_machine::StateBase.  A
 state is contained within the scope / namespace of its parent state.
 A state has a reference to which of its children is the currently
 active substate (if any exist) and a list of all its child substates.

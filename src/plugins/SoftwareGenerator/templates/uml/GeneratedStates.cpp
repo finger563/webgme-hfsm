@@ -2,7 +2,7 @@
 #include "{{{.}}}"
 {{/each}}
 
-using namespace StateMachine::{{{sanitizedName}}};
+using namespace state_machine::{{{sanitizedName}}};
 
 // User Definitions for the HFSM
 //::::{{{path}}}::::Definitions::::
@@ -53,7 +53,7 @@ bool Root::has_stopped(void) {
   bool reachedEnd = false;
   {{#END}}
   // Get the currently active leaf state
-  StateMachine::StateBase *activeLeaf = getActiveLeaf();
+  state_machine::StateBase *activeLeaf = getActiveLeaf();
   if (activeLeaf != nullptr && activeLeaf != this &&
       activeLeaf == static_cast<StateBase*>(&_root->{{{pointerName}}})) {
     reachedEnd = true;
@@ -66,7 +66,7 @@ bool Root::handleEvent(GeneratedEventBase *event) {
   bool handled = false;
 
   // Get the currently active leaf state
-  StateMachine::StateBase *activeLeaf = getActiveLeaf();
+  state_machine::StateBase *activeLeaf = getActiveLeaf();
 
   if (activeLeaf != nullptr && activeLeaf != this) {
     // have the active leaf handle the event, this will bubble up until

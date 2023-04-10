@@ -1,4 +1,4 @@
-#include "{{{sanitizedName}}}_GeneratedStates.hpp"
+#include "{{{sanitizedName}}}_generated_states.hpp"
 
 #include <string>
 #include <iostream>
@@ -26,12 +26,12 @@ int getUserSelection() {
   return s;
 }
 
-void makeEvent(StateMachine::{{{sanitizedName}}}::Root& root, int eventIndex) {
+void makeEvent(state_machine::{{{sanitizedName}}}::Root& root, int eventIndex) {
   if ( eventIndex < numEvents && eventIndex > -1 ) {
     switch (eventIndex) {
       {{#eventNames}}
       case {{{@index}}}: {
-        StateMachine::{{{../sanitizedName}}}::{{{.}}}EventData data{};
+        state_machine::{{{../sanitizedName}}}::{{{.}}}EventData data{};
         root.spawn_{{{.}}}_event(data);
         break;
       }
@@ -44,11 +44,11 @@ void makeEvent(StateMachine::{{{sanitizedName}}}::Root& root, int eventIndex) {
 
 int main( int argc, char** argv ) {
 
-  StateMachine::{{{sanitizedName}}}::GeneratedEventBase* e = nullptr;
+  state_machine::{{{sanitizedName}}}::GeneratedEventBase* e = nullptr;
   bool handled = false;
 
   // create the HFSM
-  StateMachine::{{{sanitizedName}}}::Root {{{sanitizedName}}}_root;
+  state_machine::{{{sanitizedName}}}::Root {{{sanitizedName}}}_root;
 
   // initialize the HFSM
   {{{sanitizedName}}}_root.initialize();
