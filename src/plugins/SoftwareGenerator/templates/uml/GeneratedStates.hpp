@@ -1,14 +1,16 @@
 #pragma once
 
-#include "state_base.hpp"
-#include "deep_history_state.hpp"
-#include "shallow_history_state.hpp"
-
-#include <functional>
+#include <condition_variable>
 #include <deque>
-#include <string>
+#include <functional>
 #include <mutex>
+#include <string>
+
+#include "deep_history_state.hpp"
 #include "magic_enum.hpp"
+#include "shallow_history_state.hpp"
+#include "state_base.hpp"
+
 #include "{{{sanitizedName}}}_event_data.hpp"
 
 // User Includes for the HFSM
