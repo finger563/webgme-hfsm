@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace state_machine {
+namespace {{{namespace}}} {
 
   // Base Class for Events, abstract so you never instantiate.
   class EventBase {
@@ -12,7 +12,7 @@ namespace state_machine {
 
   /**
    * States contain other states and can consume generic
-   * state_machine::EventBase objects if they have internal or external
+   * EventBase objects if they have internal or external
    * transitions on those events and if those transitions' guards are
    * satisfied. Only one transition can consume an event in a given
    * state machine.
@@ -178,4 +178,4 @@ namespace state_machine {
     StateBase *_parentState;
   }; // class StateBase
 
-} // namespace state_machine
+} // namespace {{{namespace}}}

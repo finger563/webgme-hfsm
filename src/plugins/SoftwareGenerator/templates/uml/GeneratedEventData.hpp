@@ -1,12 +1,9 @@
 #pragma once
 
-namespace state_machine {
-namespace {{{sanitizedName}}} {
-
+namespace {{{namespace}}}::{{{sanitizedName}}} {
 {{#each eventNames}}
 struct {{{.}}}EventData {
 };
 {{/each}}
 
-}; // namespace {{{sanitizedName}}}
-}; // namespace state_machine
+}; // namespace {{{namespace}}}::{{{sanitizedName}}}

@@ -4,23 +4,20 @@
 #include "deep_history_state.hpp"
 #include "shallow_history_state.hpp"
 
+#include <functional>
 #include <deque>
 #include <string>
 #include <mutex>
 #include "magic_enum.hpp"
 #include "{{{sanitizedName}}}_event_data.hpp"
 
-#ifdef DEBUG_OUTPUT
-#include <iostream>
-#endif
-
 // User Includes for the HFSM
 //::::{{{path}}}::::Includes::::
 {{{ Includes }}}
 
-namespace state_machine {
+namespace {{{namespace}}}::{{{sanitizedName}}} {
 
-  namespace {{{sanitizedName}}} {
+    typedef std::function<void(std::string_view)> LogCallback;
 
     enum class EventType {
       {{#each eventNames}}
@@ -75,25 +72,55 @@ namespace state_machine {
     public:
       ~EventFactory(void) { clear_events(); }
 
+      void set_log_callback(LogCallback cb) {
+        log_callback_ = cb;
+      }
+
       {{#each eventNames}}
       void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "\033[32mSPAWN: {{{.}}}\033[0m" << std::endl;
-        #endif
+        log("\033[32mSPAWN: {{{.}}}\033[0m");
         GeneratedEventBase *new_event = new {{{.}}}Event{EventType::{{{.}}}, data};
         std::lock_guard<std::mutex> lock(queue_mutex_);
-        _eventQ.push_back(new_event);
+        events_.push_back(new_event);
+        queue_cv_.notify_one();
       }
       {{/each}}
+
+      // Returns the number of events in the queue
+      size_t get_num_events(void) {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        return events_.size();
+      }
+
+      // Blocks until an event is available
+      void wait_for_events(void) {
+        std::unique_lock<std::mutex> lock(queue_mutex_);
+        queue_cv_.wait(lock);
+      }
+
+      // Blocks until an event is available or the timeout is reached
+      void sleep_until_event(float seconds) {
+        std::unique_lock<std::mutex> lock(queue_mutex_);
+        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds));
+      }
+
+      // Blocks until an event is available
+      GeneratedEventBase *get_next_event_blocking(void) {
+        std::unique_lock<std::mutex> lock(queue_mutex_);
+        queue_cv_.wait(lock, [this]{ return events_.size() > 0; });
+        GeneratedEventBase *ptr = events_.front();
+        events_.pop_front(); // remove the event from the Q
+        return ptr;
+      }
 
       // Retrieves the pointer to the next event in the queue, or
       // nullptr if it doesn't exist
       GeneratedEventBase *get_next_event(void) {
         std::lock_guard<std::mutex> lock(queue_mutex_);
         GeneratedEventBase *ptr = nullptr;
-        if (_eventQ.size()) {
-          ptr = _eventQ.front();
-          _eventQ.pop_front(); // remove the event from the Q
+        if (events_.size()) {
+          ptr = events_.front();
+          events_.pop_front(); // remove the event from the Q
         }
         return ptr;
       }
@@ -110,16 +137,24 @@ namespace state_machine {
       std::string to_string(void) {
         std::lock_guard<std::mutex> lock(queue_mutex_);
         std::string qStr = "[ ";
-        for (int i = 0; i < _eventQ.size(); i++) {
-          qStr += _eventQ[i]->to_string();
+        for (int i = 0; i < events_.size(); i++) {
+          qStr += events_[i]->to_string();
         }
         qStr += " ]";
         return qStr;
       }
 
     protected:
-      std::deque<GeneratedEventBase*> _eventQ;
+      void log(std::string_view msg) {
+        if (log_callback_) {
+          log_callback_(msg);
+        }
+      }
+
+      std::deque<GeneratedEventBase*> events_;
       std::mutex queue_mutex_;
+      std::condition_variable queue_cv_;
+      LogCallback log_callback_{nullptr};
     }; // class EventFactory
 
     /**
@@ -132,9 +167,23 @@ namespace state_machine {
       //::::{{{path}}}::::Declarations::::
       {{{Declarations}}}
 
+    protected:
+      void log(const std::string& msg) {
+        if (log_callback_) {
+          log_callback_(msg);
+        }
+      }
+
+      LogCallback log_callback_{nullptr};
+
     public:
       // event factory for spawning / ordering events
       EventFactory event_factory;
+
+      void set_log_callback(LogCallback cb) {
+        log_callback_ = cb;
+        event_factory.set_log_callback(cb);
+      }
 
       // helper functions for spawning events into the HFSM
       {{#each eventNames}}
@@ -166,6 +215,31 @@ namespace state_machine {
        *  initial transition and entry actions accordingly.
        */
       void initialize(void);
+
+      /**
+       * @brief Returns true if there are any events in the event queue.
+       */
+      bool has_events(void) {
+        return event_factory.get_num_events() > 0;
+      }
+
+      /**
+       * @brief Sleeps until an event is available or the current state's timer
+       *  period expires, then returns. This will block until an event is
+       *  available. The amount of time spent sleeping is determined by the
+       *  current state's timer period.
+       */
+      void sleep_until_event(void) {
+        event_factory.sleep_until_event(getActiveLeaf()->getTimerPeriod());
+      }
+
+      /**
+       * @brief Waits for an event to be available, then returns.
+       * This will block until an event is available.
+       */
+      void wait_for_events(void) {
+        event_factory.wait_for_events();
+      }
 
       /**
        * @brief Handles all events in the event queue, ensuring to free the
@@ -233,5 +307,4 @@ namespace state_machine {
       Root *_root;
     }; // class Root
 
-  }; // namespace {{{sanitizedName}}}
-}; // namespace state_machine
+}; // namespace {{{namespace}}}::{{{sanitizedName}}}

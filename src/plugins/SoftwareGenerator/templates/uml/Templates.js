@@ -44,9 +44,6 @@ define(['bower/handlebars/handlebars.min',
 
          var staticFiles = {
            'magic_enum.hpp': MagicEnumData,
-           'state_base.hpp': StateBaseData,
-           'deep_history_state.hpp': DeepHistoryData,
-           'shallow_history_state.hpp': ShallowHistoryData,
          };
 
          var Partials = {
@@ -65,14 +62,23 @@ define(['bower/handlebars/handlebars.min',
            GeneratedEventDataTemplHpp: GeneratedEventDataTemplHpp,
            GeneratedStatesTemplHpp: GeneratedStatesTemplHpp,
            GeneratedStatesTemplCpp: GeneratedStatesTemplCpp,
+           StateBaseData: StateBaseData,
+           DeepHistoryData: DeepHistoryData,
+           ShallowHistoryData: ShallowHistoryData,
          };
 
-         var rootTemplates = [
+           var rootTemplates = [
+             "StateBaseData",
+             "DeepHistoryData",
+             "ShallowHistoryData",
              "GeneratedEventDataTemplHpp",
              "GeneratedStatesTemplHpp",
              "GeneratedStatesTemplCpp" ];
 
          var keyTemplates = {
+           'StateBaseData': 'state_base.hpp',
+           'DeepHistoryData': 'deep_history_state.hpp',
+           'ShallowHistoryData': 'shallow_history_state.hpp',
            'GeneratedEventDataTemplHpp': '{{{sanitizedName}}}_event_data.hpp',
            'GeneratedStatesTemplHpp': '{{{sanitizedName}}}_generated_states.hpp',
            'GeneratedStatesTemplCpp': '{{{sanitizedName}}}_generated_states.cpp',
@@ -238,9 +244,7 @@ define(['bower/handlebars/handlebars.min',
            }
            else {
              a = a.concat([
-               '#ifdef DEBUG_OUTPUT',
-               'std::cout << "\\033[36mTRANSITION::ACTION for '+obj.path+'\\033[0m" << std::endl;',
-               '#endif',
+               '_root->log("\\033[36mTRANSITION::ACTION for '+obj.path+'\\033[0m");',
                '',
                '//::::'+obj.path+'::::'+key+'::::',
                obj[key],
@@ -254,10 +258,8 @@ define(['bower/handlebars/handlebars.min',
            var a = [];
            if (start.fullyQualifiedName) {
              a = a.concat([
-               '#ifdef DEBUG_OUTPUT',
-               'std::cout << "\\033[31mSTATE TRANSITION: '+
-                 start.fullyQualifiedName+'->'+end.fullyQualifiedName+'\\033[0m" << std::endl;',
-               '#endif',
+               '_root->log("\\033[31mSTATE TRANSITION: '+
+                     start.fullyQualifiedName+'->'+end.fullyQualifiedName+'\\033[0m");',
                ''
              ]);
            }

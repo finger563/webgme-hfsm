@@ -1,14 +1,10 @@
 {{#if Guard}}
 //::::{{{path}}}::::Guard::::
 else if ( {{{Guard}}} ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "\033[37mGUARD [ {{{Guard}}} ] for EXTERNAL TRANSITION:{{{path}}} evaluated to TRUE\033[0m" << std::endl;
-  #endif
+  _root->log("\033[37mGUARD [ {{{Guard}}} ] for EXTERNAL TRANSITION:{{{path}}} evaluated to TRUE\033[0m");
 {{else}}
 else if ( true ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "\033[37mNO GUARD on EXTERNAL TRANSITION:{{{path}}}\033[0m" << std::endl;
-  #endif
+  _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:{{{path}}}\033[0m");
 {{/if}}
   {{#if nextState.isChoice}}
   // Going into a choice pseudo-state, let it handle its

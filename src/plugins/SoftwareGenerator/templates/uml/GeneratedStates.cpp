@@ -2,7 +2,8 @@
 #include "{{{.}}}"
 {{/each}}
 
-using namespace state_machine::{{{sanitizedName}}};
+using namespace {{{namespace}}};
+using namespace {{{namespace}}}::{{{sanitizedName}}};
 
 // User Definitions for the HFSM
 //::::{{{path}}}::::Definitions::::
@@ -12,9 +13,7 @@ using namespace state_machine::{{{sanitizedName}}};
 // Generated Definitions for the root state
 void Root::initialize(void) {
   // Run the model's Initialization code
-#ifdef DEBUG_OUTPUT
-  std::cout << "\033[36m{{{name}}}:{{{path}}} HFSM Initialization\033[0m" << std::endl;
-#endif
+  log("\033[36m{{{name}}}:{{{path}}} HFSM Initialization\033[0m");
   //::::{{{path}}}::::Initialization::::
   {{{Initialization}}}
   // now set the states up properly
@@ -26,13 +25,10 @@ void Root::handle_all_events(void) {
   // get the next event and check if it's nullptr
   while ((e = event_factory.get_next_event())) {
     [[maybe_unused]] bool did_handle = handleEvent( e );
-#ifdef DEBUG_OUTPUT
-    std::cout << "\033[0mHANDLED " <<
-      e->to_string() << ": " <<
-      (did_handle ? "\033[32mtrue" : "\033[31mfalse") <<
-      "\033[0m" <<
-      std::endl;
-#endif
+    log("\033[0mHANDLED " +
+        e->to_string() +
+        (did_handle ? ": \033[32mtrue" : ": \033[31mfalse") +
+        "\033[0m");
     // free the memory that was allocated when it was spawned
     consume_event( e );
   }
@@ -53,7 +49,7 @@ bool Root::has_stopped(void) {
   bool reachedEnd = false;
   {{#END}}
   // Get the currently active leaf state
-  state_machine::StateBase *activeLeaf = getActiveLeaf();
+  StateBase *activeLeaf = getActiveLeaf();
   if (activeLeaf != nullptr && activeLeaf != this &&
       activeLeaf == static_cast<StateBase*>(&_root->{{{pointerName}}})) {
     reachedEnd = true;
@@ -66,7 +62,7 @@ bool Root::handleEvent(GeneratedEventBase *event) {
   bool handled = false;
 
   // Get the currently active leaf state
-  state_machine::StateBase *activeLeaf = getActiveLeaf();
+  StateBase *activeLeaf = getActiveLeaf();
 
   if (activeLeaf != nullptr && activeLeaf != this) {
     // have the active leaf handle the event, this will bubble up until

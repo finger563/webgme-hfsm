@@ -2,7 +2,7 @@
 
 #include "state_base.hpp"
 
-namespace state_machine {
+namespace {{{namespace}}} {
 
   /**
    * @brief Deep History Pseudostates exist purely to re-implement the
@@ -24,4 +24,4 @@ namespace state_machine {
       }
     }
   };
-} // namespace state_machine
+} // namespace {{{namespace}}}

@@ -1,6 +1,6 @@
 {{#if isState}}
 // Declaration for {{{fullyQualifiedName}}} : {{{path}}}
-class {{{sanitizedName}}} : public state_machine::StateBase {
+class {{{sanitizedName}}} : public StateBase {
 public:
   // User Declarations for the State
   //::::{{{path}}}::::Declarations::::
