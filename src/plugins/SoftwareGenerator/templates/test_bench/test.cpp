@@ -1,8 +1,8 @@
-#include "{{{sanitizedName}}}_generated_states.hpp"
-
 #include <iostream>
 #include <string>
 #include <thread>
+
+#include "{{{sanitizedName}}}_generated_states.hpp"
 
 const int numEvents        = {{{eventNames.length}}};
 const int TickSelection    = numEvents + 1;
