@@ -23,7 +23,7 @@ COPY           = cp
 #
 #-------------------------------------------------------------------------------
 CPPSRC =
-CPPSRC += Medium_GeneratedStates.cpp
+CPPSRC += Medium_generated_states.cpp
 CPPSRC += Medium_test.cpp
 
 #-------------------------------------------------------------------------------
@@ -31,8 +31,8 @@ CPPSRC += Medium_test.cpp
 # COMPILER CONFIGURATION
 #
 #-------------------------------------------------------------------------------
-CSTANDARD   = -std=c14
-CPPSTANDARD = -std=c++14
+CSTANDARD   = -std=c17
+CPPSTANDARD = -std=c++17
 OPTIMIZATION= 3
 
 CDEFS =
@@ -48,6 +48,7 @@ CFLAGS += $(CDEFS)
 CPPFLAGS = 
 CPPFLAGS += -O$(OPTIMIZATION)
 CPPFLAGS += $(CPPSTANDARD)
+CPPFLAGS += -pthread
 
 #-------------------------------------------------------------------------------
 #
@@ -113,10 +114,10 @@ $(CPPOBJ) : %.o : %.cpp
 
 Medium_test:
 	@echo Compiling Medium_test
-	g++ -o Medium_test Medium_test.cpp Medium_GeneratedStates.cpp $(ALL_CFLAGS)
+	g++ -o Medium_test Medium_test.cpp Medium_generated_states.cpp $(ALL_CFLAGS)
 Medium_test_DEBUG:
 	@echo Compiling Medium_test_DEBUG
-	g++ -o Medium_test_DEBUG Medium_test.cpp Medium_GeneratedStates.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
+	g++ -o Medium_test_DEBUG Medium_test.cpp Medium_generated_states.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
 run_Medium_test: Medium_test
 	@echo
 	@echo Running Medium_test

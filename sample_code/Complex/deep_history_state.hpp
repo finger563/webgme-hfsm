@@ -1,9 +1,8 @@
-#ifndef __DEEP_HISTORY_STATE_INCLUDE_GUARD__
-#define __DEEP_HISTORY_STATE_INCLUDE_GUARD__
+#pragma once
 
-#include "StateBase.hpp"
+#include "state_base.hpp"
 
-namespace StateMachine {
+namespace state_machine {
 
   /**
    * @brief Deep History Pseudostates exist purely to re-implement the
@@ -21,10 +20,8 @@ namespace StateMachine {
      */
     void                      makeActive ( ) {
       if (_parentState) {
-	_parentState->setDeepHistory();
+        _parentState->setDeepHistory();
       }
     }
   };
-};
-
-#endif // __DEEP_HISTORY_STATE_INCLUDE_GUARD__
+} // namespace state_machine

@@ -1,10 +1,7 @@
-#include "Medium_GeneratedStates.hpp"
+#include "Medium_generated_states.hpp"
 
-#ifdef DEBUG_OUTPUT
-#include <iostream>
-#endif
-
-using namespace StateMachine::Medium;
+using namespace state_machine;
+using namespace state_machine::Medium;
 
 // User Definitions for the HFSM
 //::::/o::::Definitions::::
@@ -14,16 +11,12 @@ using namespace StateMachine::Medium;
 // Generated Definitions for the root state
 void Root::initialize(void) {
   // Run the model's Initialization code
-#ifdef DEBUG_OUTPUT
-  std::cout << "Medium:/o HFSM Initialization" << std::endl;
-#endif
+  log("\033[36mMedium:/o HFSM Initialization\033[0m");
   //::::/o::::Initialization::::
   
   // now set the states up properly
   // External Transition : Action for: /o/E
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TRANSITION::ACTION for /o/E" << std::endl;
-  #endif
+  _root->log("\033[36mTRANSITION::ACTION for /o/E\033[0m");
   
   //::::/o/E::::Action::::
   
@@ -33,6 +26,20 @@ void Root::initialize(void) {
   // initialize our new active state
   _root->MEDIUM_OBJ__STATE1_OBJ.initialize();
 };
+
+void Root::handle_all_events(void) {
+  GeneratedEventBase* e;
+  // get the next event and check if it's nullptr
+  while ((e = event_factory.get_next_event())) {
+    [[maybe_unused]] bool did_handle = handleEvent( e );
+    log("\033[0mHANDLED " +
+        e->to_string() +
+        (did_handle ? ": \033[32mtrue" : ": \033[31mfalse") +
+        "\033[0m");
+    // free the memory that was allocated when it was spawned
+    consume_event( e );
+  }
+}
 
 void Root::terminate(void) {
   // will call exit() and exitChildren() on _activeState if it
@@ -45,10 +52,10 @@ void Root::restart(void) {
   initialize();
 };
 
-bool Root::hasStopped(void) {
+bool Root::has_stopped(void) {
   bool reachedEnd = false;
   // Get the currently active leaf state
-  StateMachine::StateBase *activeLeaf = getActiveLeaf();
+  StateBase *activeLeaf = getActiveLeaf();
   if (activeLeaf != nullptr && activeLeaf != this &&
       activeLeaf == static_cast<StateBase*>(&_root->MEDIUM_OBJ__END_STATE_OBJ)) {
     reachedEnd = true;
@@ -56,11 +63,11 @@ bool Root::hasStopped(void) {
   return reachedEnd;
 };
 
-bool Root::handleEvent(Event *event) {
+bool Root::handleEvent(GeneratedEventBase *event) {
   bool handled = false;
 
   // Get the currently active leaf state
-  StateMachine::StateBase *activeLeaf = getActiveLeaf();
+  StateBase *activeLeaf = getActiveLeaf();
 
   if (activeLeaf != nullptr && activeLeaf != this) {
     // have the active leaf handle the event, this will bubble up until
@@ -72,33 +79,32 @@ bool Root::handleEvent(Event *event) {
 }
 
 /* * *  Definitions for State3 : /o/K  * * */
+
+// User Definitions for the HFSM
+//::::/o/K::::Definitions::::
+
+
 void Root::State3::initialize ( void ) {
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State3::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State3::/o/K" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State3::/o/K\033[0m");
   // Entry action for this state
   //::::/o/K::::Entry::::
   
 }
 
 void Root::State3::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State3::/o/K" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State3::/o/K\033[0m");
   // Call the Exit Action for this state
   //::::/o/K::::Exit::::
   
 }
 
 void Root::State3::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State3::/o/K" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State3::/o/K\033[0m");
   // Call the Tick Action for this state
   //::::/o/K::::Tick::::
   
@@ -110,18 +116,19 @@ double Root::State3::getTimerPeriod ( void ) {
   return (double)(0.1);
 }
 
-bool Root::State3::handleEvent ( Event* event ) {
+bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT1:
-  case Event::Type::EVENT2:
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT1:
+  case EventType::EVENT2:
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -131,36 +138,31 @@ bool Root::State3::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT3:
+    switch ( event->get_type() ) {
+    case EventType::EVENT3:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/g" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/g\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->MEDIUM_OBJ__STATE3_OBJ.exitChildren();
       // State : exit for: /o/K
       _root->MEDIUM_OBJ__STATE3_OBJ.exit();
       // External Transition : Action for: /o/g
-      #ifdef DEBUG_OUTPUT
-      std::cout << "TRANSITION::ACTION for /o/g" << std::endl;
-      #endif
+      _root->log("\033[36mTRANSITION::ACTION for /o/g\033[0m");
       
       //::::/o/g::::Action::::
       
       // State : entry for: /o/q
       _root->MEDIUM_OBJ__STATE4_OBJ.entry();
-      #ifdef DEBUG_OUTPUT
-      std::cout << "STATE TRANSITION: State3->State4" << std::endl;
-      #endif
+      _root->log("\033[31mSTATE TRANSITION: State3->State4\033[0m");
       
         // going into regular state
         _root->MEDIUM_OBJ__STATE4_OBJ.initialize();
@@ -169,6 +171,7 @@ bool Root::State3::handleEvent ( Event* event ) {
         }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -176,33 +179,32 @@ bool Root::State3::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State4 : /o/q  * * */
+
+// User Definitions for the HFSM
+//::::/o/q::::Definitions::::
+
+
 void Root::State4::initialize ( void ) {
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State4::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State4::/o/q" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State4::/o/q\033[0m");
   // Entry action for this state
   //::::/o/q::::Entry::::
   
 }
 
 void Root::State4::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State4::/o/q" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State4::/o/q\033[0m");
   // Call the Exit Action for this state
   //::::/o/q::::Exit::::
   
 }
 
 void Root::State4::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State4::/o/q" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State4::/o/q\033[0m");
   // Call the Tick Action for this state
   //::::/o/q::::Tick::::
   
@@ -214,18 +216,19 @@ double Root::State4::getTimerPeriod ( void ) {
   return (double)(0.1);
 }
 
-bool Root::State4::handleEvent ( Event* event ) {
+bool Root::State4::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT1:
-  case Event::Type::EVENT2:
-  case Event::Type::EVENT3:
+  switch ( event->get_type() ) {
+  case EventType::EVENT1:
+  case EventType::EVENT2:
+  case EventType::EVENT3:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -235,51 +238,42 @@ bool Root::State4::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT4:
+    switch ( event->get_type() ) {
+    case EventType::EVENT4:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/x" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/x\033[0m");
         // Going into a choice pseudo-state, let it handle its
         // guards and perform the state transition
         if (false) { } // makes geneeration easier :)
         //::::/o/6::::Guard::::
         else if ( _root->goToShallowHistory ) {
-          #ifdef DEBUG_OUTPUT
-          std::cout << "GUARD [ _root->goToShallowHistory ] for EXTERNAL TRANSITION:/o/6 evaluated to TRUE" << std::endl;
-          #endif
+          _root->log("\033[37mGUARD [ _root->goToShallowHistory ] for EXTERNAL TRANSITION:/o/6 evaluated to TRUE\033[0m");
           // Transitioning states!
           // Call all from prev state down exits
         _root->MEDIUM_OBJ__STATE4_OBJ.exitChildren();
         // State : exit for: /o/q
         _root->MEDIUM_OBJ__STATE4_OBJ.exit();
         // External Transition : Action for: /o/x
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/x" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/x\033[0m");
         
         //::::/o/x::::Action::::
         
         // External Transition : Action for: /o/6
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/6" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/6\033[0m");
         
         //::::/o/6::::Action::::
         
         // State : entry for: /o/r
         _root->MEDIUM_OBJ__STATE1_OBJ.entry();
-        #ifdef DEBUG_OUTPUT
-        std::cout << "STATE TRANSITION: State4->State1::Shallow_History_Pseudostate" << std::endl;
-        #endif
+        _root->log("\033[31mSTATE TRANSITION: State4->State1::Shallow_History_Pseudostate\033[0m");
         
           // going into shallow history pseudo-state
           _root->MEDIUM_OBJ__STATE1_OBJ.setShallowHistory();
@@ -288,33 +282,25 @@ bool Root::State4::handleEvent ( Event* event ) {
           }
         //::::/o/D::::Guard::::
         else if ( _root->reInitialize ) {
-          #ifdef DEBUG_OUTPUT
-          std::cout << "GUARD [ _root->reInitialize ] for EXTERNAL TRANSITION:/o/D evaluated to TRUE" << std::endl;
-          #endif
+          _root->log("\033[37mGUARD [ _root->reInitialize ] for EXTERNAL TRANSITION:/o/D evaluated to TRUE\033[0m");
           // Transitioning states!
           // Call all from prev state down exits
         _root->MEDIUM_OBJ__STATE4_OBJ.exitChildren();
         // State : exit for: /o/q
         _root->MEDIUM_OBJ__STATE4_OBJ.exit();
         // External Transition : Action for: /o/x
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/x" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/x\033[0m");
         
         //::::/o/x::::Action::::
         
         // External Transition : Action for: /o/D
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/D" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/D\033[0m");
         
         //::::/o/D::::Action::::
         
         // State : entry for: /o/r
         _root->MEDIUM_OBJ__STATE1_OBJ.entry();
-        #ifdef DEBUG_OUTPUT
-        std::cout << "STATE TRANSITION: State4->State1" << std::endl;
-        #endif
+        _root->log("\033[31mSTATE TRANSITION: State4->State1\033[0m");
         
           // going into regular state
           _root->MEDIUM_OBJ__STATE1_OBJ.initialize();
@@ -323,33 +309,25 @@ bool Root::State4::handleEvent ( Event* event ) {
           }
         //::::/o/P::::Guard::::
         else if ( _root->goToDeepHistory ) {
-          #ifdef DEBUG_OUTPUT
-          std::cout << "GUARD [ _root->goToDeepHistory ] for EXTERNAL TRANSITION:/o/P evaluated to TRUE" << std::endl;
-          #endif
+          _root->log("\033[37mGUARD [ _root->goToDeepHistory ] for EXTERNAL TRANSITION:/o/P evaluated to TRUE\033[0m");
           // Transitioning states!
           // Call all from prev state down exits
         _root->MEDIUM_OBJ__STATE4_OBJ.exitChildren();
         // State : exit for: /o/q
         _root->MEDIUM_OBJ__STATE4_OBJ.exit();
         // External Transition : Action for: /o/x
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/x" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/x\033[0m");
         
         //::::/o/x::::Action::::
         
         // External Transition : Action for: /o/P
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/P" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/P\033[0m");
         
         //::::/o/P::::Action::::
         
         // State : entry for: /o/r
         _root->MEDIUM_OBJ__STATE1_OBJ.entry();
-        #ifdef DEBUG_OUTPUT
-        std::cout << "STATE TRANSITION: State4->State1::Deep_History_Pseudostate" << std::endl;
-        #endif
+        _root->log("\033[31mSTATE TRANSITION: State4->State1::Deep_History_Pseudostate\033[0m");
         
           // going into deep history pseudo-state
           _root->MEDIUM_OBJ__STATE1_OBJ.setDeepHistory();
@@ -357,31 +335,23 @@ bool Root::State4::handleEvent ( Event* event ) {
           handled = true;
           }
         else if ( true ) {
-          #ifdef DEBUG_OUTPUT
-          std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/c" << std::endl;
-          #endif
+          _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/c\033[0m");
           // Transitioning states!
           // Call all from prev state down exits
         _root->MEDIUM_OBJ__STATE4_OBJ.exitChildren();
         // State : exit for: /o/q
         _root->MEDIUM_OBJ__STATE4_OBJ.exit();
         // External Transition : Action for: /o/x
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/x" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/x\033[0m");
         
         //::::/o/x::::Action::::
         
         // External Transition : Action for: /o/c
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/c" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/c\033[0m");
         
         //::::/o/c::::Action::::
         
-        #ifdef DEBUG_OUTPUT
-        std::cout << "STATE TRANSITION: State4->End_State" << std::endl;
-        #endif
+        _root->log("\033[31mSTATE TRANSITION: State4->End_State\033[0m");
         
           // going into end pseudo-state THIS SHOULD BE TOP LEVEL END STATE
           _root->MEDIUM_OBJ__END_STATE_OBJ.makeActive();
@@ -391,6 +361,7 @@ bool Root::State4::handleEvent ( Event* event ) {
       }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -398,33 +369,32 @@ bool Root::State4::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State2 : /o/y  * * */
+
+// User Definitions for the HFSM
+//::::/o/y::::Definitions::::
+
+
 void Root::State2::initialize ( void ) {
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State2::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State2::/o/y" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State2::/o/y\033[0m");
   // Entry action for this state
   //::::/o/y::::Entry::::
   
 }
 
 void Root::State2::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State2::/o/y" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State2::/o/y\033[0m");
   // Call the Exit Action for this state
   //::::/o/y::::Exit::::
   
 }
 
 void Root::State2::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State2::/o/y" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State2::/o/y\033[0m");
   // Call the Tick Action for this state
   //::::/o/y::::Tick::::
   
@@ -436,18 +406,19 @@ double Root::State2::getTimerPeriod ( void ) {
   return (double)(0.1);
 }
 
-bool Root::State2::handleEvent ( Event* event ) {
+bool Root::State2::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT1:
-  case Event::Type::EVENT3:
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT1:
+  case EventType::EVENT3:
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -457,36 +428,31 @@ bool Root::State2::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT2:
+    switch ( event->get_type() ) {
+    case EventType::EVENT2:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/z" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/z\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->MEDIUM_OBJ__STATE2_OBJ.exitChildren();
       // State : exit for: /o/y
       _root->MEDIUM_OBJ__STATE2_OBJ.exit();
       // External Transition : Action for: /o/z
-      #ifdef DEBUG_OUTPUT
-      std::cout << "TRANSITION::ACTION for /o/z" << std::endl;
-      #endif
+      _root->log("\033[36mTRANSITION::ACTION for /o/z\033[0m");
       
       //::::/o/z::::Action::::
       
       // State : entry for: /o/K
       _root->MEDIUM_OBJ__STATE3_OBJ.entry();
-      #ifdef DEBUG_OUTPUT
-      std::cout << "STATE TRANSITION: State2->State3" << std::endl;
-      #endif
+      _root->log("\033[31mSTATE TRANSITION: State2->State3\033[0m");
       
         // going into regular state
         _root->MEDIUM_OBJ__STATE3_OBJ.initialize();
@@ -495,6 +461,7 @@ bool Root::State2::handleEvent ( Event* event ) {
         }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -502,11 +469,14 @@ bool Root::State2::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State1 : /o/r  * * */
+
+// User Definitions for the HFSM
+//::::/o/r::::Definitions::::
+
+
 void Root::State1::initialize ( void ) {
   // External Transition : Action for: /o/r/r
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TRANSITION::ACTION for /o/r/r" << std::endl;
-  #endif
+  _root->log("\033[36mTRANSITION::ACTION for /o/r/r\033[0m");
   
   //::::/o/r/r::::Action::::
   
@@ -518,27 +488,21 @@ void Root::State1::initialize ( void ) {
 }
 
 void Root::State1::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State1::/o/r" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State1::/o/r\033[0m");
   // Entry action for this state
   //::::/o/r::::Entry::::
   
 }
 
 void Root::State1::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State1::/o/r" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State1::/o/r\033[0m");
   // Call the Exit Action for this state
   //::::/o/r::::Exit::::
   
 }
 
 void Root::State1::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State1::/o/r" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State1::/o/r\033[0m");
   // Call the Tick Action for this state
   //::::/o/r::::Tick::::
   
@@ -550,18 +514,19 @@ double Root::State1::getTimerPeriod ( void ) {
   return (double)(0);
 }
 
-bool Root::State1::handleEvent ( Event* event ) {
+bool Root::State1::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT2:
-  case Event::Type::EVENT3:
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT2:
+  case EventType::EVENT3:
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -571,36 +536,31 @@ bool Root::State1::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT1:
+    switch ( event->get_type() ) {
+    case EventType::EVENT1:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/M" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/M\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->MEDIUM_OBJ__STATE1_OBJ.exitChildren();
       // State : exit for: /o/r
       _root->MEDIUM_OBJ__STATE1_OBJ.exit();
       // External Transition : Action for: /o/M
-      #ifdef DEBUG_OUTPUT
-      std::cout << "TRANSITION::ACTION for /o/M" << std::endl;
-      #endif
+      _root->log("\033[36mTRANSITION::ACTION for /o/M\033[0m");
       
       //::::/o/M::::Action::::
       
       // State : entry for: /o/y
       _root->MEDIUM_OBJ__STATE2_OBJ.entry();
-      #ifdef DEBUG_OUTPUT
-      std::cout << "STATE TRANSITION: State1->State2" << std::endl;
-      #endif
+      _root->log("\033[31mSTATE TRANSITION: State1->State2\033[0m");
       
         // going into regular state
         _root->MEDIUM_OBJ__STATE2_OBJ.initialize();
@@ -609,6 +569,7 @@ bool Root::State1::handleEvent ( Event* event ) {
         }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -616,11 +577,14 @@ bool Root::State1::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State1::Child2 : /o/r/6  * * */
+
+// User Definitions for the HFSM
+//::::/o/r/6::::Definitions::::
+
+
 void Root::State1::Child2::initialize ( void ) {
   // External Transition : Action for: /o/r/6/a
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TRANSITION::ACTION for /o/r/6/a" << std::endl;
-  #endif
+  _root->log("\033[36mTRANSITION::ACTION for /o/r/6/a\033[0m");
   
   //::::/o/r/6/a::::Action::::
   
@@ -632,27 +596,21 @@ void Root::State1::Child2::initialize ( void ) {
 }
 
 void Root::State1::Child2::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State1::Child2::/o/r/6" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State1::Child2::/o/r/6\033[0m");
   // Entry action for this state
   //::::/o/r/6::::Entry::::
   
 }
 
 void Root::State1::Child2::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State1::Child2::/o/r/6" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State1::Child2::/o/r/6\033[0m");
   // Call the Exit Action for this state
   //::::/o/r/6::::Exit::::
   
 }
 
 void Root::State1::Child2::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State1::Child2::/o/r/6" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State1::Child2::/o/r/6\033[0m");
   // Call the Tick Action for this state
   //::::/o/r/6::::Tick::::
   
@@ -664,17 +622,18 @@ double Root::State1::Child2::getTimerPeriod ( void ) {
   return (double)(0);
 }
 
-bool Root::State1::Child2::handleEvent ( Event* event ) {
+bool Root::State1::Child2::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT3:
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT3:
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -684,36 +643,31 @@ bool Root::State1::Child2::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT2:
+    switch ( event->get_type() ) {
+    case EventType::EVENT2:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/r/0" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/r/0\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ.exitChildren();
       // State : exit for: /o/r/6
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ.exit();
       // External Transition : Action for: /o/r/0
-      #ifdef DEBUG_OUTPUT
-      std::cout << "TRANSITION::ACTION for /o/r/0" << std::endl;
-      #endif
+      _root->log("\033[36mTRANSITION::ACTION for /o/r/0\033[0m");
       
       //::::/o/r/0::::Action::::
       
       // State : entry for: /o/r/P
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD3_OBJ.entry();
-      #ifdef DEBUG_OUTPUT
-      std::cout << "STATE TRANSITION: State1::Child2->State1::Child3" << std::endl;
-      #endif
+      _root->log("\033[31mSTATE TRANSITION: State1::Child2->State1::Child3\033[0m");
       
         // going into regular state
         _root->MEDIUM_OBJ__STATE1_OBJ__CHILD3_OBJ.initialize();
@@ -722,6 +676,7 @@ bool Root::State1::Child2::handleEvent ( Event* event ) {
         }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -732,33 +687,32 @@ bool Root::State1::Child2::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State1::Child2::Grand2 : /o/r/6/7  * * */
+
+// User Definitions for the HFSM
+//::::/o/r/6/7::::Definitions::::
+
+
 void Root::State1::Child2::Grand2::initialize ( void ) {
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State1::Child2::Grand2::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State1::Child2::Grand2::/o/r/6/7" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State1::Child2::Grand2::/o/r/6/7\033[0m");
   // Entry action for this state
   //::::/o/r/6/7::::Entry::::
   
 }
 
 void Root::State1::Child2::Grand2::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State1::Child2::Grand2::/o/r/6/7" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State1::Child2::Grand2::/o/r/6/7\033[0m");
   // Call the Exit Action for this state
   //::::/o/r/6/7::::Exit::::
   
 }
 
 void Root::State1::Child2::Grand2::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State1::Child2::Grand2::/o/r/6/7" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State1::Child2::Grand2::/o/r/6/7\033[0m");
   // Call the Tick Action for this state
   //::::/o/r/6/7::::Tick::::
   
@@ -770,16 +724,17 @@ double Root::State1::Child2::Grand2::getTimerPeriod ( void ) {
   return (double)(0.1);
 }
 
-bool Root::State1::Child2::Grand2::handleEvent ( Event* event ) {
+bool Root::State1::Child2::Grand2::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -789,36 +744,31 @@ bool Root::State1::Child2::Grand2::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT3:
+    switch ( event->get_type() ) {
+    case EventType::EVENT3:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/r/6/B" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/r/6/B\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND2_OBJ.exitChildren();
       // State : exit for: /o/r/6/7
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND2_OBJ.exit();
       // External Transition : Action for: /o/r/6/B
-      #ifdef DEBUG_OUTPUT
-      std::cout << "TRANSITION::ACTION for /o/r/6/B" << std::endl;
-      #endif
+      _root->log("\033[36mTRANSITION::ACTION for /o/r/6/B\033[0m");
       
       //::::/o/r/6/B::::Action::::
       
       // State : entry for: /o/r/6/w
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND_OBJ.entry();
-      #ifdef DEBUG_OUTPUT
-      std::cout << "STATE TRANSITION: State1::Child2::Grand2->State1::Child2::Grand" << std::endl;
-      #endif
+      _root->log("\033[31mSTATE TRANSITION: State1::Child2::Grand2->State1::Child2::Grand\033[0m");
       
         // going into regular state
         _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND_OBJ.initialize();
@@ -827,6 +777,7 @@ bool Root::State1::Child2::Grand2::handleEvent ( Event* event ) {
         }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -837,33 +788,32 @@ bool Root::State1::Child2::Grand2::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State1::Child2::Grand : /o/r/6/w  * * */
+
+// User Definitions for the HFSM
+//::::/o/r/6/w::::Definitions::::
+
+
 void Root::State1::Child2::Grand::initialize ( void ) {
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State1::Child2::Grand::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State1::Child2::Grand::/o/r/6/w" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State1::Child2::Grand::/o/r/6/w\033[0m");
   // Entry action for this state
   //::::/o/r/6/w::::Entry::::
   
 }
 
 void Root::State1::Child2::Grand::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State1::Child2::Grand::/o/r/6/w" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State1::Child2::Grand::/o/r/6/w\033[0m");
   // Call the Exit Action for this state
   //::::/o/r/6/w::::Exit::::
   
 }
 
 void Root::State1::Child2::Grand::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State1::Child2::Grand::/o/r/6/w" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State1::Child2::Grand::/o/r/6/w\033[0m");
   // Call the Tick Action for this state
   //::::/o/r/6/w::::Tick::::
   
@@ -875,16 +825,17 @@ double Root::State1::Child2::Grand::getTimerPeriod ( void ) {
   return (double)(0.1);
 }
 
-bool Root::State1::Child2::Grand::handleEvent ( Event* event ) {
+bool Root::State1::Child2::Grand::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -894,36 +845,31 @@ bool Root::State1::Child2::Grand::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT3:
+    switch ( event->get_type() ) {
+    case EventType::EVENT3:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/r/6/y" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/r/6/y\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND_OBJ.exitChildren();
       // State : exit for: /o/r/6/w
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND_OBJ.exit();
       // External Transition : Action for: /o/r/6/y
-      #ifdef DEBUG_OUTPUT
-      std::cout << "TRANSITION::ACTION for /o/r/6/y" << std::endl;
-      #endif
+      _root->log("\033[36mTRANSITION::ACTION for /o/r/6/y\033[0m");
       
       //::::/o/r/6/y::::Action::::
       
       // State : entry for: /o/r/6/7
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND2_OBJ.entry();
-      #ifdef DEBUG_OUTPUT
-      std::cout << "STATE TRANSITION: State1::Child2::Grand->State1::Child2::Grand2" << std::endl;
-      #endif
+      _root->log("\033[31mSTATE TRANSITION: State1::Child2::Grand->State1::Child2::Grand2\033[0m");
       
         // going into regular state
         _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ__GRAND2_OBJ.initialize();
@@ -932,6 +878,7 @@ bool Root::State1::Child2::Grand::handleEvent ( Event* event ) {
         }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -942,33 +889,32 @@ bool Root::State1::Child2::Grand::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State1::Child3 : /o/r/P  * * */
+
+// User Definitions for the HFSM
+//::::/o/r/P::::Definitions::::
+
+
 void Root::State1::Child3::initialize ( void ) {
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State1::Child3::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State1::Child3::/o/r/P" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State1::Child3::/o/r/P\033[0m");
   // Entry action for this state
   //::::/o/r/P::::Entry::::
   
 }
 
 void Root::State1::Child3::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State1::Child3::/o/r/P" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State1::Child3::/o/r/P\033[0m");
   // Call the Exit Action for this state
   //::::/o/r/P::::Exit::::
   
 }
 
 void Root::State1::Child3::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State1::Child3::/o/r/P" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State1::Child3::/o/r/P\033[0m");
   // Call the Tick Action for this state
   //::::/o/r/P::::Tick::::
   
@@ -980,17 +926,18 @@ double Root::State1::Child3::getTimerPeriod ( void ) {
   return (double)(0.1);
 }
 
-bool Root::State1::Child3::handleEvent ( Event* event ) {
+bool Root::State1::Child3::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT2:
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT2:
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -1000,51 +947,42 @@ bool Root::State1::Child3::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT3:
+    switch ( event->get_type() ) {
+    case EventType::EVENT3:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/r/4" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/r/4\033[0m");
         // Going into a choice pseudo-state, let it handle its
         // guards and perform the state transition
         if (false) { } // makes geneeration easier :)
         //::::/o/r/y::::Guard::::
         else if ( _root->cycle ) {
-          #ifdef DEBUG_OUTPUT
-          std::cout << "GUARD [ _root->cycle ] for EXTERNAL TRANSITION:/o/r/y evaluated to TRUE" << std::endl;
-          #endif
+          _root->log("\033[37mGUARD [ _root->cycle ] for EXTERNAL TRANSITION:/o/r/y evaluated to TRUE\033[0m");
           // Transitioning states!
           // Call all from prev state down exits
         _root->MEDIUM_OBJ__STATE1_OBJ__CHILD3_OBJ.exitChildren();
         // State : exit for: /o/r/P
         _root->MEDIUM_OBJ__STATE1_OBJ__CHILD3_OBJ.exit();
         // External Transition : Action for: /o/r/4
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/r/4" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/r/4\033[0m");
         
         //::::/o/r/4::::Action::::
         
         // External Transition : Action for: /o/r/y
-        #ifdef DEBUG_OUTPUT
-        std::cout << "TRANSITION::ACTION for /o/r/y" << std::endl;
-        #endif
+        _root->log("\033[36mTRANSITION::ACTION for /o/r/y\033[0m");
         
         //::::/o/r/y::::Action::::
         
         // State : entry for: /o/r/L
         _root->MEDIUM_OBJ__STATE1_OBJ__CHILD1_OBJ.entry();
-        #ifdef DEBUG_OUTPUT
-        std::cout << "STATE TRANSITION: State1::Child3->State1::Child1" << std::endl;
-        #endif
+        _root->log("\033[31mSTATE TRANSITION: State1::Child3->State1::Child1\033[0m");
         
           // going into regular state
           _root->MEDIUM_OBJ__STATE1_OBJ__CHILD1_OBJ.initialize();
@@ -1052,16 +990,12 @@ bool Root::State1::Child3::handleEvent ( Event* event ) {
           handled = true;
           }
         else if ( true ) {
-          #ifdef DEBUG_OUTPUT
-          std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/r/Z" << std::endl;
-          #endif
+          _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/r/Z\033[0m");
           // Going into an end pseudo-state that is not the root end state,
           // follow its parent end transition
           if (false) { }
           else if ( true ) {
-            #ifdef DEBUG_OUTPUT
-            std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/T" << std::endl;
-            #endif
+            _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/T\033[0m");
             // Transitioning states!
             // Call all from prev state down exits
           _root->MEDIUM_OBJ__STATE1_OBJ__CHILD3_OBJ.exitChildren();
@@ -1070,29 +1004,21 @@ bool Root::State1::Child3::handleEvent ( Event* event ) {
           // State : exit for: /o/r
           _root->MEDIUM_OBJ__STATE1_OBJ.exit();
           // External Transition : Action for: /o/r/4
-          #ifdef DEBUG_OUTPUT
-          std::cout << "TRANSITION::ACTION for /o/r/4" << std::endl;
-          #endif
+          _root->log("\033[36mTRANSITION::ACTION for /o/r/4\033[0m");
           
           //::::/o/r/4::::Action::::
           
           // External Transition : Action for: /o/r/Z
-          #ifdef DEBUG_OUTPUT
-          std::cout << "TRANSITION::ACTION for /o/r/Z" << std::endl;
-          #endif
+          _root->log("\033[36mTRANSITION::ACTION for /o/r/Z\033[0m");
           
           //::::/o/r/Z::::Action::::
           
           // External Transition : Action for: /o/T
-          #ifdef DEBUG_OUTPUT
-          std::cout << "TRANSITION::ACTION for /o/T" << std::endl;
-          #endif
+          _root->log("\033[36mTRANSITION::ACTION for /o/T\033[0m");
           
           //::::/o/T::::Action::::
           
-          #ifdef DEBUG_OUTPUT
-          std::cout << "STATE TRANSITION: State1::Child3->End_State" << std::endl;
-          #endif
+          _root->log("\033[31mSTATE TRANSITION: State1::Child3->End_State\033[0m");
           
             // going into end pseudo-state THIS SHOULD BE TOP LEVEL END STATE
             _root->MEDIUM_OBJ__END_STATE_OBJ.makeActive();
@@ -1103,6 +1029,7 @@ bool Root::State1::Child3::handleEvent ( Event* event ) {
       }
       break;
     default:
+      handled = false;
       break;
     }
   }
@@ -1113,33 +1040,32 @@ bool Root::State1::Child3::handleEvent ( Event* event ) {
   return handled;
 }
 /* * *  Definitions for State1::Child1 : /o/r/L  * * */
+
+// User Definitions for the HFSM
+//::::/o/r/L::::Definitions::::
+
+
 void Root::State1::Child1::initialize ( void ) {
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State1::Child1::entry ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "ENTRY::State1::Child1::/o/r/L" << std::endl;
-  #endif
+  _root->log("\033[36mENTRY::State1::Child1::/o/r/L\033[0m");
   // Entry action for this state
   //::::/o/r/L::::Entry::::
   
 }
 
 void Root::State1::Child1::exit ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "EXIT::State1::Child1::/o/r/L" << std::endl;
-  #endif
+  _root->log("\033[36mEXIT::State1::Child1::/o/r/L\033[0m");
   // Call the Exit Action for this state
   //::::/o/r/L::::Exit::::
   
 }
 
 void Root::State1::Child1::tick ( void ) {
-  #ifdef DEBUG_OUTPUT
-  std::cout << "TICK::State1::Child1::/o/r/L" << std::endl;
-  #endif
+  _root->log("\033[36mTICK::State1::Child1::/o/r/L\033[0m");
   // Call the Tick Action for this state
   //::::/o/r/L::::Tick::::
   
@@ -1151,18 +1077,19 @@ double Root::State1::Child1::getTimerPeriod ( void ) {
   return (double)(0.1);
 }
 
-bool Root::State1::Child1::handleEvent ( Event* event ) {
+bool Root::State1::Child1::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
-  switch ( event->type() ) {
-  case Event::Type::EVENT2:
-  case Event::Type::EVENT3:
-  case Event::Type::EVENT4:
+  switch ( event->get_type() ) {
+  case EventType::EVENT2:
+  case EventType::EVENT3:
+  case EventType::EVENT4:
     handled = true;
     break;
   default:
+    handled = false;
     break;
   }
 
@@ -1172,36 +1099,31 @@ bool Root::State1::Child1::handleEvent ( Event* event ) {
   }
 
   // handle internal transitions first
-  switch ( event->type() ) {
+  switch ( event->get_type() ) {
   default:
+    handled = false;
     break;
   }
   if (!handled) {
     // handle external transitions here
-    switch ( event->type() ) {
-    case Event::Type::EVENT1:
+    switch ( event->get_type() ) {
+    case EventType::EVENT1:
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
-        #ifdef DEBUG_OUTPUT
-        std::cout << "NO GUARD on EXTERNAL TRANSITION:/o/r/G" << std::endl;
-        #endif
+        _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/o/r/G\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD1_OBJ.exitChildren();
       // State : exit for: /o/r/L
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD1_OBJ.exit();
       // External Transition : Action for: /o/r/G
-      #ifdef DEBUG_OUTPUT
-      std::cout << "TRANSITION::ACTION for /o/r/G" << std::endl;
-      #endif
+      _root->log("\033[36mTRANSITION::ACTION for /o/r/G\033[0m");
       
       //::::/o/r/G::::Action::::
       
       // State : entry for: /o/r/6
       _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ.entry();
-      #ifdef DEBUG_OUTPUT
-      std::cout << "STATE TRANSITION: State1::Child1->State1::Child2" << std::endl;
-      #endif
+      _root->log("\033[31mSTATE TRANSITION: State1::Child1->State1::Child2\033[0m");
       
         // going into regular state
         _root->MEDIUM_OBJ__STATE1_OBJ__CHILD2_OBJ.initialize();
@@ -1210,6 +1132,7 @@ bool Root::State1::Child1::handleEvent ( Event* event ) {
         }
       break;
     default:
+      handled = false;
       break;
     }
   }
