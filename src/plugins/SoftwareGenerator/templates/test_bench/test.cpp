@@ -1,3 +1,4 @@
+#include <atomic>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -57,13 +58,41 @@ int main( int argc, char** argv ) {
   });
   #endif
 
-  // initialize the HFSM
-  {{{sanitizedName}}}_root.initialize();
+  std::atomic<bool> done{false};
 
-  while ( true ) {
+  // make a thread for the HFSM
+  std::thread hfsm_thread([&{{{sanitizedName}}}_root, &done]() {
+    // initialize the HFSM
+    {{{sanitizedName}}}_root.initialize();
+    while (!done) {
+      {{{sanitizedName}}}_root.handle_all_events();
+
+      // NOTE: we would normally call the tick() function here, but we want to
+      //       be able to manually tick the HFSM from the test bench and we
+      //       don't want to clutter the log with the tick() messages.
+      // {{{sanitizedName}}}_root.tick();
+
+      // NOTE: if we call tick above, then we should call handle_all_events()
+      //       again to handle any events that were spawned by the tick()
+      //       function
+      // {{{sanitizedName}}}_root.handle_all_events();
+
+      {{{sanitizedName}}}_root.sleep_until_event();
+    }
+  });
+
+  using namespace std::chrono_literals;
+
+  while ( !done ) {
+    // wait for the HFSM to be ready for events before we show the menu
+    do {
+      std::this_thread::sleep_for(100ms);
+    } while ({{{sanitizedName}}}_root.has_events());
     displayEventMenu();
     int selection = getUserSelection();
     if (selection == ExitSelection) {
+      {{{sanitizedName}}}_root.terminate();
+      done = true;
       break;
     }
     else if (selection == RestartSelection) {
@@ -75,8 +104,10 @@ int main( int argc, char** argv ) {
     else {
       makeEvent( {{{sanitizedName}}}_root, selection );
     }
-    {{{sanitizedName}}}_root.handle_all_events();
   }
+
+  // wait for the HFSM thread to exit
+  hfsm_thread.join();
 
   return 0;
 };
