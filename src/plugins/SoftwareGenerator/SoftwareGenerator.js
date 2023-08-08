@@ -111,6 +111,7 @@ define([
     var currentConfig = self.getCurrentConfig();
     self.language = currentConfig.language;
     self.generateTestCode = currentConfig.generateTestCode;
+    self.namespace = currentConfig.namespace;
 
     // the active node for this plugin is software -> project
     var projectNode = self.activeNode;
@@ -177,12 +178,12 @@ define([
       }, null, 2);
     }
 
-    var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel, objToFilePrefixFn );
+    var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel, self.namespace, objToFilePrefixFn );
     artifacts = Object.assign(artifacts, hfsmArtifacts);
 
     if (generateTestCode) {
       self.notify('info', 'Generating HFSM Test Bench!');
-      var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel, objToFilePrefixFn );
+      var testCodeArtifacts = MetaTemplates.renderTestCode( self.projectModel, self.namespace, objToFilePrefixFn );
       artifacts = Object.assign(artifacts, testCodeArtifacts);
     }
     return artifacts;

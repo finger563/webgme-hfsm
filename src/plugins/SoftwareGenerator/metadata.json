@@ -23,6 +23,13 @@
 	    ]
 	},
 	{
+	    "name": "namespace",
+	    "displayName": "Namespace",
+	    "description": "Put the generated code into a namespace.",
+	    "value": "state_machine",
+	    "valueType": "string"
+	},
+	{
 	    "name": "generateTestCode",
 	    "displayName": "Generate Test Bench",
 	    "description": "Do you want to generate a simple test bench program for your HFSM?",

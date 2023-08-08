@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace {{{namespace}}} {
+namespace state_machine {
 
   // Base Class for Events, abstract so you never instantiate.
   class EventBase {
@@ -178,4 +178,4 @@ namespace {{{namespace}}} {
     StateBase *_parentState;
   }; // class StateBase
 
-} // namespace {{{namespace}}}
+} // namespace state_machine

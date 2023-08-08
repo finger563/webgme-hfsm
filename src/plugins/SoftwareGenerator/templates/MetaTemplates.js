@@ -71,13 +71,14 @@ define(['bower/handlebars/handlebars.min',
              }
              obj.fullyQualifiedName = fqName;
            },
-           renderTestCode: function( model, objToFilePrefixFn ) {
+             renderTestCode: function( model, namespace, objToFilePrefixFn ) {
              var self = this;
              var objects = model.objects;
              var root    = model.root;
              var artifacts = {};
              Object.keys(objects).map(function (path) {
                var obj = objects[ path ];
+               obj['namespace'] = namespace;
                var templDict = self.TestTemplates[ obj.type ];
                if ( templDict ) {
                  Object.keys(templDict).map(function(templPath) {
@@ -103,7 +104,7 @@ define(['bower/handlebars/handlebars.min',
              });
              return artifacts;
            },
-           renderHFSM: function(model, objToFilePrefixFn ) {
+           renderHFSM: function(model, namespace, objToFilePrefixFn ) {
              var self    = this;
              var objects = model.objects;
              var root    = model.root;
@@ -155,6 +156,7 @@ define(['bower/handlebars/handlebars.min',
                });
                if (rootTypeList) {
                  rootTypeList.map(function(obj) {
+                   obj['namespace'] = namespace;
                    var hfsmArtifacts = {};
                    hfsmArtifacts = Object.assign(
                      hfsmArtifacts,
@@ -162,7 +164,7 @@ define(['bower/handlebars/handlebars.min',
                    );
                    hfsmArtifacts = Object.assign(
                      hfsmArtifacts,
-                     UMLTemplates.renderStatic( )
+                     UMLTemplates.renderStatic()
                    );
                    if (objToFilePrefixFn) {
                      var prefixedArtifacts = {};

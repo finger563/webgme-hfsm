@@ -23,7 +23,7 @@ COPY           = cp
 #
 #-------------------------------------------------------------------------------
 CPPSRC =
-CPPSRC += Complex_GeneratedStates.cpp
+CPPSRC += Complex_generated_states.cpp
 CPPSRC += Complex_test.cpp
 
 #-------------------------------------------------------------------------------
@@ -31,8 +31,8 @@ CPPSRC += Complex_test.cpp
 # COMPILER CONFIGURATION
 #
 #-------------------------------------------------------------------------------
-CSTANDARD   = -std=c14
-CPPSTANDARD = -std=c++14
+CSTANDARD   = -std=c17
+CPPSTANDARD = -std=c++17
 OPTIMIZATION= 3
 
 CDEFS =
@@ -48,6 +48,7 @@ CFLAGS += $(CDEFS)
 CPPFLAGS = 
 CPPFLAGS += -O$(OPTIMIZATION)
 CPPFLAGS += $(CPPSTANDARD)
+CPPFLAGS += -pthread
 
 #-------------------------------------------------------------------------------
 #
@@ -113,10 +114,10 @@ $(CPPOBJ) : %.o : %.cpp
 
 Complex_test:
 	@echo Compiling Complex_test
-	g++ -o Complex_test Complex_test.cpp Complex_GeneratedStates.cpp $(ALL_CFLAGS)
+	g++ -o Complex_test Complex_test.cpp Complex_generated_states.cpp $(ALL_CFLAGS)
 Complex_test_DEBUG:
 	@echo Compiling Complex_test_DEBUG
-	g++ -o Complex_test_DEBUG Complex_test.cpp Complex_GeneratedStates.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
+	g++ -o Complex_test_DEBUG Complex_test.cpp Complex_generated_states.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
 run_Complex_test: Complex_test
 	@echo
 	@echo Running Complex_test

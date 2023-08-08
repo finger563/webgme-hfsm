@@ -1,67 +1,72 @@
 #pragma once
 
-#include "DeepHistoryState.hpp"
-#include "ShallowHistoryState.hpp"
-#include "StateBase.hpp"
+#include "state_base.hpp"
+#include "deep_history_state.hpp"
+#include "shallow_history_state.hpp"
 
+#include <functional>
 #include <deque>
-
-#ifdef DEBUG_OUTPUT
 #include <string>
-#endif
+#include <mutex>
+#include "magic_enum.hpp"
+#include "Complex_event_data.hpp"
 
 // User Includes for the HFSM
 //::::/c::::Includes::::
 #include <stdio.h>
 
-namespace StateMachine {
+namespace state_machine::Complex {
 
-  namespace Complex {
+    typedef std::function<void(std::string_view)> LogCallback;
+
+    enum class EventType {
+      ENDEVENT,
+      EVENT1,
+      EVENT2,
+      EVENT3,
+      EVENT4,
+    }; // ENUMS GENERATED FROM MODEL
+
+    /**
+     * @brief Class representing all events that this HFSM can respond
+     * to / handle. Used as abstract interface for handleEvent().
+     */
+    class GeneratedEventBase : public EventBase {
+    protected:
+      EventType type;
+    public:
+      explicit GeneratedEventBase(const EventType& t) : type(t) {}
+      virtual ~GeneratedEventBase() {}
+      EventType get_type() const { return type; }
+      virtual std::string to_string() const {
+        return std::string(magic_enum::enum_name(type));
+      }
+    }; // Class GeneratedEventBase
 
     /**
      * @brief Class representing all events that this HFSM can respond
      * to / handle. Intended to be created / managed by the
      * EventFactory (below).
      */
-    class Event : public EventBase {
+    template <typename T>
+    class Event : public GeneratedEventBase {
+      T data;
     public:
-      enum class Type {
-        ENDEVENT,
-        EVENT1,
-        EVENT2,
-        EVENT3,
-        EVENT4,
-      }; // ENUMS GENERATED FROM MODEL
-      Event(Type t) : _t(t) {}
-      Type type(void) { return _t; }
-#ifdef DEBUG_OUTPUT
-      static std::string toString(Event *e) {
-        std::string eventString = "";
-        switch (e->_t) {
-        case Type::ENDEVENT:
-          eventString = "ENDEVENT";
-          break;
-        case Type::EVENT1:
-          eventString = "EVENT1";
-          break;
-        case Type::EVENT2:
-          eventString = "EVENT2";
-          break;
-        case Type::EVENT3:
-          eventString = "EVENT3";
-          break;
-        case Type::EVENT4:
-          eventString = "EVENT4";
-          break;
-        default:
-          break;
-        }
-        return eventString;
-      }
-#endif
-    protected:
-      Type _t;
+      explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
+      virtual ~Event() {}
+      T get_data() const { return data; }
     }; // Class Event
+
+    // free the memory associated with the event
+    static void consume_event(GeneratedEventBase *e) {
+      delete e;
+    }
+
+    typedef Event<ENDEVENTEventData> ENDEVENTEvent;
+    typedef Event<EVENT1EventData> EVENT1Event;
+    typedef Event<EVENT2EventData> EVENT2Event;
+    typedef Event<EVENT3EventData> EVENT3Event;
+    typedef Event<EVENT4EventData> EVENT4Event;
 
     /**
      * @brief Class handling all Event creation, memory management, and
@@ -69,53 +74,117 @@ namespace StateMachine {
      */
     class EventFactory {
     public:
-      ~EventFactory(void) { clearEvents(); }
+      ~EventFactory(void) { clear_events(); }
 
-      // allocate memory for an event and add it to the Q
-      void spawnEvent(Event::Type t) {
-        Event *newEvent = new Event(t);
-        _eventQ.push_back(newEvent);
+      void set_log_callback(LogCallback cb) {
+        log_callback_ = cb;
       }
 
-      // free the memory associated with the event
-      void consumeEvent(Event *e) {
-        delete e;
-        e = nullptr;
+      void spawn_ENDEVENT_event(const ENDEVENTEventData &data) {
+        log("\033[32mSPAWN: ENDEVENT\033[0m");
+        GeneratedEventBase *new_event = new ENDEVENTEvent{EventType::ENDEVENT, data};
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        events_.push_back(new_event);
+        queue_cv_.notify_one();
+      }
+      void spawn_EVENT1_event(const EVENT1EventData &data) {
+        log("\033[32mSPAWN: EVENT1\033[0m");
+        GeneratedEventBase *new_event = new EVENT1Event{EventType::EVENT1, data};
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        events_.push_back(new_event);
+        queue_cv_.notify_one();
+      }
+      void spawn_EVENT2_event(const EVENT2EventData &data) {
+        log("\033[32mSPAWN: EVENT2\033[0m");
+        GeneratedEventBase *new_event = new EVENT2Event{EventType::EVENT2, data};
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        events_.push_back(new_event);
+        queue_cv_.notify_one();
+      }
+      void spawn_EVENT3_event(const EVENT3EventData &data) {
+        log("\033[32mSPAWN: EVENT3\033[0m");
+        GeneratedEventBase *new_event = new EVENT3Event{EventType::EVENT3, data};
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        events_.push_back(new_event);
+        queue_cv_.notify_one();
+      }
+      void spawn_EVENT4_event(const EVENT4EventData &data) {
+        log("\033[32mSPAWN: EVENT4\033[0m");
+        GeneratedEventBase *new_event = new EVENT4Event{EventType::EVENT4, data};
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        events_.push_back(new_event);
+        queue_cv_.notify_one();
+      }
+
+      // Returns the number of events in the queue
+      size_t get_num_events(void) {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        return events_.size();
+      }
+
+      // Blocks until an event is available
+      void wait_for_events(void) {
+        std::unique_lock<std::mutex> lock(queue_mutex_);
+        queue_cv_.wait(lock);
+      }
+
+      // Blocks until an event is available or the timeout is reached
+      void sleep_until_event(float seconds) {
+        std::unique_lock<std::mutex> lock(queue_mutex_);
+        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds));
+      }
+
+      // Blocks until an event is available
+      GeneratedEventBase *get_next_event_blocking(void) {
+        std::unique_lock<std::mutex> lock(queue_mutex_);
+        queue_cv_.wait(lock, [this]{ return events_.size() > 0; });
+        GeneratedEventBase *ptr = events_.front();
+        events_.pop_front(); // remove the event from the Q
+        return ptr;
       }
 
       // Retrieves the pointer to the next event in the queue, or
       // nullptr if it doesn't exist
-      Event *getNextEvent(void) {
-        Event *ptr = nullptr;
-        if (_eventQ.size()) {
-          ptr = _eventQ.front();
-          _eventQ.pop_front(); // remove the event from the Q
+      GeneratedEventBase *get_next_event(void) {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        GeneratedEventBase *ptr = nullptr;
+        if (events_.size()) {
+          ptr = events_.front();
+          events_.pop_front(); // remove the event from the Q
         }
         return ptr;
       }
 
       // Clears the event queue and frees all event memory
-      void clearEvents(void) {
-        Event *ptr = getNextEvent();
+      void clear_events(void) {
+        GeneratedEventBase *ptr = get_next_event();
         while (ptr != nullptr) {
-          consumeEvent(ptr);
-          ptr = getNextEvent();
+          consume_event(ptr);
+          ptr = get_next_event();
         }
       }
 
-#ifdef DEBUG_OUTPUT
-      std::string toString(void) {
+      std::string to_string(void) {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
         std::string qStr = "[ ";
-        for (int i = 0; i < _eventQ.size(); i++) {
-          qStr += Event::toString(_eventQ[i]);
+        for (int i = 0; i < events_.size(); i++) {
+          qStr += events_[i]->to_string();
         }
         qStr += " ]";
         return qStr;
       }
-#endif
 
     protected:
-      std::deque<Event *> _eventQ;
+      void log(std::string_view msg) {
+        if (log_callback_) {
+          log_callback_(msg);
+        }
+      }
+
+      std::deque<GeneratedEventBase*> events_;
+      std::mutex queue_mutex_;
+      std::condition_variable queue_cv_;
+      LogCallback log_callback_{nullptr};
     }; // class EventFactory
 
     /**
@@ -126,20 +195,41 @@ namespace StateMachine {
     public:
       // User Declarations for the HFSM
       //::::/c::::Declarations::::
-        bool goToEnd      = true;
+        bool goToEnd      = false;
   bool goToChoice   = true;
   bool goToHistory  = false;
   bool nextState    = false;
-  bool killedState  = true;
+  bool killedState  = false;
   bool someGuard    = true;
   bool someTest     = true;
 
   int someNumber = 40;
   int someValue  = 50;
 
+    protected:
+      void log(const std::string& msg) {
+        if (log_callback_) {
+          log_callback_(msg);
+        }
+      }
+
+      LogCallback log_callback_{nullptr};
+
     public:
       // event factory for spawning / ordering events
-      EventFactory eventFactory;
+      EventFactory event_factory;
+
+      void set_log_callback(LogCallback cb) {
+        log_callback_ = cb;
+        event_factory.set_log_callback(cb);
+      }
+
+      // helper functions for spawning events into the HFSM
+      void spawn_ENDEVENT_event(const ENDEVENTEventData &data) { event_factory.spawn_ENDEVENT_event(data); }
+      void spawn_EVENT1_event(const EVENT1EventData &data) { event_factory.spawn_EVENT1_event(data); }
+      void spawn_EVENT2_event(const EVENT2EventData &data) { event_factory.spawn_EVENT2_event(data); }
+      void spawn_EVENT3_event(const EVENT3EventData &data) { event_factory.spawn_EVENT3_event(data); }
+      void spawn_EVENT4_event(const EVENT4EventData &data) { event_factory.spawn_EVENT4_event(data); }
 
       // Constructors
       Root() : StateBase(),
@@ -171,6 +261,39 @@ namespace StateMachine {
       void initialize(void);
 
       /**
+       * @brief Returns true if there are any events in the event queue.
+       */
+      bool has_events(void) {
+        return event_factory.get_num_events() > 0;
+      }
+
+      /**
+       * @brief Sleeps until an event is available or the current state's timer
+       *  period expires, then returns. This will block until an event is
+       *  available. The amount of time spent sleeping is determined by the
+       *  current state's timer period.
+       */
+      void sleep_until_event(void) {
+        event_factory.sleep_until_event(getActiveLeaf()->getTimerPeriod());
+      }
+
+      /**
+       * @brief Waits for an event to be available, then returns.
+       * This will block until an event is available.
+       */
+      void wait_for_events(void) {
+        event_factory.wait_for_events();
+      }
+
+      /**
+       * @brief Handles all events in the event queue, ensuring to free the
+       * memory. This will ensure that any events spawned from other event
+       * transitions / actions are handled. Returns once there are no more
+       * events in the queue to process.
+       */
+      void handle_all_events(void);
+
+      /**
        * @brief Terminates the HFSM, calling exit functions for the
        *  active leaf state upwards through its parents all the way to
        *  the root.
@@ -186,31 +309,31 @@ namespace StateMachine {
       /**
        * @brief Returns true if the HFSM has reached its END State
        */
-      bool hasStopped(void);
+      bool has_stopped(void);
 
       /**
        * @brief Calls handleEvent on the activeLeaf.
        *
-       * @param[in] Event* Event needing to be handled
+       * @param[in] EventBase* Event needing to be handled
        *
        * @return true if event is consumed, false otherwise
        */
       bool handleEvent(EventBase * event) {
-        return handleEvent( static_cast<Event*>(event) );
+        return handleEvent( static_cast<GeneratedEventBase*>(event) );
       }
 
       /**
        * @brief Calls handleEvent on the activeLeaf.
        *
-       * @param[in] Event* Event needing to be handled
+       * @param[in] EventBase* Event needing to be handled
        *
        * @return true if event is consumed, false otherwise
        */
-      bool handleEvent(Event * event);
+      bool handleEvent(GeneratedEventBase * event);
 
       // Child Substates
       // Declaration for State_1 : /c/Y
-      class State_1 : public StateMachine::StateBase {
+      class State_1 : public StateBase {
       public:
         // User Declarations for the State
         //::::/c/Y::::Declarations::::
@@ -230,14 +353,14 @@ namespace StateMachine {
         void   exit ( void );
         void   tick ( void );
         double getTimerPeriod ( void );
-        bool   handleEvent ( StateMachine::EventBase* event ) {
-          return handleEvent( static_cast<Event*>(event) );
+        virtual bool   handleEvent ( EventBase* event ) {
+          return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
-        bool   handleEvent ( Event* event );
+        virtual bool   handleEvent ( GeneratedEventBase* event );
       
       };
       // Declaration for State_2 : /c/v
-      class State_2 : public StateMachine::StateBase {
+      class State_2 : public StateBase {
       public:
         // User Declarations for the State
         //::::/c/v::::Declarations::::
@@ -257,13 +380,13 @@ namespace StateMachine {
         void   exit ( void );
         void   tick ( void );
         double getTimerPeriod ( void );
-        bool   handleEvent ( StateMachine::EventBase* event ) {
-          return handleEvent( static_cast<Event*>(event) );
+        virtual bool   handleEvent ( EventBase* event ) {
+          return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
-        bool   handleEvent ( Event* event );
+        virtual bool   handleEvent ( GeneratedEventBase* event );
       
         // Declaration for State_2::ChildState : /c/v/K
-        class ChildState : public StateMachine::StateBase {
+        class ChildState : public StateBase {
         public:
           // User Declarations for the State
           //::::/c/v/K::::Declarations::::
@@ -283,14 +406,14 @@ namespace StateMachine {
           void   exit ( void );
           void   tick ( void );
           double getTimerPeriod ( void );
-          bool   handleEvent ( StateMachine::EventBase* event ) {
-            return handleEvent( static_cast<Event*>(event) );
+          virtual bool   handleEvent ( EventBase* event ) {
+            return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
-          bool   handleEvent ( Event* event );
+          virtual bool   handleEvent ( GeneratedEventBase* event );
         
         };
         // Declaration for State_2::ChildState2 : /c/v/e
-        class ChildState2 : public StateMachine::StateBase {
+        class ChildState2 : public StateBase {
         public:
           // User Declarations for the State
           //::::/c/v/e::::Declarations::::
@@ -310,14 +433,14 @@ namespace StateMachine {
           void   exit ( void );
           void   tick ( void );
           double getTimerPeriod ( void );
-          bool   handleEvent ( StateMachine::EventBase* event ) {
-            return handleEvent( static_cast<Event*>(event) );
+          virtual bool   handleEvent ( EventBase* event ) {
+            return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
-          bool   handleEvent ( Event* event );
+          virtual bool   handleEvent ( GeneratedEventBase* event );
         
         };
         // Declaration for State_2::ChildState3 : /c/v/z
-        class ChildState3 : public StateMachine::StateBase {
+        class ChildState3 : public StateBase {
         public:
           // User Declarations for the State
           //::::/c/v/z::::Declarations::::
@@ -337,13 +460,13 @@ namespace StateMachine {
           void   exit ( void );
           void   tick ( void );
           double getTimerPeriod ( void );
-          bool   handleEvent ( StateMachine::EventBase* event ) {
-            return handleEvent( static_cast<Event*>(event) );
+          virtual bool   handleEvent ( EventBase* event ) {
+            return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
-          bool   handleEvent ( Event* event );
+          virtual bool   handleEvent ( GeneratedEventBase* event );
         
           // Declaration for State_2::ChildState3::Grand : /c/v/z/6
-          class Grand : public StateMachine::StateBase {
+          class Grand : public StateBase {
           public:
             // User Declarations for the State
             //::::/c/v/z/6::::Declarations::::
@@ -363,14 +486,14 @@ namespace StateMachine {
             void   exit ( void );
             void   tick ( void );
             double getTimerPeriod ( void );
-            bool   handleEvent ( StateMachine::EventBase* event ) {
-              return handleEvent( static_cast<Event*>(event) );
+            virtual bool   handleEvent ( EventBase* event ) {
+              return handleEvent( static_cast<GeneratedEventBase*>(event) );
             }
-            bool   handleEvent ( Event* event );
+            virtual bool   handleEvent ( GeneratedEventBase* event );
           
           };
           // Declaration for State_2::ChildState3::Grand2 : /c/v/z/c
-          class Grand2 : public StateMachine::StateBase {
+          class Grand2 : public StateBase {
           public:
             // User Declarations for the State
             //::::/c/v/z/c::::Declarations::::
@@ -390,16 +513,16 @@ namespace StateMachine {
             void   exit ( void );
             void   tick ( void );
             double getTimerPeriod ( void );
-            bool   handleEvent ( StateMachine::EventBase* event ) {
-              return handleEvent( static_cast<Event*>(event) );
+            virtual bool   handleEvent ( EventBase* event ) {
+              return handleEvent( static_cast<GeneratedEventBase*>(event) );
             }
-            bool   handleEvent ( Event* event );
+            virtual bool   handleEvent ( GeneratedEventBase* event );
           
           };
         };
       };
       // Declaration for State3 : /c/T
-      class State3 : public StateMachine::StateBase {
+      class State3 : public StateBase {
       public:
         // User Declarations for the State
         //::::/c/T::::Declarations::::
@@ -419,13 +542,13 @@ namespace StateMachine {
         void   exit ( void );
         void   tick ( void );
         double getTimerPeriod ( void );
-        bool   handleEvent ( StateMachine::EventBase* event ) {
-          return handleEvent( static_cast<Event*>(event) );
+        virtual bool   handleEvent ( EventBase* event ) {
+          return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
-        bool   handleEvent ( Event* event );
+        virtual bool   handleEvent ( GeneratedEventBase* event );
       
         // Declaration for State3::ChildState2 : /c/T/0
-        class ChildState2 : public StateMachine::StateBase {
+        class ChildState2 : public StateBase {
         public:
           // User Declarations for the State
           //::::/c/T/0::::Declarations::::
@@ -445,14 +568,14 @@ namespace StateMachine {
           void   exit ( void );
           void   tick ( void );
           double getTimerPeriod ( void );
-          bool   handleEvent ( StateMachine::EventBase* event ) {
-            return handleEvent( static_cast<Event*>(event) );
+          virtual bool   handleEvent ( EventBase* event ) {
+            return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
-          bool   handleEvent ( Event* event );
+          virtual bool   handleEvent ( GeneratedEventBase* event );
         
         };
         // Declaration for State3::ChildState : /c/T/W
-        class ChildState : public StateMachine::StateBase {
+        class ChildState : public StateBase {
         public:
           // User Declarations for the State
           //::::/c/T/W::::Declarations::::
@@ -472,14 +595,14 @@ namespace StateMachine {
           void   exit ( void );
           void   tick ( void );
           double getTimerPeriod ( void );
-          bool   handleEvent ( StateMachine::EventBase* event ) {
-            return handleEvent( static_cast<Event*>(event) );
+          virtual bool   handleEvent ( EventBase* event ) {
+            return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
-          bool   handleEvent ( Event* event );
+          virtual bool   handleEvent ( GeneratedEventBase* event );
         
         };
         // Declaration for State3::ChildState3 : /c/T/w
-        class ChildState3 : public StateMachine::StateBase {
+        class ChildState3 : public StateBase {
         public:
           // User Declarations for the State
           //::::/c/T/w::::Declarations::::
@@ -499,10 +622,10 @@ namespace StateMachine {
           void   exit ( void );
           void   tick ( void );
           double getTimerPeriod ( void );
-          bool   handleEvent ( StateMachine::EventBase* event ) {
-            return handleEvent( static_cast<Event*>(event) );
+          virtual bool   handleEvent ( EventBase* event ) {
+            return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
-          bool   handleEvent ( Event* event );
+          virtual bool   handleEvent ( GeneratedEventBase* event );
         
         };
       };
@@ -512,39 +635,38 @@ namespace StateMachine {
        * @brief This is the terminal END STATE for the HFSM, after which no
        *  events or other actions will be processed.
        */
-      class End_State : public StateMachine::StateBase {
+      class End_State : public StateBase {
       public:
-        End_State ( StateBase* parent ) : StateBase(parent) {}
+        explicit End_State ( StateBase* parent ) : StateBase(parent) {}
         void entry ( void ) {}
         void exit ( void ) {}
         void tick ( void ) {}
         // Simply returns true since the END STATE trivially handles all
         // events.
-        bool handleEvent ( StateMachine::EventBase* event ) { return true; }
-        bool handleEvent ( Event* event ) { return true; }
+        bool handleEvent ( EventBase* event ) { return true; }
+        bool handleEvent ( GeneratedEventBase* event ) { return true; }
       };
 
-      // Keep a _root for easier templating, it will point to us
-      Root *_root;
       // State Objects
       State_1 COMPLEX_OBJ__STATE_1_OBJ;
-      State_2 COMPLEX_OBJ__STATE_2_OBJ;
       State_2::ChildState COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE_OBJ;
-      StateMachine::DeepHistoryState COMPLEX_OBJ__STATE_2_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
+      DeepHistoryState COMPLEX_OBJ__STATE_2_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
       State_2::ChildState2 COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE2_OBJ;
-      State_2::ChildState3 COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ;
       State_2::ChildState3::Grand COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND_OBJ;
       State_2::ChildState3::Grand2 COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ;
-      StateMachine::ShallowHistoryState COMPLEX_OBJ__STATE_2_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
-      State3 COMPLEX_OBJ__STATE3_OBJ;
+      State_2::ChildState3 COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ;
+      ShallowHistoryState COMPLEX_OBJ__STATE_2_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
+      State_2 COMPLEX_OBJ__STATE_2_OBJ;
       State3::ChildState2 COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE2_OBJ;
-      StateMachine::ShallowHistoryState COMPLEX_OBJ__STATE3_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
-      StateMachine::DeepHistoryState COMPLEX_OBJ__STATE3_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
+      ShallowHistoryState COMPLEX_OBJ__STATE3_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
+      DeepHistoryState COMPLEX_OBJ__STATE3_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
       State3::ChildState COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE_OBJ;
       State3::ChildState3 COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE3_OBJ;
+      State3 COMPLEX_OBJ__STATE3_OBJ;
       // END state object
       End_State COMPLEX_OBJ__END_STATE_OBJ;
+      // Keep a _root for easier templating, it will point to us
+      Root *_root;
     }; // class Root
 
-  }; // namespace Complex
-}; // namespace StateMachine
+}; // namespace state_machine::Complex

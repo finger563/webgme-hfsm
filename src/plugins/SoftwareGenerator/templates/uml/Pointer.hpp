@@ -2,9 +2,9 @@
 {{> PointerTemplHpp }}
 {{/each}}
 {{#if isDeepHistory}}
-state_machine::DeepHistoryState {{{pointerName}}};
+DeepHistoryState {{{pointerName}}};
 {{else if isShallowHistory}}
-state_machine::ShallowHistoryState {{{pointerName}}};
+ShallowHistoryState {{{pointerName}}};
 {{else if isState}}
 {{{fullyQualifiedName}}} {{{pointerName}}};
 {{/if}}

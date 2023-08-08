@@ -23,7 +23,7 @@ COPY           = cp
 #
 #-------------------------------------------------------------------------------
 CPPSRC =
-CPPSRC += Simple_GeneratedStates.cpp
+CPPSRC += Simple_generated_states.cpp
 CPPSRC += Simple_test.cpp
 
 #-------------------------------------------------------------------------------
@@ -31,8 +31,8 @@ CPPSRC += Simple_test.cpp
 # COMPILER CONFIGURATION
 #
 #-------------------------------------------------------------------------------
-CSTANDARD   = -std=c14
-CPPSTANDARD = -std=c++14
+CSTANDARD   = -std=c17
+CPPSTANDARD = -std=c++17
 OPTIMIZATION= 3
 
 CDEFS =
@@ -48,6 +48,7 @@ CFLAGS += $(CDEFS)
 CPPFLAGS = 
 CPPFLAGS += -O$(OPTIMIZATION)
 CPPFLAGS += $(CPPSTANDARD)
+CPPFLAGS += -pthread
 
 #-------------------------------------------------------------------------------
 #
@@ -113,10 +114,10 @@ $(CPPOBJ) : %.o : %.cpp
 
 Simple_test:
 	@echo Compiling Simple_test
-	g++ -o Simple_test Simple_test.cpp Simple_GeneratedStates.cpp $(ALL_CFLAGS)
+	g++ -o Simple_test Simple_test.cpp Simple_generated_states.cpp $(ALL_CFLAGS)
 Simple_test_DEBUG:
 	@echo Compiling Simple_test_DEBUG
-	g++ -o Simple_test_DEBUG Simple_test.cpp Simple_GeneratedStates.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
+	g++ -o Simple_test_DEBUG Simple_test.cpp Simple_generated_states.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
 run_Simple_test: Simple_test
 	@echo
 	@echo Running Simple_test

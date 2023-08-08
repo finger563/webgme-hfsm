@@ -9,20 +9,18 @@
 #include <string>
 #include <mutex>
 #include "magic_enum.hpp"
-#include "{{{sanitizedName}}}_event_data.hpp"
+#include "Simple_event_data.hpp"
 
 // User Includes for the HFSM
-//::::{{{path}}}::::Includes::::
-{{{ Includes }}}
+//::::/9::::Includes::::
 
-namespace {{{namespace}}}::{{{sanitizedName}}} {
+
+namespace state_machine::Simple {
 
     typedef std::function<void(std::string_view)> LogCallback;
 
     enum class EventType {
-      {{#each eventNames}}
-      {{{.}}},
-      {{/each}}
+      INPUTEVENT,
     }; // ENUMS GENERATED FROM MODEL
 
     /**
@@ -60,9 +58,7 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       delete e;
     }
 
-    {{#each eventNames}}
-    typedef Event<{{{.}}}EventData> {{{.}}}Event;
-    {{/each}}
+    typedef Event<INPUTEVENTEventData> INPUTEVENTEvent;
 
     /**
      * @brief Class handling all Event creation, memory management, and
@@ -76,15 +72,13 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
         log_callback_ = cb;
       }
 
-      {{#each eventNames}}
-      void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
-        log("\033[32mSPAWN: {{{.}}}\033[0m");
-        GeneratedEventBase *new_event = new {{{.}}}Event{EventType::{{{.}}}, data};
+      void spawn_INPUTEVENT_event(const INPUTEVENTEventData &data) {
+        log("\033[32mSPAWN: INPUTEVENT\033[0m");
+        GeneratedEventBase *new_event = new INPUTEVENTEvent{EventType::INPUTEVENT, data};
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
-      {{/each}}
 
       // Returns the number of events in the queue
       size_t get_num_events(void) {
@@ -164,8 +158,8 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
     class Root : public StateBase {
     public:
       // User Declarations for the HFSM
-      //::::{{{path}}}::::Declarations::::
-      {{{Declarations}}}
+      //::::/9::::Declarations::::
+        bool buttonPressed{false};
 
     protected:
       void log(const std::string& msg) {
@@ -186,26 +180,14 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       }
 
       // helper functions for spawning events into the HFSM
-      {{#each eventNames}}
-      void spawn_{{{.}}}_event(const {{{.}}}EventData &data) { event_factory.spawn_{{{.}}}_event(data); }
-      {{/each}}
+      void spawn_INPUTEVENT_event(const INPUTEVENTEventData &data) { event_factory.spawn_INPUTEVENT_event(data); }
 
       // Constructors
       Root() : StateBase(),
-      {{#each Substates}}
-      {{> ConstructorTempl this}}
-      {{#if isDeepHistory}}
-      {{{ pointerName }}} ( this ),
-      {{else if isShallowHistory}}
-      {{{ pointerName }}} ( this ),
-      {{else if isState}}
-      {{{ pointerName }}} ( this, this ),
-      {{/if}}
-      {{/each}}
-      {{#END}}
-      {{{ pointerName }}} ( this ),
-      {{/END}}
-      _root(this)
+            SIMPLE_OBJ__STATE_2_OBJ__STATE_OBJ ( this, &SIMPLE_OBJ__STATE_2_OBJ ),
+                  SIMPLE_OBJ__STATE_2_OBJ ( this, this ),
+            SIMPLE_OBJ__STATE_1_OBJ ( this, this ),
+            _root(this)
       {}
       ~Root(void) {}
 
@@ -288,23 +270,96 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       bool handleEvent(GeneratedEventBase * event);
 
       // Child Substates
-      {{#each Substates}}
-      {{> StateTemplHpp}}
-      {{/each}}
+      // Declaration for State_2 : /9/v
+      class State_2 : public StateBase {
+      public:
+        // User Declarations for the State
+        //::::/9/v::::Declarations::::
+        
+      
+      public:
+        // Pointer to the root of the HFSM.
+        Root *_root;
+      
+        // Constructors
+        State_2  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
+        ~State_2 ( void ) {}
+      
+        // StateBase Interface
+        void   initialize ( void );
+        void   entry ( void );
+        void   exit ( void );
+        void   tick ( void );
+        double getTimerPeriod ( void );
+        virtual bool   handleEvent ( EventBase* event ) {
+          return handleEvent( static_cast<GeneratedEventBase*>(event) );
+        }
+        virtual bool   handleEvent ( GeneratedEventBase* event );
+      
+        // Declaration for State_2::State : /9/v/C
+        class State : public StateBase {
+        public:
+          // User Declarations for the State
+          //::::/9/v/C::::Declarations::::
+          
+        
+        public:
+          // Pointer to the root of the HFSM.
+          Root *_root;
+        
+          // Constructors
+          State  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
+          ~State ( void ) {}
+        
+          // StateBase Interface
+          void   initialize ( void );
+          void   entry ( void );
+          void   exit ( void );
+          void   tick ( void );
+          double getTimerPeriod ( void );
+          virtual bool   handleEvent ( EventBase* event ) {
+            return handleEvent( static_cast<GeneratedEventBase*>(event) );
+          }
+          virtual bool   handleEvent ( GeneratedEventBase* event );
+        
+        };
+      };
+      // Declaration for State_1 : /9/Y
+      class State_1 : public StateBase {
+      public:
+        // User Declarations for the State
+        //::::/9/Y::::Declarations::::
+        
+      
+      public:
+        // Pointer to the root of the HFSM.
+        Root *_root;
+      
+        // Constructors
+        State_1  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
+        ~State_1 ( void ) {}
+      
+        // StateBase Interface
+        void   initialize ( void );
+        void   entry ( void );
+        void   exit ( void );
+        void   tick ( void );
+        double getTimerPeriod ( void );
+        virtual bool   handleEvent ( EventBase* event ) {
+          return handleEvent( static_cast<GeneratedEventBase*>(event) );
+        }
+        virtual bool   handleEvent ( GeneratedEventBase* event );
+      
+      };
 
       // END STATE
-      {{#END}}
-      {{> EndStateTemplHpp}}
-      {{~/END}}
 
       // State Objects
-      {{> PointerTemplHpp this}}
-      {{#END}}
-      // END state object
-      End_State {{{pointerName}}};
-      {{/END}}
+      State_2::State SIMPLE_OBJ__STATE_2_OBJ__STATE_OBJ;
+      State_2 SIMPLE_OBJ__STATE_2_OBJ;
+      State_1 SIMPLE_OBJ__STATE_1_OBJ;
       // Keep a _root for easier templating, it will point to us
       Root *_root;
     }; // class Root
 
-}; // namespace {{{namespace}}}::{{{sanitizedName}}}
+}; // namespace state_machine::Simple

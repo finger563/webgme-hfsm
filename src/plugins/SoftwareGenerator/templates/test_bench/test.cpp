@@ -1,7 +1,8 @@
 #include "{{{sanitizedName}}}_generated_states.hpp"
 
-#include <string>
 #include <iostream>
+#include <string>
+#include <thread>
 
 const int numEvents        = {{{eventNames.length}}};
 const int TickSelection    = numEvents + 1;
@@ -26,12 +27,12 @@ int getUserSelection() {
   return s;
 }
 
-void makeEvent(state_machine::{{{sanitizedName}}}::Root& root, int eventIndex) {
+void makeEvent({{{namespace}}}::{{{sanitizedName}}}::Root& root, int eventIndex) {
   if ( eventIndex < numEvents && eventIndex > -1 ) {
     switch (eventIndex) {
       {{#eventNames}}
       case {{{@index}}}: {
-        state_machine::{{{../sanitizedName}}}::{{{.}}}EventData data{};
+        {{{../namespace}}}::{{{../sanitizedName}}}::{{{.}}}EventData data{};
         root.spawn_{{{.}}}_event(data);
         break;
       }
@@ -44,11 +45,17 @@ void makeEvent(state_machine::{{{sanitizedName}}}::Root& root, int eventIndex) {
 
 int main( int argc, char** argv ) {
 
-  state_machine::{{{sanitizedName}}}::GeneratedEventBase* e = nullptr;
+  {{{namespace}}}::{{{sanitizedName}}}::GeneratedEventBase* e = nullptr;
   bool handled = false;
 
   // create the HFSM
-  state_machine::{{{sanitizedName}}}::Root {{{sanitizedName}}}_root;
+  {{{namespace}}}::{{{sanitizedName}}}::Root {{{sanitizedName}}}_root;
+
+  #if DEBUG_OUTPUT
+  {{{sanitizedName}}}_root.set_log_callback([](std::string_view msg) {
+    std::cout << msg << std::endl;
+  });
+  #endif
 
   // initialize the HFSM
   {{{sanitizedName}}}_root.initialize();

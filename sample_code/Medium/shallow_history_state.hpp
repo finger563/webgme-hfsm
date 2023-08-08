@@ -1,9 +1,8 @@
-#ifndef __SHALLOW_HISTORY_STATE_INCLUDE_GUARD__
-#define __SHALLOW_HISTORY_STATE_INCLUDE_GUARD__
+#pragma once
 
-#include "StateBase.hpp"
+#include "state_base.hpp"
 
-namespace StateMachine {
+namespace state_machine {
 
   /**
    * @brief Shallow History Pseudostates exist purely to re-implement
@@ -20,10 +19,8 @@ namespace StateMachine {
      */
     void                      makeActive ( ) {
       if (_parentState) {
-	_parentState->setShallowHistory();
+        _parentState->setShallowHistory();
       }
     }
   };
-};
-
-#endif // __SHALLOW_HISTORY_STATE_INCLUDE_GUARD__
+} // namespace state_machine
