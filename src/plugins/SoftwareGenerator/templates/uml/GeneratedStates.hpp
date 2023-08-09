@@ -136,8 +136,9 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       // Clears the event queue and frees all event memory
       void clear_events(void) {
         // copy the queue so we can free the memory without holding the lock
+        std::deque<GeneratedEventBase*> deq_copy;
         { std::lock_guard<std::mutex> lock(queue_mutex_);
-          auto deq_copy = events_;
+          deq_copy = events_;
           events_.clear();
         }
         // make sure we don't hold the lock while freeing memory
