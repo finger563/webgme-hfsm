@@ -97,19 +97,25 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       // Blocks until an event is available
       void wait_for_events(void) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
+        if (events_.size() > 0) {
+          return;
+        }
         queue_cv_.wait(lock);
       }
 
       // Blocks until an event is available or the timeout is reached
       void sleep_until_event(float seconds) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
+        if (events_.size() > 0) {
+          return;
+        }
         queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds));
       }
 
       // Blocks until an event is available
       GeneratedEventBase *get_next_event_blocking(void) {
+        wait_for_events();
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait(lock, [this]{ return events_.size() > 0; });
         GeneratedEventBase *ptr = events_.front();
         events_.pop_front(); // remove the event from the Q
         return ptr;
@@ -129,10 +135,14 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
 
       // Clears the event queue and frees all event memory
       void clear_events(void) {
-        GeneratedEventBase *ptr = get_next_event();
-        while (ptr != nullptr) {
+        // copy the queue so we can free the memory without holding the lock
+        { std::lock_guard<std::mutex> lock(queue_mutex_);
+          auto deq_copy = events_;
+          events_.clear();
+        }
+        // make sure we don't hold the lock while freeing memory
+        for (auto ptr : deq_copy) {
           consume_event(ptr);
-          ptr = get_next_event();
         }
       }
 
