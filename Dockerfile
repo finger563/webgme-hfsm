@@ -35,8 +35,8 @@
 #
 # After successful startup, you should be able to connect to your dockerized webgme on the 8888 port of the host.
 
-# Node 18
-FROM node:18
+# Node 20
+FROM node:20
 MAINTAINER William Emfinger <waemfinger@gmail.com>
 
 # Install git
