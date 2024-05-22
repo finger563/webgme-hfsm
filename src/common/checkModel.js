@@ -3,8 +3,12 @@ define([], function() {
   'use strict';
   return {
     stripRegex: /^([^\n]+)/gm,
-    badProperty: function(obj, prop) {
-      throw "ERROR: " +obj.path+" has invalid " +prop+": "+obj[prop];
+    badProperty: function(obj, prop, msg="") {
+      if (msg.length > 0) {
+        throw "ERROR: " +obj.path+" has invalid " +prop+": '"+obj[prop] + "'.\n " + msg;
+      } else {
+        throw "ERROR: " +obj.path+" has invalid " +prop+": '"+obj[prop] + "'.";
+      }
     },
     error: function(obj, str) {
       throw "ERROR: " +obj.path+" : "+str;
@@ -21,6 +25,11 @@ define([], function() {
       var sName = self.sanitizeString(obj.name);
       if ( !self.isValidString( sName ) )
        self.badProperty(obj, 'name');
+    },
+    checkEvent: function(obj) {
+      var self = this;
+      if ( self.hasEvent(obj) && !self.isValidString( obj.Event ) )
+        self.badProperty(obj, 'Event', 'Event must be a valid C++ Enum name (alphanumeric + underscore, starting with a letter)');
     },
     hasGuard: function( trans ) {
       return trans.Guard && trans.Guard.trim().length > 0;
@@ -64,6 +73,7 @@ define([], function() {
           topLevelObject = obj;
         }
         else if (obj.type == 'External Transition') {
+          self.checkEvent(obj);
           // checks: src, dst, Event, Guard,
           var src = model.objects[obj.pointers['src']],
               dst = model.objects[obj.pointers['dst']];
@@ -75,6 +85,7 @@ define([], function() {
           eventNames.push(obj.Event);
         }
         else if (obj.type == 'Local Transition') {
+          self.checkEvent(obj);
           // checks: src, dst, Event, Guard,
           var src = model.objects[obj.pointers['src']],
               dst = model.objects[obj.pointers['dst']];
@@ -95,6 +106,7 @@ define([], function() {
           eventNames.push(obj.Event);
         }
         else if (obj.type == 'Internal Transition') {
+          self.checkEvent(obj);
           // checks: event
           if ( !self.hasEvent( obj ) ) {
             self.error(obj, "INTERNAL TRANSITIONS MUST HAVE EVENTS");
