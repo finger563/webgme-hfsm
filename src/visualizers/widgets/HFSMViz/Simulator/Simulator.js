@@ -1046,6 +1046,16 @@ define(['js/util',
            var eventNames = self.getEventNames().sort();
            eventNames.map(function (eventName) {
              if (eventName && eventName.trim()) {
+                 // warn if the event name is not valid (matches
+                 // /^[a-zA-Z_][a-zA-Z0-9_]+$/gi regex)
+                 if (!eventName.match(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi)) {
+                     alert('WARNING:\n'+
+                           'Event name "'+eventName+'" is not a valid C++ identifier!\n'+
+                           'Please use only alphanumeric characters and underscores!\n'+
+                           'Simulator may not be able to handle this event and the event button (left panel) may not work!'
+                          );
+                 }
+
                var buttonHtml = mustache.render(eventTempl, { eventName: eventName });
                self._eventButtons.append( buttonHtml );
                var eventButton = $(self._eventButtons).find('#'+eventName).first();
