@@ -6,16 +6,16 @@ else if ( {{{Guard}}} ) {
 else if ( true ) {
   _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:{{{path}}}\033[0m");
 {{/if}}
-  {{#if nextState.isChoice}}
+{{#if nextState.isChoice}}
   // Going into a choice pseudo-state, let it handle its
   // guards and perform the state transition
-  if (false) { } // makes geneeration easier :)
+  if (false) { } // makes generation easier :)
   {{#each nextState.ExternalTransitions}}
   {{#addTransition trans=.. previous=../previousTransitions}}
   {{> ExternalTransitionTempl }}
   {{/addTransition}}
   {{~/each}}
-  {{else if nextState.endTransition}}
+{{else if nextState.hasEndTransition}}
   // Going into an end pseudo-state that is not the root end state,
   // follow its parent end transition
   if (false) { }
@@ -24,7 +24,7 @@ else if ( true ) {
   {{> ExternalTransitionTempl }}
   {{/addTransition}}
   {{~/nextState.endTransition}}
-  {{else}}
+{{else}}
   // Transitioning states!
   {{#renderTransition exit="true" entry="true" transition=.}}{{/renderTransition}}
   {{#if nextState.isState}}
@@ -42,5 +42,5 @@ else if ( true ) {
   {{/if}}
   // make sure nothing else handles this event
   handled = true;
-  {{/if}}
+{{/if}}
 }
