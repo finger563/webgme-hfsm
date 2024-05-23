@@ -1,6 +1,6 @@
 // Going into a choice pseudo-state, let it handle its
 // guards and perform the state transition
-if (false) { } // makes geneeration easier :)
+if (false) { } // makes generation easier :)
 {{#each ExternalTransitions}}
 {{#addTransition trans=.. previous=../previousTransitions}}
 {{#if Guard}}
@@ -17,6 +17,13 @@ else if ( true ) {
   {{> ChoiceStateTempl nextState}}
   {{else if nextState.isState}}
   _root->{{nextState.pointerName}}.initialize();
+  {{else if nextState.isEnd}}
+  if (false) { } // makes generation easier :)
+  {{#nextState.endTransition}}
+  {{#addTransition trans=.. previous=../previousTransitions}}
+  {{> ExternalTransitionTempl }}
+  {{/addTransition}}
+  {{~/nextState.endTransition}}
   {{/if}}
 }
 {{/addTransition}}

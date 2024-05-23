@@ -58,6 +58,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
       obj.isDeepHistory = false;
       obj.isShallowHistory = false;
       obj.isEnd = false;
+      obj.hasEndTransition = false;
     },
     processModel: function(model) {
       var self = this;
@@ -173,7 +174,9 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
           }
           else {
             var endTransition = checkModel.getEndTransitions( parent, model.objects );
-            obj.endTransition = endTransition[0];
+            obj.hasEndTransition = endTransition.length > 0;
+            if (obj.hasEndTransition)
+              obj.endTransition = endTransition[0];
           }
         }
         // Process Choice Pseudostate Data
