@@ -42,11 +42,13 @@ bool Root::{{{fullyQualifiedName}}}::handleEvent ( GeneratedEventBase* event ) {
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
   switch ( event->get_type() ) {
+{{#if hasUnhandledEvents}}
     {{#each UnhandledEvents}}
   case EventType::{{{.}}}:
     {{/each}}
     handled = true;
     break;
+{{/if}}
   default:
     handled = false;
     break;
