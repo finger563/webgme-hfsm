@@ -50,6 +50,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
     addBasicParams: function(obj) {
       obj.Substates = [];
       obj.UnhandledEvents = [];
+      obj.hasUnhandledEvents = false;
       obj.isRoot = false;
       obj.isExternalTransition = false;
       obj.isLocalTransition = false;
@@ -269,6 +270,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
           }));
         }
         obj.UnhandledEvents = _.difference( parent.UnhandledEvents, handledEventNames );
+        obj.hasUnhandledEvents = obj.UnhandledEvents.length > 0;
       }
       // recurse down from the top
       obj.Substates.map((s) => {
@@ -281,6 +283,7 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
         var obj = model.objects[path];
         if (obj.type == 'State Machine') {
           obj.UnhandledEvents = obj.eventNames;
+          obj.hasUnhandledEvents = obj.UnhandledEvents.length > 0;
           self.findUnhandledEvents(obj, model.objects);
         }
       });
