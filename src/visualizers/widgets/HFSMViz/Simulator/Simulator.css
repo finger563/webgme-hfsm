@@ -82,3 +82,87 @@
 #stateInfo {
     width: 100%;
 }
+/* Variable inspection panel */
+.variablesTitle {
+    margin-top: 8px;
+}
+.variablesPanel {
+    padding: 2px 6px;
+    overflow-y: auto;
+}
+.variableRow {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+.variableName {
+    flex: 1 1 auto;
+    font-family: monospace;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 4px;
+}
+.variableValue {
+    flex: 0 0 45%;
+    min-width: 40px;
+    font-family: monospace;
+    font-size: 12px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 1px 4px;
+}
+.variableNote {
+    font-size: 11px;
+    font-style: italic;
+    color: #888;
+    margin-top: 4px;
+}
+.guardContext {
+    font-size: 12px;
+    font-weight: normal;
+    font-family: monospace;
+    color: #555;
+    margin-top: 6px;
+}
+
+/* Event definitions panel */
+.eventDefHeader {
+    display: flex;
+    align-items: center;
+    margin-top: 4px;
+}
+.eventDefName {
+    flex: 1 1 auto;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.eventDefBtn {
+    flex: 0 0 auto;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    color: #337ab7;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 0px 5px;
+    margin-left: 4px;
+    background: #f5f5f5;
+}
+.eventDefBtn:hover {
+    background: #e0e0e0;
+}
+.eventFieldRow {
+    margin-left: 8px;
+}
+
+/* state variable shadowing a machine variable */
+.variableShadowWarning .variableName {
+    color: #b58900;
+    font-weight: bold;
+}

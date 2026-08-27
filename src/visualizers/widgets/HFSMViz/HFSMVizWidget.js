@@ -76,6 +76,9 @@ define([
     cytoscape.use( coseBilkent );
 
     var rootTypes = ["State Machine","Library"];
+    // types tracked for the simulator (event payload definitions) but
+    // never rendered in the state machine graph
+    var nonGraphTypes = ["Event", "Field"];
 
     var HFSMVizWidget,
         WIDGET_CLASS = "h-f-s-m-viz";
@@ -1339,6 +1342,13 @@ define([
         if ( rootTypes.indexOf( desc.type ) > -1 ) {
           self.HFSMName = desc.name;
         }
+        if ( nonGraphTypes.indexOf( desc.type ) > -1 ) {
+          // track for the simulator (events panel, payload-aware
+          // guard prompts) without rendering into the graph
+          self.nodes[desc.id] = desc;
+          self._simulator.update( );
+          return;
+        }
         var depsMet = self.checkDependencies(desc);
         // Add node to a table of nodes
         if (desc.isConnection) {  // if this is an edge
@@ -1361,6 +1371,11 @@ define([
       if (self._el && self.nodes) {
         var idTag = gmeIdToCySelector(gmeId);
         var desc = self.nodes[gmeId];
+        if (desc && nonGraphTypes.indexOf( desc.type ) > -1) {
+          delete self.nodes[gmeId];
+          self._simulator.update( );
+          return;
+        }
         if (desc) {
           self.forceShowBranch( gmeId );
           if (!desc.isConnection) {
@@ -1397,6 +1412,11 @@ define([
       if (self._el && desc) {
         if ( rootTypes.indexOf( desc.type ) > -1 ) {
           self.HFSMName = desc.name;
+        }
+        if ( nonGraphTypes.indexOf( desc.type ) > -1 ) {
+          self.nodes[desc.id] = desc;
+          self._simulator.update( );
+          return;
         }
         var oldDesc = this.nodes[desc.id];
         if (oldDesc) {
@@ -2224,13 +2244,28 @@ define([
     };
 
     HFSMVizWidget.prototype.clearNodes = function() {
-      delete this.nodes;
+      var self = this;
+      // IMPORTANT: clear the node table in place -- the simulator
+      // holds a reference to this same object, so replacing it (the
+      // old `delete this.nodes; this.nodes = {}`) left the simulator
+      // reading the previous model's nodes forever after a model
+      // switch.
+      if (this.nodes) {
+        Object.keys(this.nodes).forEach(function(id) {
+          delete self.nodes[id];
+        });
+      } else {
+        this.nodes = {};
+      }
       if (this._cy) {
         this._cy.nodes().remove();
       }
-      // now re-init
-      this.nodes = {};
       this._unsavedNodePositions = {};
+      // drop all simulation state (active state, history, variable /
+      // payload values, logs) from the previous model
+      if (this._simulator && this._simulator.reset) {
+        this._simulator.reset();
+      }
     };
 
     HFSMVizWidget.prototype.shutdown = function() {

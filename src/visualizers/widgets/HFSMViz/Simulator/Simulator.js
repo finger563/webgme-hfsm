@@ -5,6 +5,7 @@
 define(['js/util',
         'q',
         './Choice',
+        'hfsm/declParser',
         'bower/mustache.js/mustache.min',
         'bower/highlightjs/highlight.pack.min',
         'text!./Simulator.html',
@@ -14,6 +15,7 @@ define(['js/util',
        function(Util,
                 Q,
                 Choice,
+                declParser,
                 mustache,
                 hljs,
                 SimulatorHtml){
@@ -83,6 +85,23 @@ define(['js/util',
 
            // EVENT RELATED DATA
            self._eventButtons = self._el.find('#eventButtons').first();
+
+           // VARIABLE INSPECTION PANEL
+           self._variablesEl = self._el.find('#variablesPanel').first();
+           // current (user-editable) values keyed by variable name;
+           // null means (re)seed from the parsed initializers
+           self._variableValues = null;
+
+           // EVENT DEFINITIONS PANEL
+           self._eventDefsEl = self._el.find('#eventDefsPanel').first();
+           // simulated payload values: {eventName: {fieldName: value}};
+           // null means (re)seed from the Field defaults
+           self._eventFieldValues = null;
+           // name of the event currently being dispatched (payload
+           // context for guard prompts)
+           self._currentEventName = null;
+           var addEventBtn = self._el.find('#addEventBtn').first();
+           addEventBtn.on('click', function() { self.onAddEvent(); });
 
            // STATE INFO DISPLAY
            self._stateInfo = self._el.find('#stateInfo').first();
@@ -155,9 +174,404 @@ define(['js/util',
            self._logEl = logEl;
          };
 
+         /* * * * * *  Variable Inspection Panel   * * * * * * * */
+
+         function escapeHtml(str) {
+           return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+             .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+         }
+
+         /**
+          * Parse the Declarations blocks of the machine and its
+          * states into a variable list (best-effort; see
+          * hfsm/declParser). Shared with the code generator so the
+          * simulator and generated code can never disagree about
+          * what a model's variables are.
+          */
+         Simulator.prototype.getDeclaredVariables = function() {
+           var self = this;
+           var variables = [];
+           var opaqueCount = 0;
+           Object.keys(self.nodes).sort().forEach(function(id) {
+             var desc = self.nodes[id];
+             if (!desc || desc.isConnection) return;
+             if (rootTypes.indexOf(desc.type) > -1 || desc.type == 'State') {
+               if (desc.Declarations && desc.Declarations.trim().length) {
+                 var parsed = declParser.parseDeclarations(
+                   desc.Declarations, desc.name);
+                 parsed.variables.forEach(function(v) {
+                   v.isMachine = rootTypes.indexOf(desc.type) > -1;
+                   // storage key: shadowed names must not share a value
+                   v.key = v.scope + '::' + v.name;
+                 });
+                 variables = variables.concat(parsed.variables);
+                 opaqueCount += parsed.opaque.length;
+               }
+             }
+           });
+           // mark state variables that shadow a machine variable
+           var machineNames = variables.filter(function(v) {
+             return v.isMachine;
+           }).map(function(v) { return v.name; });
+           variables.forEach(function(v) {
+             v.shadowsMachine = !v.isMachine &&
+               machineNames.indexOf(v.name) > -1;
+           });
+           return { variables: variables, opaqueCount: opaqueCount };
+         };
+
+         /**
+          * Render the variables panel. Values persist across updates
+          * (they are the user's simulated machine state) and reset to
+          * the parsed initializers on HFSM-Restart.
+          */
+         Simulator.prototype.updateVariablesPanel = function() {
+           var self = this;
+           if (!self._variablesEl || !self._variablesEl.length) return;
+           var parsed = self.getDeclaredVariables();
+           var previous = self._variableValues; // null -> seed initials
+           var current = {};
+           parsed.variables.forEach(function(v) {
+             current[v.key] = (previous && previous.hasOwnProperty(v.key)) ?
+               previous[v.key] : v.initial;
+           });
+           self._variableValues = current;
+           // machine-scoped variables, for guard-context lookups
+           self._machineVariables = {};
+           parsed.variables.forEach(function(v) {
+             if (v.isMachine) {
+               self._machineVariables[v.name] = v.key;
+             }
+           });
+
+           self._variablesEl.empty();
+           parsed.variables.forEach(function(v) {
+             var title = v.scope + ' : ' + v.type;
+             if (v.shadowsMachine) {
+               title += ' -- WARNING: shadows the machine variable "' +
+                 v.name + '"; bare references in ' + v.scope +
+                 " resolve to this state's variable, not the machine's";
+             }
+             var row = $('<div class="variableRow"></div>').attr('title', title);
+             if (v.shadowsMachine) {
+               row.addClass('variableShadowWarning');
+             }
+             var label = v.isMachine ? v.name : (v.scope + '.' + v.name);
+             var nameEl = $('<span class="variableName"></span>')
+                 .text((v.shadowsMachine ? '⚠ ' : '') + label);
+             var input = $('<input class="variableValue" type="text"/>')
+                 .val(current[v.key]);
+             input.on('change', function() {
+               self._variableValues[v.key] = $(this).val();
+               self.log('VARIABLE: ' + label + ' = ' + $(this).val());
+             });
+             row.append(nameEl).append(input);
+             self._variablesEl.append(row);
+           });
+           if (parsed.opaqueCount) {
+             self._variablesEl.append(
+               $('<div class="variableNote"></div>')
+                 .text('(' + parsed.opaqueCount +
+                       ' declaration(s) not parsed)'));
+           }
+         };
+
+         /**
+          * HTML fragment listing the current values of the variables
+          * -- and, when handling an event with a payload definition,
+          * the `data.<field>` payload values -- referenced by any of
+          * the given guard expressions; empty string if none.
+          */
+         Simulator.prototype.getGuardContext = function( guards ) {
+           var self = this;
+           var parts = [];
+           // machine variables (bare names / _root-> in guards
+           // resolve to these)
+           var values = self._variableValues || {};
+           var machineVars = self._machineVariables || {};
+           var names = Object.keys(machineVars);
+           var referenced = [];
+           guards.forEach(function(g) {
+             declParser.referencedNames(g, names).forEach(function(n) {
+               if (referenced.indexOf(n) == -1) referenced.push(n);
+             });
+           });
+           referenced.forEach(function(n) {
+             var v = values[ machineVars[n] ];
+             parts.push(escapeHtml(n) + ' = ' +
+                        escapeHtml(v === '' || v === undefined ? '?' : v));
+           });
+           // payload fields of the event currently being handled
+           var eventDef = self._currentEventName &&
+               self.getEventDefinition( self._currentEventName );
+           if (eventDef) {
+             var fieldValues = (self._eventFieldValues || {})[eventDef.name] || {};
+             var fieldNames = eventDef.fields.map(function(f) { return f.name; });
+             var refFields = [];
+             guards.forEach(function(g) {
+               declParser.referencedFields(g, fieldNames).forEach(function(n) {
+                 if (refFields.indexOf(n) == -1) refFields.push(n);
+               });
+             });
+             refFields.forEach(function(n) {
+               var v = fieldValues.hasOwnProperty(n) ? fieldValues[n] : '';
+               parts.push('data.' + escapeHtml(n) + ' = ' +
+                          escapeHtml(v === '' ? '?' : v));
+             });
+           }
+           if (!parts.length) return '';
+           return '<div class="guardContext">current values: ' +
+             parts.join(', ') + '</div>';
+         };
+
+         /* * * * * *  Event Definitions Panel     * * * * * * * */
+
+         /**
+          * Collect Event payload definition nodes (with their Field
+          * children) from the model.
+          */
+         Simulator.prototype.getEventDefinitions = function() {
+           var self = this;
+           var defs = [];
+           Object.keys(self.nodes).sort().forEach(function(id) {
+             var desc = self.nodes[id];
+             if (!desc || desc.type != 'Event') return;
+             var fields = (desc.childrenIds || []).sort().map(function(cid) {
+               return self.nodes[cid];
+             }).filter(function(c) {
+               return c && c.type == 'Field';
+             }).map(function(c) {
+               return {
+                 id: c.id,
+                 name: c.name,
+                 type: c.Type || 'int',
+                 default: c.Default || '',
+                 description: c.Description || '',
+               };
+             });
+             defs.push({ id: desc.id, name: desc.name, fields: fields });
+           });
+           defs.sort(function(a, b) { return a.name < b.name ? -1 : 1; });
+           return defs;
+         };
+
+         Simulator.prototype.getEventDefinition = function( eventName ) {
+           var self = this;
+           var matches = self.getEventDefinitions().filter(function(d) {
+             return d.name == eventName;
+           });
+           return matches.length ? matches[0] : null;
+         };
+
+         /**
+          * Render the Events panel: each Event definition with its
+          * fields; field values are editable (they are the simulated
+          * payload used by the guard-context display) and the model
+          * itself can be extended / edited through the [+] / edit
+          * controls.
+          */
+         Simulator.prototype.updateEventDefsPanel = function() {
+           var self = this;
+           if (!self._eventDefsEl || !self._eventDefsEl.length) return;
+           var defs = self.getEventDefinitions();
+           var previous = self._eventFieldValues; // null -> seed defaults
+           var current = {};
+           defs.forEach(function(def) {
+             current[def.name] = {};
+             def.fields.forEach(function(f) {
+               var prev = previous && previous[def.name];
+               current[def.name][f.name] =
+                 (prev && prev.hasOwnProperty(f.name)) ?
+                 prev[f.name] : f.default;
+             });
+           });
+           self._eventFieldValues = current;
+
+           self._eventDefsEl.empty();
+           defs.forEach(function(def) {
+             var header = $('<div class="eventDefHeader"></div>');
+             header.append($('<span class="eventDefName"></span>')
+                           .text(def.name));
+             var addFieldBtn = $('<span class="eventDefBtn" title="Add a field to ' +
+                                 escapeHtml(def.name) + '">+</span>');
+             addFieldBtn.on('click', function() { self.onAddField(def); });
+             header.append(addFieldBtn);
+             self._eventDefsEl.append(header);
+             def.fields.forEach(function(f) {
+               var row = $('<div class="variableRow eventFieldRow"></div>')
+                   .attr('title', f.type +
+                         (f.default ? ' = ' + f.default : '') +
+                         (f.description ? ' -- ' + f.description : ''));
+               row.append($('<span class="variableName"></span>')
+                          .text(f.name + ' : ' + f.type));
+               var input = $('<input class="variableValue" type="text"/>')
+                   .val(current[def.name][f.name]);
+               input.on('change', function() {
+                 self._eventFieldValues[def.name][f.name] = $(this).val();
+                 self.log('PAYLOAD: ' + def.name + '.' + f.name +
+                          ' = ' + $(this).val());
+               });
+               var editBtn = $('<span class="eventDefBtn" title="Edit this field">&#9998;</span>');
+               editBtn.on('click', function() { self.onEditField(def, f); });
+               row.append(input).append(editBtn);
+               self._eventDefsEl.append(row);
+             });
+             if (!def.fields.length) {
+               self._eventDefsEl.append(
+                 $('<div class="variableNote"></div>').text('(no payload)'));
+             }
+           });
+         };
+
+         /**
+          * Find the meta node id for a child type creatable under the
+          * given parent node (e.g. 'Event' under the State Machine,
+          * 'Field' under an Event).
+          */
+         Simulator.prototype.getChildMetaId = function( parentId, typeName ) {
+           var self = this;
+           var parentNode = self._client.getNode( parentId );
+           if (!parentNode) return null;
+           var valid = parentNode.getValidChildrenTypesDetailed(null, true);
+           var metaIds = Object.keys(valid).filter(function(metaId) {
+             var metaNode = self._client.getNode(metaId);
+             return metaNode && valid[metaId] &&
+               metaNode.getAttribute('name') == typeName &&
+               !metaNode.isAbstract();
+           });
+           return metaIds.length ? metaIds[0] : null;
+         };
+
+         Simulator.prototype.onAddEvent = function() {
+           var self = this;
+           var machineId = self.getTopLevelId();
+           var metaId = self.getChildMetaId( machineId, 'Event' );
+           if (!metaId) {
+             alert('The metamodel does not allow Event definitions under ' +
+                   'this State Machine -- is the Event meta type installed?');
+             return;
+           }
+           var name = window.prompt('New event name (C++ identifier):');
+           if (!name) return;
+           name = name.trim();
+           if (!/^[a-zA-Z_]\w*$/.test(name)) {
+             alert('"' + name + '" is not a valid C++ identifier!');
+             return;
+           }
+           if (self.getEventDefinition(name)) {
+             alert('An Event definition named "' + name + '" already exists!');
+             return;
+           }
+           self._client.startTransaction();
+           var newId = self._client.createChild({
+             parentId: machineId,
+             baseId: metaId,
+           }, 'Adding Event definition ' + name);
+           self._client.setAttribute(newId, 'name', name,
+                                     'Naming new Event ' + name);
+           self._client.completeTransaction();
+           self.log('Added Event definition: ' + name);
+         };
+
+         Simulator.prototype.onAddField = function( def ) {
+           var self = this;
+           var metaId = self.getChildMetaId( def.id, 'Field' );
+           if (!metaId) {
+             alert('The metamodel does not allow Fields under Event ' +
+                   'definitions -- is the Field meta type installed?');
+             return;
+           }
+           var name = window.prompt('New field name for ' + def.name +
+                                    ' (C++ identifier):');
+           if (!name) return;
+           name = name.trim();
+           if (!/^[a-zA-Z_]\w*$/.test(name) || name == 'data') {
+             alert('"' + name + '" is not a valid field name!');
+             return;
+           }
+           if (def.fields.some(function(f) { return f.name == name; })) {
+             alert(def.name + ' already has a field named "' + name + '"!');
+             return;
+           }
+           var type = window.prompt('C++ type for ' + name + ':', 'int');
+           if (!type || !type.trim()) return;
+           var dflt = window.prompt('Default value for ' + name +
+                                    ' (optional):', '');
+           self._client.startTransaction();
+           var newId = self._client.createChild({
+             parentId: def.id,
+             baseId: metaId,
+           }, 'Adding Field ' + name);
+           self._client.setAttribute(newId, 'name', name);
+           self._client.setAttribute(newId, 'Type', type.trim());
+           if (dflt && dflt.trim()) {
+             self._client.setAttribute(newId, 'Default', dflt.trim());
+           }
+           self._client.completeTransaction();
+           self.log('Added Field ' + def.name + '.' + name +
+                    ' : ' + type.trim());
+         };
+
+         Simulator.prototype.onEditField = function( def, field ) {
+           var self = this;
+           var name = window.prompt('Field name:', field.name);
+           if (!name) return;
+           name = name.trim();
+           if (!/^[a-zA-Z_]\w*$/.test(name) || name == 'data') {
+             alert('"' + name + '" is not a valid field name!');
+             return;
+           }
+           var type = window.prompt('C++ type:', field.type);
+           if (!type || !type.trim()) return;
+           var dflt = window.prompt('Default value (empty for none):',
+                                    field.default);
+           if (dflt === null) return;
+           self._client.startTransaction();
+           if (name != field.name) {
+             self._client.setAttribute(field.id, 'name', name);
+           }
+           if (type.trim() != field.type) {
+             self._client.setAttribute(field.id, 'Type', type.trim());
+           }
+           if (dflt.trim() != field.default) {
+             self._client.setAttribute(field.id, 'Default', dflt.trim());
+           }
+           self._client.completeTransaction();
+           self.log('Updated Field ' + def.name + '.' + name);
+         };
+
+         /**
+          * Drop all simulation state from the current model -- called
+          * when the widget's model is cleared / replaced (e.g. a new
+          * HFSM is loaded into the panel) so no stale events, states,
+          * variables, or logs survive the switch. The node table
+          * itself is shared with the widget and cleared there.
+          */
+         Simulator.prototype.reset = function() {
+           var self = this;
+           self._activeState = null;
+           self._historyStates = {};
+           self._variableValues = null;
+           self._machineVariables = {};
+           self._eventFieldValues = null;
+           self._currentEventName = null;
+           self.hideStateInfo();
+           self.clearLogs();
+           if (self._stateChangedCallback) {
+             self._stateChangedCallback( null );
+           }
+           // re-render the panels (empty until the new model's nodes
+           // arrive; each addNode triggers update())
+           self.updateEventButtons();
+           self.updateVariablesPanel();
+           self.updateEventDefsPanel();
+         };
+
          Simulator.prototype.update = function() {
            var self = this;
            self.updateEventButtons();
+           self.updateVariablesPanel();
+           self.updateEventDefsPanel();
            self.updateActiveState();
            if (self._activeState) {
             self._stateChangedCallback( self._activeState.id );
@@ -201,6 +615,13 @@ define(['js/util',
          Simulator.prototype.initActiveState = function( ) {
            var self = this;
            self._historyStates = {};
+           // restart resets the simulated variable / payload values
+           // to their declared initializers
+           self._variableValues = null;
+           self._eventFieldValues = null;
+           self._currentEventName = null;
+           self.updateVariablesPanel();
+           self.updateEventDefsPanel();
            return self.getInitialState( self.getTopLevelId(), true )
              .then(function(s) {
                self._activeState = s;
@@ -362,6 +783,13 @@ define(['js/util',
 
            // now get choice
            var choiceToEdgeId = self.getChoices( transitionIds );
+           // annotate the dialog with the current values of the
+           // variables the guards reference, so the user decides
+           // informed by the simulated machine state
+           var guards = transitionIds.map(function(tid) {
+             return self.nodes[ tid ].Guard;
+           });
+           title = (title || '') + self.getGuardContext( guards );
            var choice = new Choice();
            choice.initialize( Object.keys(choiceToEdgeId), title );
            choice.show();
@@ -596,6 +1024,10 @@ define(['js/util',
 
          Simulator.prototype.handleEvent = function( eventName, stateId ) {
            var self = this;
+           // remember which event is being dispatched so guard
+           // prompts (including for downstream choice pseudostates)
+           // can show its simulated payload values
+           self._currentEventName = eventName;
            var deferred = Q.defer();
            if (stateId) {
              var internalTransitionIds = self.getInternalTransitionIds( eventName, stateId );
@@ -1005,6 +1437,12 @@ define(['js/util',
              }
              else if (desc.type == 'Internal Transition' && desc.Enabled) {
                return desc.Event;
+             }
+             else if (desc.type == 'Event') {
+               // Event (payload) definition nodes participate even if
+               // no transition uses them yet (event-library
+               // semantics, matching the generator)
+               return desc.name;
              }
            });
            eventNames = uniq(eventNames);
