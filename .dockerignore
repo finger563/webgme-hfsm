@@ -1,0 +1,12 @@
+# keep the image build equivalent to a clean checkout: the image runs
+# npm install / bower install itself, so never ship host-built modules
+node_modules
+bower_components
+blob-local-storage
+build
+.git
+*.log
+sample_code/*/*_test
+sample_code/*/*_test_DEBUG
+sample_code/*/.dep
+.DS_Store

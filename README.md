@@ -222,6 +222,25 @@ You can edit the code attributes for the `State Machines`, `States`,
 `Internal Transitions`, and `External Transitions` within the
 CodeEditor visualizer.
 
+#### Standalone CLI Generation (no WebGME server)
+
+The same generator can run from the command line against a plain JSON
+model file -- useful for CI, scripting, and testing:
+
+```sh
+node bin/hfsm-gen.js <model.json> -o out --test-bench --export all
+```
+
+Besides C++, it can export models as Mermaid (`.mmd`), PlantUML
+(`.puml`), and SCXML (`.scxml`) for docs and interop with other
+tools. See [docs/CLI.md](docs/CLI.md) for the model format and
+options, [docs/SEMANTICS.md](docs/SEMANTICS.md) for the precise
+execution semantics implemented by the simulator and the generated
+code (including deliberate deviations from UML), and
+[docs/VALIDATION.md](docs/VALIDATION.md) for the model checks and the
+CI validation pipeline (golden generation tests, sanitizer builds,
+and execution-trace checks).
+
 #### Test Bench Code
 
 When the test code is generated, it generates a `Makefile` which
