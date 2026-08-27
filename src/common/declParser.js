@@ -66,10 +66,15 @@ define([], function() {
   );
 
   /**
-   * Split code into top-level statements (on ';' at brace/paren/angle
-   * depth zero). A statement that opens a brace before any ';' (e.g. a
-   * function body) is consumed to its matching close brace and
-   * reported opaque by the caller (it won't match DECL_RE).
+   * Split code into top-level statements: on ';' at brace / paren /
+   * bracket depth zero, and after a top-level closing '}' (function
+   * definitions have no trailing ';'). Template angle brackets are
+   * NOT depth-tracked ('<' / '>' are ambiguous with comparison
+   * operators); template arguments containing ';' or unbalanced
+   * braces are therefore not supported and end up opaque. A statement
+   * that opens a brace before any ';' (e.g. a function body) is
+   * consumed to its matching close brace and reported opaque by the
+   * caller (it won't match DECL_RE).
    */
   function splitStatements(code) {
     var statements = [];

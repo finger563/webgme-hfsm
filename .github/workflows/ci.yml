@@ -47,6 +47,7 @@ jobs:
     name: Compile and run sample_code
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
@@ -61,11 +62,14 @@ jobs:
             make -C "sample_code/$d" test debug
           done
 
+      # `timeout` is not available on macOS runners; perl's alarm is
+      # a portable hang-guard (the binaries must exit on EOF anyway)
       - name: Run samples with scripted input
         run: |
-          printf '0\n' | timeout 10 sample_code/Simple/Simple_test_DEBUG
-          printf '1\n' | timeout 10 sample_code/Medium/Medium_test_DEBUG
-          printf '1\n2\n0\n' | timeout 10 sample_code/Complex/Complex_test_DEBUG
+          with_timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+          printf '0\n' | with_timeout 10 sample_code/Simple/Simple_test_DEBUG
+          printf '1\n' | with_timeout 10 sample_code/Medium/Medium_test_DEBUG
+          printf '1\n2\n0\n' | with_timeout 10 sample_code/Complex/Complex_test_DEBUG
 
   regen-simple:
     name: Simple sample regenerates from its model (no drift)

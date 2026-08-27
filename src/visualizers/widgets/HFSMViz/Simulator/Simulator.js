@@ -392,8 +392,9 @@ define(['js/util',
              var header = $('<div class="eventDefHeader"></div>');
              header.append($('<span class="eventDefName"></span>')
                            .text(def.name));
-             var addFieldBtn = $('<span class="eventDefBtn" title="Add a field to ' +
-                                 escapeHtml(def.name) + '">+</span>');
+             var addFieldBtn = $('<button type="button" class="eventDefBtn" title="Add a field to ' +
+                                 escapeHtml(def.name) + '" aria-label="Add a field to ' +
+                                 escapeHtml(def.name) + '">+</button>');
              addFieldBtn.on('click', function() { self.onAddField(def); });
              header.append(addFieldBtn);
              self._eventDefsEl.append(header);
@@ -411,7 +412,9 @@ define(['js/util',
                  self.log('PAYLOAD: ' + def.name + '.' + f.name +
                           ' = ' + $(this).val());
                });
-               var editBtn = $('<span class="eventDefBtn" title="Edit this field">&#9998;</span>');
+               var editBtn = $('<button type="button" class="eventDefBtn" title="Edit field ' +
+                               escapeHtml(f.name) + '" aria-label="Edit field ' +
+                               escapeHtml(f.name) + '">&#9998;</button>');
                editBtn.on('click', function() { self.onEditField(def, f); });
                row.append(input).append(editBtn);
                self._eventDefsEl.append(row);

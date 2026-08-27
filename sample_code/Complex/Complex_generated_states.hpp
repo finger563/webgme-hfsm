@@ -59,7 +59,9 @@ namespace espp::state_machine::Complex {
     public:
       explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
       virtual ~Event() {}
-      T get_data() const { return data; }
+      // const reference: guards / actions bind `data` to this without
+      // copying the payload (the event outlives its handling)
+      const T &get_data() const { return data; }
       // event name plus payload fields (payload omitted when empty)
       std::string to_string() const override {
         std::string payload = event_data_to_string(data);

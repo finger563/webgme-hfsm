@@ -145,8 +145,12 @@
 .eventDefBtn {
     flex: 0 0 auto;
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
     font-size: 12px;
     font-weight: bold;
+    line-height: inherit;
     color: #337ab7;
     border: 1px solid #ccc;
     border-radius: 3px;
