@@ -1,0 +1,50 @@
+Payloads:/p/m HFSM Initialization
+TRANSITION::ACTION for /p/m/ti
+ENTRY::Idle::/p/m/Idle
+IDLE ENTRY
+SPAWN: BUTTON_PRESS { button_id=3, long_press=false }
+GUARD [ pressCount < 1 ] for INTERNAL TRANSITION:/p/m/Idle/it evaluated to TRUE
+PRESS 1 id=3 long=0
+HANDLED BUTTON_PRESS { button_id=3, long_press=false }: true
+SPAWN: BUTTON_PRESS { button_id=3, long_press=false }
+NO GUARD on EXTERNAL TRANSITION:/p/m/tGo
+EXIT::Idle::/p/m/Idle
+IDLE EXIT
+TRANSITION::ACTION for /p/m/tGo
+GO id=3
+ENTRY::Running::/p/m/Running
+RUNNING ENTRY speed=0.0
+STATE TRANSITION: Idle->Running
+HANDLED BUTTON_PRESS { button_id=3, long_press=false }: true
+SPAWN: SET_SPEED { speed=2.500000 }
+NO GUARD on INTERNAL TRANSITION:/p/m/Running/it
+SPEED 2.5
+HANDLED SET_SPEED { speed=2.500000 }: true
+SPAWN: CALIBRATE { offset=1.500000 }
+HANDLED CALIBRATE { offset=1.500000 }: false
+SPAWN: STOP
+NO GUARD on EXTERNAL TRANSITION:/p/m/tStop
+EXIT::Running::/p/m/Running
+RUNNING EXIT
+TRANSITION::ACTION for /p/m/tStop
+ENTRY::Idle::/p/m/Idle
+IDLE ENTRY
+STATE TRANSITION: Running->Idle
+HANDLED STOP: true
+SPAWN: BUTTON_PRESS { button_id=3, long_press=false }
+NO GUARD on EXTERNAL TRANSITION:/p/m/tGo
+EXIT::Idle::/p/m/Idle
+IDLE EXIT
+TRANSITION::ACTION for /p/m/tGo
+GO id=3
+ENTRY::Running::/p/m/Running
+RUNNING ENTRY speed=2.5
+STATE TRANSITION: Idle->Running
+HANDLED BUTTON_PRESS { button_id=3, long_press=false }: true
+SPAWN: FINISH
+NO GUARD on EXTERNAL TRANSITION:/p/m/tFin
+EXIT::Running::/p/m/Running
+RUNNING EXIT
+TRANSITION::ACTION for /p/m/tFin
+STATE TRANSITION: Running->End
+HANDLED FINISH: true

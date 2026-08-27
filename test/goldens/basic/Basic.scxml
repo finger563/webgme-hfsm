@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:hfsm="https://github.com/finger563/webgme-hfsm" version="1.0" name="Basic" initial="S_p_m_Idle">
+  <state id="S_p_m_Active" hfsm:name="Active" hfsm:tick="printf(&quot;ACTIVE TICK\n&quot;);" hfsm:timer-period="0.1">
+    <onentry><script>printf(&quot;ACTIVE ENTRY %d\n&quot;, _root-&gt;startCount);</script></onentry>
+    <transition event="ENDEVENT" target="S_p_m_end"/>
+    <transition event="STOP" target="S_p_m_Idle"/>
+  </state>
+  <state id="S_p_m_Idle" hfsm:name="Idle" hfsm:timer-period="0.1">
+    <onentry><script>printf(&quot;IDLE ENTRY\n&quot;);</script></onentry>
+    <onexit><script>printf(&quot;IDLE EXIT\n&quot;);</script></onexit>
+    <transition event="START" target="S_p_m_Active">
+      <script>_root-&gt;startCount++;</script>
+    </transition>
+  </state>
+  <final id="S_p_m_end"/>
+</scxml>

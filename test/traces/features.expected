@@ -1,0 +1,223 @@
+Features:/p/m HFSM Initialization
+TRANSITION::ACTION for /p/m/ti
+ENTRY::StateA::/p/m/A
+A ENTRY
+TRANSITION::ACTION for /p/m/A/ti
+ENTRY::StateA::StateA1::/p/m/A/A1
+A1 ENTRY
+SPAWN: TOGGLE
+GUARD [ _root->count < 10 ] for INTERNAL TRANSITION:/p/m/A/it evaluated to TRUE
+TOGGLE 1
+HANDLED TOGGLE: true
+SPAWN: TOGGLE
+GUARD [ _root->count < 10 ] for INTERNAL TRANSITION:/p/m/A/it evaluated to TRUE
+TOGGLE 2
+HANDLED TOGGLE: true
+SPAWN: NEXT
+NO GUARD on EXTERNAL TRANSITION:/p/m/A/t12
+EXIT::StateA::StateA1::/p/m/A/A1
+A1 EXIT
+TRANSITION::ACTION for /p/m/A/t12
+ENTRY::StateA::StateA2::/p/m/A/A2
+A2 ENTRY
+STATE TRANSITION: StateA::StateA1->StateA::StateA2
+HANDLED NEXT: true
+SPAWN: LOCAL_GO
+NO GUARD on EXTERNAL TRANSITION:/p/m/lt
+EXIT::StateA::StateA2::/p/m/A/A2
+A2 EXIT
+TRANSITION::ACTION for /p/m/lt
+LOCAL ACTION
+ENTRY::StateA::StateA2::/p/m/A/A2
+A2 ENTRY
+STATE TRANSITION: StateA->StateA::StateA2
+HANDLED LOCAL_GO: true
+SPAWN: CHOOSE
+NO GUARD on EXTERNAL TRANSITION:/p/m/tc
+NO GUARD on EXTERNAL TRANSITION:/p/m/c2
+EXIT::StateA::StateA2::/p/m/A/A2
+A2 EXIT
+EXIT::StateA::/p/m/A
+A EXIT
+TRANSITION::ACTION for /p/m/tc
+CHOOSE ACTION
+TRANSITION::ACTION for /p/m/c2
+ENTRY::StateA::/p/m/A
+A ENTRY
+STATE TRANSITION: StateA->StateA
+TRANSITION::ACTION for /p/m/A/ti
+ENTRY::StateA::StateA1::/p/m/A/A1
+A1 ENTRY
+HANDLED CHOOSE: true
+SPAWN: TOGGLE
+GUARD [ _root->count < 10 ] for INTERNAL TRANSITION:/p/m/A/it evaluated to TRUE
+TOGGLE 3
+HANDLED TOGGLE: true
+SPAWN: TOGGLE
+GUARD [ _root->count < 10 ] for INTERNAL TRANSITION:/p/m/A/it evaluated to TRUE
+TOGGLE 4
+HANDLED TOGGLE: true
+SPAWN: TOGGLE
+GUARD [ _root->count < 10 ] for INTERNAL TRANSITION:/p/m/A/it evaluated to TRUE
+TOGGLE 5
+HANDLED TOGGLE: true
+SPAWN: TOGGLE
+GUARD [ _root->count < 10 ] for INTERNAL TRANSITION:/p/m/A/it evaluated to TRUE
+TOGGLE 6
+HANDLED TOGGLE: true
+SPAWN: CHOOSE
+NO GUARD on EXTERNAL TRANSITION:/p/m/tc
+GUARD [ _root->count > 5 ] for EXTERNAL TRANSITION:/p/m/c3 evaluated to TRUE
+NO GUARD on EXTERNAL TRANSITION:/p/m/d2
+EXIT::StateA::StateA1::/p/m/A/A1
+A1 EXIT
+EXIT::StateA::/p/m/A
+A EXIT
+TRANSITION::ACTION for /p/m/tc
+CHOOSE ACTION
+TRANSITION::ACTION for /p/m/c3
+TRANSITION::ACTION for /p/m/d2
+ENTRY::StateA::/p/m/A
+A ENTRY
+ENTRY::StateA::StateA1::/p/m/A/A1
+A1 ENTRY
+STATE TRANSITION: StateA->StateA::StateA1
+HANDLED CHOOSE: true
+SPAWN: NEXT
+NO GUARD on EXTERNAL TRANSITION:/p/m/A/t12
+EXIT::StateA::StateA1::/p/m/A/A1
+A1 EXIT
+TRANSITION::ACTION for /p/m/A/t12
+ENTRY::StateA::StateA2::/p/m/A/A2
+A2 ENTRY
+STATE TRANSITION: StateA::StateA1->StateA::StateA2
+HANDLED NEXT: true
+SPAWN: GO_HIST
+NO GUARD on EXTERNAL TRANSITION:/p/m/th
+EXIT::StateA::StateA2::/p/m/A/A2
+A2 EXIT
+EXIT::StateA::/p/m/A
+A EXIT
+TRANSITION::ACTION for /p/m/th
+ENTRY::StateB::/p/m/B
+B ENTRY
+STATE TRANSITION: StateA->StateB::ShallowHistory
+TRANSITION::ACTION for /p/m/B/ti
+ENTRY::StateB::StateB1::/p/m/B/B1
+B1 ENTRY
+HANDLED GO_HIST: true
+SPAWN: NEXT
+NO GUARD on EXTERNAL TRANSITION:/p/m/B/t12
+EXIT::StateB::StateB1::/p/m/B/B1
+B1 EXIT
+TRANSITION::ACTION for /p/m/B/t12
+ENTRY::StateB::StateB2::/p/m/B/B2
+B2 ENTRY
+STATE TRANSITION: StateB::StateB1->StateB::StateB2
+TRANSITION::ACTION for /p/m/B/B2/ti
+ENTRY::StateB::StateB2::StateB2a::/p/m/B/B2/B2a
+B2a ENTRY
+HANDLED NEXT: true
+SPAWN: NEXT
+NO GUARD on EXTERNAL TRANSITION:/p/m/B/B2/tab
+EXIT::StateB::StateB2::StateB2a::/p/m/B/B2/B2a
+B2a EXIT
+TRANSITION::ACTION for /p/m/B/B2/tab
+ENTRY::StateB::StateB2::StateB2b::/p/m/B/B2/B2b
+B2b ENTRY
+STATE TRANSITION: StateB::StateB2::StateB2a->StateB::StateB2::StateB2b
+HANDLED NEXT: true
+SPAWN: BACK
+NO GUARD on EXTERNAL TRANSITION:/p/m/tb
+EXIT::StateB::StateB2::StateB2b::/p/m/B/B2/B2b
+B2b EXIT
+EXIT::StateB::StateB2::/p/m/B/B2
+B2 EXIT
+EXIT::StateB::/p/m/B
+B EXIT
+TRANSITION::ACTION for /p/m/tb
+ENTRY::StateA::/p/m/A
+A ENTRY
+STATE TRANSITION: StateB->StateA
+TRANSITION::ACTION for /p/m/A/ti
+ENTRY::StateA::StateA1::/p/m/A/A1
+A1 ENTRY
+HANDLED BACK: true
+SPAWN: GO_DEEP
+NO GUARD on EXTERNAL TRANSITION:/p/m/td
+EXIT::StateA::StateA1::/p/m/A/A1
+A1 EXIT
+EXIT::StateA::/p/m/A
+A EXIT
+TRANSITION::ACTION for /p/m/td
+ENTRY::StateB::/p/m/B
+B ENTRY
+STATE TRANSITION: StateA->StateB::DeepHistory
+ENTRY::StateB::StateB2::/p/m/B/B2
+B2 ENTRY
+ENTRY::StateB::StateB2::StateB2b::/p/m/B/B2/B2b
+B2b ENTRY
+HANDLED GO_DEEP: true
+SPAWN: BACK
+NO GUARD on EXTERNAL TRANSITION:/p/m/tb
+EXIT::StateB::StateB2::StateB2b::/p/m/B/B2/B2b
+B2b EXIT
+EXIT::StateB::StateB2::/p/m/B/B2
+B2 EXIT
+EXIT::StateB::/p/m/B
+B EXIT
+TRANSITION::ACTION for /p/m/tb
+ENTRY::StateA::/p/m/A
+A ENTRY
+STATE TRANSITION: StateB->StateA
+TRANSITION::ACTION for /p/m/A/ti
+ENTRY::StateA::StateA1::/p/m/A/A1
+A1 ENTRY
+HANDLED BACK: true
+SPAWN: GO_HIST
+NO GUARD on EXTERNAL TRANSITION:/p/m/th
+EXIT::StateA::StateA1::/p/m/A/A1
+A1 EXIT
+EXIT::StateA::/p/m/A
+A EXIT
+TRANSITION::ACTION for /p/m/th
+ENTRY::StateB::/p/m/B
+B ENTRY
+STATE TRANSITION: StateA->StateB::ShallowHistory
+ENTRY::StateB::StateB2::/p/m/B/B2
+B2 ENTRY
+TRANSITION::ACTION for /p/m/B/B2/ti
+ENTRY::StateB::StateB2::StateB2a::/p/m/B/B2/B2a
+B2a ENTRY
+HANDLED GO_HIST: true
+SPAWN: FINISH
+NO GUARD on EXTERNAL TRANSITION:/p/m/tf
+EXIT::StateB::StateB2::StateB2a::/p/m/B/B2/B2a
+B2a EXIT
+EXIT::StateB::StateB2::/p/m/B/B2
+B2 EXIT
+EXIT::StateB::/p/m/B
+B EXIT
+TRANSITION::ACTION for /p/m/tf
+STATE TRANSITION: StateB->End
+HANDLED FINISH: true
+Features:/p/m HFSM Initialization
+TRANSITION::ACTION for /p/m/ti
+ENTRY::StateA::/p/m/A
+A ENTRY
+TRANSITION::ACTION for /p/m/A/ti
+ENTRY::StateA::StateA1::/p/m/A/A1
+A1 ENTRY
+SPAWN: NEXT
+NO GUARD on EXTERNAL TRANSITION:/p/m/A/t12
+EXIT::StateA::StateA1::/p/m/A/A1
+A1 EXIT
+TRANSITION::ACTION for /p/m/A/t12
+ENTRY::StateA::StateA2::/p/m/A/A2
+A2 ENTRY
+STATE TRANSITION: StateA::StateA1->StateA::StateA2
+HANDLED NEXT: true
+EXIT::StateA::StateA2::/p/m/A/A2
+A2 EXIT
+EXIT::StateA::/p/m/A
+A EXIT

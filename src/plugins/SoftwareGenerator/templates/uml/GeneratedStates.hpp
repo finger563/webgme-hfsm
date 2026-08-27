@@ -1,10 +1,13 @@
 #pragma once
 
+#include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <deque>
 #include <functional>
 #include <mutex>
 #include <string>
+#include <string_view>
 
 #include "deep_history_state.hpp"
 #include "magic_enum.hpp"
@@ -55,6 +58,12 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
       virtual ~Event() {}
       T get_data() const { return data; }
+      // event name plus payload fields (payload omitted when empty)
+      std::string to_string() const override {
+        std::string payload = event_data_to_string(data);
+        return payload.empty() ? GeneratedEventBase::to_string()
+                               : GeneratedEventBase::to_string() + " " + payload;
+      }
     }; // Class Event
 
     // free the memory associated with the event
@@ -80,8 +89,8 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
 
       {{#each eventNames}}
       void spawn_{{{.}}}_event(const {{{.}}}EventData &data) {
-        log("\033[32mSPAWN: {{{.}}}\033[0m");
         GeneratedEventBase *new_event = new {{{.}}}Event{EventType::{{{.}}}, data};
+        log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
@@ -94,28 +103,26 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
         return events_.size();
       }
 
-      // Blocks until an event is available
+      // Blocks until an event is available. Uses a predicate so that
+      // spurious wakeups do not cause a return with an empty queue.
       void wait_for_events(void) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        if (events_.size() > 0) {
-          return;
-        }
-        queue_cv_.wait(lock);
+        queue_cv_.wait(lock, [this] { return !events_.empty(); });
       }
 
       // Blocks until an event is available or the timeout is reached
       void sleep_until_event(float seconds) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        if (events_.size() > 0) {
-          return;
-        }
-        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds));
+        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds),
+                           [this] { return !events_.empty(); });
       }
 
-      // Blocks until an event is available
+      // Blocks until an event is available, then removes and returns
+      // it. Waits and pops under a single lock so that no other
+      // consumer can drain the queue in between.
       GeneratedEventBase *get_next_event_blocking(void) {
-        wait_for_events();
         std::unique_lock<std::mutex> lock(queue_mutex_);
+        queue_cv_.wait(lock, [this] { return !events_.empty(); });
         GeneratedEventBase *ptr = events_.front();
         events_.pop_front(); // remove the event from the Q
         return ptr;
@@ -150,7 +157,10 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       std::string to_string(void) {
         std::lock_guard<std::mutex> lock(queue_mutex_);
         std::string qStr = "[ ";
-        for (int i = 0; i < events_.size(); i++) {
+        for (size_t i = 0; i < events_.size(); i++) {
+          if (i > 0) {
+            qStr += ", ";
+          }
           qStr += events_[i]->to_string();
         }
         qStr += " ]";
@@ -227,7 +237,7 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
        *  code from the model, then sets the inital state and runs the
        *  initial transition and entry actions accordingly.
        */
-      void initialize(void);
+      void initialize(void) override;
 
       /**
        * @brief Returns true if there are any events in the event queue.
@@ -238,12 +248,17 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
 
       /**
        * @brief Sleeps until an event is available or the current state's timer
-       *  period expires, then returns. This will block until an event is
-       *  available. The amount of time spent sleeping is determined by the
-       *  current state's timer period.
+       *  period expires, then returns. If the current state has no
+       *  timer period (e.g. the END state), this blocks until an event
+       *  is available instead of busy-spinning on a zero timeout.
        */
       void sleep_until_event(void) {
-        event_factory.sleep_until_event(getActiveLeaf()->getTimerPeriod());
+        double period = getActiveLeaf()->getTimerPeriod();
+        if (period > 0) {
+          event_factory.sleep_until_event((float)period);
+        } else {
+          event_factory.wait_for_events();
+        }
       }
 
       /**
@@ -287,7 +302,7 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
        *
        * @return true if event is consumed, false otherwise
        */
-      bool handleEvent(EventBase * event) {
+      bool handleEvent(EventBase * event) override {
         return handleEvent( static_cast<GeneratedEventBase*>(event) );
       }
 
@@ -314,7 +329,7 @@ namespace {{{namespace}}}::{{{sanitizedName}}} {
       {{> PointerTemplHpp this}}
       {{#END}}
       // END state object
-      End_State {{{pointerName}}};
+      {{{sanitizedName}}} {{{pointerName}}};
       {{/END}}
       // Keep a _root for easier templating, it will point to us
       Root *_root;

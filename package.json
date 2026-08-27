@@ -1,8 +1,12 @@
 {
   "name": "webgme-hfsm",
+  "bin": {
+    "hfsm-gen": "./bin/hfsm-gen.js"
+  },
   "scripts": {
     "start": "node app.js",
-    "test": "node ./node_modules/mocha/bin/mocha --recursive test",
+    "test": "node ./node_modules/mocha/bin/mocha test/generator.spec.js test/declParser.spec.js",
+    "test:generated": "./scripts/run_generated_tests.sh",
     "postinstall": "bower install"
   },
   "version": "1.6.0",

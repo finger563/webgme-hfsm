@@ -1,0 +1,314 @@
+/**
+ * Generator test suite (no WebGME server required).
+ *
+ * - checkModel regression tests: one test per model-validation bug
+ *   fixed in checkModel.js / processor.js, ensuring each check
+ *   actually fires (several silently never fired before).
+ * - golden generation tests: run the full resolve -> process ->
+ *   render pipeline over test/fixtures/*.json and compare against
+ *   the committed golden outputs in test/goldens/<fixture>/.
+ *
+ *   To regenerate goldens after an intentional template change:
+ *     UPDATE_GOLDENS=1 npm test
+ */
+'use strict';
+
+var assert = require('assert');
+var fs = require('fs');
+var path = require('path');
+var amdLoader = require('../bin/amd-loader');
+
+var FIXTURE_DIR = path.join(__dirname, 'fixtures');
+var GOLDEN_DIR = path.join(__dirname, 'goldens');
+var NAMESPACE = 'state_machine';
+
+// files whose content is run-dependent and not golden-compared
+var IGNORED_ARTIFACTS = ['hfsm_metadata.json'];
+
+var mods = {}; // filled in before()
+
+function loadFixture(name) {
+  // deep copy so each test gets a fresh model
+  return JSON.parse(
+    fs.readFileSync(path.join(FIXTURE_DIR, name + '.json'), 'utf8'));
+}
+
+function processFixture(name) {
+  var model = loadFixture(name);
+  mods.resolveModel.resolve(model);
+  mods.processor.processModel(model);
+  return model;
+}
+
+function generateArtifacts(name) {
+  var model = processFixture(name);
+  var artifacts = {};
+  Object.assign(artifacts, mods.MetaTemplates.renderHFSM(model, NAMESPACE));
+  Object.assign(artifacts, mods.MetaTemplates.renderTestCode(model, NAMESPACE));
+  // interop exports
+  Object.keys(model.objects).sort().forEach(function(p) {
+    var obj = model.objects[p];
+    if (obj.type === 'State Machine') {
+      artifacts[obj.sanitizedName + '.mmd'] = mods.exporters.toMermaid(model, p);
+      artifacts[obj.sanitizedName + '.puml'] = mods.exporters.toPlantUML(model, p);
+      artifacts[obj.sanitizedName + '.scxml'] = mods.exporters.toSCXML(model, p);
+    }
+  });
+  return artifacts;
+}
+
+/** mutate a copy of the given fixture, expect processModel to throw */
+function expectModelError(fixtureName, mutate, errRegex) {
+  var model = loadFixture(fixtureName);
+  mutate(model.objects);
+  mods.resolveModel.resolve(model);
+  assert.throws(function() {
+    mods.processor.processModel(model);
+  }, function(err) {
+    var msg = typeof err === 'string' ? err : String(err && err.message || err);
+    return errRegex.test(msg);
+  }, 'expected error matching ' + errRegex);
+}
+
+describe('hfsm generator', function() {
+
+  before(function() {
+    return amdLoader.load([
+      'src/common/resolveModel',
+      'src/common/processor',
+      'src/common/checkModel',
+      'src/common/exporters',
+      'src/plugins/SoftwareGenerator/templates/MetaTemplates',
+    ]).then(function(loaded) {
+      mods.resolveModel = loaded[0];
+      mods.processor = loaded[1];
+      mods.checkModel = loaded[2];
+      mods.exporters = loaded[3];
+      mods.MetaTemplates = loaded[4];
+    });
+  });
+
+  describe('checkModel', function() {
+
+    it('accepts the basic fixture', function() {
+      processFixture('basic');
+    });
+
+    it('accepts the features fixture', function() {
+      processFixture('features');
+    });
+
+    it('accepts single-character state names', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle'].name = 'Q';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model); // must not throw
+    });
+
+    it('rejects state names that are C++ keywords', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].name = 'class';
+      }, /invalid name/);
+    });
+
+    it('rejects events on transitions out of choice pseudostates', function() {
+      expectModelError('features', function(objects) {
+        objects['/p/m/c1'].Event = 'SNEAKY';
+      }, /choice states cannot have events/i);
+    });
+
+    it('rejects a composite state without an Initial state', function() {
+      expectModelError('features', function(objects) {
+        delete objects['/p/m/A/i'];
+        delete objects['/p/m/A/ti'];
+      }, /must have an Initial state/i);
+    });
+
+    it('rejects two unguarded transitions on the same event', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/tStart2'] = {
+          name: 'startTransition2', type: 'External Transition',
+          Event: 'START',
+          pointers: { src: '/p/m/Idle', dst: '/p/m/Active' },
+        };
+      }, /unguarded transitions have the same Event/i);
+    });
+
+    it('rejects choice pseudostates without exactly one unguarded exit', function() {
+      expectModelError('features', function(objects) {
+        delete objects['/p/m/c2'];
+      }, /exactly 1 unguarded/i);
+    });
+
+    it('rejects leaf states with no timer period', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle']['Timer Period'] = 0;
+      }, /non-zero timer period/i);
+    });
+
+    it('rejects similarly-named events differing only by case', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/tStop'].Event = 'start';
+      }, /similar names/i);
+    });
+
+    it('converts a non-parent-child Local Transition to External', function() {
+      var model = loadFixture('features');
+      // point the local transition at a non-child (B1 is not a child of A)
+      model.objects['/p/m/lt'].pointers.dst = '/p/m/B/B1';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.strictEqual(model.objects['/p/m/lt'].type, 'External Transition');
+    });
+
+    it('rejects two Event definitions with the same name', function() {
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eBtn2'] = {
+          name: 'BUTTON_PRESS', type: 'Event',
+        };
+      }, /Event definitions have the same name/i);
+    });
+
+    it('rejects duplicate field names within an Event', function() {
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eBtn/f3'] = {
+          name: 'button_id', type: 'Field', Type: 'int',
+        };
+      }, /two fields named/i);
+    });
+
+    it('rejects fields named data (payload alias)', function() {
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eBtn/f3'] = {
+          name: 'data', type: 'Field', Type: 'int',
+        };
+      }, /cannot be named 'data'/i);
+    });
+
+    it('rejects fields with an empty type', function() {
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eBtn/f1'].Type = '  ';
+      }, /must have a C\+\+ type/i);
+    });
+
+    it('rejects an Event definition case-colliding with a used event', function() {
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eStop'] = { name: 'stop', type: 'Event' };
+      }, /similar names/i);
+    });
+
+    it('drops disabled transitions', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/m/tStop'].Enabled = false;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.strictEqual(model.objects['/p/m/tStop'], undefined);
+    });
+  });
+
+  describe('processor', function() {
+
+    it('collects and sorts unique event names', function() {
+      var model = processFixture('features');
+      assert.deepStrictEqual(model.objects['/p/m'].eventNames,
+        ['BACK', 'CHOOSE', 'FINISH', 'GO_DEEP', 'GO_HIST',
+         'LOCAL_GO', 'NEXT', 'TOGGLE']);
+    });
+
+    it('computes UnhandledEvents per state branch', function() {
+      var model = processFixture('basic');
+      // Idle handles only START; the root handles nothing itself
+      var idle = model.objects['/p/m/Idle'];
+      assert.ok(idle.UnhandledEvents.indexOf('STOP') > -1);
+      assert.ok(idle.UnhandledEvents.indexOf('START') === -1);
+    });
+
+    it('collects event definitions and includes unused defined events', function() {
+      var model = processFixture('payloads');
+      var machine = model.objects['/p/m'];
+      // CALIBRATE is defined but used by no transition; still an event
+      assert.deepStrictEqual(machine.eventNames,
+        ['BUTTON_PRESS', 'CALIBRATE', 'FINISH', 'SET_SPEED', 'STOP']);
+      var byName = {};
+      machine.events.forEach(function(e) { byName[e.name] = e; });
+      assert.strictEqual(byName.BUTTON_PRESS.hasData, true);
+      assert.deepStrictEqual(
+        byName.BUTTON_PRESS.fields.map(function(f) { return f.name; }),
+        ['button_id', 'long_press']);
+      // STOP has no definition -> empty payload
+      assert.strictEqual(byName.STOP.hasData, false);
+      // state event infos are marked for the payload alias
+      var idle = model.objects['/p/m/Idle'];
+      assert.strictEqual(idle.InternalEvents[0].hasData, true);
+    });
+
+    it('warns when a state declaration shadows a machine variable', function() {
+      var model = loadFixture('payloads');
+      // machine declares pressCount; make Idle declare it too
+      model.objects['/p/m/Idle'].Declarations = 'int pressCount = 5;';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.strictEqual(model.warnings.length, 1);
+      assert.ok(/Idle/.test(model.warnings[0]));
+      assert.ok(/pressCount/.test(model.warnings[0]));
+      // the shadowed name must not be aliased in that state (but
+      // still is in others)
+      var idleAliases = model.objects['/p/m/Idle'].rootAliases
+          .map(function(a) { return a.name; });
+      assert.deepStrictEqual(idleAliases, ['speed']);
+      var runningAliases = model.objects['/p/m/Running'].rootAliases
+          .map(function(a) { return a.name; });
+      assert.deepStrictEqual(runningAliases, ['pressCount', 'speed']);
+      // clean models produce no warnings
+      var clean = processFixture('payloads');
+      assert.deepStrictEqual(clean.warnings, []);
+    });
+
+    it('orders guarded transitions before unguarded, by path', function() {
+      var model = processFixture('features');
+      var choice = model.objects['/p/m/c'];
+      var guards = choice.ExternalTransitions.map(function(t) {
+        return t.Guard || '';
+      });
+      assert.deepStrictEqual(guards,
+        ['_root->goLeft', '_root->count > 5', '']);
+    });
+  });
+
+  describe('generation goldens', function() {
+    var fixtures = fs.readdirSync(FIXTURE_DIR)
+        .filter(function(f) { return f.slice(-5) === '.json'; })
+        .map(function(f) { return f.slice(0, -5); });
+
+    fixtures.forEach(function(name) {
+      it('matches goldens for fixture: ' + name, function() {
+        var artifacts = generateArtifacts(name);
+        var goldenDir = path.join(GOLDEN_DIR, name);
+
+        if (process.env.UPDATE_GOLDENS) {
+          fs.rmSync(goldenDir, { recursive: true, force: true });
+          fs.mkdirSync(goldenDir, { recursive: true });
+          Object.keys(artifacts).sort().forEach(function(fname) {
+            if (IGNORED_ARTIFACTS.indexOf(fname) > -1) return;
+            fs.writeFileSync(path.join(goldenDir, fname), artifacts[fname]);
+          });
+          return;
+        }
+
+        assert.ok(fs.existsSync(goldenDir),
+                  'no goldens for ' + name + '; run UPDATE_GOLDENS=1 npm test');
+        var goldenFiles = fs.readdirSync(goldenDir).sort();
+        var artifactNames = Object.keys(artifacts).filter(function(f) {
+          return IGNORED_ARTIFACTS.indexOf(f) === -1;
+        }).sort();
+        assert.deepStrictEqual(artifactNames, goldenFiles,
+                               'generated file list differs from goldens');
+        goldenFiles.forEach(function(fname) {
+          var expected = fs.readFileSync(path.join(goldenDir, fname), 'utf8');
+          assert.strictEqual(artifacts[fname], expected,
+                             'generated ' + fname + ' differs from golden');
+        });
+      });
+    });
+  });
+});

@@ -1,0 +1,38 @@
+Basic:/p/m HFSM Initialization
+TRANSITION::ACTION for /p/m/ti
+ENTRY::Idle::/p/m/Idle
+IDLE ENTRY
+SPAWN: START
+NO GUARD on EXTERNAL TRANSITION:/p/m/tStart
+EXIT::Idle::/p/m/Idle
+IDLE EXIT
+TRANSITION::ACTION for /p/m/tStart
+ENTRY::Active::/p/m/Active
+ACTIVE ENTRY 1
+STATE TRANSITION: Idle->Active
+HANDLED START: true
+TICK::Active::/p/m/Active
+ACTIVE TICK
+SPAWN: STOP
+NO GUARD on EXTERNAL TRANSITION:/p/m/tStop
+EXIT::Active::/p/m/Active
+TRANSITION::ACTION for /p/m/tStop
+ENTRY::Idle::/p/m/Idle
+IDLE ENTRY
+STATE TRANSITION: Active->Idle
+HANDLED STOP: true
+SPAWN: START
+NO GUARD on EXTERNAL TRANSITION:/p/m/tStart
+EXIT::Idle::/p/m/Idle
+IDLE EXIT
+TRANSITION::ACTION for /p/m/tStart
+ENTRY::Active::/p/m/Active
+ACTIVE ENTRY 2
+STATE TRANSITION: Idle->Active
+HANDLED START: true
+SPAWN: ENDEVENT
+NO GUARD on EXTERNAL TRANSITION:/p/m/tEnd
+EXIT::Active::/p/m/Active
+TRANSITION::ACTION for /p/m/tEnd
+STATE TRANSITION: Active->End
+HANDLED ENDEVENT: true

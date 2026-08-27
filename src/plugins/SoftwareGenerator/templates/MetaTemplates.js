@@ -90,11 +90,9 @@ define(['bower/handlebars/handlebars.min',
                      obj
                    );
                    if (objToFilePrefixFn) {
-                     var fileName = null;
                      var prefix = objToFilePrefixFn( obj );
-                     if (prefix) {
-                       fileName = prefix + fileName;
-                     }
+                     // no prefix for this object means skip its artifacts
+                     fileName = prefix ? prefix + fileName : null;
                    }
                    if (fileName) {
                      artifacts[ fileName ] = fileData;

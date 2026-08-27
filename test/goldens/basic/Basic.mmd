@@ -1,0 +1,7 @@
+stateDiagram-v2
+state "Active" as S_p_m_Active
+state "Idle" as S_p_m_Idle
+[*] --> S_p_m_Idle
+S_p_m_Active --> [*] : ENDEVENT
+S_p_m_Idle --> S_p_m_Active : START
+S_p_m_Active --> S_p_m_Idle : STOP

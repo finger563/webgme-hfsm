@@ -28,7 +28,8 @@ namespace {{{namespace}}} {
   public:
     StateBase() : _activeState(this), _parentState(nullptr) {}
     StateBase(StateBase *parent) : _activeState(this), _parentState(parent) {}
-    ~StateBase(void) {}
+    // virtual: this class is used polymorphically
+    virtual ~StateBase(void) = default;
 
     /**
      * @brief Will be generated to call entry() then handle any child
@@ -55,7 +56,7 @@ namespace {{{namespace}}} {
      *
      * @return true if event is consumed, false otherwise
      */
-    virtual bool handleEvent(EventBase * event) { return false; }
+    virtual bool handleEvent(EventBase * /*event*/) { return false; }
 
     /**
      * @brief Will be generated to run the tick() function defined in
@@ -117,8 +118,12 @@ namespace {{{namespace}}} {
      *  then recurse up through the tree to the root.
      *
      *  *Should only be called on leaf nodes!*
+     *
+     *  virtual: history pseudostates override this to restore the
+     *  parent's history instead, and they may be reached through a
+     *  StateBase pointer.
      */
-    void makeActive(void) {
+    virtual void makeActive(void) {
       if (_parentState != nullptr) {
         _parentState->setActiveChild(this);
         _parentState->makeActive();

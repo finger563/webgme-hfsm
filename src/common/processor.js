@@ -1,5 +1,5 @@
 
-define(['./checkModel', 'underscore'], function(checkModel, _) {
+define(['./checkModel', './declParser', 'underscore'], function(checkModel, declParser, _) {
   'use strict';
   return {
     stripRegex: /^([^\n]+)/gm,
@@ -17,9 +17,9 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
       eventName = self.makeEventName(eventName);
       obj.EventName = eventName;
       if (eventName) {
-        // go to the State Machine object and add it there.
+        // go to the State Machine (or Library) object and add it there.
         var p = model.objects[obj.parentPath];
-        while (p && p.type && p.type != 'State Machine') {
+        while (p && p.type && p.type != 'State Machine' && p.type != 'Library') {
           p = model.objects[p.parentPath];
         }
         if (p) {
@@ -216,6 +216,33 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
           // for mustache template
           obj.isShallowHistory = true;
         }
+        // Event payload definition: binds payload fields to the event
+        // name; the event participates in the machine's event list
+        // even if no transition uses it yet (event-library semantics).
+        else if (obj.type == 'Event') {
+          self.addEvent( model, obj, obj.name );
+          var machine = model.objects[obj.parentPath];
+          while (machine && machine.type &&
+                 machine.type != 'State Machine' && machine.type != 'Library') {
+            machine = model.objects[machine.parentPath];
+          }
+          if (machine) {
+            if (!machine.eventDefinitions) {
+              machine.eventDefinitions = {};
+            }
+            machine.eventDefinitions[ obj.name ] = {
+              name: obj.name,
+              fields: (obj.Field_list || []).map(function(f) {
+                return {
+                  name: f.name,
+                  type: (f.Type || '').trim(),
+                  default: (f.Default || '').trim(),
+                  description: (f.Description || '').trim(),
+                };
+              }),
+            };
+          }
+        }
         // make the state names for the variables and such
         else if (obj.type == 'State') {
           // make a substate of its parent
@@ -237,12 +264,88 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
       // make sure event names are unique and sort them
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
-        if (obj.type == 'State Machine') {
+        if (obj.type == 'State Machine' || obj.type == 'Library') {
           obj.eventNames = self.uniq( obj.eventNames ).sort();
+          // full event descriptors for the templates: name + payload
+          // fields (empty for events without an Event definition)
+          var defs = obj.eventDefinitions || {};
+          obj.events = obj.eventNames.map(function(name) {
+            var fields = (defs[name] && defs[name].fields) || [];
+            return { name: name, fields: fields, hasData: fields.length > 0 };
+          });
+          // mark each state's event infos so the generated
+          // handleEvent can bind the payload alias
+          self.markEventData( obj, defs );
+          // compute the root-variable aliases each state's generated
+          // functions bind, so guards / actions can use bare names
+          // (e.g. `someNumber < someValue`) instead of `_root->...`
+          self.markRootAliases( obj, model );
         }
       });
       // make sure all objects have convenience members
       self.makeConvenience( model );
+    },
+    // Compute, for every State in the machine, the list of root HFSM
+    // variables its generated functions alias by reference so user
+    // code (guards, actions, entry / exit / tick) can use bare names
+    // instead of `_root->name`. Best-effort: only variables the
+    // declaration parser understands are aliased; names that would
+    // collide with generated locals are skipped, as are names the
+    // state's own Declarations shadow.
+    markRootAliases: function(machine, model) {
+      var self = this;
+      if (model && !model.warnings) {
+        model.warnings = [];
+      }
+      // names of locals bound by the generated functions themselves
+      var reservedLocals = ['event', 'handled', 'data'];
+      var rootVars = declParser
+          .parseDeclarations( machine.Declarations || '' )
+          .variables.filter(function(v) {
+            return reservedLocals.indexOf(v.name) === -1;
+          });
+      var rootNames = rootVars.map(function(v) { return v.name; });
+      var visit = function(state) {
+        if (state.isState) {
+          var ownNames = declParser
+              .parseDeclarations( state.Declarations || '' )
+              .variables.map(function(v) { return v.name; });
+          // a state variable with the same name as a machine variable
+          // shadows it in that state's code -- legal, but surprising
+          // now that bare-name access resolves to the machine
+          // variable everywhere else
+          var shadowed = ownNames.filter(function(n) {
+            return rootNames.indexOf(n) > -1;
+          });
+          if (shadowed.length && model) {
+            model.warnings.push(
+              "State '" + (state.name || state.path) + "' (" + state.path +
+                ") declares variable(s) shadowing machine variable(s): " +
+                shadowed.join(', ') +
+                " -- bare references in this state resolve to the state's" +
+                " own variable, not the machine's.");
+          }
+          state.rootAliases = rootVars.filter(function(v) {
+            return ownNames.indexOf(v.name) === -1;
+          }).map(function(v) { return { name: v.name }; });
+        }
+        (state.Substates || []).forEach(visit);
+      };
+      (machine.Substates || []).forEach(visit);
+    },
+    // recursively set hasData on every InternalEvents / ExternalEvents
+    // info in the machine's substate tree
+    markEventData: function(obj, defs) {
+      var self = this;
+      ['InternalEvents', 'ExternalEvents'].forEach(function(key) {
+        (obj[key] || []).forEach(function(info) {
+          var def = defs[info.name];
+          info.hasData = !!(def && def.fields && def.fields.length);
+        });
+      });
+      (obj.Substates || []).forEach(function(s) {
+        self.markEventData( s, defs );
+      });
     },
     // MAKE CONVENIENCE FOR WHAT EVENTS ARE HANDLED BY WHICH STATES
     makeSubstate: function(obj, objDict) {
@@ -256,7 +359,11 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
     findUnhandledEvents: function(obj, objDict) {
       var self = this;
       var parent = objDict[ obj.parentPath ];
-      if (parent) {
+      // The root State Machine's UnhandledEvents is seeded with all of
+      // its event names by makeConvenience; do not recompute it from a
+      // containing Project object (whose UnhandledEvents is empty) --
+      // that silently disabled this optimization for every state.
+      if (parent && !obj.isRoot) {
         // figure out disjoint set of events
         var handledEventNames = [];
         if (obj.InternalEvents) {
@@ -288,11 +395,17 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
         }
       });
     },
+    // Guarded transitions come before the (single) unguarded
+    // transition so the generated else-if chain checks guards first.
+    // Among guarded transitions, sort by model path so generation is
+    // deterministic (model iteration order is not guaranteed).
     transitionSort: function(transA, transB) {
       var a = transA.Guard;
       var b = transB.Guard;
       if (!a && b) return 1;
       if (a && !b) return -1;
+      if (transA.path < transB.path) return -1;
+      if (transA.path > transB.path) return 1;
       return 0;
     },
     getEventInfo: function( key, obj, eventName ) {

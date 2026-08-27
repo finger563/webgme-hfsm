@@ -6,10 +6,12 @@
 {{{ Definitions }}}
 
 void Root::{{{fullyQualifiedName}}}::initialize ( void ) {
+  {{> RootAliasesTempl }}
   {{> InitializeTempl }}
 }
 
 void Root::{{{fullyQualifiedName}}}::entry ( void ) {
+  {{> RootAliasesTempl }}
   _root->log("\033[36mENTRY::{{{fullyQualifiedName}}}::{{{path}}}\033[0m");
   // Entry action for this state
   //::::{{{path}}}::::Entry::::
@@ -17,6 +19,7 @@ void Root::{{{fullyQualifiedName}}}::entry ( void ) {
 }
 
 void Root::{{{fullyQualifiedName}}}::exit ( void ) {
+  {{> RootAliasesTempl }}
   _root->log("\033[36mEXIT::{{{fullyQualifiedName}}}::{{{path}}}\033[0m");
   // Call the Exit Action for this state
   //::::{{{path}}}::::Exit::::
@@ -24,6 +27,7 @@ void Root::{{{fullyQualifiedName}}}::exit ( void ) {
 }
 
 void Root::{{{fullyQualifiedName}}}::tick ( void ) {
+  {{> RootAliasesTempl }}
   _root->log("\033[36mTICK::{{{fullyQualifiedName}}}::{{{path}}}\033[0m");
   // Call the Tick Action for this state
   //::::{{{path}}}::::Tick::::
@@ -38,6 +42,7 @@ double Root::{{{fullyQualifiedName}}}::getTimerPeriod ( void ) {
 
 bool Root::{{{fullyQualifiedName}}}::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  {{> RootAliasesTempl }}
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace

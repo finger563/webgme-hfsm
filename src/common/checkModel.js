@@ -16,9 +16,29 @@ define([], function() {
     sanitizeString: function(str) {
       return str.replace(/[ \-]/gi,'_');
     },
+    // C++ keywords and other identifiers which cannot be used as
+    // state / event names since they are emitted directly into
+    // generated C++ code (class names, enum values, etc.)
+    reservedNames: [
+      'alignas','alignof','and','and_eq','asm','auto','bitand','bitor','bool',
+      'break','case','catch','char','char8_t','char16_t','char32_t','class',
+      'compl','concept','const','consteval','constexpr','constinit','const_cast',
+      'continue','co_await','co_return','co_yield','decltype','default','delete',
+      'do','double','dynamic_cast','else','enum','explicit','export','extern',
+      'false','float','for','friend','goto','if','inline','int','long','mutable',
+      'namespace','new','noexcept','not','not_eq','nullptr','operator','or',
+      'or_eq','private','protected','public','register','reinterpret_cast',
+      'requires','return','short','signed','sizeof','static','static_assert',
+      'static_cast','struct','switch','template','this','thread_local','throw',
+      'true','try','typedef','typeid','typename','union','unsigned','using',
+      'virtual','void','volatile','wchar_t','while','xor','xor_eq',
+      // identifiers reserved by the generated code itself
+      'Root', 'StateBase', 'EventBase', 'GeneratedEventBase', 'EventType',
+      'EventFactory', 'End_State', 'DeepHistoryState', 'ShallowHistoryState'
+    ],
     isValidString: function(str) {
-      var varDeclExp = new RegExp(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi);
-      return varDeclExp.test(str);
+      var varDeclExp = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+      return varDeclExp.test(str) && this.reservedNames.indexOf(str) === -1;
     },
     checkName: function(obj) {
       var self = this;
@@ -61,6 +81,7 @@ define([], function() {
       var self = this;
       var topLevelStateNames = [];
       var eventNames = [];
+      var eventDefinitionNames = [];
       var topLevelObject = null;
       var objPaths = Object.keys(model.objects);
       objPaths.map(function(objPath) {
@@ -82,7 +103,8 @@ define([], function() {
           if ( dst == undefined )
           self.badProperty(obj, 'dst');
           // store the event name for later
-          eventNames.push(obj.Event);
+          if ( self.hasEvent(obj) )
+            eventNames.push(obj.Event);
         }
         else if (obj.type == 'Local Transition') {
           self.checkEvent(obj);
@@ -96,7 +118,7 @@ define([], function() {
 
           if ( !self.hasParentChildRelationship( src, dst ) ) {
             console.log(`Local Transition ${objPath} does not have src/dst that are in an explicitly parent-child relationship - converting ${objPath} to External Transition!`);
-            obj.type == 'External Transition';
+            obj.type = 'External Transition';
           }
 
           if ( !self.hasEvent( obj ) ) {
@@ -123,7 +145,7 @@ define([], function() {
           // * exit transitions must not have events
           var outTrans = self.getTransitionsOutOf( obj, model.objects );
           outTrans.map(function(trans) {
-            if ( self.hasEvent( obj ) )
+            if ( self.hasEvent( trans ) )
            self.error(obj, "Transitions out of choice states cannot have events!");
           });
           var guardless = outTrans.filter(function(trans) { return !self.hasGuard( trans ); });
@@ -140,7 +162,42 @@ define([], function() {
         }
         else if (obj.type == 'Shallow History Pseudostate') {
         }
-        else if (obj.type == 'End State') {
+        else if (obj.type == 'Event') {
+          // Event payload definition, bound by name to transitions'
+          // Event attribute. checks:
+          // * name is a valid identifier
+          // * no two Event definitions share a name
+          // * field names are valid, unique within the event
+          // * field types are non-empty
+          self.checkName( obj );
+          if (eventDefinitionNames.indexOf(obj.name) > -1) {
+            self.error(obj, "Two Event definitions have the same name: " + obj.name);
+          }
+          eventDefinitionNames.push(obj.name);
+          // participate in the case-collision check with used events
+          eventNames.push(obj.name);
+          var fieldNames = [];
+          (obj.Field_list || []).map(function(field) {
+            self.checkName( field );
+            if (fieldNames.indexOf(field.name) > -1) {
+              self.error(obj, "Event " + obj.name +
+                         " has two fields named: " + field.name);
+            }
+            fieldNames.push(field.name);
+            if (!field.Type || !field.Type.trim().length) {
+              self.badProperty(field, 'Type',
+                               'Event fields must have a C++ type.');
+            }
+          });
+          // 'data' is the generated payload alias in guard / action
+          // scope; a field cannot shadow it
+          if (fieldNames.indexOf('data') > -1) {
+            self.error(obj, "Event fields cannot be named 'data' " +
+                       "(reserved for the payload alias).");
+          }
+        }
+        else if (obj.type == 'Field') {
+          // validated through its parent Event above
         }
         else if (obj.type == 'Initial') {
           // checks:
@@ -170,7 +227,7 @@ define([], function() {
           self.checkName( obj );
           var parentObj = model.objects[obj.parentPath];
           // cannot have includes set
-          if (obj.Includes.trim().length > 0) {
+          if ((obj.Includes || '').trim().length > 0) {
             self.error(obj, "States cannot have 'Includes'");
           }
           // make sure no direct siblings of this state share its name
@@ -189,7 +246,7 @@ define([], function() {
             topLevelStateNames.push(obj.name);
           }
           // must have 'Initial' if there are children
-          if (obj.State_list && obj.State_list > 0) {
+          if (obj.State_list && obj.State_list.length > 0) {
             if (!obj.Initial_list || obj.Initial_list.length === 0) {
               self.error(obj, "State must have an Initial state if it has children!");
             }
@@ -254,7 +311,7 @@ define([], function() {
           }
           else if (endTrans.length == 1) {
             if (self.hasGuard( endTrans[0] )) {
-              self.error(obj, "END TRANSITION cannot have gaurd!");
+              self.error(obj, "END TRANSITION cannot have guard!");
             }
           }
           else { // has no end transition

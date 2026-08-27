@@ -1,4 +1,9 @@
-case EventType::{{{name}}}:
+case EventType::{{{name}}}: {
+  {{#if hasData}}
+  // payload alias available to this event's guards / actions
+  [[maybe_unused]] const {{{name}}}EventData &data =
+    static_cast<{{{name}}}Event*>(event)->get_data();
+  {{/if}}
   if ( false ) {  // makes generation easier :)
   }
   {{#each Transitions}}
@@ -18,3 +23,4 @@ case EventType::{{{name}}}:
   }
   {{/each}}
   break;
+}

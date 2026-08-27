@@ -1,0 +1,124 @@
+{
+  "root": "/p",
+  "objects": {
+    "/p": {
+      "name": "FixtureProject",
+      "type": "Project"
+    },
+    "/p/m": {
+      "name": "Payloads",
+      "type": "State Machine",
+      "Includes": "#include <cstdio>",
+      "Declarations": "int pressCount = 0;\nfloat speed = 0.0f;",
+      "Initialization": "pressCount = 0;\nspeed = 0.0f;"
+    },
+    "/p/m/eBtn": {
+      "name": "BUTTON_PRESS",
+      "type": "Event"
+    },
+    "/p/m/eBtn/f1": {
+      "name": "button_id",
+      "type": "Field",
+      "Type": "int",
+      "Default": "3",
+      "Description": "which button was pressed"
+    },
+    "/p/m/eBtn/f2": {
+      "name": "long_press",
+      "type": "Field",
+      "Type": "bool",
+      "Default": "false"
+    },
+    "/p/m/eSpd": {
+      "name": "SET_SPEED",
+      "type": "Event"
+    },
+    "/p/m/eSpd/f1": {
+      "name": "speed",
+      "type": "Field",
+      "Type": "float",
+      "Default": "2.5f"
+    },
+    "/p/m/eCal": {
+      "name": "CALIBRATE",
+      "type": "Event"
+    },
+    "/p/m/eCal/f1": {
+      "name": "offset",
+      "type": "Field",
+      "Type": "float",
+      "Default": "1.5f"
+    },
+    "/p/m/i": {
+      "name": "Initial",
+      "type": "Initial"
+    },
+    "/p/m/ti": {
+      "name": "InitialTransition",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/p/m/i",
+        "dst": "/p/m/Idle"
+      }
+    },
+    "/p/m/Idle": {
+      "name": "Idle",
+      "type": "State",
+      "Timer Period": 0.1,
+      "Entry": "printf(\"IDLE ENTRY\\n\");",
+      "Exit": "printf(\"IDLE EXIT\\n\");"
+    },
+    "/p/m/Idle/it": {
+      "name": "pressInternal",
+      "type": "Internal Transition",
+      "Event": "BUTTON_PRESS",
+      "Guard": "pressCount < 1",
+      "Action": "pressCount++; printf(\"PRESS %d id=%d long=%d\\n\", pressCount, data.button_id, (int)data.long_press);"
+    },
+    "/p/m/tGo": {
+      "name": "goRunning",
+      "type": "External Transition",
+      "Event": "BUTTON_PRESS",
+      "Action": "printf(\"GO id=%d\\n\", data.button_id);",
+      "pointers": {
+        "src": "/p/m/Idle",
+        "dst": "/p/m/Running"
+      }
+    },
+    "/p/m/Running": {
+      "name": "Running",
+      "type": "State",
+      "Timer Period": 0.1,
+      "Entry": "printf(\"RUNNING ENTRY speed=%.1f\\n\", speed);",
+      "Exit": "printf(\"RUNNING EXIT\\n\");"
+    },
+    "/p/m/Running/it": {
+      "name": "speedInternal",
+      "type": "Internal Transition",
+      "Event": "SET_SPEED",
+      "Action": "speed = data.speed; printf(\"SPEED %.1f\\n\", speed);"
+    },
+    "/p/m/tStop": {
+      "name": "stopTransition",
+      "type": "External Transition",
+      "Event": "STOP",
+      "pointers": {
+        "src": "/p/m/Running",
+        "dst": "/p/m/Idle"
+      }
+    },
+    "/p/m/end": {
+      "name": "End",
+      "type": "End State"
+    },
+    "/p/m/tFin": {
+      "name": "finishTransition",
+      "type": "External Transition",
+      "Event": "FINISH",
+      "pointers": {
+        "src": "/p/m/Running",
+        "dst": "/p/m/end"
+      }
+    }
+  }
+}

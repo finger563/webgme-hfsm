@@ -1,7 +1,5 @@
-#include <atomic>
 #include <iostream>
 #include <string>
-#include <thread>
 
 #include "{{{sanitizedName}}}_generated_states.hpp"
 
@@ -25,6 +23,11 @@ void displayEventMenu() {
 int getUserSelection() {
   int s = 0;
   std::cin >> s;
+  if (std::cin.fail()) {
+    // invalid input or EOF: treat as a request to exit so that piped /
+    // non-interactive input cannot spin the test bench forever.
+    return ExitSelection;
+  }
   return s;
 }
 
@@ -44,10 +47,7 @@ void makeEvent({{{namespace}}}::{{{sanitizedName}}}::Root& root, int eventIndex)
   }
 }
 
-int main( int argc, char** argv ) {
-
-  {{{namespace}}}::{{{sanitizedName}}}::GeneratedEventBase* e = nullptr;
-  bool handled = false;
+int main( void ) {
 
   // create the HFSM
   {{{namespace}}}::{{{sanitizedName}}}::Root {{{sanitizedName}}}_root;
@@ -58,41 +58,33 @@ int main( int argc, char** argv ) {
   });
   #endif
 
-  std::atomic<bool> done{false};
+  // NOTE: this test bench is deliberately single-threaded: the menu
+  //       drives the HFSM directly and every spawned event is handled
+  //       synchronously (run-to-completion) before the next prompt.
+  //       The state tree itself is NOT thread-safe; in a real system
+  //       one thread should own the HFSM (initialize / handle events /
+  //       tick) while other threads / ISRs may only spawn events into
+  //       it through the thread-safe event factory, e.g.:
+  //
+  //         std::thread hfsm_thread([&root, &done]() {
+  //           root.initialize();
+  //           while (!done) {
+  //             root.handle_all_events();
+  //             root.tick();
+  //             root.handle_all_events();
+  //             root.sleep_until_event();
+  //           }
+  //         });
 
-  // make a thread for the HFSM
-  std::thread hfsm_thread([&{{{sanitizedName}}}_root, &done]() {
-    // initialize the HFSM
-    {{{sanitizedName}}}_root.initialize();
-    while (!done) {
-      {{{sanitizedName}}}_root.handle_all_events();
+  // initialize the HFSM
+  {{{sanitizedName}}}_root.initialize();
+  {{{sanitizedName}}}_root.handle_all_events();
 
-      // NOTE: we would normally call the tick() function here, but we want to
-      //       be able to manually tick the HFSM from the test bench and we
-      //       don't want to clutter the log with the tick() messages.
-      // {{{sanitizedName}}}_root.tick();
-
-      // NOTE: if we call tick above, then we should call handle_all_events()
-      //       again to handle any events that were spawned by the tick()
-      //       function
-      // {{{sanitizedName}}}_root.handle_all_events();
-
-      {{{sanitizedName}}}_root.sleep_until_event();
-    }
-  });
-
-  using namespace std::chrono_literals;
-
-  while ( !done ) {
-    // wait for the HFSM to be ready for events before we show the menu
-    do {
-      std::this_thread::sleep_for(100ms);
-    } while ({{{sanitizedName}}}_root.has_events());
+  while ( true ) {
     displayEventMenu();
     int selection = getUserSelection();
     if (selection == ExitSelection) {
       {{{sanitizedName}}}_root.terminate();
-      done = true;
       break;
     }
     else if (selection == RestartSelection) {
@@ -104,10 +96,10 @@ int main( int argc, char** argv ) {
     else {
       makeEvent( {{{sanitizedName}}}_root, selection );
     }
+    // run all events (including any spawned by the handling of prior
+    // events) to completion before prompting again
+    {{{sanitizedName}}}_root.handle_all_events();
   }
-
-  // wait for the HFSM thread to exit
-  hfsm_thread.join();
 
   return 0;
 };

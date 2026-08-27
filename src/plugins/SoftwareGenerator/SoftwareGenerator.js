@@ -126,8 +126,10 @@ define([
 
     webgmeToJson.loadModel(self.core, self.rootNode, projectNode, true, true)
       .then(function (projectModel) {
-        // make convenience members and extra data
-        self.setProjectModel( projectModel );
+        // make convenience members and extra data; pass through the
+        // commit hash / branch name provided by PluginBase so the
+        // generated metadata records where the code came from.
+        self.setProjectModel( projectModel, self.commitHash, self.branchName );
       })
       .then(function () {
         self.notify('info', 'Generating HFSM Implementation in '+self.language);
@@ -152,6 +154,11 @@ define([
   SoftwareGenerator.prototype.setProjectModel = function(projectModel, commitHash, branchName) {
     var self = this;
     processor.processModel(projectModel);
+    // surface non-fatal model warnings (e.g. state variables
+    // shadowing machine variables) to the user
+    (projectModel.warnings || []).forEach(function(w) {
+      self.notify('warning', w);
+    });
     self.projectModel = projectModel;
     self.projectRoot = projectModel.root;
     self.projectObjects = projectModel.objects;

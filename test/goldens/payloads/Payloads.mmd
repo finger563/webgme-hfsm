@@ -1,0 +1,9 @@
+stateDiagram-v2
+state "Idle" as S_p_m_Idle
+S_p_m_Idle : BUTTON_PRESS [pressCount < 1] (internal)
+state "Running" as S_p_m_Running
+S_p_m_Running : SET_SPEED (internal)
+[*] --> S_p_m_Idle
+S_p_m_Running --> [*] : FINISH
+S_p_m_Idle --> S_p_m_Running : BUTTON_PRESS
+S_p_m_Running --> S_p_m_Idle : STOP
