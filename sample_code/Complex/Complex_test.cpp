@@ -1,8 +1,7 @@
-#include "Complex_generated_states.hpp"
-
 #include <iostream>
 #include <string>
-#include <thread>
+
+#include "Complex_generated_states.hpp"
 
 const int numEvents        = 5;
 const int TickSelection    = numEvents + 1;
@@ -26,34 +25,39 @@ void displayEventMenu() {
 int getUserSelection() {
   int s = 0;
   std::cin >> s;
+  if (std::cin.fail()) {
+    // invalid input or EOF: treat as a request to exit so that piped /
+    // non-interactive input cannot spin the test bench forever.
+    return ExitSelection;
+  }
   return s;
 }
 
-void makeEvent(state_machine::Complex::Root& root, int eventIndex) {
+void makeEvent(espp::state_machine::Complex::Root& root, int eventIndex) {
   if ( eventIndex < numEvents && eventIndex > -1 ) {
     switch (eventIndex) {
       case 0: {
-        state_machine::Complex::ENDEVENTEventData data{};
+        espp::state_machine::Complex::ENDEVENTEventData data{};
         root.spawn_ENDEVENT_event(data);
         break;
       }
       case 1: {
-        state_machine::Complex::EVENT1EventData data{};
+        espp::state_machine::Complex::EVENT1EventData data{};
         root.spawn_EVENT1_event(data);
         break;
       }
       case 2: {
-        state_machine::Complex::EVENT2EventData data{};
+        espp::state_machine::Complex::EVENT2EventData data{};
         root.spawn_EVENT2_event(data);
         break;
       }
       case 3: {
-        state_machine::Complex::EVENT3EventData data{};
+        espp::state_machine::Complex::EVENT3EventData data{};
         root.spawn_EVENT3_event(data);
         break;
       }
       case 4: {
-        state_machine::Complex::EVENT4EventData data{};
+        espp::state_machine::Complex::EVENT4EventData data{};
         root.spawn_EVENT4_event(data);
         break;
       }
@@ -63,13 +67,10 @@ void makeEvent(state_machine::Complex::Root& root, int eventIndex) {
   }
 }
 
-int main( int argc, char** argv ) {
-
-  state_machine::Complex::GeneratedEventBase* e = nullptr;
-  bool handled = false;
+int main( void ) {
 
   // create the HFSM
-  state_machine::Complex::Root Complex_root;
+  espp::state_machine::Complex::Root Complex_root;
 
   #if DEBUG_OUTPUT
   Complex_root.set_log_callback([](std::string_view msg) {
@@ -77,13 +78,33 @@ int main( int argc, char** argv ) {
   });
   #endif
 
+  // NOTE: this test bench is deliberately single-threaded: the menu
+  //       drives the HFSM directly and every spawned event is handled
+  //       synchronously (run-to-completion) before the next prompt.
+  //       The state tree itself is NOT thread-safe; in a real system
+  //       one thread should own the HFSM (initialize / handle events /
+  //       tick) while other threads / ISRs may only spawn events into
+  //       it through the thread-safe event factory, e.g.:
+  //
+  //         std::thread hfsm_thread([&root, &done]() {
+  //           root.initialize();
+  //           while (!done) {
+  //             root.handle_all_events();
+  //             root.tick();
+  //             root.handle_all_events();
+  //             root.sleep_until_event();
+  //           }
+  //         });
+
   // initialize the HFSM
   Complex_root.initialize();
+  Complex_root.handle_all_events();
 
   while ( true ) {
     displayEventMenu();
     int selection = getUserSelection();
     if (selection == ExitSelection) {
+      Complex_root.terminate();
       break;
     }
     else if (selection == RestartSelection) {
@@ -95,6 +116,8 @@ int main( int argc, char** argv ) {
     else {
       makeEvent( Complex_root, selection );
     }
+    // run all events (including any spawned by the handling of prior
+    // events) to completion before prompting again
     Complex_root.handle_all_events();
   }
 

@@ -1,21 +1,26 @@
 #pragma once
 
-#include "state_base.hpp"
-#include "deep_history_state.hpp"
-#include "shallow_history_state.hpp"
-
-#include <functional>
+#include <chrono>
+#include <condition_variable>
+#include <cstddef>
 #include <deque>
-#include <string>
+#include <functional>
 #include <mutex>
+#include <string>
+#include <string_view>
+
+#include "deep_history_state.hpp"
 #include "magic_enum.hpp"
+#include "shallow_history_state.hpp"
+#include "state_base.hpp"
+
 #include "Medium_event_data.hpp"
 
 // User Includes for the HFSM
 //::::/o::::Includes::::
 
 
-namespace state_machine::Medium {
+namespace espp::state_machine::Medium {
 
     typedef std::function<void(std::string_view)> LogCallback;
 
@@ -54,6 +59,12 @@ namespace state_machine::Medium {
       explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
       virtual ~Event() {}
       T get_data() const { return data; }
+      // event name plus payload fields (payload omitted when empty)
+      std::string to_string() const override {
+        std::string payload = event_data_to_string(data);
+        return payload.empty() ? GeneratedEventBase::to_string()
+                               : GeneratedEventBase::to_string() + " " + payload;
+      }
     }; // Class Event
 
     // free the memory associated with the event
@@ -79,29 +90,29 @@ namespace state_machine::Medium {
       }
 
       void spawn_EVENT1_event(const EVENT1EventData &data) {
-        log("\033[32mSPAWN: EVENT1\033[0m");
         GeneratedEventBase *new_event = new EVENT1Event{EventType::EVENT1, data};
+        log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_EVENT2_event(const EVENT2EventData &data) {
-        log("\033[32mSPAWN: EVENT2\033[0m");
         GeneratedEventBase *new_event = new EVENT2Event{EventType::EVENT2, data};
+        log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_EVENT3_event(const EVENT3EventData &data) {
-        log("\033[32mSPAWN: EVENT3\033[0m");
         GeneratedEventBase *new_event = new EVENT3Event{EventType::EVENT3, data};
+        log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_EVENT4_event(const EVENT4EventData &data) {
-        log("\033[32mSPAWN: EVENT4\033[0m");
         GeneratedEventBase *new_event = new EVENT4Event{EventType::EVENT4, data};
+        log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
@@ -113,22 +124,26 @@ namespace state_machine::Medium {
         return events_.size();
       }
 
-      // Blocks until an event is available
+      // Blocks until an event is available. Uses a predicate so that
+      // spurious wakeups do not cause a return with an empty queue.
       void wait_for_events(void) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait(lock);
+        queue_cv_.wait(lock, [this] { return !events_.empty(); });
       }
 
       // Blocks until an event is available or the timeout is reached
       void sleep_until_event(float seconds) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds));
+        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds),
+                           [this] { return !events_.empty(); });
       }
 
-      // Blocks until an event is available
+      // Blocks until an event is available, then removes and returns
+      // it. Waits and pops under a single lock so that no other
+      // consumer can drain the queue in between.
       GeneratedEventBase *get_next_event_blocking(void) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait(lock, [this]{ return events_.size() > 0; });
+        queue_cv_.wait(lock, [this] { return !events_.empty(); });
         GeneratedEventBase *ptr = events_.front();
         events_.pop_front(); // remove the event from the Q
         return ptr;
@@ -148,17 +163,25 @@ namespace state_machine::Medium {
 
       // Clears the event queue and frees all event memory
       void clear_events(void) {
-        GeneratedEventBase *ptr = get_next_event();
-        while (ptr != nullptr) {
+        // copy the queue so we can free the memory without holding the lock
+        std::deque<GeneratedEventBase*> deq_copy;
+        { std::lock_guard<std::mutex> lock(queue_mutex_);
+          deq_copy = events_;
+          events_.clear();
+        }
+        // make sure we don't hold the lock while freeing memory
+        for (auto ptr : deq_copy) {
           consume_event(ptr);
-          ptr = get_next_event();
         }
       }
 
       std::string to_string(void) {
         std::lock_guard<std::mutex> lock(queue_mutex_);
         std::string qStr = "[ ";
-        for (int i = 0; i < events_.size(); i++) {
+        for (size_t i = 0; i < events_.size(); i++) {
+          if (i > 0) {
+            qStr += ", ";
+          }
           qStr += events_[i]->to_string();
         }
         qStr += " ]";
@@ -238,7 +261,7 @@ namespace state_machine::Medium {
        *  code from the model, then sets the inital state and runs the
        *  initial transition and entry actions accordingly.
        */
-      void initialize(void);
+      void initialize(void) override;
 
       /**
        * @brief Returns true if there are any events in the event queue.
@@ -249,12 +272,17 @@ namespace state_machine::Medium {
 
       /**
        * @brief Sleeps until an event is available or the current state's timer
-       *  period expires, then returns. This will block until an event is
-       *  available. The amount of time spent sleeping is determined by the
-       *  current state's timer period.
+       *  period expires, then returns. If the current state has no
+       *  timer period (e.g. the END state), this blocks until an event
+       *  is available instead of busy-spinning on a zero timeout.
        */
       void sleep_until_event(void) {
-        event_factory.sleep_until_event(getActiveLeaf()->getTimerPeriod());
+        double period = getActiveLeaf()->getTimerPeriod();
+        if (period > 0) {
+          event_factory.sleep_until_event((float)period);
+        } else {
+          event_factory.wait_for_events();
+        }
       }
 
       /**
@@ -298,7 +326,7 @@ namespace state_machine::Medium {
        *
        * @return true if event is consumed, false otherwise
        */
-      bool handleEvent(EventBase * event) {
+      bool handleEvent(EventBase * event) override {
         return handleEvent( static_cast<GeneratedEventBase*>(event) );
       }
 
@@ -328,12 +356,12 @@ namespace state_machine::Medium {
         ~State3 ( void ) {}
       
         // StateBase Interface
-        void   initialize ( void );
-        void   entry ( void );
-        void   exit ( void );
-        void   tick ( void );
-        double getTimerPeriod ( void );
-        virtual bool   handleEvent ( EventBase* event ) {
+        void   initialize ( void ) override;
+        void   entry ( void ) override;
+        void   exit ( void ) override;
+        void   tick ( void ) override;
+        double getTimerPeriod ( void ) override;
+        bool   handleEvent ( EventBase* event ) override {
           return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
         virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -355,12 +383,12 @@ namespace state_machine::Medium {
         ~State4 ( void ) {}
       
         // StateBase Interface
-        void   initialize ( void );
-        void   entry ( void );
-        void   exit ( void );
-        void   tick ( void );
-        double getTimerPeriod ( void );
-        virtual bool   handleEvent ( EventBase* event ) {
+        void   initialize ( void ) override;
+        void   entry ( void ) override;
+        void   exit ( void ) override;
+        void   tick ( void ) override;
+        double getTimerPeriod ( void ) override;
+        bool   handleEvent ( EventBase* event ) override {
           return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
         virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -382,12 +410,12 @@ namespace state_machine::Medium {
         ~State2 ( void ) {}
       
         // StateBase Interface
-        void   initialize ( void );
-        void   entry ( void );
-        void   exit ( void );
-        void   tick ( void );
-        double getTimerPeriod ( void );
-        virtual bool   handleEvent ( EventBase* event ) {
+        void   initialize ( void ) override;
+        void   entry ( void ) override;
+        void   exit ( void ) override;
+        void   tick ( void ) override;
+        double getTimerPeriod ( void ) override;
+        bool   handleEvent ( EventBase* event ) override {
           return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
         virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -409,12 +437,12 @@ namespace state_machine::Medium {
         ~State1 ( void ) {}
       
         // StateBase Interface
-        void   initialize ( void );
-        void   entry ( void );
-        void   exit ( void );
-        void   tick ( void );
-        double getTimerPeriod ( void );
-        virtual bool   handleEvent ( EventBase* event ) {
+        void   initialize ( void ) override;
+        void   entry ( void ) override;
+        void   exit ( void ) override;
+        void   tick ( void ) override;
+        double getTimerPeriod ( void ) override;
+        bool   handleEvent ( EventBase* event ) override {
           return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
         virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -435,12 +463,12 @@ namespace state_machine::Medium {
           ~Child2 ( void ) {}
         
           // StateBase Interface
-          void   initialize ( void );
-          void   entry ( void );
-          void   exit ( void );
-          void   tick ( void );
-          double getTimerPeriod ( void );
-          virtual bool   handleEvent ( EventBase* event ) {
+          void   initialize ( void ) override;
+          void   entry ( void ) override;
+          void   exit ( void ) override;
+          void   tick ( void ) override;
+          double getTimerPeriod ( void ) override;
+          bool   handleEvent ( EventBase* event ) override {
             return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
           virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -461,12 +489,12 @@ namespace state_machine::Medium {
             ~Grand2 ( void ) {}
           
             // StateBase Interface
-            void   initialize ( void );
-            void   entry ( void );
-            void   exit ( void );
-            void   tick ( void );
-            double getTimerPeriod ( void );
-            virtual bool   handleEvent ( EventBase* event ) {
+            void   initialize ( void ) override;
+            void   entry ( void ) override;
+            void   exit ( void ) override;
+            void   tick ( void ) override;
+            double getTimerPeriod ( void ) override;
+            bool   handleEvent ( EventBase* event ) override {
               return handleEvent( static_cast<GeneratedEventBase*>(event) );
             }
             virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -488,12 +516,12 @@ namespace state_machine::Medium {
             ~Grand ( void ) {}
           
             // StateBase Interface
-            void   initialize ( void );
-            void   entry ( void );
-            void   exit ( void );
-            void   tick ( void );
-            double getTimerPeriod ( void );
-            virtual bool   handleEvent ( EventBase* event ) {
+            void   initialize ( void ) override;
+            void   entry ( void ) override;
+            void   exit ( void ) override;
+            void   tick ( void ) override;
+            double getTimerPeriod ( void ) override;
+            bool   handleEvent ( EventBase* event ) override {
               return handleEvent( static_cast<GeneratedEventBase*>(event) );
             }
             virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -516,12 +544,12 @@ namespace state_machine::Medium {
           ~Child3 ( void ) {}
         
           // StateBase Interface
-          void   initialize ( void );
-          void   entry ( void );
-          void   exit ( void );
-          void   tick ( void );
-          double getTimerPeriod ( void );
-          virtual bool   handleEvent ( EventBase* event ) {
+          void   initialize ( void ) override;
+          void   entry ( void ) override;
+          void   exit ( void ) override;
+          void   tick ( void ) override;
+          double getTimerPeriod ( void ) override;
+          bool   handleEvent ( EventBase* event ) override {
             return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
           virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -543,12 +571,12 @@ namespace state_machine::Medium {
           ~Child1 ( void ) {}
         
           // StateBase Interface
-          void   initialize ( void );
-          void   entry ( void );
-          void   exit ( void );
-          void   tick ( void );
-          double getTimerPeriod ( void );
-          virtual bool   handleEvent ( EventBase* event ) {
+          void   initialize ( void ) override;
+          void   entry ( void ) override;
+          void   exit ( void ) override;
+          void   tick ( void ) override;
+          double getTimerPeriod ( void ) override;
+          bool   handleEvent ( EventBase* event ) override {
             return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
           virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -564,13 +592,13 @@ namespace state_machine::Medium {
       class End_State : public StateBase {
       public:
         explicit End_State ( StateBase* parent ) : StateBase(parent) {}
-        void entry ( void ) {}
-        void exit ( void ) {}
-        void tick ( void ) {}
+        void entry ( void ) override {}
+        void exit ( void ) override {}
+        void tick ( void ) override {}
         // Simply returns true since the END STATE trivially handles all
         // events.
-        bool handleEvent ( EventBase* event ) { return true; }
-        bool handleEvent ( GeneratedEventBase* event ) { return true; }
+        bool handleEvent ( EventBase* /*event*/ ) override { return true; }
+        bool handleEvent ( GeneratedEventBase* /*event*/ ) { return true; }
       };
 
       // State Objects
@@ -591,4 +619,4 @@ namespace state_machine::Medium {
       Root *_root;
     }; // class Root
 
-}; // namespace state_machine::Medium
+}; // namespace espp::state_machine::Medium

@@ -1,7 +1,7 @@
 #include "Complex_generated_states.hpp"
 
-using namespace state_machine;
-using namespace state_machine::Complex;
+using namespace espp::state_machine;
+using namespace espp::state_machine::Complex;
 
 // User Definitions for the HFSM
 //::::/c::::Definitions::::
@@ -85,11 +85,35 @@ bool Root::handleEvent(GeneratedEventBase *event) {
 
 
 void Root::State_1::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State_1::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State_1::/c/Y\033[0m");
   // Entry action for this state
   //::::/c/Y::::Entry::::
@@ -98,6 +122,18 @@ printf("SerialTask :: initializing State 1\n");
 }
 
 void Root::State_1::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State_1::/c/Y\033[0m");
   // Call the Exit Action for this state
   //::::/c/Y::::Exit::::
@@ -105,6 +141,18 @@ void Root::State_1::exit ( void ) {
 }
 
 void Root::State_1::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State_1::/c/Y\033[0m");
   // Call the Tick Action for this state
   //::::/c/Y::::Tick::::
@@ -119,6 +167,18 @@ double Root::State_1::getTimerPeriod ( void ) {
 
 bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -139,12 +199,15 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
 
   // handle internal transitions first
   switch ( event->get_type() ) {
-  case EventType::EVENT1:
+  case EventType::EVENT1: {
+    // payload alias available to this event's guards / actions
+    [[maybe_unused]] const EVENT1EventData &data =
+      static_cast<EVENT1Event*>(event)->get_data();
     if ( false ) {  // makes generation easier :)
     }
     //::::/c/Y/t::::Guard::::
-    else if ( _root->someNumber < _root->someValue ) {
-      _root->log("\033[37mGUARD [ _root->someNumber < _root->someValue ] for INTERNAL TRANSITION:/c/Y/t evaluated to TRUE\033[0m");
+    else if ( someNumber < someValue ) {
+      _root->log("\033[37mGUARD [ someNumber < someValue ] for INTERNAL TRANSITION:/c/Y/t evaluated to TRUE\033[0m");
       // run transition action
       //::::/c/Y/t::::Action::::
       int testVal = 32;
@@ -155,12 +218,13 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
       handled = true;
     }
     break;
-  case EventType::EVENT2:
+  }
+  case EventType::EVENT2: {
     if ( false ) {  // makes generation easier :)
     }
     //::::/c/Y/X::::Guard::::
-    else if ( _root->someNumber > _root->someValue ) {
-      _root->log("\033[37mGUARD [ _root->someNumber > _root->someValue ] for INTERNAL TRANSITION:/c/Y/X evaluated to TRUE\033[0m");
+    else if ( someNumber > someValue ) {
+      _root->log("\033[37mGUARD [ someNumber > someValue ] for INTERNAL TRANSITION:/c/Y/X evaluated to TRUE\033[0m");
       // run transition action
       //::::/c/Y/X::::Action::::
       
@@ -168,6 +232,7 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
       handled = true;
     }
     break;
+  }
   default:
     handled = false;
     break;
@@ -175,17 +240,17 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT4:
+    case EventType::EVENT4: {
       if ( false ) { }  // makes generation easier :)
       //::::/c/I::::Guard::::
-      else if ( _root->someTest ) {
-        _root->log("\033[37mGUARD [ _root->someTest ] for EXTERNAL TRANSITION:/c/I evaluated to TRUE\033[0m");
+      else if ( someTest ) {
+        _root->log("\033[37mGUARD [ someTest ] for EXTERNAL TRANSITION:/c/I evaluated to TRUE\033[0m");
         // Going into a choice pseudo-state, let it handle its
         // guards and perform the state transition
-        if (false) { } // makes geneeration easier :)
+        if (false) { } // makes generation easier :)
         //::::/c/h::::Guard::::
-        else if ( _root->goToHistory ) {
-          _root->log("\033[37mGUARD [ _root->goToHistory ] for EXTERNAL TRANSITION:/c/h evaluated to TRUE\033[0m");
+        else if ( goToHistory ) {
+          _root->log("\033[37mGUARD [ goToHistory ] for EXTERNAL TRANSITION:/c/h evaluated to TRUE\033[0m");
           // Transitioning states!
           // Call all from prev state down exits
         _root->COMPLEX_OBJ__STATE_1_OBJ.exitChildren();
@@ -209,10 +274,10 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
           _root->COMPLEX_OBJ__STATE3_OBJ.setShallowHistory();
             // make sure nothing else handles this event
           handled = true;
-          }
+        }
         //::::/c/k::::Guard::::
-        else if ( _root->nextState ) {
-          _root->log("\033[37mGUARD [ _root->nextState ] for EXTERNAL TRANSITION:/c/k evaluated to TRUE\033[0m");
+        else if ( nextState ) {
+          _root->log("\033[37mGUARD [ nextState ] for EXTERNAL TRANSITION:/c/k evaluated to TRUE\033[0m");
           // Transitioning states!
           // Call all from prev state down exits
         _root->COMPLEX_OBJ__STATE_1_OBJ.exitChildren();
@@ -236,7 +301,7 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
           _root->COMPLEX_OBJ__STATE_2_OBJ.initialize();
           // make sure nothing else handles this event
           handled = true;
-          }
+        }
         else if ( true ) {
           _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/r\033[0m");
           // Transitioning states!
@@ -262,9 +327,10 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
           _root->COMPLEX_OBJ__STATE3_OBJ.initialize();
           // make sure nothing else handles this event
           handled = true;
-          }
+        }
       }
       break;
+    }
     default:
       handled = false;
       break;
@@ -280,6 +346,18 @@ bool Root::State_1::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State_2::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // External Transition : Action for: /c/v/u
   _root->log("\033[36mTRANSITION::ACTION for /c/v/u\033[0m");
   
@@ -293,6 +371,18 @@ void Root::State_2::initialize ( void ) {
 }
 
 void Root::State_2::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State_2::/c/v\033[0m");
   // Entry action for this state
   //::::/c/v::::Entry::::
@@ -300,6 +390,18 @@ void Root::State_2::entry ( void ) {
 }
 
 void Root::State_2::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State_2::/c/v\033[0m");
   // Call the Exit Action for this state
   //::::/c/v::::Exit::::
@@ -307,6 +409,18 @@ void Root::State_2::exit ( void ) {
 }
 
 void Root::State_2::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State_2::/c/v\033[0m");
   // Call the Tick Action for this state
   //::::/c/v::::Tick::::
@@ -321,6 +435,18 @@ double Root::State_2::getTimerPeriod ( void ) {
 
 bool Root::State_2::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -348,7 +474,7 @@ bool Root::State_2::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT4:
+    case EventType::EVENT4: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/Q\033[0m");
@@ -370,9 +496,10 @@ bool Root::State_2::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE3_OBJ.setDeepHistory();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
-    case EventType::EVENT2:
+    }
+    case EventType::EVENT2: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/E\033[0m");
@@ -394,9 +521,10 @@ bool Root::State_2::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE3_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
-    case EventType::EVENT3:
+    }
+    case EventType::EVENT3: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/t\033[0m");
@@ -418,8 +546,9 @@ bool Root::State_2::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE3_OBJ.setShallowHistory();
           // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -435,11 +564,35 @@ bool Root::State_2::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State_2::ChildState::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State_2::ChildState::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State_2::ChildState::/c/v/K\033[0m");
   // Entry action for this state
   //::::/c/v/K::::Entry::::
@@ -447,6 +600,18 @@ void Root::State_2::ChildState::entry ( void ) {
 }
 
 void Root::State_2::ChildState::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State_2::ChildState::/c/v/K\033[0m");
   // Call the Exit Action for this state
   //::::/c/v/K::::Exit::::
@@ -454,6 +619,18 @@ void Root::State_2::ChildState::exit ( void ) {
 }
 
 void Root::State_2::ChildState::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State_2::ChildState::/c/v/K\033[0m");
   // Call the Tick Action for this state
   //::::/c/v/K::::Tick::::
@@ -468,6 +645,18 @@ double Root::State_2::ChildState::getTimerPeriod ( void ) {
 
 bool Root::State_2::ChildState::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -494,7 +683,10 @@ bool Root::State_2::ChildState::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT1:
+    case EventType::EVENT1: {
+      // payload alias available to this event's guards / actions
+      [[maybe_unused]] const EVENT1EventData &data =
+        static_cast<EVENT1Event*>(event)->get_data();
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/S\033[0m");
@@ -516,8 +708,9 @@ bool Root::State_2::ChildState::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE2_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -536,11 +729,35 @@ bool Root::State_2::ChildState::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State_2::ChildState2::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State_2::ChildState2::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State_2::ChildState2::/c/v/e\033[0m");
   // Entry action for this state
   //::::/c/v/e::::Entry::::
@@ -548,6 +765,18 @@ void Root::State_2::ChildState2::entry ( void ) {
 }
 
 void Root::State_2::ChildState2::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State_2::ChildState2::/c/v/e\033[0m");
   // Call the Exit Action for this state
   //::::/c/v/e::::Exit::::
@@ -555,6 +784,18 @@ void Root::State_2::ChildState2::exit ( void ) {
 }
 
 void Root::State_2::ChildState2::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State_2::ChildState2::/c/v/e\033[0m");
   // Call the Tick Action for this state
   //::::/c/v/e::::Tick::::
@@ -569,6 +810,18 @@ double Root::State_2::ChildState2::getTimerPeriod ( void ) {
 
 bool Root::State_2::ChildState2::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -596,7 +849,7 @@ bool Root::State_2::ChildState2::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT2:
+    case EventType::EVENT2: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/W\033[0m");
@@ -618,8 +871,9 @@ bool Root::State_2::ChildState2::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -638,6 +892,18 @@ bool Root::State_2::ChildState2::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State_2::ChildState3::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // External Transition : Action for: /c/v/z/8
   _root->log("\033[36mTRANSITION::ACTION for /c/v/z/8\033[0m");
   
@@ -651,6 +917,18 @@ void Root::State_2::ChildState3::initialize ( void ) {
 }
 
 void Root::State_2::ChildState3::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State_2::ChildState3::/c/v/z\033[0m");
   // Entry action for this state
   //::::/c/v/z::::Entry::::
@@ -658,6 +936,18 @@ void Root::State_2::ChildState3::entry ( void ) {
 }
 
 void Root::State_2::ChildState3::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State_2::ChildState3::/c/v/z\033[0m");
   // Call the Exit Action for this state
   //::::/c/v/z::::Exit::::
@@ -665,6 +955,18 @@ void Root::State_2::ChildState3::exit ( void ) {
 }
 
 void Root::State_2::ChildState3::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State_2::ChildState3::/c/v/z\033[0m");
   // Call the Tick Action for this state
   //::::/c/v/z::::Tick::::
@@ -679,6 +981,18 @@ double Root::State_2::ChildState3::getTimerPeriod ( void ) {
 
 bool Root::State_2::ChildState3::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -706,11 +1020,11 @@ bool Root::State_2::ChildState3::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT3:
+    case EventType::EVENT3: {
       if ( false ) { }  // makes generation easier :)
       //::::/c/v/P::::Guard::::
-      else if ( _root->someGuard ) {
-        _root->log("\033[37mGUARD [ _root->someGuard ] for EXTERNAL TRANSITION:/c/v/P evaluated to TRUE\033[0m");
+      else if ( someGuard ) {
+        _root->log("\033[37mGUARD [ someGuard ] for EXTERNAL TRANSITION:/c/v/P evaluated to TRUE\033[0m");
         // Transitioning states!
         // Call all from prev state down exits
       _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.exitChildren();
@@ -729,8 +1043,9 @@ bool Root::State_2::ChildState3::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -749,11 +1064,35 @@ bool Root::State_2::ChildState3::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State_2::ChildState3::Grand::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State_2::ChildState3::Grand::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State_2::ChildState3::Grand::/c/v/z/6\033[0m");
   // Entry action for this state
   //::::/c/v/z/6::::Entry::::
@@ -761,6 +1100,18 @@ void Root::State_2::ChildState3::Grand::entry ( void ) {
 }
 
 void Root::State_2::ChildState3::Grand::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State_2::ChildState3::Grand::/c/v/z/6\033[0m");
   // Call the Exit Action for this state
   //::::/c/v/z/6::::Exit::::
@@ -768,6 +1119,18 @@ void Root::State_2::ChildState3::Grand::exit ( void ) {
 }
 
 void Root::State_2::ChildState3::Grand::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State_2::ChildState3::Grand::/c/v/z/6\033[0m");
   // Call the Tick Action for this state
   //::::/c/v/z/6::::Tick::::
@@ -782,6 +1145,18 @@ double Root::State_2::ChildState3::Grand::getTimerPeriod ( void ) {
 
 bool Root::State_2::ChildState3::Grand::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -808,7 +1183,10 @@ bool Root::State_2::ChildState3::Grand::handleEvent ( GeneratedEventBase* event 
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT1:
+    case EventType::EVENT1: {
+      // payload alias available to this event's guards / actions
+      [[maybe_unused]] const EVENT1EventData &data =
+        static_cast<EVENT1Event*>(event)->get_data();
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/z/z\033[0m");
@@ -830,8 +1208,9 @@ bool Root::State_2::ChildState3::Grand::handleEvent ( GeneratedEventBase* event 
         _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -850,11 +1229,35 @@ bool Root::State_2::ChildState3::Grand::handleEvent ( GeneratedEventBase* event 
 
 
 void Root::State_2::ChildState3::Grand2::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State_2::ChildState3::Grand2::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State_2::ChildState3::Grand2::/c/v/z/c\033[0m");
   // Entry action for this state
   //::::/c/v/z/c::::Entry::::
@@ -862,6 +1265,18 @@ void Root::State_2::ChildState3::Grand2::entry ( void ) {
 }
 
 void Root::State_2::ChildState3::Grand2::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State_2::ChildState3::Grand2::/c/v/z/c\033[0m");
   // Call the Exit Action for this state
   //::::/c/v/z/c::::Exit::::
@@ -869,6 +1284,18 @@ void Root::State_2::ChildState3::Grand2::exit ( void ) {
 }
 
 void Root::State_2::ChildState3::Grand2::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State_2::ChildState3::Grand2::/c/v/z/c\033[0m");
   // Call the Tick Action for this state
   //::::/c/v/z/c::::Tick::::
@@ -883,12 +1310,22 @@ double Root::State_2::ChildState3::Grand2::getTimerPeriod ( void ) {
 
 bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
   switch ( event->get_type() ) {
-    handled = true;
-    break;
   default:
     handled = false;
     break;
@@ -908,7 +1345,7 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::ENDEVENT:
+    case EventType::ENDEVENT: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/z/9\033[0m");
@@ -919,10 +1356,10 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
           _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/F\033[0m");
           // Going into a choice pseudo-state, let it handle its
           // guards and perform the state transition
-          if (false) { } // makes geneeration easier :)
+          if (false) { } // makes generation easier :)
           //::::/c/v/g::::Guard::::
-          else if ( _root->killedState ) {
-            _root->log("\033[37mGUARD [ _root->killedState ] for EXTERNAL TRANSITION:/c/v/g evaluated to TRUE\033[0m");
+          else if ( killedState ) {
+            _root->log("\033[37mGUARD [ killedState ] for EXTERNAL TRANSITION:/c/v/g evaluated to TRUE\033[0m");
             // Going into an end pseudo-state that is not the root end state,
             // follow its parent end transition
             if (false) { }
@@ -963,7 +1400,7 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
               _root->COMPLEX_OBJ__END_STATE_OBJ.makeActive();
               // make sure nothing else handles this event
               handled = true;
-              }
+            }
           }
           else if ( true ) {
             _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/2\033[0m");
@@ -997,20 +1434,135 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
             _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.initialize();
             // make sure nothing else handles this event
             handled = true;
-            }
+          }
         }
       }
       break;
-    case EventType::EVENT2:
+    }
+    case EventType::EVENT2: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/z/R\033[0m");
         // Going into a choice pseudo-state, let it handle its
         // guards and perform the state transition
-        if (false) { } // makes geneeration easier :)
+        if (false) { } // makes generation easier :)
+        //::::/c/v/z/g::::Guard::::
+        else if ( goToChoice ) {
+          _root->log("\033[37mGUARD [ goToChoice ] for EXTERNAL TRANSITION:/c/v/z/g evaluated to TRUE\033[0m");
+          // Going into a choice pseudo-state, let it handle its
+          // guards and perform the state transition
+          if (false) { } // makes generation easier :)
+          //::::/c/h::::Guard::::
+          else if ( goToHistory ) {
+            _root->log("\033[37mGUARD [ goToHistory ] for EXTERNAL TRANSITION:/c/h evaluated to TRUE\033[0m");
+            // Transitioning states!
+            // Call all from prev state down exits
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exitChildren();
+          // State : exit for: /c/v/z/c
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exit();
+          // State : exit for: /c/v/z
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.exit();
+          // State : exit for: /c/v
+          _root->COMPLEX_OBJ__STATE_2_OBJ.exit();
+          // External Transition : Action for: /c/v/z/R
+          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/R\033[0m");
+          
+          //::::/c/v/z/R::::Action::::
+          
+          // External Transition : Action for: /c/v/z/g
+          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/g\033[0m");
+          
+          //::::/c/v/z/g::::Action::::
+          
+          // External Transition : Action for: /c/h
+          _root->log("\033[36mTRANSITION::ACTION for /c/h\033[0m");
+          
+          //::::/c/h::::Action::::
+          
+          // State : entry for: /c/T
+          _root->COMPLEX_OBJ__STATE3_OBJ.entry();
+          _root->log("\033[31mSTATE TRANSITION: State_2::ChildState3::Grand2->State3::Shallow_History_Pseudostate\033[0m");
+          
+            // going into shallow history pseudo-state
+            _root->COMPLEX_OBJ__STATE3_OBJ.setShallowHistory();
+              // make sure nothing else handles this event
+            handled = true;
+          }
+          //::::/c/k::::Guard::::
+          else if ( nextState ) {
+            _root->log("\033[37mGUARD [ nextState ] for EXTERNAL TRANSITION:/c/k evaluated to TRUE\033[0m");
+            // Transitioning states!
+            // Call all from prev state down exits
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exitChildren();
+          // State : exit for: /c/v/z/c
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exit();
+          // State : exit for: /c/v/z
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.exit();
+          // State : exit for: /c/v
+          _root->COMPLEX_OBJ__STATE_2_OBJ.exit();
+          // External Transition : Action for: /c/v/z/R
+          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/R\033[0m");
+          
+          //::::/c/v/z/R::::Action::::
+          
+          // External Transition : Action for: /c/v/z/g
+          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/g\033[0m");
+          
+          //::::/c/v/z/g::::Action::::
+          
+          // External Transition : Action for: /c/k
+          _root->log("\033[36mTRANSITION::ACTION for /c/k\033[0m");
+          
+          //::::/c/k::::Action::::
+          
+          // State : entry for: /c/v
+          _root->COMPLEX_OBJ__STATE_2_OBJ.entry();
+          _root->log("\033[31mSTATE TRANSITION: State_2::ChildState3::Grand2->State_2\033[0m");
+          
+            // going into regular state
+            _root->COMPLEX_OBJ__STATE_2_OBJ.initialize();
+            // make sure nothing else handles this event
+            handled = true;
+          }
+          else if ( true ) {
+            _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/r\033[0m");
+            // Transitioning states!
+            // Call all from prev state down exits
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exitChildren();
+          // State : exit for: /c/v/z/c
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exit();
+          // State : exit for: /c/v/z
+          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.exit();
+          // State : exit for: /c/v
+          _root->COMPLEX_OBJ__STATE_2_OBJ.exit();
+          // External Transition : Action for: /c/v/z/R
+          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/R\033[0m");
+          
+          //::::/c/v/z/R::::Action::::
+          
+          // External Transition : Action for: /c/v/z/g
+          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/g\033[0m");
+          
+          //::::/c/v/z/g::::Action::::
+          
+          // External Transition : Action for: /c/r
+          _root->log("\033[36mTRANSITION::ACTION for /c/r\033[0m");
+          
+          //::::/c/r::::Action::::
+          
+          // State : entry for: /c/T
+          _root->COMPLEX_OBJ__STATE3_OBJ.entry();
+          _root->log("\033[31mSTATE TRANSITION: State_2::ChildState3::Grand2->State3\033[0m");
+          
+            // going into regular state
+            _root->COMPLEX_OBJ__STATE3_OBJ.initialize();
+            // make sure nothing else handles this event
+            handled = true;
+          }
+        }
         //::::/c/v/z/j::::Guard::::
-        else if ( _root->goToEnd ) {
-          _root->log("\033[37mGUARD [ _root->goToEnd ] for EXTERNAL TRANSITION:/c/v/z/j evaluated to TRUE\033[0m");
+        else if ( goToEnd ) {
+          _root->log("\033[37mGUARD [ goToEnd ] for EXTERNAL TRANSITION:/c/v/z/j evaluated to TRUE\033[0m");
           // Going into an end pseudo-state that is not the root end state,
           // follow its parent end transition
           if (false) { }
@@ -1018,10 +1570,10 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
             _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/F\033[0m");
             // Going into a choice pseudo-state, let it handle its
             // guards and perform the state transition
-            if (false) { } // makes geneeration easier :)
+            if (false) { } // makes generation easier :)
             //::::/c/v/g::::Guard::::
-            else if ( _root->killedState ) {
-              _root->log("\033[37mGUARD [ _root->killedState ] for EXTERNAL TRANSITION:/c/v/g evaluated to TRUE\033[0m");
+            else if ( killedState ) {
+              _root->log("\033[37mGUARD [ killedState ] for EXTERNAL TRANSITION:/c/v/g evaluated to TRUE\033[0m");
               // Going into an end pseudo-state that is not the root end state,
               // follow its parent end transition
               if (false) { }
@@ -1067,7 +1619,7 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
                 _root->COMPLEX_OBJ__END_STATE_OBJ.makeActive();
                 // make sure nothing else handles this event
                 handled = true;
-                }
+              }
             }
             else if ( true ) {
               _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/2\033[0m");
@@ -1106,122 +1658,8 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
               _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.initialize();
               // make sure nothing else handles this event
               handled = true;
-              }
+            }
           }
-        }
-        //::::/c/v/z/g::::Guard::::
-        else if ( _root->goToChoice ) {
-          _root->log("\033[37mGUARD [ _root->goToChoice ] for EXTERNAL TRANSITION:/c/v/z/g evaluated to TRUE\033[0m");
-          // Going into a choice pseudo-state, let it handle its
-          // guards and perform the state transition
-          if (false) { } // makes geneeration easier :)
-          //::::/c/h::::Guard::::
-          else if ( _root->goToHistory ) {
-            _root->log("\033[37mGUARD [ _root->goToHistory ] for EXTERNAL TRANSITION:/c/h evaluated to TRUE\033[0m");
-            // Transitioning states!
-            // Call all from prev state down exits
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exitChildren();
-          // State : exit for: /c/v/z/c
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exit();
-          // State : exit for: /c/v/z
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.exit();
-          // State : exit for: /c/v
-          _root->COMPLEX_OBJ__STATE_2_OBJ.exit();
-          // External Transition : Action for: /c/v/z/R
-          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/R\033[0m");
-          
-          //::::/c/v/z/R::::Action::::
-          
-          // External Transition : Action for: /c/v/z/g
-          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/g\033[0m");
-          
-          //::::/c/v/z/g::::Action::::
-          
-          // External Transition : Action for: /c/h
-          _root->log("\033[36mTRANSITION::ACTION for /c/h\033[0m");
-          
-          //::::/c/h::::Action::::
-          
-          // State : entry for: /c/T
-          _root->COMPLEX_OBJ__STATE3_OBJ.entry();
-          _root->log("\033[31mSTATE TRANSITION: State_2::ChildState3::Grand2->State3::Shallow_History_Pseudostate\033[0m");
-          
-            // going into shallow history pseudo-state
-            _root->COMPLEX_OBJ__STATE3_OBJ.setShallowHistory();
-              // make sure nothing else handles this event
-            handled = true;
-            }
-          //::::/c/k::::Guard::::
-          else if ( _root->nextState ) {
-            _root->log("\033[37mGUARD [ _root->nextState ] for EXTERNAL TRANSITION:/c/k evaluated to TRUE\033[0m");
-            // Transitioning states!
-            // Call all from prev state down exits
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exitChildren();
-          // State : exit for: /c/v/z/c
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exit();
-          // State : exit for: /c/v/z
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.exit();
-          // State : exit for: /c/v
-          _root->COMPLEX_OBJ__STATE_2_OBJ.exit();
-          // External Transition : Action for: /c/v/z/R
-          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/R\033[0m");
-          
-          //::::/c/v/z/R::::Action::::
-          
-          // External Transition : Action for: /c/v/z/g
-          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/g\033[0m");
-          
-          //::::/c/v/z/g::::Action::::
-          
-          // External Transition : Action for: /c/k
-          _root->log("\033[36mTRANSITION::ACTION for /c/k\033[0m");
-          
-          //::::/c/k::::Action::::
-          
-          // State : entry for: /c/v
-          _root->COMPLEX_OBJ__STATE_2_OBJ.entry();
-          _root->log("\033[31mSTATE TRANSITION: State_2::ChildState3::Grand2->State_2\033[0m");
-          
-            // going into regular state
-            _root->COMPLEX_OBJ__STATE_2_OBJ.initialize();
-            // make sure nothing else handles this event
-            handled = true;
-            }
-          else if ( true ) {
-            _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/r\033[0m");
-            // Transitioning states!
-            // Call all from prev state down exits
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exitChildren();
-          // State : exit for: /c/v/z/c
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.exit();
-          // State : exit for: /c/v/z
-          _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ.exit();
-          // State : exit for: /c/v
-          _root->COMPLEX_OBJ__STATE_2_OBJ.exit();
-          // External Transition : Action for: /c/v/z/R
-          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/R\033[0m");
-          
-          //::::/c/v/z/R::::Action::::
-          
-          // External Transition : Action for: /c/v/z/g
-          _root->log("\033[36mTRANSITION::ACTION for /c/v/z/g\033[0m");
-          
-          //::::/c/v/z/g::::Action::::
-          
-          // External Transition : Action for: /c/r
-          _root->log("\033[36mTRANSITION::ACTION for /c/r\033[0m");
-          
-          //::::/c/r::::Action::::
-          
-          // State : entry for: /c/T
-          _root->COMPLEX_OBJ__STATE3_OBJ.entry();
-          _root->log("\033[31mSTATE TRANSITION: State_2::ChildState3::Grand2->State3\033[0m");
-          
-            // going into regular state
-            _root->COMPLEX_OBJ__STATE3_OBJ.initialize();
-            // make sure nothing else handles this event
-            handled = true;
-            }
         }
         else if ( true ) {
           _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/z/O\033[0m");
@@ -1248,10 +1686,14 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
           _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ.initialize();
           // make sure nothing else handles this event
           handled = true;
-          }
+        }
       }
       break;
-    case EventType::EVENT1:
+    }
+    case EventType::EVENT1: {
+      // payload alias available to this event's guards / actions
+      [[maybe_unused]] const EVENT1EventData &data =
+        static_cast<EVENT1Event*>(event)->get_data();
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/v/z/a\033[0m");
@@ -1273,8 +1715,9 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
         _root->COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -1293,6 +1736,18 @@ bool Root::State_2::ChildState3::Grand2::handleEvent ( GeneratedEventBase* event
 
 
 void Root::State3::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // External Transition : Action for: /c/T/I
   _root->log("\033[36mTRANSITION::ACTION for /c/T/I\033[0m");
   
@@ -1306,6 +1761,18 @@ void Root::State3::initialize ( void ) {
 }
 
 void Root::State3::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State3::/c/T\033[0m");
   // Entry action for this state
   //::::/c/T::::Entry::::
@@ -1313,6 +1780,18 @@ void Root::State3::entry ( void ) {
 }
 
 void Root::State3::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State3::/c/T\033[0m");
   // Call the Exit Action for this state
   //::::/c/T::::Exit::::
@@ -1320,6 +1799,18 @@ void Root::State3::exit ( void ) {
 }
 
 void Root::State3::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State3::/c/T\033[0m");
   // Call the Tick Action for this state
   //::::/c/T::::Tick::::
@@ -1334,6 +1825,18 @@ double Root::State3::getTimerPeriod ( void ) {
 
 bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -1360,7 +1863,7 @@ bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::ENDEVENT:
+    case EventType::ENDEVENT: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/L\033[0m");
@@ -1382,9 +1885,10 @@ bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE_1_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
-    case EventType::EVENT2:
+    }
+    case EventType::EVENT2: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/z\033[0m");
@@ -1406,9 +1910,10 @@ bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE_2_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
-    case EventType::EVENT4:
+    }
+    case EventType::EVENT4: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/w\033[0m");
@@ -1430,9 +1935,10 @@ bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE_2_OBJ.setDeepHistory();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
-    case EventType::EVENT3:
+    }
+    case EventType::EVENT3: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/C\033[0m");
@@ -1454,8 +1960,9 @@ bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE_2_OBJ.setShallowHistory();
           // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -1471,11 +1978,35 @@ bool Root::State3::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State3::ChildState2::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State3::ChildState2::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State3::ChildState2::/c/T/0\033[0m");
   // Entry action for this state
   //::::/c/T/0::::Entry::::
@@ -1483,6 +2014,18 @@ void Root::State3::ChildState2::entry ( void ) {
 }
 
 void Root::State3::ChildState2::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State3::ChildState2::/c/T/0\033[0m");
   // Call the Exit Action for this state
   //::::/c/T/0::::Exit::::
@@ -1490,6 +2033,18 @@ void Root::State3::ChildState2::exit ( void ) {
 }
 
 void Root::State3::ChildState2::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State3::ChildState2::/c/T/0\033[0m");
   // Call the Tick Action for this state
   //::::/c/T/0::::Tick::::
@@ -1504,6 +2059,18 @@ double Root::State3::ChildState2::getTimerPeriod ( void ) {
 
 bool Root::State3::ChildState2::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -1530,7 +2097,7 @@ bool Root::State3::ChildState2::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::ENDEVENT:
+    case EventType::ENDEVENT: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/T/h\033[0m");
@@ -1562,10 +2129,11 @@ bool Root::State3::ChildState2::handleEvent ( GeneratedEventBase* event ) {
           _root->COMPLEX_OBJ__END_STATE_OBJ.makeActive();
           // make sure nothing else handles this event
           handled = true;
-          }
+        }
       }
       break;
-    case EventType::EVENT2:
+    }
+    case EventType::EVENT2: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/T/j\033[0m");
@@ -1587,8 +2155,9 @@ bool Root::State3::ChildState2::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE3_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -1607,11 +2176,35 @@ bool Root::State3::ChildState2::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State3::ChildState::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State3::ChildState::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State3::ChildState::/c/T/W\033[0m");
   // Entry action for this state
   //::::/c/T/W::::Entry::::
@@ -1619,6 +2212,18 @@ void Root::State3::ChildState::entry ( void ) {
 }
 
 void Root::State3::ChildState::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State3::ChildState::/c/T/W\033[0m");
   // Call the Exit Action for this state
   //::::/c/T/W::::Exit::::
@@ -1626,6 +2231,18 @@ void Root::State3::ChildState::exit ( void ) {
 }
 
 void Root::State3::ChildState::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State3::ChildState::/c/T/W\033[0m");
   // Call the Tick Action for this state
   //::::/c/T/W::::Tick::::
@@ -1640,12 +2257,22 @@ double Root::State3::ChildState::getTimerPeriod ( void ) {
 
 bool Root::State3::ChildState::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
   switch ( event->get_type() ) {
-    handled = true;
-    break;
   default:
     handled = false;
     break;
@@ -1665,7 +2292,10 @@ bool Root::State3::ChildState::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT1:
+    case EventType::EVENT1: {
+      // payload alias available to this event's guards / actions
+      [[maybe_unused]] const EVENT1EventData &data =
+        static_cast<EVENT1Event*>(event)->get_data();
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/T/L\033[0m");
@@ -1687,8 +2317,9 @@ bool Root::State3::ChildState::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE2_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;
@@ -1707,11 +2338,35 @@ bool Root::State3::ChildState::handleEvent ( GeneratedEventBase* event ) {
 
 
 void Root::State3::ChildState3::initialize ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   // if we're a leaf state, make sure we're active
   makeActive();
 }
 
 void Root::State3::ChildState3::entry ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mENTRY::State3::ChildState3::/c/T/w\033[0m");
   // Entry action for this state
   //::::/c/T/w::::Entry::::
@@ -1719,6 +2374,18 @@ void Root::State3::ChildState3::entry ( void ) {
 }
 
 void Root::State3::ChildState3::exit ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mEXIT::State3::ChildState3::/c/T/w\033[0m");
   // Call the Exit Action for this state
   //::::/c/T/w::::Exit::::
@@ -1726,6 +2393,18 @@ void Root::State3::ChildState3::exit ( void ) {
 }
 
 void Root::State3::ChildState3::tick ( void ) {
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
   _root->log("\033[36mTICK::State3::ChildState3::/c/T/w\033[0m");
   // Call the Tick Action for this state
   //::::/c/T/w::::Tick::::
@@ -1740,6 +2419,18 @@ double Root::State3::ChildState3::getTimerPeriod ( void ) {
 
 bool Root::State3::ChildState3::handleEvent ( GeneratedEventBase* event ) {
   bool handled = false;
+  // Reference aliases so guards / actions / state code can use the
+  // HFSM's variables directly (equivalent to _root-> access; compiles
+  // to identical code)
+  [[maybe_unused]] auto &goToEnd = _root->goToEnd;
+  [[maybe_unused]] auto &goToChoice = _root->goToChoice;
+  [[maybe_unused]] auto &goToHistory = _root->goToHistory;
+  [[maybe_unused]] auto &nextState = _root->nextState;
+  [[maybe_unused]] auto &killedState = _root->killedState;
+  [[maybe_unused]] auto &someGuard = _root->someGuard;
+  [[maybe_unused]] auto &someTest = _root->someTest;
+  [[maybe_unused]] auto &someNumber = _root->someNumber;
+  [[maybe_unused]] auto &someValue = _root->someValue;
 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
@@ -1766,7 +2457,7 @@ bool Root::State3::ChildState3::handleEvent ( GeneratedEventBase* event ) {
   if (!handled) {
     // handle external transitions here
     switch ( event->get_type() ) {
-    case EventType::EVENT3:
+    case EventType::EVENT3: {
       if ( false ) { }  // makes generation easier :)
       else if ( true ) {
         _root->log("\033[37mNO GUARD on EXTERNAL TRANSITION:/c/T/p\033[0m");
@@ -1788,8 +2479,9 @@ bool Root::State3::ChildState3::handleEvent ( GeneratedEventBase* event ) {
         _root->COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE_OBJ.initialize();
         // make sure nothing else handles this event
         handled = true;
-        }
+      }
       break;
+    }
     default:
       handled = false;
       break;

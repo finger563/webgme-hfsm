@@ -1,5 +1,7 @@
 {
-  "projectID": "guest+Examples",
-  "timeStamp": "2023-08-08T18:11:40.446Z",
+  "projectID": "guest+Demo",
+  "commitHash": "#bed30332695c58096ceab1492da6d23d610398d5",
+  "branchName": "master",
+  "timeStamp": "2026-08-27T21:14:20.023Z",
   "pluginVersion": "0.1.0"
 }

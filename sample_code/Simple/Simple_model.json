@@ -1,0 +1,96 @@
+{
+  "root": "/9",
+  "objects": {
+    "/9": {
+      "name": "Simple",
+      "type": "State Machine",
+      "Declarations": "bool buttonPressed{false};",
+      "Includes": "#include <vector>"
+    },
+    "/9/i": {
+      "name": "Initial",
+      "type": "Initial"
+    },
+    "/9/m": {
+      "name": "InitialTransition",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/9/i",
+        "dst": "/9/Y"
+      }
+    },
+    "/9/Y": {
+      "name": "State_1",
+      "type": "State",
+      "Timer Period": 0.1
+    },
+    "/9/v": {
+      "name": "State_2",
+      "type": "State"
+    },
+    "/9/v/i": {
+      "name": "Initial",
+      "type": "Initial"
+    },
+    "/9/v/S": {
+      "name": "State2InitialTransition",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/9/v/i",
+        "dst": "/9/v/C"
+      }
+    },
+    "/9/v/C": {
+      "name": "State",
+      "type": "State",
+      "Timer Period": 0.1
+    },
+    "/9/k": {
+      "name": "toState2",
+      "type": "External Transition",
+      "Event": "INPUTEVENT",
+      "Guard": "_root->buttonPressed",
+      "pointers": {
+        "src": "/9/Y",
+        "dst": "/9/v"
+      }
+    },
+    "/9/eInput": {
+      "name": "INPUTEVENT",
+      "type": "Event"
+    },
+    "/9/eInput/f1": {
+      "name": "button_id",
+      "type": "Field",
+      "Type": "int",
+      "Default": "12"
+    },
+    "/9/eInput/f2": {
+      "name": "press_time_ms",
+      "type": "Field",
+      "Type": "int",
+      "Default": "100"
+    },
+    "/9/eTest": {
+      "name": "Test",
+      "type": "Event"
+    },
+    "/9/eTest/f1": {
+      "name": "val",
+      "type": "Field",
+      "Type": "std::vector<int>",
+      "Default": ""
+    },
+    "/9/w": {
+      "name": "testTransition",
+      "type": "External Transition",
+      "Event": "Test",
+      "Guard": "data.val.size()",
+      "pointers": {
+        "src": "/9/Y",
+        "dst": "/9/v"
+      }
+    }
+  },
+  "namespace": "espp::state_machine"
+}

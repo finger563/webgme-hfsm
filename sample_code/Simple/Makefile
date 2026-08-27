@@ -107,15 +107,17 @@ clean:
 
 .PRECIOUS : $(CPPOBJ)
 
-$(CPPOBJ) : %.o : %.cpp
+HEADERS = $(wildcard *.hpp)
+
+$(CPPOBJ) : %.o : %.cpp $(HEADERS)
 	@echo
 	@echo Compiling CPP Source: $<
-	g++ $(ALL_CFLAGS $< -o $@
+	g++ -c $(ALL_CFLAGS) $< -o $@
 
-Simple_test:
+Simple_test: $(CPPSRC) $(HEADERS)
 	@echo Compiling Simple_test
 	g++ -o Simple_test Simple_test.cpp Simple_generated_states.cpp $(ALL_CFLAGS)
-Simple_test_DEBUG:
+Simple_test_DEBUG: $(CPPSRC) $(HEADERS)
 	@echo Compiling Simple_test_DEBUG
 	g++ -o Simple_test_DEBUG Simple_test.cpp Simple_generated_states.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
 run_Simple_test: Simple_test
