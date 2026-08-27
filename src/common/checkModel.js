@@ -169,7 +169,16 @@ define([], function() {
           // * no two Event definitions share a name
           // * field names are valid, unique within the event
           // * field types are non-empty
-          self.checkName( obj );
+          //
+          // NOTE: the RAW name is validated (not the sanitized
+          // spelling checkName tests) because event names are emitted
+          // and matched verbatim -- 'BUTTON-PRESS' must be rejected,
+          // not silently accepted as BUTTON_PRESS. This matches the
+          // transition Event validation (checkEvent).
+          if ( !self.isValidString( obj.name ) ) {
+            self.badProperty(obj, 'name',
+              'Event names must be valid C++ identifiers (alphanumeric + underscore, starting with a letter).');
+          }
           if (eventDefinitionNames.indexOf(obj.name) > -1) {
             self.error(obj, "Two Event definitions have the same name: " + obj.name);
           }
@@ -178,7 +187,12 @@ define([], function() {
           eventNames.push(obj.name);
           var fieldNames = [];
           (obj.Field_list || []).map(function(field) {
-            self.checkName( field );
+            // field names are emitted verbatim as C++ members --
+            // validate the raw name
+            if ( !self.isValidString( field.name ) ) {
+              self.badProperty(field, 'name',
+                'Field names must be valid C++ identifiers (alphanumeric + underscore, starting with a letter).');
+            }
             if (fieldNames.indexOf(field.name) > -1) {
               self.error(obj, "Event " + obj.name +
                          " has two fields named: " + field.name);

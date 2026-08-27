@@ -3,21 +3,21 @@
   <state id="S_p_m_Idle" hfsm:name="Idle" hfsm:timer-period="0.1">
     <onentry><script>printf(&quot;IDLE ENTRY\n&quot;);</script></onentry>
     <onexit><script>printf(&quot;IDLE EXIT\n&quot;);</script></onexit>
-    <transition event="BUTTON_PRESS" target="S_p_m_Running">
-      <script>printf(&quot;GO id=%d\n&quot;, data.button_id);</script>
-    </transition>
     <transition event="BUTTON_PRESS" cond="pressCount &lt; 1">
       <script>pressCount++; printf(&quot;PRESS %d id=%d long=%d\n&quot;, pressCount, data.button_id, (int)data.long_press);</script>
+    </transition>
+    <transition event="BUTTON_PRESS" target="S_p_m_Running">
+      <script>printf(&quot;GO id=%d\n&quot;, data.button_id);</script>
     </transition>
   </state>
   <state id="S_p_m_Running" hfsm:name="Running" hfsm:timer-period="0.1">
     <onentry><script>printf(&quot;RUNNING ENTRY speed=%.1f\n&quot;, speed);</script></onentry>
     <onexit><script>printf(&quot;RUNNING EXIT\n&quot;);</script></onexit>
-    <transition event="FINISH" target="S_p_m_end"/>
-    <transition event="STOP" target="S_p_m_Idle"/>
     <transition event="SET_SPEED">
       <script>speed = data.speed; printf(&quot;SPEED %.1f\n&quot;, speed);</script>
     </transition>
+    <transition event="STOP" target="S_p_m_Idle"/>
+    <transition event="FINISH" target="S_p_m_end"/>
   </state>
   <final id="S_p_m_end"/>
 </scxml>

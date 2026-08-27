@@ -4,17 +4,17 @@
     <onentry><script>printf(&quot;A ENTRY\n&quot;);</script></onentry>
     <onexit><script>printf(&quot;A EXIT\n&quot;);</script></onexit>
     <initial><transition target="S_p_m_A_A1"/></initial>
+    <transition event="TOGGLE" cond="_root-&gt;count &lt; 10">
+      <script>_root-&gt;count++; printf(&quot;TOGGLE %d\n&quot;, _root-&gt;count);</script>
+    </transition>
     <transition event="LOCAL_GO" target="S_p_m_A_A2" type="internal">
       <script>printf(&quot;LOCAL ACTION\n&quot;);</script>
     </transition>
     <transition event="CHOOSE" target="S_p_m_c">
       <script>printf(&quot;CHOOSE ACTION\n&quot;);</script>
     </transition>
-    <transition event="GO_DEEP" target="S_p_m_B_DH"/>
     <transition event="GO_HIST" target="S_p_m_B_H"/>
-    <transition event="TOGGLE" cond="_root-&gt;count &lt; 10">
-      <script>_root-&gt;count++; printf(&quot;TOGGLE %d\n&quot;, _root-&gt;count);</script>
-    </transition>
+    <transition event="GO_DEEP" target="S_p_m_B_DH"/>
     <state id="S_p_m_A_A1" hfsm:name="StateA1" hfsm:timer-period="0.1">
       <onentry><script>printf(&quot;A1 ENTRY\n&quot;);</script></onentry>
       <onexit><script>printf(&quot;A1 EXIT\n&quot;);</script></onexit>
@@ -59,8 +59,8 @@
   </state>
   <state id="S_p_m_c" hfsm:pseudostate="choice">
     <transition cond="_root-&gt;goLeft" target="S_p_m_B"/>
-    <transition target="S_p_m_A"/>
     <transition cond="_root-&gt;count &gt; 5" target="S_p_m_d"/>
+    <transition target="S_p_m_A"/>
   </state>
   <state id="S_p_m_d" hfsm:pseudostate="choice">
     <transition cond="_root-&gt;count &gt; 8" target="S_p_m_B_B2"/>

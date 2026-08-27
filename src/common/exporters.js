@@ -259,10 +259,24 @@ define([], function() {
       }
 
       function emitOutgoing(pad, state) {
-        // external + local transitions out of this state
-        getTransitions(objects, machine, ['External Transition', 'Local Transition'])
-          .filter(function(t) { return t.pointers['src'] == state.path; })
-          .forEach(function(t) {
+        // SCXML selects transitions by document order, so emission
+        // order must mirror the runtime's priority: internal
+        // transitions are checked before external / local ones, and
+        // within an event guarded transitions come before the
+        // unguarded one (the processor pre-sorts the event infos in
+        // exactly that order).
+        //
+        // internal transitions first; targetless transitions do not
+        // exit / re-enter any state
+        (state.InternalEvents || []).forEach(function(evInfo) {
+          evInfo.Transitions.forEach(function(t) {
+            emitTransition(pad, t, {});
+          });
+        });
+        // then external / local transitions, in the processor's
+        // guarded-before-unguarded order
+        (state.ExternalEvents || []).forEach(function(evInfo) {
+          evInfo.Transitions.forEach(function(t) {
             var dst = objects[t.pointers['dst']];
             if (!dst) return;
             emitTransition(pad, t, {
@@ -271,13 +285,22 @@ define([], function() {
               internal: t.type == 'Local Transition',
             });
           });
-        // internal transitions (children of this state); targetless
-        // transitions do not exit / re-enter any state
-        (state.InternalEvents || []).forEach(function(evInfo) {
-          evInfo.Transitions.forEach(function(t) {
-            emitTransition(pad, t, {});
-          });
         });
+        // finally eventless (end / completion) transitions, which the
+        // event infos do not carry
+        getTransitions(objects, machine, ['External Transition', 'Local Transition'])
+          .filter(function(t) {
+            return t.pointers['src'] == state.path &&
+              !(t.Event && t.Event.trim().length);
+          })
+          .forEach(function(t) {
+            var dst = objects[t.pointers['dst']];
+            if (!dst) return;
+            emitTransition(pad, t, {
+              target: targetIdFor(dst),
+              internal: t.type == 'Local Transition',
+            });
+          });
       }
 
       function hfsmAttrs(state) {
@@ -316,13 +339,14 @@ define([], function() {
         // enabled transition, matching choice semantics
         childrenOf(parent, 'Choice Pseudostate').forEach(function(c) {
           lines.push(pad + '<state id="' + idFor(c) + '" hfsm:pseudostate="choice">');
-          getTransitions(objects, machine, ['External Transition'])
-            .filter(function(t) { return t.pointers['src'] == c.path; })
-            .forEach(function(t) {
-              var dst = objects[t.pointers['dst']];
-              if (!dst) return;
-              emitTransition(pad + '  ', t, { target: targetIdFor(dst) });
-            });
+          // processor-sorted: guarded branches before the unguarded
+          // (else) branch, so SCXML's document-order selection
+          // matches the generated else-if chain
+          (c.ExternalTransitions || []).forEach(function(t) {
+            var dst = objects[t.pointers['dst']];
+            if (!dst) return;
+            emitTransition(pad + '  ', t, { target: targetIdFor(dst) });
+          });
           lines.push(pad + '</state>');
         });
         childrenOf(parent, 'Shallow History Pseudostate').forEach(function(h) {

@@ -161,6 +161,20 @@ describe('hfsm generator', function() {
       assert.strictEqual(model.objects['/p/m/lt'].type, 'External Transition');
     });
 
+    it('rejects Event definition names that only sanitize to valid identifiers', function() {
+      // 'BUTTON-PRESS' would sanitize to BUTTON_PRESS, but event
+      // names are emitted verbatim -- the raw name must be valid
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eBtn'].name = 'BUTTON-PRESS';
+      }, /invalid name/i);
+    });
+
+    it('rejects Field names that only sanitize to valid identifiers', function() {
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eBtn/f1'].name = 'button-id';
+      }, /invalid name/i);
+    });
+
     it('rejects two Event definitions with the same name', function() {
       expectModelError('payloads', function(objects) {
         objects['/p/m/eBtn2'] = {
@@ -272,6 +286,25 @@ describe('hfsm generator', function() {
       });
       assert.deepStrictEqual(guards,
         ['_root->goLeft', '_root->count > 5', '']);
+    });
+  });
+
+  describe('exporters', function() {
+    it('emits SCXML transitions in runtime priority order', function() {
+      // SCXML selects transitions by document order: the guarded
+      // internal BUTTON_PRESS transition must precede the unguarded
+      // external one within Idle, matching the runtime's
+      // internal-first, guarded-before-unguarded semantics
+      var artifacts = generateArtifacts('payloads');
+      var scxml = artifacts['Payloads.scxml'];
+      var internalIdx = scxml.indexOf(
+        '<transition event="BUTTON_PRESS" cond=');
+      var externalIdx = scxml.indexOf(
+        '<transition event="BUTTON_PRESS" target=');
+      assert.ok(internalIdx > -1, 'internal BUTTON_PRESS transition missing');
+      assert.ok(externalIdx > -1, 'external BUTTON_PRESS transition missing');
+      assert.ok(internalIdx < externalIdx,
+                'internal transition must precede external (document order = priority)');
     });
   });
 

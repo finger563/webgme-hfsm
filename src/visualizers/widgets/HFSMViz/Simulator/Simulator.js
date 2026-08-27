@@ -201,8 +201,12 @@ define(['js/util',
                    desc.Declarations, desc.name);
                  parsed.variables.forEach(function(v) {
                    v.isMachine = rootTypes.indexOf(desc.type) > -1;
-                   // storage key: shadowed names must not share a value
-                   v.key = v.scope + '::' + v.name;
+                   // storage key uses the node ID for identity: state
+                   // *names* are only unique among siblings, so two
+                   // states both named e.g. 'Idle' must not collapse
+                   // their variables into one value. The name stays
+                   // for display (v.scope).
+                   v.key = id + '::' + v.name;
                  });
                  variables = variables.concat(parsed.variables);
                  opaqueCount += parsed.opaque.length;
@@ -522,6 +526,15 @@ define(['js/util',
            name = name.trim();
            if (!/^[a-zA-Z_]\w*$/.test(name) || name == 'data') {
              alert('"' + name + '" is not a valid field name!');
+             return;
+           }
+           // renaming to an existing sibling field would create a
+           // model the generator rejects
+           var duplicate = def.fields.some(function(f) {
+             return f.name == name && f.id != field.id;
+           });
+           if (duplicate) {
+             alert(def.name + ' already has a field named "' + name + '"!');
              return;
            }
            var type = window.prompt('C++ type:', field.type);
