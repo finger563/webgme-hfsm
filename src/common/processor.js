@@ -78,10 +78,17 @@ define(['./checkModel', './declParser', 'underscore'], function(checkModel, decl
       // FOR SELECT OBJECTS IN THE MODEL
 
       var objPaths = Object.keys(model.objects);
+      // FIRST PASS: init basic params on every object. This must be
+      // its own pass: addBasicParams resets Substates, so doing it
+      // lazily inside the main loop silently dropped children whose
+      // objects were serialized before their parent (makeSubstate had
+      // already linked them). Processing is order-independent now.
+      objPaths.map(function(objPath) {
+        self.addBasicParams( model.objects[objPath] );
+      });
+      // SECOND PASS: type-specific processing and relationship links
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
-        // init all basic params
-        self.addBasicParams( obj );
         // Make sure top-level State Machine objects
         // are good and code attributes are properly prefixed.
         if (obj.type == 'State Machine' || obj.type == 'Library') {

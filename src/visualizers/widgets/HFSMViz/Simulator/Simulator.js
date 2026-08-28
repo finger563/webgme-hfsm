@@ -6,6 +6,7 @@ define(['js/util',
         'q',
         './Choice',
         'hfsm/declParser',
+        'hfsm/checkModel',
         'bower/mustache.js/mustache.min',
         'bower/highlightjs/highlight.pack.min',
         'text!./Simulator.html',
@@ -16,6 +17,7 @@ define(['js/util',
                 Q,
                 Choice,
                 declParser,
+                checkModel,
                 mustache,
                 hljs,
                 SimulatorHtml){
@@ -23,7 +25,15 @@ define(['js/util',
 
          var Simulator;
 
-         var rootTypes = ['State Machine'];
+         // must match the widget's root types (HFSMVizWidget.js)
+         var rootTypes = ['State Machine', 'Library'];
+
+         // shared with the generator: valid C++ identifier, not a
+         // keyword / reserved generated name; 'data' additionally
+         // reserved for the payload alias
+         function isValidModelName(name) {
+           return checkModel.isValidString(name) && name != 'data';
+         }
 
          var parentTempl = ['<div class="simulatorTitle">Child of:',
                             '</div>'].join('\n');
@@ -206,6 +216,7 @@ define(['js/util',
                    // states both named e.g. 'Idle' must not collapse
                    // their variables into one value. The name stays
                    // for display (v.scope).
+                   v.nodeId = id;
                    v.key = id + '::' + v.name;
                  });
                  variables = variables.concat(parsed.variables);
@@ -240,11 +251,19 @@ define(['js/util',
                previous[v.key] : v.initial;
            });
            self._variableValues = current;
-           // machine-scoped variables, for guard-context lookups
+           // guard-context lookup tables: machine-scoped variables,
+           // plus per-state variables (bare references in a state that
+           // declares the same name resolve to the state's variable)
            self._machineVariables = {};
+           self._stateVariables = {};
            parsed.variables.forEach(function(v) {
              if (v.isMachine) {
                self._machineVariables[v.name] = v.key;
+             } else {
+               if (!self._stateVariables[v.nodeId]) {
+                 self._stateVariables[v.nodeId] = {};
+               }
+               self._stateVariables[v.nodeId][v.name] = v.key;
              }
            });
 
@@ -283,44 +302,89 @@ define(['js/util',
          /**
           * HTML fragment listing the current values of the variables
           * -- and, when handling an event with a payload definition,
-          * the `data.<field>` payload values -- referenced by any of
-          * the given guard expressions; empty string if none.
+          * the `data.<field>` payload values -- referenced by the
+          * given transitions' guards; empty string if none.
+          *
+          * Name resolution mirrors the generated code: an explicit
+          * `_root->name` always reads the machine variable; a bare
+          * `name` reads the source state's own variable when that
+          * state declares one (shadowing), otherwise the machine's.
+          * (For guards on choice pseudostates reached mid-transition
+          * the original source state's shadowing is not tracked; the
+          * choice itself has no declarations, so bare names resolve
+          * to the machine there -- best effort.)
           */
-         Simulator.prototype.getGuardContext = function( guards ) {
+         Simulator.prototype.getGuardContext = function( transitionIds ) {
            var self = this;
            var parts = [];
-           // machine variables (bare names / _root-> in guards
-           // resolve to these)
-           var values = self._variableValues || {};
+           var seen = {};
+           var addPart = function(label, key) {
+             var values = self._variableValues || {};
+             var v = values[key];
+             var text = escapeHtml(label) + ' = ' +
+                 escapeHtml(v === '' || v === undefined ? '?' : v);
+             if (!seen[text]) {
+               seen[text] = true;
+               parts.push(text);
+             }
+           };
            var machineVars = self._machineVariables || {};
+           var stateVars = self._stateVariables || {};
            var names = Object.keys(machineVars);
-           var referenced = [];
-           guards.forEach(function(g) {
-             declParser.referencedNames(g, names).forEach(function(n) {
-               if (referenced.indexOf(n) == -1) referenced.push(n);
+
+           transitionIds.forEach(function(tid) {
+             var node = self.nodes[ tid ];
+             if (!node) return;
+             var guard = node.Guard;
+             if (!guard || !guard.trim().length) return;
+             // scope of bare references: the transition's source (for
+             // internal transitions, the declaring state)
+             var srcStateId = node.isConnection ? node.src : node.parentId;
+             var ownVars = stateVars[ srcStateId ] || {};
+             declParser.referencedNames(guard, names).forEach(function(n) {
+               var explicitRe = new RegExp('_root\\s*->\\s*' + n + '\\b');
+               if (explicitRe.test(guard)) {
+                 addPart('_root->' + n, machineVars[n]);
+               }
+               // bare reference: does the name appear outside of
+               // `_root->name` (and `data.name`) spellings?
+               var stripped = guard
+                   .replace(new RegExp('_root\\s*->\\s*' + n + '\\b', 'g'), '')
+                   .replace(new RegExp('\\bdata\\s*\\.\\s*' + n + '\\b', 'g'), '');
+               if (new RegExp('\\b' + n + '\\b').test(stripped)) {
+                 addPart(n, ownVars.hasOwnProperty(n) ?
+                         ownVars[n] : machineVars[n]);
+               }
+             });
+             // state-only variables (shadowing or state-local) that
+             // the machine does not declare
+             Object.keys(ownVars).forEach(function(n) {
+               if (names.indexOf(n) > -1) return; // handled above
+               if (new RegExp('\\b' + n + '\\b').test(guard)) {
+                 addPart(n, ownVars[n]);
+               }
              });
            });
-           referenced.forEach(function(n) {
-             var v = values[ machineVars[n] ];
-             parts.push(escapeHtml(n) + ' = ' +
-                        escapeHtml(v === '' || v === undefined ? '?' : v));
-           });
+
            // payload fields of the event currently being handled
            var eventDef = self._currentEventName &&
                self.getEventDefinition( self._currentEventName );
            if (eventDef) {
              var fieldValues = (self._eventFieldValues || {})[eventDef.name] || {};
              var fieldNames = eventDef.fields.map(function(f) { return f.name; });
-             var refFields = [];
-             guards.forEach(function(g) {
-               declParser.referencedFields(g, fieldNames).forEach(function(n) {
-                 if (refFields.indexOf(n) == -1) refFields.push(n);
+             transitionIds.forEach(function(tid) {
+               var node = self.nodes[ tid ];
+               var guard = node && node.Guard;
+               if (!guard) return;
+               declParser.referencedFields(guard, fieldNames).forEach(function(n) {
+                 var v = fieldValues.hasOwnProperty(n) ? fieldValues[n] : '';
+                 var text = 'data.' + escapeHtml(n) + ' = ' +
+                     escapeHtml(v === '' ? '?' : v);
+                 if (!seen[text]) {
+                   seen[text] = true;
+                   parts.push(text);
+                 }
                });
-             });
-             refFields.forEach(function(n) {
-               var v = fieldValues.hasOwnProperty(n) ? fieldValues[n] : '';
-               parts.push('data.' + escapeHtml(n) + ' = ' +
-                          escapeHtml(v === '' ? '?' : v));
              });
            }
            if (!parts.length) return '';
@@ -461,12 +525,29 @@ define(['js/util',
            var name = window.prompt('New event name (C++ identifier):');
            if (!name) return;
            name = name.trim();
-           if (!/^[a-zA-Z_]\w*$/.test(name)) {
-             alert('"' + name + '" is not a valid C++ identifier!');
+           // same rules the generator enforces (identifier syntax,
+           // C++ keywords, reserved generated names)
+           if (!isValidModelName(name)) {
+             alert('"' + name + '" is not a valid event name ' +
+                   '(must be a C++ identifier and not a keyword / reserved name)!');
              return;
            }
            if (self.getEventDefinition(name)) {
              alert('An Event definition named "' + name + '" already exists!');
+             return;
+           }
+           // names differing only by case collide in checkModel; an
+           // EXACT match with a used (but undefined) event is fine --
+           // that is how a used event gains its payload definition
+           var lower = name.toLowerCase();
+           var caseClash = self.getEventNames().filter(function(e) {
+             return e && e.trim().length;
+           }).some(function(e) {
+             return e.toLowerCase() == lower && e != name;
+           });
+           if (caseClash) {
+             alert('"' + name + '" differs only by case from an existing ' +
+                   'event name; the model checker rejects that!');
              return;
            }
            self._client.startTransaction();
@@ -492,8 +573,9 @@ define(['js/util',
                                     ' (C++ identifier):');
            if (!name) return;
            name = name.trim();
-           if (!/^[a-zA-Z_]\w*$/.test(name) || name == 'data') {
-             alert('"' + name + '" is not a valid field name!');
+           if (!isValidModelName(name)) {
+             alert('"' + name + '" is not a valid field name ' +
+                   '(must be a C++ identifier, not a keyword / reserved name, not data)!');
              return;
            }
            if (def.fields.some(function(f) { return f.name == name; })) {
@@ -524,8 +606,9 @@ define(['js/util',
            var name = window.prompt('Field name:', field.name);
            if (!name) return;
            name = name.trim();
-           if (!/^[a-zA-Z_]\w*$/.test(name) || name == 'data') {
-             alert('"' + name + '" is not a valid field name!');
+           if (!isValidModelName(name)) {
+             alert('"' + name + '" is not a valid field name ' +
+                   '(must be a C++ identifier, not a keyword / reserved name, not data)!');
              return;
            }
            // renaming to an existing sibling field would create a
@@ -569,6 +652,7 @@ define(['js/util',
            self._historyStates = {};
            self._variableValues = null;
            self._machineVariables = {};
+           self._stateVariables = {};
            self._eventFieldValues = null;
            self._currentEventName = null;
            self.hideStateInfo();
@@ -800,12 +884,9 @@ define(['js/util',
            // now get choice
            var choiceToEdgeId = self.getChoices( transitionIds );
            // annotate the dialog with the current values of the
-           // variables the guards reference, so the user decides
-           // informed by the simulated machine state
-           var guards = transitionIds.map(function(tid) {
-             return self.nodes[ tid ].Guard;
-           });
-           title = (title || '') + self.getGuardContext( guards );
+           // variables the guards reference (scope-aware), so the
+           // user decides informed by the simulated machine state
+           title = (title || '') + self.getGuardContext( transitionIds );
            var choice = new Choice();
            choice.initialize( Object.keys(choiceToEdgeId), title );
            choice.show();
@@ -1407,7 +1488,7 @@ define(['js/util',
                  self.displayStateInfo( node.getParentId() );
                }
              }
-             else if (nodeType == 'State Machine') {
+             else if (rootTypes.indexOf(nodeType) > -1) {
                if ( $(self._stateInfo).find('.uml-state-machine').length ) {
                  $(self._stateInfo).append(parentTempl);
                }

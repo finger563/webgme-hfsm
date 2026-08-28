@@ -81,7 +81,11 @@ define([], function() {
       var self = this;
       var topLevelStateNames = [];
       var eventNames = [];
-      var eventDefinitionNames = [];
+      // Event definition names are scoped per containing State
+      // Machine / Library (their generated types live in separate
+      // namespaces), so uniqueness is tracked per machine, not
+      // globally: { machinePath: [names] }
+      var eventDefinitionNames = {};
       var topLevelObject = null;
       var objPaths = Object.keys(model.objects);
       objPaths.map(function(objPath) {
@@ -179,10 +183,20 @@ define([], function() {
             self.badProperty(obj, 'name',
               'Event names must be valid C++ identifiers (alphanumeric + underscore, starting with a letter).');
           }
-          if (eventDefinitionNames.indexOf(obj.name) > -1) {
+          // find the containing machine for scoped uniqueness
+          var machine = model.objects[obj.parentPath];
+          while (machine && machine.type &&
+                 machine.type != 'State Machine' && machine.type != 'Library') {
+            machine = model.objects[machine.parentPath];
+          }
+          var machineKey = machine ? machine.path : '';
+          if (!eventDefinitionNames[machineKey]) {
+            eventDefinitionNames[machineKey] = [];
+          }
+          if (eventDefinitionNames[machineKey].indexOf(obj.name) > -1) {
             self.error(obj, "Two Event definitions have the same name: " + obj.name);
           }
-          eventDefinitionNames.push(obj.name);
+          eventDefinitionNames[machineKey].push(obj.name);
           // participate in the case-collision check with used events
           eventNames.push(obj.name);
           var fieldNames = [];

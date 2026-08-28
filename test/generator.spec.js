@@ -183,6 +183,25 @@ describe('hfsm generator', function() {
       }, /Event definitions have the same name/i);
     });
 
+    it('allows same-named Event definitions in different machines', function() {
+      // definition uniqueness is scoped per machine (separate
+      // generated namespaces)
+      var model = loadFixture('payloads');
+      Object.assign(model.objects, {
+        '/p/m2': { name: 'Second', type: 'State Machine' },
+        '/p/m2/i': { name: 'Initial', type: 'Initial' },
+        '/p/m2/ti': {
+          name: 'InitialTransition', type: 'External Transition',
+          pointers: { src: '/p/m2/i', dst: '/p/m2/S' },
+        },
+        '/p/m2/S': { name: 'Solo', type: 'State', 'Timer Period': 0.1 },
+        '/p/m2/eBtn': { name: 'BUTTON_PRESS', type: 'Event' },
+      });
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model); // must not throw
+      assert.ok(model.objects['/p/m2'].eventDefinitions.BUTTON_PRESS);
+    });
+
     it('rejects duplicate field names within an Event', function() {
       expectModelError('payloads', function(objects) {
         objects['/p/m/eBtn/f3'] = {
@@ -286,6 +305,42 @@ describe('hfsm generator', function() {
       });
       assert.deepStrictEqual(guards,
         ['_root->goLeft', '_root->count > 5', '']);
+    });
+  });
+
+  describe('order independence', function() {
+    it('processes models regardless of object serialization order', function() {
+      // children serialized before their parents used to be silently
+      // dropped (addBasicParams reset the parent's Substates after
+      // makeSubstate had linked them)
+      var normal = processFixture('features');
+      var model = loadFixture('features');
+      var reversed = {};
+      Object.keys(model.objects).reverse().forEach(function(p) {
+        reversed[p] = model.objects[p];
+      });
+      model.objects = reversed;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+
+      function substatePaths(machine) {
+        var paths = [];
+        var visit = function(s) {
+          paths.push(s.path);
+          (s.Substates || []).forEach(visit);
+        };
+        (machine.Substates || []).forEach(visit);
+        return paths.sort();
+      }
+      assert.deepStrictEqual(substatePaths(model.objects['/p/m']),
+                             substatePaths(normal.objects['/p/m']));
+      assert.deepStrictEqual(model.objects['/p/m'].eventNames,
+                             normal.objects['/p/m'].eventNames);
+      // deep nesting must survive: B2b is three levels down
+      var rendered = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      var hpp = rendered['Features_generated_states.hpp'];
+      assert.ok(hpp.indexOf('class StateB2b') > -1,
+                'deeply nested state missing from generated code');
     });
   });
 
