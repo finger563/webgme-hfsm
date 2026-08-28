@@ -402,7 +402,47 @@ describe('hfsm generator', function() {
     });
   });
 
+  describe('prototype-pollution hardening', function() {
+    it('handles event names inherited from Object.prototype', function() {
+      // 'constructor' / 'toString' are valid C++ identifiers; plain
+      // object accumulators used to drop or crash on them
+      var model = loadFixture('basic');
+      Object.assign(model.objects, {
+        '/p/m/eCtor': { name: 'constructor', type: 'Event' },
+        '/p/m/eToStr': { name: 'toString', type: 'Event' },
+      });
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model); // must not throw
+      var names = model.objects['/p/m'].eventNames;
+      assert.strictEqual(
+        names.filter(function(n) { return n === 'constructor'; }).length, 1);
+      assert.strictEqual(
+        names.filter(function(n) { return n === 'toString'; }).length, 1);
+      // and the generated enum must actually contain them
+      var rendered = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      var hpp = rendered['Basic_generated_states.hpp'];
+      assert.ok(hpp.indexOf('spawn_constructor_event') > -1);
+      assert.ok(hpp.indexOf('spawn_toString_event') > -1);
+    });
+  });
+
   describe('exporters', function() {
+    it('preserves initial-transition actions in SCXML', function() {
+      var model = loadFixture('features');
+      // nested initial (StateA's) gets executable content...
+      model.objects['/p/m/A/ti'].Action = 'printf("init A");';
+      // ...and the ROOT initial's action rides in the hfsm: namespace
+      model.objects['/p/m/ti'].Action = 'printf("init root");';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var scxml = mods.exporters.toSCXML(model, '/p/m');
+      assert.ok(/<initial>\s*<transition target="[^"]+">\s*<script>printf\(&quot;init A&quot;\);<\/script>\s*<\/transition>\s*<\/initial>/.test(scxml),
+                'nested initial action must be executable content');
+      assert.ok(scxml.indexOf(
+        'hfsm:initial-action="printf(&quot;init root&quot;);"') > -1,
+                'root initial action must be carried in the hfsm namespace');
+    });
+
     it('generates collision-free ids for similar paths', function() {
       // '/p/m/a-b' and '/p/m/a_b' must not encode to the same id
       var model = loadFixture('basic');

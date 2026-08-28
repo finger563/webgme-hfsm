@@ -3,7 +3,9 @@
   <state id="S_2f_p_2f_m_2f_A" hfsm:name="StateA">
     <onentry><script>printf(&quot;A ENTRY\n&quot;);</script></onentry>
     <onexit><script>printf(&quot;A EXIT\n&quot;);</script></onexit>
-    <initial><transition target="S_2f_p_2f_m_2f_A_2f_A1"/></initial>
+    <initial>
+      <transition target="S_2f_p_2f_m_2f_A_2f_A1"/>
+    </initial>
     <transition event="TOGGLE" cond="_root-&gt;count &lt; 10">
       <script>_root-&gt;count++; printf(&quot;TOGGLE %d\n&quot;, _root-&gt;count);</script>
     </transition>
@@ -28,7 +30,9 @@
   <state id="S_2f_p_2f_m_2f_B" hfsm:name="StateB">
     <onentry><script>printf(&quot;B ENTRY\n&quot;);</script></onentry>
     <onexit><script>printf(&quot;B EXIT\n&quot;);</script></onexit>
-    <initial><transition target="S_2f_p_2f_m_2f_B_2f_B1"/></initial>
+    <initial>
+      <transition target="S_2f_p_2f_m_2f_B_2f_B1"/>
+    </initial>
     <transition event="BACK" target="S_2f_p_2f_m_2f_A"/>
     <transition event="FINISH" target="S_2f_p_2f_m_2f_end"/>
     <state id="S_2f_p_2f_m_2f_B_2f_B1" hfsm:name="StateB1" hfsm:timer-period="0.1">
@@ -39,7 +43,9 @@
     <state id="S_2f_p_2f_m_2f_B_2f_B2" hfsm:name="StateB2">
       <onentry><script>printf(&quot;B2 ENTRY\n&quot;);</script></onentry>
       <onexit><script>printf(&quot;B2 EXIT\n&quot;);</script></onexit>
-      <initial><transition target="S_2f_p_2f_m_2f_B_2f_B2_2f_B2a"/></initial>
+      <initial>
+        <transition target="S_2f_p_2f_m_2f_B_2f_B2_2f_B2a"/>
+      </initial>
       <state id="S_2f_p_2f_m_2f_B_2f_B2_2f_B2a" hfsm:name="StateB2a" hfsm:timer-period="0.1">
         <onentry><script>printf(&quot;B2a ENTRY\n&quot;);</script></onentry>
         <onexit><script>printf(&quot;B2a EXIT\n&quot;);</script></onexit>

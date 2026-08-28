@@ -3,10 +3,17 @@ define(['./checkModel', './declParser', 'underscore'], function(checkModel, decl
   'use strict';
   return {
     stripRegex: /^([^\n]+)/gm,
+    // Set-based: a plain-object accumulator would treat names
+    // inherited from Object.prototype ('constructor', 'toString',
+    // ...) as already-seen and silently drop those events
     uniq: function(a) {
-      var seen = {};
+      var seen = new Set();
       return a.filter(function(item) {
-        return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+        if (seen.has(item)) {
+          return false;
+        }
+        seen.add(item);
+        return true;
       });
     },
     makeEventName: function(name) {

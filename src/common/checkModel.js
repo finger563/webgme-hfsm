@@ -322,7 +322,7 @@ define([], function() {
                 _map[t.Event] = [t];
               }
               return _map;
-            }, {});
+            }, Object.create(null));
             Object.entries(eventTransitionMap).forEach(([event, transitions]) => {
               // if this event is empty, then we need to make sure
               // there is a child End State
@@ -343,7 +343,7 @@ define([], function() {
               }
               // ensure no two transitions for this event have the same guard
               var guards = transitions.filter(self.hasGuard.bind(self)).map(self.getGuard.bind(self));
-              var guardMap = {};
+              var guardMap = Object.create(null);
               guards.forEach((g) => {
                 if (g in guardMap) {
                   self.error(obj, "Two transitions have the same Event / Guard combination!");
@@ -381,6 +381,9 @@ define([], function() {
       // never collide)
       Object.keys(eventNames).forEach(function(machineKey) {
         var errTarget = model.objects[machineKey] || topLevelObject;
+        // null-prototype accumulator: with a plain object, an event
+        // named e.g. 'constructor' would hit the inherited property
+        // via `in` and crash / misvalidate
         eventNames[machineKey].reduce((_map, event) => {
           var e = event.trim().toLowerCase();
           if (e in _map) {
@@ -395,7 +398,7 @@ define([], function() {
             _map[e] = [event];
           }
           return _map;
-        }, {});
+        }, Object.create(null));
       });
     },
     // MODEL TRAVERSAL

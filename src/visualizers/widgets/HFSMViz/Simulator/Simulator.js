@@ -167,7 +167,11 @@ define(['js/util',
          Simulator.prototype.log = function( msg ) {
            var self = this;
            if (self._logEl) {
-             self._logEl.append(`${msg}\n`);
+             // append as a TEXT node: jQuery .append(string) parses
+             // HTML, so logging model content (guards containing '<',
+             // user-entered variable / payload values) verbatim could
+             // both break rendering and execute injected markup
+             self._logEl.append(document.createTextNode(`${msg}\n`));
              var div = self._logEl.get(0);
              div.scrollTop = div.scrollHeight;
            } else {
@@ -1526,10 +1530,16 @@ define(['js/util',
 
          /* * * * * * * * Event Button Functions    * * * * * * * */
 
+         // Set-based: a plain-object accumulator would drop event
+         // names inherited from Object.prototype ('constructor', ...)
          function uniq(a) {
-           var seen = {};
+           var seen = new Set();
            return a.filter(function(item) {
-             return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+             if (seen.has(item)) {
+               return false;
+             }
+             seen.add(item);
+             return true;
            });
          }
 

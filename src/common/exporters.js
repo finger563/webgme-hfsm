@@ -59,14 +59,21 @@ define([], function() {
     });
   }
 
-  function initialTargetOf(state, objects) {
-    // returns the destination object of the state's Initial transition
+  function initialTransitionOf(state, objects) {
+    // returns the state's Initial transition object (which may carry
+    // an Action), or null
     var initials = childrenOf(state, 'Initial');
     if (!initials.length) return null;
     var trans = getTransitions(objects, state, ['External Transition'])
         .filter(function(t) { return t.pointers['src'] == initials[0].path; });
-    if (!trans.length) return null;
-    return objects[trans[0].pointers['dst']] || null;
+    return trans.length ? trans[0] : null;
+  }
+
+  function initialTargetOf(state, objects) {
+    // returns the destination object of the state's Initial transition
+    var trans = initialTransitionOf(state, objects);
+    if (!trans) return null;
+    return objects[trans.pointers['dst']] || null;
   }
 
   function transitionLabel(t) {
@@ -330,10 +337,16 @@ define([], function() {
                    xmlEscape(state.name) + '"' + hfsmAttrs(state) + '>');
         emitCode(pad + '  ', 'onentry', state.Entry);
         emitCode(pad + '  ', 'onexit', state.Exit);
-        var initialDst = initialTargetOf(state, objects);
+        var initialTrans = initialTransitionOf(state, objects);
+        var initialDst = initialTrans &&
+            objects[initialTrans.pointers['dst']];
         if (initialDst) {
-          lines.push(pad + '  <initial><transition target="' +
-                     targetIdFor(initialDst) + '"/></initial>');
+          // emit through emitTransition so an Action on the initial
+          // transition is preserved as executable content
+          lines.push(pad + '  <initial>');
+          emitTransition(pad + '    ', initialTrans,
+                         { target: targetIdFor(initialDst) });
+          lines.push(pad + '  </initial>');
         }
         emitOutgoing(pad + '  ', state);
         emitRegion(state, indent + 1);
@@ -379,12 +392,23 @@ define([], function() {
         lines.push(pad + '</history>');
       }
 
-      var rootInitial = initialTargetOf(machine, objects);
+      var rootInitialTrans = initialTransitionOf(machine, objects);
+      var rootInitial = rootInitialTrans &&
+          objects[rootInitialTrans.pointers['dst']];
+      // <scxml> only supports the initial *attribute* (no <initial>
+      // element), so an Action on the ROOT initial transition cannot
+      // be standard executable content; carry it in the hfsm:
+      // namespace so it is not silently lost
+      var rootInitialAction = (rootInitialTrans &&
+                               rootInitialTrans.Action &&
+                               rootInitialTrans.Action.trim()) || '';
       lines.push('<?xml version="1.0" encoding="UTF-8"?>');
       lines.push('<scxml xmlns="http://www.w3.org/2005/07/scxml"' +
                  ' xmlns:hfsm="' + HFSM_NS + '"' +
                  ' version="1.0" name="' + xmlEscape(machine.name) + '"' +
                  (rootInitial ? ' initial="' + targetIdFor(rootInitial) + '"' : '') +
+                 (rootInitialAction ?
+                  ' hfsm:initial-action="' + xmlEscape(rootInitialAction) + '"' : '') +
                  '>');
       emitRegion(machine, 1);
       lines.push('</scxml>');
