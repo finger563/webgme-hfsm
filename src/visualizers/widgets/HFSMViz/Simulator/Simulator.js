@@ -265,7 +265,7 @@ define(['js/util',
            var previous = self._variableValues; // null -> seed initials
            var current = {};
            parsed.variables.forEach(function(v) {
-             current[v.key] = (previous && previous.hasOwnProperty(v.key)) ?
+             current[v.key] = (previous && Object.prototype.hasOwnProperty.call(previous, v.key)) ?
                previous[v.key] : v.initial;
            });
            self._variableValues = current;
@@ -294,7 +294,7 @@ define(['js/util',
              declParser.referencedNames(o.stmt, machineNamesList)
                .forEach(function(n) {
                  var owned = self._stateVariables[o.nodeId];
-                 if (owned && owned.hasOwnProperty(n)) return;
+                 if (owned && Object.prototype.hasOwnProperty.call(owned, n)) return;
                  if (!self._opaqueShadows[o.nodeId]) {
                    self._opaqueShadows[o.nodeId] = [];
                  }
@@ -401,13 +401,13 @@ define(['js/util',
              // referencedNames)
              declParser.referencedNames(guard, names).forEach(function(n) {
                var opaque = (self._opaqueShadows || {})[srcStateId] || [];
-               if (!ownVars.hasOwnProperty(n) && opaque.indexOf(n) > -1) {
+               if (!Object.prototype.hasOwnProperty.call(ownVars, n) && opaque.indexOf(n) > -1) {
                  // possibly shadowed by an unparsed declaration --
                  // the value cannot be resolved
                  var txt = escapeHtml(n) + ' = ? (possibly shadowed)';
                  if (!seen[txt]) { seen[txt] = true; parts.push(txt); }
                } else {
-                 addPart(n, ownVars.hasOwnProperty(n) ?
+                 addPart(n, Object.prototype.hasOwnProperty.call(ownVars, n) ?
                          ownVars[n] : machineVars[n]);
                }
              });
@@ -432,7 +432,7 @@ define(['js/util',
                var guard = node && node.Guard;
                if (!guard) return;
                declParser.referencedFields(guard, fieldNames).forEach(function(n) {
-                 var v = fieldValues.hasOwnProperty(n) ? fieldValues[n] : '';
+                 var v = Object.prototype.hasOwnProperty.call(fieldValues, n) ? fieldValues[n] : '';
                  var text = 'data.' + escapeHtml(n) + ' = ' +
                      escapeHtml(v === '' ? '?' : v);
                  if (!seen[text]) {
@@ -504,7 +504,7 @@ define(['js/util',
              def.fields.forEach(function(f) {
                var prev = previous && previous[def.name];
                current[def.name][f.name] =
-                 (prev && prev.hasOwnProperty(f.name)) ?
+                 (prev && Object.prototype.hasOwnProperty.call(prev, f.name)) ?
                  prev[f.name] : f.default;
              });
            });

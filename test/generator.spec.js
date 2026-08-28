@@ -472,6 +472,34 @@ describe('hfsm generator', function() {
   });
 
   describe('multi-machine and Library generation', function() {
+    it('rejects Library names that are reserved or contain path characters', function() {
+      // Library names become C++ identifiers AND artifact file names
+      expectModelError('basic', function(objects) {
+        objects['/p/m'].type = 'Library';
+        objects['/p/m'].name = 'class';
+      }, /invalid name/i);
+      // '../../outside' must not survive into artifact paths
+      expectModelError('basic', function(objects) {
+        objects['/p/m'].type = 'Library';
+        objects['/p/m'].name = '../../outside';
+      }, /invalid name/i);
+    });
+
+    it('rejects End State names that are invalid C++ identifiers', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/end'].name = 'class';
+      }, /invalid name/i);
+      // the conventional default name 'End State' -> End_State is
+      // exempt from the reserved-generated-name list
+      var model = loadFixture('basic');
+      model.objects['/p/m/end'].name = 'End State';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model); // must not throw
+      var artifacts = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      assert.ok(artifacts['Basic_generated_states.hpp']
+                .indexOf('End_State BASIC_OBJ__END_STATE_OBJ;') > -1);
+    });
+
     it('generates code for Library roots', function() {
       var model = loadFixture('basic');
       model.objects['/p/m'].type = 'Library';

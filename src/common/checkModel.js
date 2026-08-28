@@ -112,8 +112,11 @@ define([], function() {
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
         if (obj.type == 'Project' ||
-            obj.type == 'State Machine') {
-          // checks: name
+            obj.type == 'State Machine' ||
+            obj.type == 'Library') {
+          // checks: name -- rendered Library / machine names become
+          // C++ identifiers AND artifact file names, so this also
+          // blocks path characters ('../../x') from escaping --out
           self.checkName( obj );
           // save reference to this
           topLevelObject = obj;
@@ -166,6 +169,15 @@ define([], function() {
           addEventName(obj, obj.Event);
         }
         else if (obj.type == 'End State') {
+          // the sanitized name becomes the generated END class name.
+          // 'End_State' itself is exempt from the reserved-name list:
+          // it is the conventional default name (the reservation
+          // exists to stop OTHER objects from colliding with it)
+          var sEndName = self.sanitizeString(obj.name);
+          if (sEndName !== 'End_State' && !self.isValidString(sEndName)) {
+            self.badProperty(obj, 'name',
+              'End State names must be valid C++ identifiers.');
+          }
         }
         // Process Choice Pseudostate Data
         else if (obj.type == 'Choice Pseudostate') {
