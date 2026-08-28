@@ -165,13 +165,18 @@ define([], function() {
         }
         model.root = objects[model.root];
       } else if (!model.root) {
-        // find a Project / State Machine object with no parent in the map
+        // find a supported ROOT-TYPE object with no parent in the
+        // map; accepting any lone object would let a rootless model
+        // (e.g. a single State) "resolve" and generate nothing
+        var rootTypes = ['Project', 'State Machine', 'Library'];
         var roots = paths.filter(function(p) {
-          return !objects[objects[p].parentPath];
+          return !objects[objects[p].parentPath] &&
+            rootTypes.indexOf(objects[p].type) > -1;
         });
         if (roots.length !== 1) {
           throw "ERROR: cannot determine model root; found " + roots.length +
-            " top-level objects. Set model.root explicitly.";
+            " top-level Project / State Machine / Library objects. " +
+            "Set model.root explicitly.";
         }
         model.root = objects[roots[0]];
       }

@@ -263,7 +263,9 @@ define(['js/util',
            if (!self._variablesEl || !self._variablesEl.length) return;
            var parsed = self.getDeclaredVariables();
            var previous = self._variableValues; // null -> seed initials
-           var current = {};
+           // null-prototype: keys are user identifiers ('__proto__'
+           // must store, not hit the prototype setter)
+           var current = Object.create(null);
            parsed.variables.forEach(function(v) {
              current[v.key] = (previous && Object.prototype.hasOwnProperty.call(previous, v.key)) ?
                previous[v.key] : v.initial;
@@ -272,18 +274,18 @@ define(['js/util',
            // guard-context lookup tables: machine-scoped variables,
            // plus per-state variables (bare references in a state that
            // declares the same name resolve to the state's variable)
-           self._machineVariables = {};
-           self._stateVariables = {};
+           self._machineVariables = Object.create(null);
+           self._stateVariables = Object.create(null);
            // machine-variable names mentioned in a state's UNPARSED
            // declarations: the generator conservatively suppresses
            // their aliases there, so bare references are unresolvable
-           self._opaqueShadows = {};
+           self._opaqueShadows = Object.create(null);
            parsed.variables.forEach(function(v) {
              if (v.isMachine) {
                self._machineVariables[v.name] = v.key;
              } else {
                if (!self._stateVariables[v.nodeId]) {
-                 self._stateVariables[v.nodeId] = {};
+                 self._stateVariables[v.nodeId] = Object.create(null);
                }
                self._stateVariables[v.nodeId][v.name] = v.key;
              }
@@ -363,7 +365,7 @@ define(['js/util',
          Simulator.prototype.getGuardContext = function( transitionIds ) {
            var self = this;
            var parts = [];
-           var seen = {};
+           var seen = Object.create(null);
            var addPart = function(label, key) {
              var values = self._variableValues || {};
              var v = values[key];
@@ -498,9 +500,9 @@ define(['js/util',
            if (!self._eventDefsEl || !self._eventDefsEl.length) return;
            var defs = self.getEventDefinitions();
            var previous = self._eventFieldValues; // null -> seed defaults
-           var current = {};
+           var current = Object.create(null);
            defs.forEach(function(def) {
-             current[def.name] = {};
+             current[def.name] = Object.create(null);
              def.fields.forEach(function(f) {
                var prev = previous && previous[def.name];
                current[def.name][f.name] =
@@ -709,9 +711,9 @@ define(['js/util',
            self._activeState = null;
            self._historyStates = {};
            self._variableValues = null;
-           self._machineVariables = {};
-           self._stateVariables = {};
-           self._opaqueShadows = {};
+           self._machineVariables = Object.create(null);
+           self._stateVariables = Object.create(null);
+           self._opaqueShadows = Object.create(null);
            self._eventFieldValues = null;
            self._currentEventName = null;
            self.hideStateInfo();

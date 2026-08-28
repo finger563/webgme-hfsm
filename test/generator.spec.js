@@ -134,6 +134,38 @@ describe('hfsm generator', function() {
       }, /unguarded transitions have the same Event/i);
     });
 
+    it('rejects choice pseudostate cycles', function() {
+      // c -> d already exists in the features fixture (guarded);
+      // adding d -> c closes a cycle that would overflow the
+      // recursive choice template during generation
+      expectModelError('features', function(objects) {
+        objects['/p/m/d3'] = {
+          name: 'choice2BackToChoice1', type: 'External Transition',
+          Guard: '_root->count > 7',
+          pointers: { src: '/p/m/d', dst: '/p/m/c' },
+        };
+      }, /cycle detected/i);
+      // self-loop
+      expectModelError('features', function(objects) {
+        objects['/p/m/c4'] = {
+          name: 'choiceSelfLoop', type: 'External Transition',
+          Guard: '_root->count > 9',
+          pointers: { src: '/p/m/c', dst: '/p/m/c' },
+        };
+      }, /cycle detected/i);
+    });
+
+    it('rejects rootless models whose only top-level object is not a root type', function() {
+      var model = {
+        objects: {
+          '/s': { name: 'Lonely', type: 'State', 'Timer Period': 0.1 },
+        },
+      };
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /cannot determine model root/);
+    });
+
     it('rejects choice pseudostates without exactly one unguarded exit', function() {
       expectModelError('features', function(objects) {
         delete objects['/p/m/c2'];

@@ -66,6 +66,22 @@ describe('declParser', function() {
     assert.strictEqual(r.opaque.length, 3);
   });
 
+  it('treats type / alias declarations as opaque, not variables', function() {
+    // these declare types, not variables -- aliasing `_root->Counter`
+    // would not compile
+    var r = parse([
+      'using Counter = int;',
+      'typedef int Ticks;',
+      'class Driver;',
+      'struct Config;',
+      'enum class Mode { A, B };',
+      'int real = 1;',
+    ].join('\n'));
+    assert.deepStrictEqual(r.variables.map(function(v) { return v.name; }),
+                           ['real']);
+    assert.strictEqual(r.opaque.length, 5);
+  });
+
   it('ignores comments', function() {
     var r = parse([
       '// leading comment with int fake;',

@@ -125,7 +125,15 @@ define([], function() {
         var m = DECL_RE.exec(s);
         // reject things that merely look like declarations:
         // function declarations/definitions have '(' after the name,
-        // which DECL_RE cannot match, so they fall through to opaque
+        // which DECL_RE cannot match, so they fall through to opaque;
+        // type / alias / namespace declarations (`using Counter =
+        // int;`, `class Driver;`, `typedef int Counter;`, ...) match
+        // DECL_RE but declare no variable -- emitting an alias like
+        // `_root->Counter` for them would not compile
+        var DECL_KEYWORDS = /^(?:using|typedef|class|struct|enum|union|namespace|template|friend|extern)\b/;
+        if (m && DECL_KEYWORDS.test(s.trim())) {
+          m = null;
+        }
         if (m) {
           var initial = m[4] !== undefined ? m[4] :
                         m[5] !== undefined ? m[5] : '';

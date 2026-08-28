@@ -198,6 +198,24 @@ define([], function() {
           if (guardless.length != 1) {
             self.error(obj, "Choice states must have exactly 1 unguarded exiting transition!");
           }
+          // * no choice -> ... -> choice cycles: the generated code
+          //   inlines choice chains recursively, so a cycle would
+          //   overflow the template recursion. Each branch carries a
+          //   COPY of its path so converging DAGs remain valid.
+          var checkChoiceCycles = function(choice, pathSoFar) {
+            if (pathSoFar.indexOf(choice.path) > -1) {
+              self.error(obj, "Choice pseudostate cycle detected: " +
+                         pathSoFar.concat(choice.path).join(' -> '));
+            }
+            self.getTransitionsOutOf( choice, model.objects )
+              .forEach(function(t) {
+                var dst = model.objects[t.pointers['dst']];
+                if (dst && dst.type == 'Choice Pseudostate') {
+                  checkChoiceCycles(dst, pathSoFar.concat(choice.path));
+                }
+              });
+          };
+          checkChoiceCycles(obj, []);
         }
         else if (obj.type == 'Deep History Pseudostate') {
         }
