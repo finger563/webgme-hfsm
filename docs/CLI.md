@@ -67,6 +67,11 @@ parent paths derived from paths). See `test/fixtures/*.json` and
 }
 ```
 
+`Library` roots generate code and interop exports exactly like
+`State Machine` roots, but no test bench (a library is not an
+executable machine by itself). Artifact names derive from sanitized
+machine names; two machines whose outputs would collide are rejected.
+
 Object types: `Project`, `State Machine`, `Library`, `State`,
 `Initial`, `End State`, `Choice Pseudostate`,
 `Deep History Pseudostate`, `Shallow History Pseudostate`,

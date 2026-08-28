@@ -471,6 +471,54 @@ describe('hfsm generator', function() {
     });
   });
 
+  describe('multi-machine and Library generation', function() {
+    it('generates code for Library roots', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/m'].type = 'Library';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var artifacts = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      assert.ok(artifacts['Basic_generated_states.hpp'],
+                'Library roots must generate code, not be silently skipped');
+    });
+
+    it('rejects colliding artifact names from same-named machines', function() {
+      var model = loadFixture('basic');
+      Object.assign(model.objects, {
+        '/p/m2': { name: 'Basic', type: 'State Machine' },
+        '/p/m2/i': { name: 'Initial', type: 'Initial' },
+        '/p/m2/ti': {
+          name: 'InitialTransition', type: 'External Transition',
+          pointers: { src: '/p/m2/i', dst: '/p/m2/S' },
+        },
+        '/p/m2/S': { name: 'Solo', type: 'State', 'Timer Period': 0.1 },
+      });
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.throws(function() {
+        mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      }, /collides with another machine/);
+    });
+
+    it('CLI rejects invalid namespaces', function() {
+      var execFileSync = require('child_process').execFileSync;
+      var out;
+      try {
+        execFileSync(process.execPath,
+                     [path.join(__dirname, '..', 'bin', 'hfsm-gen.js'),
+                      path.join(FIXTURE_DIR, 'basic.json'),
+                      '-n', 'bad namespace!',
+                      '-o', path.join(require('os').tmpdir(), 'hfsm-ns-test')],
+                     { encoding: 'utf8', stdio: 'pipe' });
+        assert.fail('CLI must reject an invalid namespace');
+      } catch (e) {
+        assert.notStrictEqual(e.status, 0);
+        assert.ok(/invalid C\+\+ namespace/.test(String(e.stderr)),
+                  'error must name the invalid namespace');
+      }
+    });
+  });
+
   describe('exporters', function() {
     it('preserves initial-transition actions in SCXML', function() {
       var model = loadFixture('features');

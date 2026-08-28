@@ -148,12 +148,33 @@ define([], function() {
      * Return the subset of `names` referenced as whole identifiers in
      * a C++ expression (used to annotate guard choices with the
      * variables they read).
+     *
+     * Member / scoped accesses are NOT bare references: `stats.count`,
+     * `stats->count`, and `Foo::count` read a member named count, not
+     * the variable, so occurrences preceded by '.', '->', or '::' are
+     * excluded (this also excludes `_root->count` -- callers that
+     * care about explicit root access test for it separately).
      */
     referencedNames: function(expr, names) {
       if (!expr || !names || !names.length) return [];
       var stripped = stripComments(expr);
       return names.filter(function(n) {
-        return new RegExp('\\b' + n + '\\b').test(stripped);
+        var re = new RegExp('\\b' + n + '\\b', 'g');
+        var m;
+        while ((m = re.exec(stripped)) !== null) {
+          // inspect what precedes the identifier (skipping whitespace)
+          var i = m.index - 1;
+          while (i >= 0 && /\s/.test(stripped[i])) i--;
+          var prev = i >= 0 ? stripped[i] : '';
+          var prev2 = i >= 1 ? stripped[i - 1] : '';
+          if (prev === '.' ||
+              (prev === '>' && prev2 === '-') ||
+              (prev === ':' && prev2 === ':')) {
+            continue; // member / pointer / scope access, not bare
+          }
+          return true;
+        }
+        return false;
       });
     },
 

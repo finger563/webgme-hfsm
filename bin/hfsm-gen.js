@@ -102,6 +102,11 @@ amdLoader.load([
     opts.namespace = (typeof model.namespace === 'string' &&
                       model.namespace.trim()) || 'state_machine';
   }
+  // the namespace is emitted verbatim into every generated file
+  if (!/^[A-Za-z_]\w*(::[A-Za-z_]\w*)*$/.test(opts.namespace)) {
+    fail("invalid C++ namespace '" + opts.namespace +
+         "' (expected identifier or identifier::identifier...)");
+  }
   var artifacts = {};
   try {
     resolveModel.resolve(model);
@@ -119,9 +124,22 @@ amdLoader.load([
       }
     }
 
-    // interop exports, one file per state machine
+    // interop exports, one file per state machine / library. Export
+    // names derive from sanitized machine names; refuse silent
+    // overwrites between colliding machines (renderHFSM catches this
+    // for code artifacts, but --no-code skips it)
+    var addArtifact = function(fname, content, machine) {
+      if (Object.prototype.hasOwnProperty.call(artifacts, fname) &&
+          artifacts[fname] !== content) {
+        throw "ERROR: machine '" + machine.name + "' (" + machine.path +
+          ") produces artifact '" + fname + "' which collides with " +
+          "another machine's -- rename one of the machines.";
+      }
+      artifacts[fname] = content;
+    };
     var machinePaths = Object.keys(model.objects).filter(function(p) {
-      return model.objects[p].type === 'State Machine';
+      return model.objects[p].type === 'State Machine' ||
+        model.objects[p].type === 'Library';
     }).sort();
     opts.exports.forEach(function(fmt) {
       machinePaths.forEach(function(mp) {
@@ -132,7 +150,7 @@ amdLoader.load([
           plantuml: exporters.toPlantUML,
           scxml: exporters.toSCXML,
         }[fmt];
-        artifacts[machine.sanitizedName + ext] = render(model, mp);
+        addArtifact(machine.sanitizedName + ext, render(model, mp), machine);
       });
     });
 

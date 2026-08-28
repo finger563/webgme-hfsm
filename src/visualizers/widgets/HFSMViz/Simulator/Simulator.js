@@ -387,36 +387,37 @@ define(['js/util',
              // internal transitions, the declaring state)
              var srcStateId = node.isConnection ? node.src : node.parentId;
              var ownVars = stateVars[ srcStateId ] || {};
-             declParser.referencedNames(guard, names).forEach(function(n) {
+             // explicit `_root->name` references always read the
+             // machine variable (referencedNames excludes them along
+             // with all other member accesses, so test separately)
+             names.forEach(function(n) {
                var explicitRe = new RegExp('_root\\s*->\\s*' + n + '\\b');
                if (explicitRe.test(guard)) {
                  addPart('_root->' + n, machineVars[n]);
                }
-               // bare reference: does the name appear outside of
-               // `_root->name` (and `data.name`) spellings?
-               var stripped = guard
-                   .replace(new RegExp('_root\\s*->\\s*' + n + '\\b', 'g'), '')
-                   .replace(new RegExp('\\bdata\\s*\\.\\s*' + n + '\\b', 'g'), '');
-               if (new RegExp('\\b' + n + '\\b').test(stripped)) {
-                 var opaque = (self._opaqueShadows || {})[srcStateId] || [];
-                 if (!ownVars.hasOwnProperty(n) && opaque.indexOf(n) > -1) {
-                   // possibly shadowed by an unparsed declaration --
-                   // the value cannot be resolved
-                   var txt = escapeHtml(n) + ' = ? (possibly shadowed)';
-                   if (!seen[txt]) { seen[txt] = true; parts.push(txt); }
-                 } else {
-                   addPart(n, ownVars.hasOwnProperty(n) ?
-                           ownVars[n] : machineVars[n]);
-                 }
+             });
+             // bare references (member accesses like `stats.count`,
+             // `data.count`, or `_root->count` are excluded by
+             // referencedNames)
+             declParser.referencedNames(guard, names).forEach(function(n) {
+               var opaque = (self._opaqueShadows || {})[srcStateId] || [];
+               if (!ownVars.hasOwnProperty(n) && opaque.indexOf(n) > -1) {
+                 // possibly shadowed by an unparsed declaration --
+                 // the value cannot be resolved
+                 var txt = escapeHtml(n) + ' = ? (possibly shadowed)';
+                 if (!seen[txt]) { seen[txt] = true; parts.push(txt); }
+               } else {
+                 addPart(n, ownVars.hasOwnProperty(n) ?
+                         ownVars[n] : machineVars[n]);
                }
              });
              // state-only variables (shadowing or state-local) that
              // the machine does not declare
-             Object.keys(ownVars).forEach(function(n) {
-               if (names.indexOf(n) > -1) return; // handled above
-               if (new RegExp('\\b' + n + '\\b').test(guard)) {
-                 addPart(n, ownVars[n]);
-               }
+             var ownOnly = Object.keys(ownVars).filter(function(n) {
+               return names.indexOf(n) === -1;
+             });
+             declParser.referencedNames(guard, ownOnly).forEach(function(n) {
+               addPart(n, ownVars[n]);
              });
            });
 
@@ -642,6 +643,7 @@ define(['js/util',
            if (!type || !type.trim()) return;
            var dflt = window.prompt('Default value for ' + name +
                                     ' (optional):', '');
+           if (dflt === null) return; // Cancel must not mutate the model
            self._client.startTransaction();
            var newId = self._client.createChild({
              parentId: def.id,

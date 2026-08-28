@@ -100,11 +100,31 @@ describe('declParser', function() {
 
   it('finds referenced identifiers in guard expressions', function() {
     var names = ['count', 'pressed', 'gain'];
+    // `_root->count` is a member access, not a bare reference
     assert.deepStrictEqual(
       declParser.referencedNames('_root->count > 5 && !pressed', names),
-      ['count', 'pressed']);
+      ['pressed']);
+    assert.deepStrictEqual(
+      declParser.referencedNames('count > 5 && gain < 2', names),
+      ['count', 'gain']);
     assert.deepStrictEqual(
       declParser.referencedNames('recount > 5', names), []);
     assert.deepStrictEqual(declParser.referencedNames('', names), []);
+  });
+
+  it('excludes member and scoped accesses from bare references', function() {
+    var names = ['count'];
+    // reading a MEMBER named count is not reading the variable
+    assert.deepStrictEqual(
+      declParser.referencedNames('stats.count > 0', names), []);
+    assert.deepStrictEqual(
+      declParser.referencedNames('stats->count > 0', names), []);
+    assert.deepStrictEqual(
+      declParser.referencedNames('Foo::count > 0', names), []);
+    assert.deepStrictEqual(
+      declParser.referencedNames('stats . count > 0', names), []);
+    // a bare use alongside a member use still counts
+    assert.deepStrictEqual(
+      declParser.referencedNames('stats.count > count', names), ['count']);
   });
 });

@@ -58,7 +58,10 @@ for golden in "$GOLDEN_DIR"/*/; do
 
   echo "--- running scripted event sequence"
   actual="$build/${name}.trace"
-  "$build/${name}_test_debug" < "$input" | normalize > "$actual"
+  # portable hang guard (same as CI's samples job): a regression in
+  # EOF handling or event draining must fail fast, not hang the job
+  perl -e 'alarm shift; exec @ARGV' 60 "$build/${name}_test_debug" \
+    < "$input" | normalize > "$actual"
 
   if [ -n "${UPDATE_TRACES:-}" ]; then
     mkdir -p "$TRACE_DIR"
