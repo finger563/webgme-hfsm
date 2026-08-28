@@ -175,6 +175,29 @@ describe('hfsm generator', function() {
       }, /invalid name/i);
     });
 
+    it('rejects an event named Event (generated-type collision)', function() {
+      // would generate `typedef Event<EventEventData> Event;` next to
+      // the Event<T> class template -- an illegal redeclaration
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/eBtn'].name = 'Event';
+      }, /invalid name/i);
+    });
+
+    it('collapses multiline field descriptions into safe comments', function() {
+      var model = loadFixture('payloads');
+      model.objects['/p/m/eBtn/f1'].Description =
+        'first line\nsecond line becomes raw C++ without the fix';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var rendered = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      var hpp = rendered['Payloads_event_data.hpp'];
+      assert.ok(hpp.indexOf(
+        '// first line second line becomes raw C++ without the fix') > -1,
+        'description should be one commented line');
+      assert.ok(hpp.indexOf('\nsecond line') === -1,
+                'no description line may escape the comment');
+    });
+
     it('rejects two Event definitions with the same name', function() {
       expectModelError('payloads', function(objects) {
         objects['/p/m/eBtn2'] = {

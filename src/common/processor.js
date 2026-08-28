@@ -244,7 +244,11 @@ define(['./checkModel', './declParser', 'underscore'], function(checkModel, decl
                   name: f.name,
                   type: (f.Type || '').trim(),
                   default: (f.Default || '').trim(),
-                  description: (f.Description || '').trim(),
+                  // collapsed to one line: the template emits this
+                  // after a single '//', so embedded newlines would
+                  // become raw C++ in the generated header
+                  description: (f.Description || '').trim()
+                    .replace(/\s+/g, ' '),
                 };
               }),
             };

@@ -32,9 +32,13 @@ define([], function() {
       'static_cast','struct','switch','template','this','thread_local','throw',
       'true','try','typedef','typeid','typename','union','unsigned','using',
       'virtual','void','volatile','wchar_t','while','xor','xor_eq',
-      // identifiers reserved by the generated code itself
+      // identifiers reserved by the generated code itself. 'Event' is
+      // included because an event with that name would generate
+      // `typedef Event<EventEventData> Event;` in the same scope as
+      // the `Event<T>` class template -- an illegal redeclaration.
       'Root', 'StateBase', 'EventBase', 'GeneratedEventBase', 'EventType',
-      'EventFactory', 'End_State', 'DeepHistoryState', 'ShallowHistoryState'
+      'EventFactory', 'Event', 'End_State', 'DeepHistoryState',
+      'ShallowHistoryState'
     ],
     isValidString: function(str) {
       var varDeclExp = /^[a-zA-Z_][a-zA-Z0-9_]*$/;

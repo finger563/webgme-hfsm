@@ -283,6 +283,7 @@ define(['js/util',
              var nameEl = $('<span class="variableName"></span>')
                  .text((v.shadowsMachine ? '⚠ ' : '') + label);
              var input = $('<input class="variableValue" type="text"/>')
+                 .attr('aria-label', 'Value of variable ' + label)
                  .val(current[v.key]);
              input.on('change', function() {
                self._variableValues[v.key] = $(this).val();
@@ -474,6 +475,8 @@ define(['js/util',
                row.append($('<span class="variableName"></span>')
                           .text(f.name + ' : ' + f.type));
                var input = $('<input class="variableValue" type="text"/>')
+                   .attr('aria-label', 'Value of ' + def.name + '.' +
+                         f.name + ' payload field')
                    .val(current[def.name][f.name]);
                input.on('change', function() {
                  self._eventFieldValues[def.name][f.name] = $(this).val();
