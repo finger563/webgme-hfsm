@@ -288,6 +288,35 @@ describe('hfsm generator', function() {
       }, /similar names/i);
     });
 
+    it('rejects dangling parentPath with an explicit root', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/m/Orphan'] = {
+        name: 'Orphan', type: 'State', 'Timer Period': 0.1,
+        parentPath: '/p/missing',
+      };
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /does not resolve to an object/);
+    });
+
+    it('converts child-to-parent Local Transitions to External', function() {
+      // local semantics are parent -> direct child only; the old
+      // symmetric check kept the reverse direction local
+      var model = loadFixture('features');
+      model.objects['/p/m/lt'].pointers = { src: '/p/m/A/A2', dst: '/p/m/A' };
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.strictEqual(model.objects['/p/m/lt'].type, 'External Transition');
+    });
+
+    it('rejects an Initial targeting the composite\'s parent', function() {
+      // the old symmetric relationship check accepted the parent as
+      // "within" the composite
+      expectModelError('features', function(objects) {
+        objects['/p/m/A/ti'].pointers.dst = '/p/m';
+      }, /must be within the parent/i);
+    });
+
     it('drops disabled transitions', function() {
       var model = loadFixture('basic');
       model.objects['/p/m/tStop'].Enabled = false;
@@ -353,6 +382,22 @@ describe('hfsm generator', function() {
       // clean models produce no warnings
       var clean = processFixture('payloads');
       assert.deepStrictEqual(clean.warnings, []);
+    });
+
+    it('conservatively treats opaque declarations as shadows', function() {
+      // `int pressCount[4];` is opaque to the parser; emitting an
+      // alias would silently redirect bare references from the state
+      // member to the machine member -- so no alias, plus a warning
+      var model = loadFixture('payloads');
+      model.objects['/p/m/Idle'].Declarations = 'int pressCount[4];';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.strictEqual(model.warnings.length, 1);
+      assert.ok(/unparsed declaration/.test(model.warnings[0]));
+      assert.ok(/pressCount/.test(model.warnings[0]));
+      var idleAliases = model.objects['/p/m/Idle'].rootAliases
+          .map(function(a) { return a.name; });
+      assert.deepStrictEqual(idleAliases, ['speed']);
     });
 
     it('orders guarded transitions before unguarded, by path', function() {

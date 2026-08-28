@@ -328,9 +328,9 @@ define(['./checkModel', './declParser', 'underscore'], function(checkModel, decl
       var rootNames = rootVars.map(function(v) { return v.name; });
       var visit = function(state) {
         if (state.isState) {
-          var ownNames = declParser
-              .parseDeclarations( state.Declarations || '' )
-              .variables.map(function(v) { return v.name; });
+          var parsed = declParser
+              .parseDeclarations( state.Declarations || '' );
+          var ownNames = parsed.variables.map(function(v) { return v.name; });
           // a state variable with the same name as a machine variable
           // shadows it in that state's code -- legal, but surprising
           // now that bare-name access resolves to the machine
@@ -346,8 +346,34 @@ define(['./checkModel', './declParser', 'underscore'], function(checkModel, decl
                 " -- bare references in this state resolve to the state's" +
                 " own variable, not the machine's.");
           }
+          // CONSERVATIVE: a machine-variable name appearing in an
+          // UNPARSED (opaque) declaration statement may also be a
+          // shadowing member (e.g. `int count[4];`). Emitting an
+          // alias for it would silently redirect bare references from
+          // the state member to the machine member, so treat such
+          // names as shadowed too, and say so.
+          var opaqueShadowed = [];
+          parsed.opaque.forEach(function(stmt) {
+            declParser.referencedNames(stmt, rootNames).forEach(function(n) {
+              if (ownNames.indexOf(n) === -1 &&
+                  opaqueShadowed.indexOf(n) === -1) {
+                opaqueShadowed.push(n);
+              }
+            });
+          });
+          if (opaqueShadowed.length && model) {
+            model.warnings.push(
+              "State '" + (state.name || state.path) + "' (" + state.path +
+                ") has unparsed declaration(s) mentioning machine" +
+                " variable(s): " + opaqueShadowed.join(', ') +
+                " -- conservatively treated as shadowed: no bare-name" +
+                " alias is generated for them in this state (use _root->" +
+                " there if the machine variable is intended).");
+          }
+          var excluded = ownNames.concat(opaqueShadowed);
+          state.opaqueShadowedNames = opaqueShadowed;
           state.rootAliases = rootVars.filter(function(v) {
-            return ownNames.indexOf(v.name) === -1;
+            return excluded.indexOf(v.name) === -1;
           }).map(function(v) { return { name: v.name }; });
         }
         (state.Substates || []).forEach(visit);

@@ -141,8 +141,12 @@ define([], function() {
           if ( dst == undefined )
           self.badProperty(obj, 'dst');
 
-          if ( !self.hasParentChildRelationship( src, dst ) ) {
-            console.log(`Local Transition ${objPath} does not have src/dst that are in an explicitly parent-child relationship - converting ${objPath} to External Transition!`);
+          // local semantics require the source to be the composite
+          // parent and the destination one of its DIRECT children --
+          // the symmetric check also accepted child->parent, which is
+          // not local (and exported invalid SCXML type="internal")
+          if ( dst.parentPath !== src.path ) {
+            console.log(`Local Transition ${objPath} does not go from a composite parent to a direct child - converting ${objPath} to External Transition!`);
             obj.type = 'External Transition';
           }
 
@@ -443,34 +447,24 @@ define([], function() {
 
       var transitions = self.getTransitionsOutOf(stateObj, objDict);
       var dest = objDict[transitions[0].pointers['dst']];
-      if (dest.type == 'State') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
-          self.error(dest, 'Initial state must be within the parent!');
-        }
-      } else if (dest.type == 'Choice Pseudostate') {
+      // directional: the destination must be a DIRECT CHILD of the
+      // parent composite. The old symmetric relationship check also
+      // accepted the composite's own parent as "within".
+      var isDirectChild = function(d) {
+        return d.parentPath === parentObj.path;
+      };
+      if (dest.type == 'Choice Pseudostate') {
         var destinations  = self.getChoiceDestinations(dest, objDict);
         // ensure all choice pseudostate transitions along this
         // path stay within the parent state
         destinations.map((d) => {
-          // check that it's a sibling
-          if (!self.hasParentChildRelationship(d, parentObj)) {
+          if (!isDirectChild(d)) {
             self.error(d, 'Initial state must be within the parent!');
           }
         });
-      } else if (dest.type == 'Deep History Pseudostate') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
-          self.error(dest, 'Initial state must be within the parent!');
-        }
-      } else if (dest.type == 'Shallow History Pseudostate') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
-          self.error(dest, 'Initial state must be within the parent!');
-        }
-      } else if (dest.type == 'End State') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
+      } else {
+        // State / Deep History / Shallow History / End State
+        if (!isDirectChild(dest)) {
           self.error(dest, 'Initial state must be within the parent!');
         }
       }

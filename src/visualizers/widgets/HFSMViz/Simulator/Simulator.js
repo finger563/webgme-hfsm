@@ -211,6 +211,7 @@ define(['js/util',
            var self = this;
            var variables = [];
            var opaqueCount = 0;
+           var opaqueStatements = []; // unparsed state declarations
            Object.keys(self.nodes).sort().forEach(function(id) {
              var desc = self.nodes[id];
              if (!desc || desc.isConnection) return;
@@ -230,6 +231,13 @@ define(['js/util',
                  });
                  variables = variables.concat(parsed.variables);
                  opaqueCount += parsed.opaque.length;
+                 if (parsed.opaque.length &&
+                     rootTypes.indexOf(desc.type) === -1) {
+                   parsed.opaque.forEach(function(stmt) {
+                     opaqueStatements.push({ nodeId: id, scope: desc.name,
+                                             stmt: stmt });
+                   });
+                 }
                }
              }
            });
@@ -241,7 +249,8 @@ define(['js/util',
              v.shadowsMachine = !v.isMachine &&
                machineNames.indexOf(v.name) > -1;
            });
-           return { variables: variables, opaqueCount: opaqueCount };
+           return { variables: variables, opaqueCount: opaqueCount,
+                    opaqueStatements: opaqueStatements };
          };
 
          /**
@@ -265,6 +274,10 @@ define(['js/util',
            // declares the same name resolve to the state's variable)
            self._machineVariables = {};
            self._stateVariables = {};
+           // machine-variable names mentioned in a state's UNPARSED
+           // declarations: the generator conservatively suppresses
+           // their aliases there, so bare references are unresolvable
+           self._opaqueShadows = {};
            parsed.variables.forEach(function(v) {
              if (v.isMachine) {
                self._machineVariables[v.name] = v.key;
@@ -274,6 +287,24 @@ define(['js/util',
                }
                self._stateVariables[v.nodeId][v.name] = v.key;
              }
+           });
+           var opaqueShadowNotes = [];
+           var machineNamesList = Object.keys(self._machineVariables);
+           (parsed.opaqueStatements || []).forEach(function(o) {
+             declParser.referencedNames(o.stmt, machineNamesList)
+               .forEach(function(n) {
+                 var owned = self._stateVariables[o.nodeId];
+                 if (owned && owned.hasOwnProperty(n)) return;
+                 if (!self._opaqueShadows[o.nodeId]) {
+                   self._opaqueShadows[o.nodeId] = [];
+                 }
+                 if (self._opaqueShadows[o.nodeId].indexOf(n) === -1) {
+                   self._opaqueShadows[o.nodeId].push(n);
+                   opaqueShadowNotes.push('⚠ ' + o.scope +
+                     ': unparsed declaration may shadow machine variable "' +
+                     n + '"');
+                 }
+               });
            });
 
            self._variablesEl.empty();
@@ -300,6 +331,11 @@ define(['js/util',
              });
              row.append(nameEl).append(input);
              self._variablesEl.append(row);
+           });
+           opaqueShadowNotes.forEach(function(note) {
+             self._variablesEl.append(
+               $('<div class="variableNote variableShadowWarning"></div>')
+                 .text(note));
            });
            if (parsed.opaqueCount) {
              self._variablesEl.append(
@@ -362,8 +398,16 @@ define(['js/util',
                    .replace(new RegExp('_root\\s*->\\s*' + n + '\\b', 'g'), '')
                    .replace(new RegExp('\\bdata\\s*\\.\\s*' + n + '\\b', 'g'), '');
                if (new RegExp('\\b' + n + '\\b').test(stripped)) {
-                 addPart(n, ownVars.hasOwnProperty(n) ?
-                         ownVars[n] : machineVars[n]);
+                 var opaque = (self._opaqueShadows || {})[srcStateId] || [];
+                 if (!ownVars.hasOwnProperty(n) && opaque.indexOf(n) > -1) {
+                   // possibly shadowed by an unparsed declaration --
+                   // the value cannot be resolved
+                   var txt = escapeHtml(n) + ' = ? (possibly shadowed)';
+                   if (!seen[txt]) { seen[txt] = true; parts.push(txt); }
+                 } else {
+                   addPart(n, ownVars.hasOwnProperty(n) ?
+                           ownVars[n] : machineVars[n]);
+                 }
                }
              });
              // state-only variables (shadowing or state-local) that
@@ -665,6 +709,7 @@ define(['js/util',
            self._variableValues = null;
            self._machineVariables = {};
            self._stateVariables = {};
+           self._opaqueShadows = {};
            self._eventFieldValues = null;
            self._currentEventName = null;
            self.hideStateInfo();

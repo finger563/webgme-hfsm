@@ -139,6 +139,25 @@ define([], function() {
         }
       });
 
+      // With an explicit root, every OTHER object's parentPath must
+      // resolve: a dangling parent (e.g. a typo) would otherwise
+      // leave the object unlinked and generation would silently omit
+      // it. (Without an explicit root, the auto-detection below
+      // already errors unless exactly one object lacks a parent.)
+      var rootPathHint = typeof model.root === 'string' ?
+          model.root : (model.root && model.root.path);
+      if (rootPathHint) {
+        paths.forEach(function(path) {
+          var obj = objects[path];
+          if (path === rootPathHint) return;
+          if (!objects[obj.parentPath]) {
+            throw "ERROR: " + path + " has parentPath '" + obj.parentPath +
+              "' which does not resolve to an object in the model " +
+              "(only the root may have an external parent).";
+          }
+        });
+      }
+
       // resolve the root
       if (typeof model.root === 'string') {
         if (!objects[model.root]) {

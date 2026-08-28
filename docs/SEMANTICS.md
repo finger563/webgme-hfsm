@@ -71,9 +71,9 @@ External self-transitions (and external transitions between a state
 and its ancestor/descendant) exit and re-enter the common state.
 **Local transitions** do not exit/re-enter the source composite
 state: only the source's active descendants are exited before the
-target child is entered. Local transitions must connect a parent and
-a direct child (the model checker converts other local transitions to
-external ones).
+target child is entered. Local transitions must go from a composite
+state to one of its direct children; the model checker converts
+anything else (including child-to-parent) to an external transition.
 
 ## Variable access in user code
 
@@ -96,7 +96,11 @@ Limits (best-effort, by design):
   generated locals and are never aliased (use `_root->`).
 - A state's own `Declarations` shadow same-named machine variables in
   that state's code (normal C++ scoping; no alias is generated for
-  the shadowed name).
+  the shadowed name). If an *unparsed* state declaration mentions a
+  machine-variable name, that name is conservatively treated as
+  shadowed too -- no alias is generated in that state and a warning
+  is raised; use `_root->` there when the machine variable is
+  intended.
 - A payload field with the same name as a machine variable is not
   ambiguous: `data.name` is the field, bare `name` is the variable.
 

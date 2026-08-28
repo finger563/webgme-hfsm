@@ -21,11 +21,12 @@ Structure:
 - Transitions must have valid `src`/`dst` pointers.
 - A composite state (one with child states) must contain exactly one
   `Initial` state, whose single outgoing transition has no event and
-  no guard and stays within the parent (including through chains of
-  choice pseudostates).
-- A local transition's `src`/`dst` must be in a direct parent-child
-  relationship; otherwise it is converted to an external transition
-  (with a console warning).
+  no guard and targets a direct child of the parent (including every
+  destination reachable through chains of choice pseudostates).
+- A local transition's destination must be a direct child of its
+  source (composite parent -> child); anything else -- including the
+  reverse direction -- is converted to an external transition (with a
+  console warning).
 - Leaf states must have a non-zero `Timer Period`.
 - States cannot set `Includes` (only the machine can).
 
@@ -44,6 +45,9 @@ simulator's Variables panel marks the offending rows with ⚠):
 - A state `Declarations` variable with the same name as a machine
   variable shadows it in that state's code -- bare references there
   resolve to the state's variable, not the machine's.
+- An *unparsed* state declaration mentioning a machine-variable name
+  is conservatively treated as shadowing: no bare-name alias is
+  generated for it in that state.
 
 Determinism:
 
