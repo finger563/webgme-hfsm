@@ -1,38 +1,38 @@
 @startuml
 title Features
 
-state "StateA" as S_p_m_A {
-  state "StateA1" as S_p_m_A_A1
-  state "StateA2" as S_p_m_A_A2
-  [*] --> S_p_m_A_A1
+state "StateA" as S_2f_p_2f_m_2f_A {
+  state "StateA1" as S_2f_p_2f_m_2f_A_2f_A1
+  state "StateA2" as S_2f_p_2f_m_2f_A_2f_A2
+  [*] --> S_2f_p_2f_m_2f_A_2f_A1
 }
-S_p_m_A : TOGGLE [_root->count < 10]
-state "StateB" as S_p_m_B {
-  state "StateB1" as S_p_m_B_B1
-  state "StateB2" as S_p_m_B_B2 {
-    state "StateB2a" as S_p_m_B_B2_B2a
-    state "StateB2b" as S_p_m_B_B2_B2b
-    [*] --> S_p_m_B_B2_B2a
+S_2f_p_2f_m_2f_A : TOGGLE [_root->count < 10]
+state "StateB" as S_2f_p_2f_m_2f_B {
+  state "StateB1" as S_2f_p_2f_m_2f_B_2f_B1
+  state "StateB2" as S_2f_p_2f_m_2f_B_2f_B2 {
+    state "StateB2a" as S_2f_p_2f_m_2f_B_2f_B2_2f_B2a
+    state "StateB2b" as S_2f_p_2f_m_2f_B_2f_B2_2f_B2b
+    [*] --> S_2f_p_2f_m_2f_B_2f_B2_2f_B2a
   }
-  [*] --> S_p_m_B_B1
+  [*] --> S_2f_p_2f_m_2f_B_2f_B1
 }
-state S_p_m_c <<choice>>
-state S_p_m_d <<choice>>
-[*] --> S_p_m_A
+state S_2f_p_2f_m_2f_c <<choice>>
+state S_2f_p_2f_m_2f_d <<choice>>
+[*] --> S_2f_p_2f_m_2f_A
 
-S_p_m_A_A1 --> S_p_m_A_A2 : NEXT
-S_p_m_B_B2_B2a --> S_p_m_B_B2_B2b : NEXT
-S_p_m_B_B1 --> S_p_m_B_B2 : NEXT
-S_p_m_c --> S_p_m_B :  [_root->goLeft]
-S_p_m_c --> S_p_m_A
-S_p_m_c --> S_p_m_d :  [_root->count > 5]
-S_p_m_d --> S_p_m_B_B2 :  [_root->count > 8]
-S_p_m_d --> S_p_m_A_A1
-S_p_m_A -[dashed]-> S_p_m_A_A2 : LOCAL_GO
-S_p_m_B --> S_p_m_A : BACK
-S_p_m_A --> S_p_m_c : CHOOSE
-S_p_m_A --> S_p_m_B[H*] : GO_DEEP
-S_p_m_B --> [*] : FINISH
-S_p_m_A --> S_p_m_B[H] : GO_HIST
+S_2f_p_2f_m_2f_A_2f_A1 --> S_2f_p_2f_m_2f_A_2f_A2 : NEXT
+S_2f_p_2f_m_2f_B_2f_B2_2f_B2a --> S_2f_p_2f_m_2f_B_2f_B2_2f_B2b : NEXT
+S_2f_p_2f_m_2f_B_2f_B1 --> S_2f_p_2f_m_2f_B_2f_B2 : NEXT
+S_2f_p_2f_m_2f_c --> S_2f_p_2f_m_2f_B :  [_root->goLeft]
+S_2f_p_2f_m_2f_c --> S_2f_p_2f_m_2f_A
+S_2f_p_2f_m_2f_c --> S_2f_p_2f_m_2f_d :  [_root->count > 5]
+S_2f_p_2f_m_2f_d --> S_2f_p_2f_m_2f_B_2f_B2 :  [_root->count > 8]
+S_2f_p_2f_m_2f_d --> S_2f_p_2f_m_2f_A_2f_A1
+S_2f_p_2f_m_2f_A -[dashed]-> S_2f_p_2f_m_2f_A_2f_A2 : LOCAL_GO
+S_2f_p_2f_m_2f_B --> S_2f_p_2f_m_2f_A : BACK
+S_2f_p_2f_m_2f_A --> S_2f_p_2f_m_2f_c : CHOOSE
+S_2f_p_2f_m_2f_A --> S_2f_p_2f_m_2f_B[H*] : GO_DEEP
+S_2f_p_2f_m_2f_B --> [*] : FINISH
+S_2f_p_2f_m_2f_A --> S_2f_p_2f_m_2f_B[H] : GO_HIST
 
 @enduml

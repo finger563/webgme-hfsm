@@ -30,8 +30,17 @@ define([], function() {
       (path && ancestorPath && path.indexOf(ancestorPath + '/') === 0);
   }
 
+  // Collision-free, XML-ID-safe encoding of a model path. Replacing
+  // every non-alphanumeric character with '_' is not injective
+  // ('/p/a-b' and '/p/a_b' would collide); instead '_' is the escape
+  // character: alphanumerics pass through, '_' doubles to '__', and
+  // any other character becomes '_<hex>_'. Decoding is unambiguous
+  // (after '_', a second '_' means a literal underscore; hex digits
+  // run to the closing '_'), so distinct paths get distinct ids.
   function idFor(obj) {
-    return 'S' + obj.path.replace(/[^a-zA-Z0-9]/g, '_');
+    return 'S' + obj.path.replace(/[^a-zA-Z0-9]/g, function(c) {
+      return c === '_' ? '__' : '_' + c.charCodeAt(0).toString(16) + '_';
+    });
   }
 
   function oneLine(str) {

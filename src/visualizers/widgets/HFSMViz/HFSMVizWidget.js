@@ -309,7 +309,13 @@ define([
       const search = (text) => {
         var results = [];
         // find related nodes
-        let nodes = Object.values(self.nodes).filter((n) => n.LABEL.length);
+        // exclude non-graph descriptors (Event / Field payload
+        // definitions): they have no Cytoscape element, so selecting
+        // such a search result would silently fail to navigate
+        let nodes = Object.values(self.nodes).filter((n) => {
+          return n.LABEL && n.LABEL.length &&
+            nonGraphTypes.indexOf(n.type) === -1;
+        });
         results.push(...(nodes.filter((n) => {
           var matches = n.LABEL.toLowerCase() === text.toLowerCase();
           return matches;

@@ -1,12 +1,12 @@
 @startuml
 title Basic
 
-state "Active" as S_p_m_Active
-state "Idle" as S_p_m_Idle
-[*] --> S_p_m_Idle
+state "Active" as S_2f_p_2f_m_2f_Active
+state "Idle" as S_2f_p_2f_m_2f_Idle
+[*] --> S_2f_p_2f_m_2f_Idle
 
-S_p_m_Active --> [*] : ENDEVENT
-S_p_m_Idle --> S_p_m_Active : START
-S_p_m_Active --> S_p_m_Idle : STOP
+S_2f_p_2f_m_2f_Active --> [*] : ENDEVENT
+S_2f_p_2f_m_2f_Idle --> S_2f_p_2f_m_2f_Active : START
+S_2f_p_2f_m_2f_Active --> S_2f_p_2f_m_2f_Idle : STOP
 
 @enduml

@@ -29,9 +29,14 @@ define(['js/util',
          var rootTypes = ['State Machine', 'Library'];
 
          // shared with the generator: valid C++ identifier, not a
-         // keyword / reserved generated name; 'data' additionally
-         // reserved for the payload alias
-         function isValidModelName(name) {
+         // keyword / reserved generated name. Used for Event names.
+         function isValidEventName(name) {
+           return checkModel.isValidString(name);
+         }
+         // Field names additionally reserve 'data' (the generated
+         // payload alias); Event names do not (an event named 'data'
+         // is valid and compiles)
+         function isValidFieldName(name) {
            return checkModel.isValidString(name) && name != 'data';
          }
 
@@ -530,7 +535,7 @@ define(['js/util',
            name = name.trim();
            // same rules the generator enforces (identifier syntax,
            // C++ keywords, reserved generated names)
-           if (!isValidModelName(name)) {
+           if (!isValidEventName(name)) {
              alert('"' + name + '" is not a valid event name ' +
                    '(must be a C++ identifier and not a keyword / reserved name)!');
              return;
@@ -576,7 +581,7 @@ define(['js/util',
                                     ' (C++ identifier):');
            if (!name) return;
            name = name.trim();
-           if (!isValidModelName(name)) {
+           if (!isValidFieldName(name)) {
              alert('"' + name + '" is not a valid field name ' +
                    '(must be a C++ identifier, not a keyword / reserved name, not data)!');
              return;
@@ -609,7 +614,7 @@ define(['js/util',
            var name = window.prompt('Field name:', field.name);
            if (!name) return;
            name = name.trim();
-           if (!isValidModelName(name)) {
+           if (!isValidFieldName(name)) {
              alert('"' + name + '" is not a valid field name ' +
                    '(must be a C++ identifier, not a keyword / reserved name, not data)!');
              return;
@@ -1584,9 +1589,10 @@ define(['js/util',
            var eventNames = self.getEventNames().sort();
            eventNames.map(function (eventName) {
              if (eventName && eventName.trim()) {
-                 // warn if the event name is not valid (matches
-                 // /^[a-zA-Z_][a-zA-Z0-9_]+$/gi regex)
-                 if (!eventName.match(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi)) {
+                 // warn if the event name is not valid, using the
+                 // same rule the generator enforces (accepts
+                 // one-character names, rejects keywords / reserved)
+                 if (!checkModel.isValidString(eventName)) {
                      alert('WARNING:\n'+
                            'Event name "'+eventName+'" is not a valid C++ identifier!\n'+
                            'Please use only alphanumeric characters and underscores!\n'+

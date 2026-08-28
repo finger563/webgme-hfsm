@@ -84,13 +84,30 @@ define([], function() {
        */
       var self = this;
       var topLevelStateNames = [];
-      var eventNames = [];
-      // Event definition names are scoped per containing State
-      // Machine / Library (their generated types live in separate
-      // namespaces), so uniqueness is tracked per machine, not
-      // globally: { machinePath: [names] }
+      // Event names (from transitions and Event definitions) are
+      // scoped per containing State Machine / Library -- each machine
+      // generates into its own namespace -- so both exact-duplicate
+      // definition tracking and the case-collision check are per
+      // machine, not global: { machinePath: [names] }
+      var eventNames = {};
       var eventDefinitionNames = {};
       var topLevelObject = null;
+      // walk up to the containing State Machine / Library path
+      var machineKeyOf = function(obj) {
+        var p = model.objects[obj.parentPath];
+        while (p && p.type &&
+               p.type != 'State Machine' && p.type != 'Library') {
+          p = model.objects[p.parentPath];
+        }
+        return p ? p.path : '';
+      };
+      var addEventName = function(obj, name) {
+        var key = machineKeyOf(obj);
+        if (!eventNames[key]) {
+          eventNames[key] = [];
+        }
+        eventNames[key].push(name);
+      };
       var objPaths = Object.keys(model.objects);
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
@@ -112,7 +129,7 @@ define([], function() {
           self.badProperty(obj, 'dst');
           // store the event name for later
           if ( self.hasEvent(obj) )
-            eventNames.push(obj.Event);
+            addEventName(obj, obj.Event);
         }
         else if (obj.type == 'Local Transition') {
           self.checkEvent(obj);
@@ -133,7 +150,7 @@ define([], function() {
             self.error(obj, "LOCAL TRANSITIONS MUST HAVE EVENTS");
           }
           // store the event name for later
-          eventNames.push(obj.Event);
+          addEventName(obj, obj.Event);
         }
         else if (obj.type == 'Internal Transition') {
           self.checkEvent(obj);
@@ -142,7 +159,7 @@ define([], function() {
             self.error(obj, "INTERNAL TRANSITIONS MUST HAVE EVENTS");
           }
           // store the event name for later
-          eventNames.push(obj.Event);
+          addEventName(obj, obj.Event);
         }
         else if (obj.type == 'End State') {
         }
@@ -202,7 +219,7 @@ define([], function() {
           }
           eventDefinitionNames[machineKey].push(obj.name);
           // participate in the case-collision check with used events
-          eventNames.push(obj.name);
+          addEventName(obj, obj.name);
           var fieldNames = [];
           (obj.Field_list || []).map(function(field) {
             // field names are emitted verbatim as C++ members --
@@ -359,15 +376,18 @@ define([], function() {
         }
       });
       // now that we've processed the model, check a few extras:
-      // checks: event name uniqueness
-      if (eventNames) {
-        eventNames.reduce((_map, event) => {
+      // checks: event name uniqueness (per machine -- events in
+      // different machines generate into separate namespaces and
+      // never collide)
+      Object.keys(eventNames).forEach(function(machineKey) {
+        var errTarget = model.objects[machineKey] || topLevelObject;
+        eventNames[machineKey].reduce((_map, event) => {
           var e = event.trim().toLowerCase();
           if (e in _map) {
             if (_map[e].indexOf(event) == -1) {
               var msg = "Cannot have multiple events with similar names!";
               msg += `\n name "${event}" will collide with "${_map[e][0]}"`;
-              self.error(topLevelObject, msg);
+              self.error(errTarget, msg);
             } else {
               // we're fine, this is the exact same event we already had :)
             }
@@ -376,7 +396,7 @@ define([], function() {
           }
           return _map;
         }, {});
-      }
+      });
     },
     // MODEL TRAVERSAL
     getEndTransitions: function( stateObj, objDict ) {

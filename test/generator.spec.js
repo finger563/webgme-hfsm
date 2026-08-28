@@ -225,6 +225,41 @@ describe('hfsm generator', function() {
       assert.ok(model.objects['/p/m2'].eventDefinitions.BUTTON_PRESS);
     });
 
+    it('allows case-variant event names across machines', function() {
+      // the case-collision check is per machine: 'stop' in a second
+      // machine does not collide with the first machine's 'STOP'
+      var model = loadFixture('payloads');
+      Object.assign(model.objects, {
+        '/p/m2': { name: 'Second', type: 'State Machine' },
+        '/p/m2/i': { name: 'Initial', type: 'Initial' },
+        '/p/m2/ti': {
+          name: 'InitialTransition', type: 'External Transition',
+          pointers: { src: '/p/m2/i', dst: '/p/m2/S' },
+        },
+        '/p/m2/S': { name: 'Solo', type: 'State', 'Timer Period': 0.1 },
+        '/p/m2/eStop': { name: 'stop', type: 'Event' },
+      });
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model); // must not throw
+      // ...while a case-variant within ONE machine still errors
+      // (covered by the existing similar-names test)
+    });
+
+    it('pads descriptions ending in a backslash (line splicing)', function() {
+      var model = loadFixture('payloads');
+      model.objects['/p/m/eBtn/f1'].Description = 'see docs\\';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var rendered = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      var hpp = rendered['Payloads_event_data.hpp'];
+      // no comment line may end with a bare backslash (which would
+      // splice the next declaration into the comment)
+      assert.ok(!/\\\n/.test(hpp),
+                'no line in the generated header may end with a backslash');
+      assert.ok(hpp.indexOf('see docs\\ ') > -1,
+                'padded description should be present');
+    });
+
     it('rejects duplicate field names within an Event', function() {
       expectModelError('payloads', function(objects) {
         objects['/p/m/eBtn/f3'] = {
@@ -368,6 +403,23 @@ describe('hfsm generator', function() {
   });
 
   describe('exporters', function() {
+    it('generates collision-free ids for similar paths', function() {
+      // '/p/m/a-b' and '/p/m/a_b' must not encode to the same id
+      var model = loadFixture('basic');
+      Object.assign(model.objects, {
+        '/p/m/a-b': { name: 'DashState', type: 'State', 'Timer Period': 0.1 },
+        '/p/m/a_b': { name: 'UnderState', type: 'State', 'Timer Period': 0.1 },
+      });
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var scxml = mods.exporters.toSCXML(model, '/p/m');
+      var dashId = /<state id="([^"]+)" hfsm:name="DashState"/.exec(scxml);
+      var underId = /<state id="([^"]+)" hfsm:name="UnderState"/.exec(scxml);
+      assert.ok(dashId && underId, 'both states must be exported');
+      assert.notStrictEqual(dashId[1], underId[1],
+                            'similar paths must get distinct ids');
+    });
+
     it('emits SCXML transitions in runtime priority order', function() {
       // SCXML selects transitions by document order: the guarded
       // internal BUTTON_PRESS transition must precede the unguarded
