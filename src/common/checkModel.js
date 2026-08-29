@@ -183,6 +183,21 @@ define([], function() {
             self.badProperty(obj, 'name',
               'End State names must be valid C++ identifiers.');
           }
+          // both the End State and its sibling States generate class
+          // declarations in the same scope -- a State named 'End'
+          // next to an End State named 'End' would be two classes of
+          // the same name
+          var endParent = model.objects[obj.parentPath];
+          if (endParent && endParent.State_list) {
+            endParent.State_list.forEach(function(sibling) {
+              if (self.sanitizeString(sibling.name) === sEndName) {
+                self.error(obj, "End State '" + obj.name +
+                  "' collides with sibling State '" + sibling.name +
+                  "' (" + sibling.path + "): both would generate a class named " +
+                  sEndName + "!");
+              }
+            });
+          }
         }
         // Process Choice Pseudostate Data
         else if (obj.type == 'Choice Pseudostate') {

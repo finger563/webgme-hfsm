@@ -112,9 +112,20 @@ define([], function() {
           throw "ERROR: " + path + " has unknown type '" + obj.type +
             "'. Valid types: " + VALID_TYPES.join(', ') + ".";
         }
-        // flatten attributes onto the object like webgme-to-json does
+        // flatten attributes onto the object like webgme-to-json
+        // does. Structural fields must not be overwritable through
+        // the attributes map -- `attributes.type` would bypass the
+        // type validation above ('name' stays legal: it genuinely is
+        // an attribute in webgme-to-json output)
+        var STRUCTURAL_KEYS = ['path', 'type', 'parentPath',
+                               'childPaths', 'pointers', 'sets',
+                               'attributes'];
         if (obj.attributes) {
           Object.keys(obj.attributes).forEach(function(attr) {
+            if (STRUCTURAL_KEYS.indexOf(attr) > -1) {
+              throw "ERROR: " + path + " attributes must not contain the " +
+                "structural key '" + attr + "'.";
+            }
             obj[attr] = obj.attributes[attr];
           });
         } else {
@@ -164,6 +175,20 @@ define([], function() {
       // already errors unless exactly one object lacks a parent.)
       var rootPathHint = typeof model.root === 'string' ?
           model.root : (model.root && model.root.path);
+      // validate the explicit root itself before anything derived
+      // from it (existence and type first: a leaf-State root would
+      // otherwise surface as a confusing dangling-parent error)
+      var ROOT_TYPES = ['Project', 'State Machine', 'Library'];
+      if (typeof model.root === 'string') {
+        if (!objects[model.root]) {
+          throw "ERROR: model.root '" + model.root + "' is not in model.objects.";
+        }
+        if (ROOT_TYPES.indexOf(objects[model.root].type) === -1) {
+          throw "ERROR: model.root '" + model.root + "' has type '" +
+            objects[model.root].type + "'; the root must be a " +
+            ROOT_TYPES.join(' / ') + " (nothing would be generated otherwise).";
+        }
+      }
       if (rootPathHint) {
         paths.forEach(function(path) {
           var obj = objects[path];
@@ -176,20 +201,16 @@ define([], function() {
         });
       }
 
-      // resolve the root
+      // resolve the root (existence / type already validated above)
       if (typeof model.root === 'string') {
-        if (!objects[model.root]) {
-          throw "ERROR: model.root '" + model.root + "' is not in model.objects.";
-        }
         model.root = objects[model.root];
       } else if (!model.root) {
         // find a supported ROOT-TYPE object with no parent in the
         // map; accepting any lone object would let a rootless model
         // (e.g. a single State) "resolve" and generate nothing
-        var rootTypes = ['Project', 'State Machine', 'Library'];
         var roots = paths.filter(function(p) {
           return !objects[objects[p].parentPath] &&
-            rootTypes.indexOf(objects[p].type) > -1;
+            ROOT_TYPES.indexOf(objects[p].type) > -1;
         });
         if (roots.length !== 1) {
           throw "ERROR: cannot determine model root; found " + roots.length +

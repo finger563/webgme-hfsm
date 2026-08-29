@@ -383,12 +383,20 @@ define([], function() {
       }
 
       function emitHistory(pad, h, type, parent) {
-        // SCXML requires a default transition; use the parent's
-        // initial state (which is what an empty history falls back to)
-        var dflt = initialTargetOf(parent, objects);
+        // SCXML requires a default transition; an empty history falls
+        // back to the parent's initial transition in the runtime
+        // (parent.initialize()), which also runs that transition's
+        // Action -- so emit it through emitTransition to keep the
+        // executable content
+        var initTrans = initialTransitionOf(parent, objects);
+        var dflt = initTrans && objects[initTrans.pointers['dst']];
         lines.push(pad + '<history id="' + idFor(h) + '" type="' + type + '">');
-        lines.push(pad + '  <transition target="' +
-                   (dflt ? targetIdFor(dflt) : idFor(parent)) + '"/>');
+        if (initTrans && dflt) {
+          emitTransition(pad + '  ', initTrans,
+                         { target: targetIdFor(dflt) });
+        } else {
+          lines.push(pad + '  <transition target="' + idFor(parent) + '"/>');
+        }
         lines.push(pad + '</history>');
       }
 

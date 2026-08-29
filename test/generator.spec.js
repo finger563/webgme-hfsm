@@ -207,6 +207,31 @@ describe('hfsm generator', function() {
       }, /invalid name/i);
     });
 
+    it('rejects structural keys inside attributes', function() {
+      // attributes.type would bypass the type validation
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle'].attributes = { type: 'state' };
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /structural key 'type'/);
+    });
+
+    it('rejects an explicit root that is not a root type', function() {
+      var model = loadFixture('basic');
+      model.root = '/p/m/Idle'; // a leaf State
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /root must be a Project \/ State Machine \/ Library/);
+    });
+
+    it('rejects an End State colliding with a sibling State name', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/EndTwin'] = {
+          name: 'End', type: 'State', 'Timer Period': 0.1,
+        };
+      }, /collides with sibling State/);
+    });
+
     it('rejects unknown object types (typo protection)', function() {
       var model = loadFixture('basic');
       model.objects['/p/m/Idle'].type = 'state'; // lowercase typo
@@ -621,6 +646,19 @@ describe('hfsm generator', function() {
   });
 
   describe('exporters', function() {
+    it('emits the history default through the parent initial transition', function() {
+      // an unused history falls back via parent.initialize() in the
+      // runtime, which runs the initial transition's Action -- SCXML
+      // must carry it too
+      var model = loadFixture('features');
+      model.objects['/p/m/B/ti'].Action = 'printf("init B");';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var scxml = mods.exporters.toSCXML(model, '/p/m');
+      assert.ok(/<history[^>]*type="shallow">\s*<transition target="[^"]+">\s*<script>printf\(&quot;init B&quot;\);<\/script>\s*<\/transition>\s*<\/history>/.test(scxml),
+                'history default must carry the initial transition action');
+    });
+
     it('preserves initial-transition actions in SCXML', function() {
       var model = loadFixture('features');
       // nested initial (StateA's) gets executable content...
