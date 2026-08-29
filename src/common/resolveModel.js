@@ -189,18 +189,6 @@ define([], function() {
             ROOT_TYPES.join(' / ') + " (nothing would be generated otherwise).";
         }
       }
-      if (rootPathHint) {
-        paths.forEach(function(path) {
-          var obj = objects[path];
-          if (path === rootPathHint) return;
-          if (!objects[obj.parentPath]) {
-            throw "ERROR: " + path + " has parentPath '" + obj.parentPath +
-              "' which does not resolve to an object in the model " +
-              "(only the root may have an external parent).";
-          }
-        });
-      }
-
       // resolve the root (existence / type already validated above)
       if (typeof model.root === 'string') {
         model.root = objects[model.root];
@@ -219,6 +207,34 @@ define([], function() {
         }
         model.root = objects[roots[0]];
       }
+
+      // EVERY object must be reachable from the resolved root by
+      // walking parentPath links -- regardless of whether the root
+      // was explicit or auto-detected. This catches dangling parents
+      // (a typo leaves the object silently unlinked and ungenerated)
+      // and containment cycles.
+      var rootPath = model.root.path;
+      paths.forEach(function(path) {
+        if (path === rootPath) return;
+        var seen = Object.create(null);
+        var cur = objects[path];
+        while (true) {
+          if (cur.path === rootPath) return; // reachable
+          if (seen[cur.path]) {
+            throw "ERROR: " + path + " is in a containment cycle (via '" +
+              cur.path + "') and cannot be reached from the root.";
+          }
+          seen[cur.path] = true;
+          var parent = objects[cur.parentPath];
+          if (!parent) {
+            throw "ERROR: " + cur.path + " has parentPath '" + cur.parentPath +
+              "' which does not resolve to an object in the model " +
+              "(only the root may have an external parent), so '" +
+              path + "' is unreachable from the root.";
+          }
+          cur = parent;
+        }
+      });
       return model;
     },
   };

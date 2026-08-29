@@ -318,13 +318,48 @@ define(['./checkModel', './declParser', 'underscore'], function(checkModel, decl
       if (model && !model.warnings) {
         model.warnings = [];
       }
-      // names of locals bound by the generated functions themselves
-      var reservedLocals = ['event', 'handled', 'data'];
-      var rootVars = declParser
-          .parseDeclarations( machine.Declarations || '' )
-          .variables.filter(function(v) {
-            return reservedLocals.indexOf(v.name) === -1;
-          });
+      // Identifiers the generated state-scope code references itself:
+      // an alias with one of these names would shadow the member,
+      // method, or type and break the generated implementation (e.g.
+      // aliasing `_activeState` breaks the tick() child traversal).
+      var reservedLocals = [
+        // generated locals
+        'event', 'handled', 'data',
+        // StateBase members / Root pointer
+        '_root', '_activeState', '_parentState',
+        // StateBase / generated methods called in function bodies
+        'initialize', 'entry', 'exit', 'tick', 'getTimerPeriod',
+        'handleEvent', 'makeActive', 'exitChildren', 'getActiveChild',
+        'getActiveLeaf', 'setActiveChild', 'setShallowHistory',
+        'setDeepHistory', 'setParentState', 'getParentState',
+        'getInitial', 'log',
+      ];
+      // event-derived typedef names referenced in the case blocks
+      var eventDerived = Object.create(null);
+      (machine.eventNames || []).forEach(function(n) {
+        eventDerived[n + 'Event'] = true;
+        eventDerived[n + 'EventData'] = true;
+      });
+      var isReservedIdentifier = function(name) {
+        return reservedLocals.indexOf(name) > -1 ||
+          checkModel.reservedNames.indexOf(name) > -1 ||
+          eventDerived[name] === true;
+      };
+      var allVars = declParser
+          .parseDeclarations( machine.Declarations || '' ).variables;
+      var rootVars = allVars.filter(function(v) {
+        return !isReservedIdentifier(v.name);
+      });
+      if (model) {
+        allVars.forEach(function(v) {
+          if (isReservedIdentifier(v.name)) {
+            model.warnings.push(
+              "Machine variable '" + v.name + "' matches an identifier " +
+                "used by the generated code; no bare-name alias is " +
+                "generated for it (use _root->" + v.name + ").");
+          }
+        });
+      }
       var rootNames = rootVars.map(function(v) { return v.name; });
       var visit = function(state) {
         if (state.isState) {

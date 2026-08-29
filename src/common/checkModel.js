@@ -237,9 +237,10 @@ define([], function() {
           };
           checkChoiceCycles(obj, []);
         }
-        else if (obj.type == 'Deep History Pseudostate') {
-        }
-        else if (obj.type == 'Shallow History Pseudostate') {
+        else if (obj.type == 'Deep History Pseudostate' ||
+                 obj.type == 'Shallow History Pseudostate') {
+          // history names are emitted into C++ member identifiers
+          self.checkName( obj );
         }
         else if (obj.type == 'Event') {
           // Event payload definition, bound by name to transitions'
@@ -429,6 +430,31 @@ define([], function() {
           }
         }
       });
+      // Rendered sibling objects (States, End States, history
+      // pseudostates) each generate a Root member named
+      // <SANITIZED_UPPERCASE>_OBJ, so uniqueness must hold on the
+      // GENERATED identifier, not the raw name: siblings 'Foo'/'foo'
+      // or 'A-B'/'A B' would collide.
+      var renderedListKeys = ['State_list', 'End State_list',
+                              'Deep History Pseudostate_list',
+                              'Shallow History Pseudostate_list'];
+      objPaths.map(function(objPath) {
+        var parent = model.objects[objPath];
+        var byGenerated = Object.create(null);
+        renderedListKeys.forEach(function(key) {
+          (parent[key] || []).forEach(function(child) {
+            var gen = self.sanitizeString(child.name).toUpperCase();
+            if (byGenerated[gen]) {
+              self.error(child, "'" + child.name + "' (" + child.path +
+                ") and '" + byGenerated[gen].name + "' (" +
+                byGenerated[gen].path + ") both generate the identifier " +
+                gen + "_OBJ!");
+            }
+            byGenerated[gen] = child;
+          });
+        });
+      });
+
       // now that we've processed the model, check a few extras:
       // checks: event name uniqueness (per machine -- events in
       // different machines generate into separate namespaces and

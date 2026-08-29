@@ -363,6 +363,69 @@ describe('hfsm generator', function() {
       }, /similar names/i);
     });
 
+    it('rejects dangling parents with an auto-detected root', function() {
+      // a valid Project root plus one unlinked State used to pass
+      // auto-detection (the State was filtered out of the root
+      // candidates and never reachability-checked)
+      var model = loadFixture('basic');
+      delete model.root;
+      model.objects['/p/m/Orphan'] = {
+        name: 'Orphan', type: 'State', 'Timer Period': 0.1,
+        parentPath: '/p/missing',
+      };
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /does not resolve to an object/);
+    });
+
+    it('rejects containment cycles', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/x'] = {
+        name: 'CycleA', type: 'State', 'Timer Period': 0.1,
+        parentPath: '/p/y',
+      };
+      model.objects['/p/y'] = {
+        name: 'CycleB', type: 'State', 'Timer Period': 0.1,
+        parentPath: '/p/x',
+      };
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /containment cycle/);
+    });
+
+    it('rejects history pseudostate names that are invalid identifiers', function() {
+      expectModelError('features', function(objects) {
+        objects['/p/m/B/H'].name = 'bad/name';
+      }, /invalid name/i);
+    });
+
+    it('rejects siblings whose generated identifiers collide', function() {
+      // 'A-B' and 'A B' both generate A_B_OBJ
+      expectModelError('basic', function(objects) {
+        objects['/p/m/ab1'] = { name: 'A-B', type: 'State', 'Timer Period': 0.1 };
+        objects['/p/m/ab2'] = { name: 'A B', type: 'State', 'Timer Period': 0.1 };
+      }, /both generate the identifier A_B_OBJ/);
+      // 'Foo' and 'foo' both generate FOO_OBJ
+      expectModelError('basic', function(objects) {
+        objects['/p/m/f1'] = { name: 'Foo', type: 'State', 'Timer Period': 0.1 };
+        objects['/p/m/f2'] = { name: 'foo', type: 'State', 'Timer Period': 0.1 };
+      }, /both generate the identifier FOO_OBJ/);
+    });
+
+    it('suppresses aliases for generated implementation identifiers', function() {
+      var model = loadFixture('payloads');
+      model.objects['/p/m'].Declarations =
+        'int pressCount = 0;\nfloat speed = 0.0f;\nint _activeState = 0;\nint EventType = 0;';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var aliases = model.objects['/p/m/Idle'].rootAliases
+          .map(function(a) { return a.name; });
+      assert.deepStrictEqual(aliases, ['pressCount', 'speed']);
+      var joined = model.warnings.join('\n');
+      assert.ok(/_activeState/.test(joined) && /EventType/.test(joined),
+                'suppressed identifiers must be warned about');
+    });
+
     it('rejects dangling parentPath with an explicit root', function() {
       var model = loadFixture('basic');
       model.objects['/p/m/Orphan'] = {
