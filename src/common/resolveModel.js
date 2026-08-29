@@ -82,6 +82,20 @@ define([], function() {
       var objects = model.objects;
       var paths = Object.keys(objects);
 
+      // the full set of model-node types the pipeline understands; a
+      // typo like "state" would otherwise take the empty-default path,
+      // be ignored by checkModel / processor, and produce malformed
+      // generated code (e.g. a transition targeting a never-rendered
+      // state)
+      var VALID_TYPES = [
+        'Project', 'State Machine', 'Library', 'State', 'Initial',
+        'End State', 'Choice Pseudostate', 'Deep History Pseudostate',
+        'Shallow History Pseudostate', 'External Transition',
+        'Local Transition', 'Internal Transition', 'Event', 'Field',
+        // known non-semantic types
+        'Documentation',
+      ];
+
       // basic per-object normalization
       paths.forEach(function(path) {
         var obj = objects[path];
@@ -93,6 +107,10 @@ define([], function() {
         }
         if (!obj.type) {
           throw "ERROR: " + path + " has no type.";
+        }
+        if (VALID_TYPES.indexOf(obj.type) === -1) {
+          throw "ERROR: " + path + " has unknown type '" + obj.type +
+            "'. Valid types: " + VALID_TYPES.join(', ') + ".";
         }
         // flatten attributes onto the object like webgme-to-json does
         if (obj.attributes) {

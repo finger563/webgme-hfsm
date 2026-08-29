@@ -207,6 +207,24 @@ describe('hfsm generator', function() {
       }, /invalid name/i);
     });
 
+    it('rejects unknown object types (typo protection)', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle'].type = 'state'; // lowercase typo
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /unknown type 'state'/);
+    });
+
+    it('rejects events named after generated helper identifiers', function() {
+      // `namespace detail` and the free functions live in the same
+      // scope as the event typedefs
+      ['detail', 'event_data_to_string', 'consume_event'].forEach(function(bad) {
+        expectModelError('payloads', function(objects) {
+          objects['/p/m/eBtn'].name = bad;
+        }, /invalid name/i);
+      });
+    });
+
     it('rejects an event named Event (generated-type collision)', function() {
       // would generate `typedef Event<EventEventData> Event;` next to
       // the Event<T> class template -- an illegal redeclaration
@@ -540,6 +558,29 @@ describe('hfsm generator', function() {
       var artifacts = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
       assert.ok(artifacts['Basic_generated_states.hpp'],
                 'Library roots must generate code, not be silently skipped');
+    });
+
+    it('generates per-machine Makefiles when a model has several machines', function() {
+      var model = loadFixture('basic');
+      Object.assign(model.objects, {
+        '/p/m2': { name: 'Second', type: 'State Machine' },
+        '/p/m2/i': { name: 'Initial', type: 'Initial' },
+        '/p/m2/ti': {
+          name: 'InitialTransition', type: 'External Transition',
+          pointers: { src: '/p/m2/i', dst: '/p/m2/S' },
+        },
+        '/p/m2/S': { name: 'Solo', type: 'State', 'Timer Period': 0.1 },
+      });
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var artifacts = mods.MetaTemplates.renderTestCode(model, NAMESPACE);
+      assert.ok(artifacts['Makefile.Basic'], 'per-machine Makefile.Basic');
+      assert.ok(artifacts['Makefile.Second'], 'per-machine Makefile.Second');
+      assert.strictEqual(artifacts['Makefile'], undefined,
+                         'no ambiguous shared Makefile with several machines');
+      // single-machine models keep the conventional name
+      var single = generateArtifacts('basic');
+      assert.ok(single['Makefile']);
     });
 
     it('rejects colliding artifact names from same-named machines', function() {

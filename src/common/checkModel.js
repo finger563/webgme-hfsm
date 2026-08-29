@@ -38,7 +38,12 @@ define([], function() {
       // the `Event<T>` class template -- an illegal redeclaration.
       'Root', 'StateBase', 'EventBase', 'GeneratedEventBase', 'EventType',
       'EventFactory', 'Event', 'End_State', 'DeepHistoryState',
-      'ShallowHistoryState'
+      'ShallowHistoryState',
+      // namespace-scope identifiers emitted by the event-data /
+      // states templates: an event (whose typedef lands in the same
+      // scope) with one of these names would be an illegal
+      // redeclaration
+      'detail', 'event_data_to_string', 'consume_event', 'LogCallback'
     ],
     isValidString: function(str) {
       var varDeclExp = /^[a-zA-Z_][a-zA-Z0-9_]*$/;

@@ -76,6 +76,13 @@ define(['bower/handlebars/handlebars.min',
              var objects = model.objects;
              var root    = model.root;
              var artifacts = {};
+             // with a single machine the Makefile keeps its
+             // conventional name (make -C <dir>); with several, each
+             // machine gets its own Makefile.<name> so they cannot
+             // collide (build with make -f Makefile.<name>)
+             var machineCount = Object.keys(objects).filter(function(p) {
+               return objects[p].type === 'State Machine';
+             }).length;
              Object.keys(objects).map(function (path) {
                var obj = objects[ path ];
                obj['namespace'] = namespace;
@@ -84,6 +91,9 @@ define(['bower/handlebars/handlebars.min',
                  Object.keys(templDict).map(function(templPath) {
                    var templName = templDict[ templPath ];
                    var fileName = handlebars.compile( templPath )( obj );
+                   if (fileName === 'Makefile' && machineCount > 1) {
+                     fileName = 'Makefile.' + obj.sanitizedName;
+                   }
                    var fileData = handlebars.compile(
                      Partials[ templName ]
                    )(

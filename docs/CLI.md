@@ -71,6 +71,9 @@ parent paths derived from paths). See `test/fixtures/*.json` and
 `State Machine` roots, but no test bench (a library is not an
 executable machine by itself). Artifact names derive from sanitized
 machine names; two machines whose outputs would collide are rejected.
+With several machines in one model, each gets its own
+`Makefile.<name>` (build with `make -f Makefile.<name>`); a single
+machine keeps the conventional `Makefile`.
 
 Object types: `Project`, `State Machine`, `Library`, `State`,
 `Initial`, `End State`, `Choice Pseudostate`,
