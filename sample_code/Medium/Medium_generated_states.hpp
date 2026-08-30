@@ -38,14 +38,34 @@ namespace espp::state_machine::Medium {
     class GeneratedEventBase : public EventBase {
     protected:
       EventType type;
-    public:
+      // protected: only the typed Event<T> subclasses may construct
+      // events, and they bind `type` to the payload type through
+      // EventTypeFor below -- so get_type() always matches the
+      // dynamic type and the generated payload downcasts are safe
       explicit GeneratedEventBase(const EventType& t) : type(t) {}
+    public:
       virtual ~GeneratedEventBase() {}
       EventType get_type() const { return type; }
       virtual std::string to_string() const {
         return std::string(magic_enum::enum_name(type));
       }
     }; // Class GeneratedEventBase
+
+    // compile-time pairing between payload structs and EventType
+    // values: a mismatched (type, payload) event is unrepresentable
+    template <typename T> struct EventTypeFor;
+    template <> struct EventTypeFor<EVENT1EventData> {
+      static constexpr EventType value = EventType::EVENT1;
+    };
+    template <> struct EventTypeFor<EVENT2EventData> {
+      static constexpr EventType value = EventType::EVENT2;
+    };
+    template <> struct EventTypeFor<EVENT3EventData> {
+      static constexpr EventType value = EventType::EVENT3;
+    };
+    template <> struct EventTypeFor<EVENT4EventData> {
+      static constexpr EventType value = EventType::EVENT4;
+    };
 
     /**
      * @brief Class representing all events that this HFSM can respond
@@ -56,7 +76,8 @@ namespace espp::state_machine::Medium {
     class Event : public GeneratedEventBase {
       T data;
     public:
-      explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
+      explicit Event(const T& d)
+        : GeneratedEventBase(EventTypeFor<T>::value), data(d) {}
       virtual ~Event() {}
       // const reference: guards / actions bind `data` to this without
       // copying the payload (the event outlives its handling)
@@ -92,28 +113,28 @@ namespace espp::state_machine::Medium {
       }
 
       void spawn_EVENT1_event(const EVENT1EventData &data) {
-        GeneratedEventBase *new_event = new EVENT1Event{EventType::EVENT1, data};
+        GeneratedEventBase *new_event = new EVENT1Event{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_EVENT2_event(const EVENT2EventData &data) {
-        GeneratedEventBase *new_event = new EVENT2Event{EventType::EVENT2, data};
+        GeneratedEventBase *new_event = new EVENT2Event{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_EVENT3_event(const EVENT3EventData &data) {
-        GeneratedEventBase *new_event = new EVENT3Event{EventType::EVENT3, data};
+        GeneratedEventBase *new_event = new EVENT3Event{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_EVENT4_event(const EVENT4EventData &data) {
-        GeneratedEventBase *new_event = new EVENT4Event{EventType::EVENT4, data};
+        GeneratedEventBase *new_event = new EVENT4Event{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);

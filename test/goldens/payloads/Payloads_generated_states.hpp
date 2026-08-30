@@ -39,14 +39,37 @@ namespace state_machine::Payloads {
     class GeneratedEventBase : public EventBase {
     protected:
       EventType type;
-    public:
+      // protected: only the typed Event<T> subclasses may construct
+      // events, and they bind `type` to the payload type through
+      // EventTypeFor below -- so get_type() always matches the
+      // dynamic type and the generated payload downcasts are safe
       explicit GeneratedEventBase(const EventType& t) : type(t) {}
+    public:
       virtual ~GeneratedEventBase() {}
       EventType get_type() const { return type; }
       virtual std::string to_string() const {
         return std::string(magic_enum::enum_name(type));
       }
     }; // Class GeneratedEventBase
+
+    // compile-time pairing between payload structs and EventType
+    // values: a mismatched (type, payload) event is unrepresentable
+    template <typename T> struct EventTypeFor;
+    template <> struct EventTypeFor<BUTTON_PRESSEventData> {
+      static constexpr EventType value = EventType::BUTTON_PRESS;
+    };
+    template <> struct EventTypeFor<CALIBRATEEventData> {
+      static constexpr EventType value = EventType::CALIBRATE;
+    };
+    template <> struct EventTypeFor<FINISHEventData> {
+      static constexpr EventType value = EventType::FINISH;
+    };
+    template <> struct EventTypeFor<SET_SPEEDEventData> {
+      static constexpr EventType value = EventType::SET_SPEED;
+    };
+    template <> struct EventTypeFor<STOPEventData> {
+      static constexpr EventType value = EventType::STOP;
+    };
 
     /**
      * @brief Class representing all events that this HFSM can respond
@@ -57,7 +80,8 @@ namespace state_machine::Payloads {
     class Event : public GeneratedEventBase {
       T data;
     public:
-      explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
+      explicit Event(const T& d)
+        : GeneratedEventBase(EventTypeFor<T>::value), data(d) {}
       virtual ~Event() {}
       // const reference: guards / actions bind `data` to this without
       // copying the payload (the event outlives its handling)
@@ -94,35 +118,35 @@ namespace state_machine::Payloads {
       }
 
       void spawn_BUTTON_PRESS_event(const BUTTON_PRESSEventData &data) {
-        GeneratedEventBase *new_event = new BUTTON_PRESSEvent{EventType::BUTTON_PRESS, data};
+        GeneratedEventBase *new_event = new BUTTON_PRESSEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_CALIBRATE_event(const CALIBRATEEventData &data) {
-        GeneratedEventBase *new_event = new CALIBRATEEvent{EventType::CALIBRATE, data};
+        GeneratedEventBase *new_event = new CALIBRATEEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_FINISH_event(const FINISHEventData &data) {
-        GeneratedEventBase *new_event = new FINISHEvent{EventType::FINISH, data};
+        GeneratedEventBase *new_event = new FINISHEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_SET_SPEED_event(const SET_SPEEDEventData &data) {
-        GeneratedEventBase *new_event = new SET_SPEEDEvent{EventType::SET_SPEED, data};
+        GeneratedEventBase *new_event = new SET_SPEEDEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_STOP_event(const STOPEventData &data) {
-        GeneratedEventBase *new_event = new STOPEvent{EventType::STOP, data};
+        GeneratedEventBase *new_event = new STOPEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);

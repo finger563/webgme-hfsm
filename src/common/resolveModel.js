@@ -82,6 +82,18 @@ define([], function() {
       var objects = model.objects;
       var paths = Object.keys(objects);
 
+      // normalize an object-form root to its path so the single
+      // string validation below (membership + root type) covers it;
+      // anything else truthy is malformed
+      if (model.root && typeof model.root !== 'string') {
+        if (typeof model.root === 'object' &&
+            typeof model.root.path === 'string') {
+          model.root = model.root.path;
+        } else {
+          throw "ERROR: model.root must be a path string (or an object with a 'path').";
+        }
+      }
+
       // the full set of model-node types the pipeline understands; a
       // typo like "state" would otherwise take the empty-default path,
       // be ignored by checkModel / processor, and produce malformed
@@ -142,10 +154,19 @@ define([], function() {
         if (!obj.pointers) {
           obj.pointers = {};
         }
+        var idx = obj.path.lastIndexOf('/');
+        var lexicalParent = idx > 0 ? obj.path.substring(0, idx) : '';
         if (obj.parentPath === undefined) {
           // derive from the path
-          var idx = obj.path.lastIndexOf('/');
-          obj.parentPath = idx > 0 ? obj.path.substring(0, idx) : '';
+          obj.parentPath = lexicalParent;
+        } else if (obj.parentPath !== lexicalParent &&
+                   path !== model.root) {
+          // exporters and transition-branch computation use
+          // path-prefix containment; a parentPath that disagrees with
+          // the lexical parent would silently produce wrong output
+          throw "ERROR: " + path + " has parentPath '" + obj.parentPath +
+            "' which disagrees with its path (lexical parent '" +
+            lexicalParent + "'). Only the root may differ.";
         }
       });
 

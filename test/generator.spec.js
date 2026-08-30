@@ -172,10 +172,44 @@ describe('hfsm generator', function() {
       }, /exactly 1 unguarded/i);
     });
 
-    it('rejects leaf states with no timer period', function() {
+    it('rejects leaf states with missing or non-numeric timer periods', function() {
       expectModelError('basic', function(objects) {
         objects['/p/m/Idle']['Timer Period'] = 0;
-      }, /non-zero timer period/i);
+      }, /finite numeric timer period/i);
+      // "abc" and "Infinity" compare false to <= 0 but generate
+      // uncompilable `return (double)(abc)`
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle']['Timer Period'] = 'abc';
+      }, /finite numeric timer period/i);
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle']['Timer Period'] = 'Infinity';
+      }, /finite numeric timer period/i);
+      // an empty State_list is not a child: still a leaf
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle']['Timer Period'] = 0;
+        objects['/p/m/Idle'].State_list = [];
+      }, /finite numeric timer period/i);
+    });
+
+    it('rejects an object-form root that is not a valid root', function() {
+      var model = loadFixture('basic');
+      model.root = { path: '/p/m/Idle' }; // leaf State, object form
+      assert.throws(function() {
+        mods.resolveModel.resolve(model);
+      }, /root must be a Project \/ State Machine \/ Library/);
+      var model2 = loadFixture('basic');
+      model2.root = { bogus: true };
+      assert.throws(function() {
+        mods.resolveModel.resolve(model2);
+      }, /must be a path string/);
+    });
+
+    it('rejects Fields whose parent is not an Event', function() {
+      expectModelError('payloads', function(objects) {
+        objects['/p/m/Idle/f1'] = {
+          name: 'strayField', type: 'Field', Type: 'int',
+        };
+      }, /children of Event definitions/);
     });
 
     it('rejects similarly-named events differing only by case', function() {
@@ -369,28 +403,27 @@ describe('hfsm generator', function() {
       // candidates and never reachability-checked)
       var model = loadFixture('basic');
       delete model.root;
-      model.objects['/p/m/Orphan'] = {
+      model.objects['/p/missing/Orphan'] = {
         name: 'Orphan', type: 'State', 'Timer Period': 0.1,
-        parentPath: '/p/missing',
       };
       assert.throws(function() {
         mods.resolveModel.resolve(model);
       }, /does not resolve to an object/);
     });
 
-    it('rejects containment cycles', function() {
+    it('rejects parentPath disagreeing with the lexical path', function() {
+      // exporters / branch computation use path-prefix containment,
+      // so an explicit parentPath must match the path's lexical
+      // parent (this also makes containment cycles unrepresentable;
+      // the reachability walk keeps a cycle guard as defense)
       var model = loadFixture('basic');
-      model.objects['/p/x'] = {
-        name: 'CycleA', type: 'State', 'Timer Period': 0.1,
-        parentPath: '/p/y',
-      };
-      model.objects['/p/y'] = {
-        name: 'CycleB', type: 'State', 'Timer Period': 0.1,
-        parentPath: '/p/x',
+      model.objects['/p/m/Stray'] = {
+        name: 'Stray', type: 'State', 'Timer Period': 0.1,
+        parentPath: '/p',
       };
       assert.throws(function() {
         mods.resolveModel.resolve(model);
-      }, /containment cycle/);
+      }, /disagrees with its path/);
     });
 
     it('rejects history pseudostate names that are invalid identifiers', function() {
@@ -428,9 +461,8 @@ describe('hfsm generator', function() {
 
     it('rejects dangling parentPath with an explicit root', function() {
       var model = loadFixture('basic');
-      model.objects['/p/m/Orphan'] = {
+      model.objects['/p/missing/Orphan'] = {
         name: 'Orphan', type: 'State', 'Timer Period': 0.1,
-        parentPath: '/p/missing',
       };
       assert.throws(function() {
         mods.resolveModel.resolve(model);

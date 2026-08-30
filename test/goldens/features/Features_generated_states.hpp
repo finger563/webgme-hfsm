@@ -42,14 +42,46 @@ namespace state_machine::Features {
     class GeneratedEventBase : public EventBase {
     protected:
       EventType type;
-    public:
+      // protected: only the typed Event<T> subclasses may construct
+      // events, and they bind `type` to the payload type through
+      // EventTypeFor below -- so get_type() always matches the
+      // dynamic type and the generated payload downcasts are safe
       explicit GeneratedEventBase(const EventType& t) : type(t) {}
+    public:
       virtual ~GeneratedEventBase() {}
       EventType get_type() const { return type; }
       virtual std::string to_string() const {
         return std::string(magic_enum::enum_name(type));
       }
     }; // Class GeneratedEventBase
+
+    // compile-time pairing between payload structs and EventType
+    // values: a mismatched (type, payload) event is unrepresentable
+    template <typename T> struct EventTypeFor;
+    template <> struct EventTypeFor<BACKEventData> {
+      static constexpr EventType value = EventType::BACK;
+    };
+    template <> struct EventTypeFor<CHOOSEEventData> {
+      static constexpr EventType value = EventType::CHOOSE;
+    };
+    template <> struct EventTypeFor<FINISHEventData> {
+      static constexpr EventType value = EventType::FINISH;
+    };
+    template <> struct EventTypeFor<GO_DEEPEventData> {
+      static constexpr EventType value = EventType::GO_DEEP;
+    };
+    template <> struct EventTypeFor<GO_HISTEventData> {
+      static constexpr EventType value = EventType::GO_HIST;
+    };
+    template <> struct EventTypeFor<LOCAL_GOEventData> {
+      static constexpr EventType value = EventType::LOCAL_GO;
+    };
+    template <> struct EventTypeFor<NEXTEventData> {
+      static constexpr EventType value = EventType::NEXT;
+    };
+    template <> struct EventTypeFor<TOGGLEEventData> {
+      static constexpr EventType value = EventType::TOGGLE;
+    };
 
     /**
      * @brief Class representing all events that this HFSM can respond
@@ -60,7 +92,8 @@ namespace state_machine::Features {
     class Event : public GeneratedEventBase {
       T data;
     public:
-      explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
+      explicit Event(const T& d)
+        : GeneratedEventBase(EventTypeFor<T>::value), data(d) {}
       virtual ~Event() {}
       // const reference: guards / actions bind `data` to this without
       // copying the payload (the event outlives its handling)
@@ -100,56 +133,56 @@ namespace state_machine::Features {
       }
 
       void spawn_BACK_event(const BACKEventData &data) {
-        GeneratedEventBase *new_event = new BACKEvent{EventType::BACK, data};
+        GeneratedEventBase *new_event = new BACKEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_CHOOSE_event(const CHOOSEEventData &data) {
-        GeneratedEventBase *new_event = new CHOOSEEvent{EventType::CHOOSE, data};
+        GeneratedEventBase *new_event = new CHOOSEEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_FINISH_event(const FINISHEventData &data) {
-        GeneratedEventBase *new_event = new FINISHEvent{EventType::FINISH, data};
+        GeneratedEventBase *new_event = new FINISHEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_GO_DEEP_event(const GO_DEEPEventData &data) {
-        GeneratedEventBase *new_event = new GO_DEEPEvent{EventType::GO_DEEP, data};
+        GeneratedEventBase *new_event = new GO_DEEPEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_GO_HIST_event(const GO_HISTEventData &data) {
-        GeneratedEventBase *new_event = new GO_HISTEvent{EventType::GO_HIST, data};
+        GeneratedEventBase *new_event = new GO_HISTEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_LOCAL_GO_event(const LOCAL_GOEventData &data) {
-        GeneratedEventBase *new_event = new LOCAL_GOEvent{EventType::LOCAL_GO, data};
+        GeneratedEventBase *new_event = new LOCAL_GOEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_NEXT_event(const NEXTEventData &data) {
-        GeneratedEventBase *new_event = new NEXTEvent{EventType::NEXT, data};
+        GeneratedEventBase *new_event = new NEXTEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
       }
       void spawn_TOGGLE_event(const TOGGLEEventData &data) {
-        GeneratedEventBase *new_event = new TOGGLEEvent{EventType::TOGGLE, data};
+        GeneratedEventBase *new_event = new TOGGLEEvent{data};
         log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);

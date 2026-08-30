@@ -301,7 +301,15 @@ define([], function() {
           }
         }
         else if (obj.type == 'Field') {
-          // validated through its parent Event above
+          // field NAMES / TYPES are validated through the parent
+          // Event's Field_list above; here ensure that parent really
+          // is an Event -- otherwise the Field is in no Field_list
+          // and would silently skip validation entirely
+          var fieldParent = model.objects[obj.parentPath];
+          if (!fieldParent || fieldParent.type !== 'Event') {
+            self.error(obj, "Fields must be children of Event definitions" +
+              (fieldParent ? " (parent is a " + fieldParent.type + ")" : "") + "!");
+          }
         }
         else if (obj.type == 'Initial') {
           // checks:
@@ -424,9 +432,18 @@ define([], function() {
               self.error(obj, "State has END State but no END TRANSITION!");
             }
           }
-          // non-zero timer period if non-zero substates
-          if (!obj.Initial_list && !obj.State_list && obj['Timer Period'] <= 0) {
-            self.error(obj, "Leaf state must have non-zero timer period!");
+          // leaf states (determined by LIST LENGTHS -- an empty list
+          // is not a child) need a finite numeric timer period > 0;
+          // string-coerced comparison also let values like "abc" or
+          // "Infinity" through into `return (double)(abc)`
+          var isLeaf = (obj.State_list || []).length === 0 &&
+              (obj.Initial_list || []).length === 0;
+          if (isLeaf) {
+            var period = Number(obj['Timer Period']);
+            if (!isFinite(period) || period <= 0) {
+              self.badProperty(obj, 'Timer Period',
+                'Leaf states must have a finite numeric timer period greater than zero.');
+            }
           }
         }
       });
