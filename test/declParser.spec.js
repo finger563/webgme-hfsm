@@ -82,6 +82,38 @@ describe('declParser', function() {
     assert.strictEqual(r.opaque.length, 5);
   });
 
+  it('does not mistake comment markers inside string literals', function() {
+    var r = parse([
+      'std::string url = "http://host";',
+      'std::string tricky = "a /* b // c";',
+      "char slash = '/';",
+      'int after = 1;',
+    ].join('\n'));
+    assert.deepStrictEqual(r.opaque, []);
+    assert.deepStrictEqual(r.variables.map(function(v) {
+      return [v.name, v.initial];
+    }), [
+      ['url', '"http://host"'],
+      ['tricky', '"a /* b // c"'],
+      ['slash', "'/'"],
+      ['after', '1'],
+    ]);
+  });
+
+  it('does not split or nest on characters inside literals', function() {
+    var r = parse('std::string s = "a;b{c}";\nint x = 2;');
+    assert.deepStrictEqual(r.variables.map(function(v) { return v.name; }),
+                           ['s', 'x']);
+  });
+
+  it('does not report identifiers inside literals as references', function() {
+    assert.deepStrictEqual(
+      declParser.referencedNames('msg == "count"', ['count']), []);
+    assert.deepStrictEqual(
+      declParser.referencedNames('count > 0 && msg == "count"', ['count']),
+      ['count']);
+  });
+
   it('ignores comments', function() {
     var r = parse([
       '// leading comment with int fake;',

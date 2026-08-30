@@ -30,13 +30,54 @@ define([], function() {
   var FLOAT_TYPES = /^(?:float|double|long\s+double)$/;
   var STRING_TYPES = /^(?:std::string|string)$/;
 
-  function stripComments(code) {
-    // remove /* */ and // comments; preserve newlines for statement
-    // splitting; naive about comment markers inside string literals,
-    // which is acceptable for best-effort parsing
-    return code
-      .replace(/\/\*[\s\S]*?\*\//g, ' ')
-      .replace(/\/\/[^\n]*/g, ' ');
+  /**
+   * Single literal-aware scan over the code. Returns:
+   *   clean -- comments replaced by spaces (newlines kept), string /
+   *            character literals preserved verbatim
+   *   mask  -- same length as clean, with literal contents (including
+   *            their quotes) replaced by 'x'; used for statement
+   *            splitting and identifier scanning so that comment
+   *            markers, braces, semicolons, or identifiers INSIDE
+   *            literals are never mistaken for code (e.g.
+   *            `std::string url = "http://host";` is a plain
+   *            declaration, not a comment)
+   * Backslash escapes inside literals are honored. Raw string
+   * literals (R"(...)" ) are not understood and remain best-effort.
+   */
+  function scanCode(code) {
+    var clean = '', mask = '';
+    var st = 0; // 0 normal, 1 line comment, 2 block comment, 3 ", 4 '
+    for (var i = 0; i < code.length; i++) {
+      var c = code[i], n = code[i + 1];
+      if (st === 0) {
+        if (c === '/' && n === '/') { st = 1; clean += ' '; mask += ' '; }
+        else if (c === '/' && n === '*') { st = 2; clean += ' '; mask += ' '; }
+        else if (c === '"') { st = 3; clean += c; mask += 'x'; }
+        else if (c === "'") { st = 4; clean += c; mask += 'x'; }
+        else { clean += c; mask += c; }
+      } else if (st === 1) {
+        if (c === '\n') { st = 0; clean += '\n'; mask += '\n'; }
+        else { clean += ' '; mask += ' '; }
+      } else if (st === 2) {
+        if (c === '*' && n === '/') { st = 0; clean += '  '; mask += '  '; i++; }
+        else if (c === '\n') { clean += '\n'; mask += '\n'; }
+        else { clean += ' '; mask += ' '; }
+      } else { // 3 or 4: inside a literal
+        clean += c; mask += 'x';
+        if (c === '\\' && n !== undefined) {
+          clean += n; mask += 'x'; i++;
+        } else if ((st === 3 && c === '"') || (st === 4 && c === "'")) {
+          st = 0;
+        }
+      }
+    }
+    return { clean: clean, mask: mask };
+  }
+
+  // comments removed and literal contents blanked: the right text for
+  // identifier scanning
+  function stripForScan(code) {
+    return scanCode(code).mask;
   }
 
   function normalizeWs(str) {
@@ -76,11 +117,13 @@ define([], function() {
    * consumed to its matching close brace and reported opaque by the
    * caller (it won't match DECL_RE).
    */
-  function splitStatements(code) {
+  function splitStatements(scanned) {
+    var code = scanned.clean;
+    var maskStr = scanned.mask;
     var statements = [];
     var depth = 0, start = 0;
-    for (var i = 0; i < code.length; i++) {
-      var c = code[i];
+    for (var i = 0; i < maskStr.length; i++) {
+      var c = maskStr[i];
       if (c === '{' || c === '(' || c === '[') depth++;
       else if (c === '}' || c === ')' || c === ']') {
         depth--;
@@ -119,7 +162,7 @@ define([], function() {
       if (!code || !code.trim || !code.trim().length) {
         return { variables: variables, opaque: opaque };
       }
-      splitStatements(stripComments(code)).forEach(function(stmt) {
+      splitStatements(scanCode(code)).forEach(function(stmt) {
         var s = stmt.trim();
         if (!s.length) return;
         var m = DECL_RE.exec(s);
@@ -165,7 +208,7 @@ define([], function() {
      */
     referencedNames: function(expr, names) {
       if (!expr || !names || !names.length) return [];
-      var stripped = stripComments(expr);
+      var stripped = stripForScan(expr);
       return names.filter(function(n) {
         var re = new RegExp('\\b' + n + '\\b', 'g');
         var m;
@@ -193,7 +236,7 @@ define([], function() {
      */
     referencedFields: function(expr, fieldNames) {
       if (!expr || !fieldNames || !fieldNames.length) return [];
-      var stripped = stripComments(expr);
+      var stripped = stripForScan(expr);
       return fieldNames.filter(function(n) {
         return new RegExp('\\bdata\\s*\\.\\s*' + n + '\\b').test(stripped);
       });

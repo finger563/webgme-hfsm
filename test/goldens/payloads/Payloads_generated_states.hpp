@@ -79,9 +79,14 @@ namespace state_machine::Payloads {
     template <typename T>
     class Event : public GeneratedEventBase {
       T data;
-    public:
+      // private: only the generated EventFactory constructs events.
+      // EventTypeFor is a public trait and could be specialized for a
+      // foreign payload type, but without a way to construct such an
+      // Event the (type, payload) pairing still cannot be forged.
       explicit Event(const T& d)
         : GeneratedEventBase(EventTypeFor<T>::value), data(d) {}
+      friend class EventFactory;
+    public:
       virtual ~Event() {}
       // const reference: guards / actions bind `data` to this without
       // copying the payload (the event outlives its handling)

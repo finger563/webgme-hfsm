@@ -115,6 +115,11 @@ define(['js/util',
            // name of the event currently being dispatched (payload
            // context for guard prompts)
            self._currentEventName = null;
+           // guard-prompt lifecycle: an open Choice dialog is tracked
+           // so a model switch can dismiss it, and the epoch counter
+           // invalidates its (stale) resolution
+           self._activeChoice = null;
+           self._simEpoch = 0;
            var addEventBtn = self._el.find('#addEventBtn').first();
            addEventBtn.on('click', function() { self.onAddEvent(); });
 
@@ -710,6 +715,13 @@ define(['js/util',
            var self = this;
            self._activeState = null;
            self._historyStates = {};
+           // invalidate any in-flight guard prompt and dismiss its
+           // dialog: resuming it would dereference stale node ids
+           self._simEpoch++;
+           if (self._activeChoice) {
+             try { self._activeChoice.dismiss(); } catch (e) { /* gone */ }
+             self._activeChoice = null;
+           }
            self._variableValues = null;
            self._machineVariables = Object.create(null);
            self._stateVariables = Object.create(null);
@@ -948,11 +960,19 @@ define(['js/util',
            // variables the guards reference (scope-aware), so the
            // user decides informed by the simulated machine state
            title = (title || '') + self.getGuardContext( transitionIds );
+           var epoch = self._simEpoch;
            var choice = new Choice();
+           self._activeChoice = choice;
            choice.initialize( Object.keys(choiceToEdgeId), title );
            choice.show();
            return choice.waitForChoice()
              .then(function(choice) {
+               self._activeChoice = null;
+               // the model was switched while this dialog was open:
+               // its transition ids are stale, resolve to nothing
+               if (epoch !== self._simEpoch) {
+                 return { choice: undefined, transitionId: undefined };
+               }
                // choice will be undefined if they press the `None`
                // button, but will be an empty string if there is a
                // choice of no guard - we will force both of those to
@@ -1112,6 +1132,13 @@ define(['js/util',
              var title = '<b>'+state.name+'</b> transition\'s guard for <b>'+eventName+'</b>:';
              self.selectGuard( transitionIds, title )
                .then(function(selection) {
+                 if (selection && selection.transitionId &&
+                     !self.nodes[ selection.transitionId ]) {
+                   // stale selection from a dismissed / superseded
+                   // prompt: the transition no longer exists
+                   nextStateCallback( null );
+                   return;
+                 }
                  if (selection && selection.transitionId) {
                    var trans = self.nodes[ selection.transitionId ];
                    var msg = `${eventName}::${trans.type}: [ ${selection.choice} ] was TRUE on ${trans.id}`;
