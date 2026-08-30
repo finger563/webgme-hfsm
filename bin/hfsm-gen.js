@@ -91,10 +91,12 @@ amdLoader.load([
   'src/common/resolveModel',
   'src/common/processor',
   'src/common/exporters',
+  'src/common/checkModel',
   'src/plugins/SoftwareGenerator/templates/MetaTemplates',
 ]).then(function(modules) {
   var resolveModel = modules[0], processor = modules[1],
-      exporters = modules[2], MetaTemplates = modules[3];
+      exporters = modules[2], checkModel = modules[3],
+      MetaTemplates = modules[4];
 
   // the model file may declare its own C++ namespace; an explicit
   // -n flag overrides it
@@ -102,10 +104,20 @@ amdLoader.load([
     opts.namespace = (typeof model.namespace === 'string' &&
                       model.namespace.trim()) || 'state_machine';
   }
-  // the namespace is emitted verbatim into every generated file
+  // the namespace is emitted verbatim into every generated file:
+  // each ::-segment must be an identifier and not a C++ keyword
+  // ('namespace class {' would not compile)
   if (!/^[A-Za-z_]\w*(::[A-Za-z_]\w*)*$/.test(opts.namespace)) {
     fail("invalid C++ namespace '" + opts.namespace +
          "' (expected identifier or identifier::identifier...)");
+  }
+  var badSegments = opts.namespace.split('::').filter(function(seg) {
+    return checkModel.cppKeywords.indexOf(seg) > -1;
+  });
+  if (badSegments.length) {
+    fail("invalid C++ namespace '" + opts.namespace +
+         "': segment(s) " + badSegments.join(', ') +
+         " are C++ keywords");
   }
   var artifacts = {};
   try {

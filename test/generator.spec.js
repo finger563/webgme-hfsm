@@ -225,6 +225,12 @@ describe('hfsm generator', function() {
       mods.resolveModel.resolve(model);
       mods.processor.processModel(model);
       assert.strictEqual(model.objects['/p/m/lt'].type, 'External Transition');
+      // the conversion is a semantic change and must be a VISIBLE
+      // warning, not console noise
+      assert.ok(model.warnings.some(function(w) {
+        return /Local Transition \/p\/m\/lt/.test(w) &&
+          /exited and re-entered/.test(w);
+      }), 'conversion must be surfaced as a model warning');
     });
 
     it('rejects Event definition names that only sanitize to valid identifiers', function() {
@@ -736,6 +742,20 @@ describe('hfsm generator', function() {
         assert.notStrictEqual(e.status, 0);
         assert.ok(/invalid C\+\+ namespace/.test(String(e.stderr)),
                   'error must name the invalid namespace');
+      }
+      // keyword segments pass the shape regex but cannot compile
+      try {
+        execFileSync(process.execPath,
+                     [path.join(__dirname, '..', 'bin', 'hfsm-gen.js'),
+                      path.join(FIXTURE_DIR, 'basic.json'),
+                      '-n', 'espp::class',
+                      '-o', path.join(require('os').tmpdir(), 'hfsm-ns-test')],
+                     { encoding: 'utf8', stdio: 'pipe' });
+        assert.fail('CLI must reject keyword namespace segments');
+      } catch (e2) {
+        assert.notStrictEqual(e2.status, 0);
+        assert.ok(/are C\+\+ keywords/.test(String(e2.stderr)),
+                  'error must name the keyword segment');
       }
     });
   });

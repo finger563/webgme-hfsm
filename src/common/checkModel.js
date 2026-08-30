@@ -16,10 +16,11 @@ define([], function() {
     sanitizeString: function(str) {
       return str.replace(/[ \-]/gi,'_');
     },
-    // C++ keywords and other identifiers which cannot be used as
-    // state / event names since they are emitted directly into
-    // generated C++ code (class names, enum values, etc.)
-    reservedNames: [
+    // C++ keywords: never legal as any emitted identifier, including
+    // individual namespace segments (exported separately so the CLI
+    // can validate `-n foo::bar` per segment -- generated-name
+    // reservations like 'Root' are fine as namespace segments)
+    cppKeywords: [
       'alignas','alignof','and','and_eq','asm','auto','bitand','bitor','bool',
       'break','case','catch','char','char8_t','char16_t','char32_t','class',
       'compl','concept','const','consteval','constexpr','constinit','const_cast',
@@ -32,6 +33,11 @@ define([], function() {
       'static_cast','struct','switch','template','this','thread_local','throw',
       'true','try','typedef','typeid','typename','union','unsigned','using',
       'virtual','void','volatile','wchar_t','while','xor','xor_eq',
+    ],
+    // C++ keywords and other identifiers which cannot be used as
+    // state / event names since they are emitted directly into
+    // generated C++ code (class names, enum values, etc.)
+    generatedNames: [
       // identifiers reserved by the generated code itself. 'Event' is
       // included because an event with that name would generate
       // `typedef Event<EventEventData> Event;` in the same scope as
@@ -45,6 +51,9 @@ define([], function() {
       // redeclaration
       'detail', 'event_data_to_string', 'consume_event', 'LogCallback'
     ],
+    get reservedNames() {
+      return this.cppKeywords.concat(this.generatedNames);
+    },
     isValidString: function(str) {
       var varDeclExp = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
       return varDeclExp.test(str) && this.reservedNames.indexOf(str) === -1;
@@ -154,7 +163,18 @@ define([], function() {
           // the symmetric check also accepted child->parent, which is
           // not local (and exported invalid SCXML type="internal")
           if ( dst.parentPath !== src.path ) {
-            console.log(`Local Transition ${objPath} does not go from a composite parent to a direct child - converting ${objPath} to External Transition!`);
+            if (!model.warnings) {
+              model.warnings = [];
+            }
+            // a WARNING (not console noise): the conversion changes
+            // semantics -- as an External Transition the source state
+            // is exited and re-entered
+            model.warnings.push(
+              "Local Transition " + objPath + " (from '" + src.name +
+                "' to '" + dst.name + "') does not go from a composite" +
+                " state to one of its direct children; treating it as an" +
+                " External Transition (the source will be exited and" +
+                " re-entered).");
             obj.type = 'External Transition';
           }
 

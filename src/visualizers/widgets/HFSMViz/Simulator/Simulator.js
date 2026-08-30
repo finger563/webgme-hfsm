@@ -961,13 +961,20 @@ define(['js/util',
            // user decides informed by the simulated machine state
            title = (title || '') + self.getGuardContext( transitionIds );
            var epoch = self._simEpoch;
-           var choice = new Choice();
-           self._activeChoice = choice;
-           choice.initialize( Object.keys(choiceToEdgeId), title );
-           choice.show();
-           return choice.waitForChoice()
+           var dialog = new Choice();
+           self._activeChoice = dialog;
+           dialog.initialize( Object.keys(choiceToEdgeId), title );
+           dialog.show();
+           return dialog.waitForChoice()
              .then(function(choice) {
-               self._activeChoice = null;
+               // only clear our own dialog: a dismissed old
+               // dialog resolves asynchronously, and a NEWER
+               // dialog may already be open and tracked --
+               // clearing unconditionally would leave the next
+               // reset unable to dismiss it
+               if (self._activeChoice === dialog) {
+                 self._activeChoice = null;
+               }
                // the model was switched while this dialog was open:
                // its transition ids are stale, resolve to nothing
                if (epoch !== self._simEpoch) {
