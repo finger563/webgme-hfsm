@@ -2,7 +2,7 @@
 
 #include "state_base.hpp"
 
-namespace state_machine {
+namespace espp::state_machine {
 
   /**
    * @brief Shallow History Pseudostates exist purely to re-implement
@@ -17,10 +17,10 @@ namespace state_machine {
     /**
      * @brief Calls _parentState->setShallowHistory().
      */
-    void                      makeActive ( ) {
+    void                      makeActive ( ) override {
       if (_parentState) {
         _parentState->setShallowHistory();
       }
     }
   };
-} // namespace state_machine
+} // namespace espp::state_machine

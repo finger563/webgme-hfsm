@@ -1,0 +1,14 @@
+@startuml
+title Payloads
+
+state "Idle" as S_2f_p_2f_m_2f_Idle
+S_2f_p_2f_m_2f_Idle : BUTTON_PRESS [pressCount < 1]
+state "Running" as S_2f_p_2f_m_2f_Running
+S_2f_p_2f_m_2f_Running : SET_SPEED
+[*] --> S_2f_p_2f_m_2f_Idle
+
+S_2f_p_2f_m_2f_Running --> [*] : FINISH
+S_2f_p_2f_m_2f_Idle --> S_2f_p_2f_m_2f_Running : BUTTON_PRESS
+S_2f_p_2f_m_2f_Running --> S_2f_p_2f_m_2f_Idle : STOP
+
+@enduml

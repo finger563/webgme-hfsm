@@ -15,12 +15,12 @@ public:
   ~{{{sanitizedName}}} ( void ) {}
 
   // StateBase Interface
-  void   initialize ( void );
-  void   entry ( void );
-  void   exit ( void );
-  void   tick ( void );
-  double getTimerPeriod ( void );
-  virtual bool   handleEvent ( EventBase* event ) {
+  void   initialize ( void ) override;
+  void   entry ( void ) override;
+  void   exit ( void ) override;
+  void   tick ( void ) override;
+  double getTimerPeriod ( void ) override;
+  bool   handleEvent ( EventBase* event ) override {
     return handleEvent( static_cast<GeneratedEventBase*>(event) );
   }
   virtual bool   handleEvent ( GeneratedEventBase* event );

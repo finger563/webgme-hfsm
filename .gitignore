@@ -7,3 +7,9 @@ server-error.log
 .sass*
 *.map
 bower_components/
+build/
+.dep/
+sample_code/*/*_test
+sample_code/*/*_test_DEBUG
+.DS_Store
+sample_code/*/hfsm_metadata.json

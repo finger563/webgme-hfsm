@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:hfsm="https://github.com/finger563/webgme-hfsm" version="1.0" name="Features" initial="S_2f_p_2f_m_2f_A">
+  <state id="S_2f_p_2f_m_2f_A" hfsm:name="StateA">
+    <onentry><script>printf(&quot;A ENTRY\n&quot;);</script></onentry>
+    <onexit><script>printf(&quot;A EXIT\n&quot;);</script></onexit>
+    <initial>
+      <transition target="S_2f_p_2f_m_2f_A_2f_A1"/>
+    </initial>
+    <transition event="TOGGLE" cond="_root-&gt;count &lt; 10">
+      <script>_root-&gt;count++; printf(&quot;TOGGLE %d\n&quot;, _root-&gt;count);</script>
+    </transition>
+    <transition event="LOCAL_GO" target="S_2f_p_2f_m_2f_A_2f_A2" type="internal">
+      <script>printf(&quot;LOCAL ACTION\n&quot;);</script>
+    </transition>
+    <transition event="CHOOSE" target="S_2f_p_2f_m_2f_c">
+      <script>printf(&quot;CHOOSE ACTION\n&quot;);</script>
+    </transition>
+    <transition event="GO_HIST" target="S_2f_p_2f_m_2f_B_2f_H"/>
+    <transition event="GO_DEEP" target="S_2f_p_2f_m_2f_B_2f_DH"/>
+    <state id="S_2f_p_2f_m_2f_A_2f_A1" hfsm:name="StateA1" hfsm:timer-period="0.1">
+      <onentry><script>printf(&quot;A1 ENTRY\n&quot;);</script></onentry>
+      <onexit><script>printf(&quot;A1 EXIT\n&quot;);</script></onexit>
+      <transition event="NEXT" target="S_2f_p_2f_m_2f_A_2f_A2"/>
+    </state>
+    <state id="S_2f_p_2f_m_2f_A_2f_A2" hfsm:name="StateA2" hfsm:timer-period="0.1">
+      <onentry><script>printf(&quot;A2 ENTRY\n&quot;);</script></onentry>
+      <onexit><script>printf(&quot;A2 EXIT\n&quot;);</script></onexit>
+    </state>
+  </state>
+  <state id="S_2f_p_2f_m_2f_B" hfsm:name="StateB">
+    <onentry><script>printf(&quot;B ENTRY\n&quot;);</script></onentry>
+    <onexit><script>printf(&quot;B EXIT\n&quot;);</script></onexit>
+    <initial>
+      <transition target="S_2f_p_2f_m_2f_B_2f_B1"/>
+    </initial>
+    <transition event="BACK" target="S_2f_p_2f_m_2f_A"/>
+    <transition event="FINISH" target="S_2f_p_2f_m_2f_end"/>
+    <state id="S_2f_p_2f_m_2f_B_2f_B1" hfsm:name="StateB1" hfsm:timer-period="0.1">
+      <onentry><script>printf(&quot;B1 ENTRY\n&quot;);</script></onentry>
+      <onexit><script>printf(&quot;B1 EXIT\n&quot;);</script></onexit>
+      <transition event="NEXT" target="S_2f_p_2f_m_2f_B_2f_B2"/>
+    </state>
+    <state id="S_2f_p_2f_m_2f_B_2f_B2" hfsm:name="StateB2">
+      <onentry><script>printf(&quot;B2 ENTRY\n&quot;);</script></onentry>
+      <onexit><script>printf(&quot;B2 EXIT\n&quot;);</script></onexit>
+      <initial>
+        <transition target="S_2f_p_2f_m_2f_B_2f_B2_2f_B2a"/>
+      </initial>
+      <state id="S_2f_p_2f_m_2f_B_2f_B2_2f_B2a" hfsm:name="StateB2a" hfsm:timer-period="0.1">
+        <onentry><script>printf(&quot;B2a ENTRY\n&quot;);</script></onentry>
+        <onexit><script>printf(&quot;B2a EXIT\n&quot;);</script></onexit>
+        <transition event="NEXT" target="S_2f_p_2f_m_2f_B_2f_B2_2f_B2b"/>
+      </state>
+      <state id="S_2f_p_2f_m_2f_B_2f_B2_2f_B2b" hfsm:name="StateB2b" hfsm:timer-period="0.1">
+        <onentry><script>printf(&quot;B2b ENTRY\n&quot;);</script></onentry>
+        <onexit><script>printf(&quot;B2b EXIT\n&quot;);</script></onexit>
+      </state>
+    </state>
+    <history id="S_2f_p_2f_m_2f_B_2f_H" type="shallow">
+      <transition target="S_2f_p_2f_m_2f_B_2f_B1"/>
+    </history>
+    <history id="S_2f_p_2f_m_2f_B_2f_DH" type="deep">
+      <transition target="S_2f_p_2f_m_2f_B_2f_B1"/>
+    </history>
+  </state>
+  <state id="S_2f_p_2f_m_2f_c" hfsm:pseudostate="choice">
+    <transition cond="_root-&gt;goLeft" target="S_2f_p_2f_m_2f_B"/>
+    <transition cond="_root-&gt;count &gt; 5" target="S_2f_p_2f_m_2f_d"/>
+    <transition target="S_2f_p_2f_m_2f_A"/>
+  </state>
+  <state id="S_2f_p_2f_m_2f_d" hfsm:pseudostate="choice">
+    <transition cond="_root-&gt;count &gt; 8" target="S_2f_p_2f_m_2f_B_2f_B2"/>
+    <transition target="S_2f_p_2f_m_2f_A_2f_A1"/>
+  </state>
+  <final id="S_2f_p_2f_m_2f_end"/>
+</scxml>

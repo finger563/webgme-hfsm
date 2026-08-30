@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace state_machine {
+namespace espp::state_machine {
 
   // Base Class for Events, abstract so you never instantiate.
   class EventBase {
@@ -28,7 +28,8 @@ namespace state_machine {
   public:
     StateBase() : _activeState(this), _parentState(nullptr) {}
     StateBase(StateBase *parent) : _activeState(this), _parentState(parent) {}
-    ~StateBase(void) {}
+    // virtual: this class is used polymorphically
+    virtual ~StateBase(void) = default;
 
     /**
      * @brief Will be generated to call entry() then handle any child
@@ -55,7 +56,7 @@ namespace state_machine {
      *
      * @return true if event is consumed, false otherwise
      */
-    virtual bool handleEvent(EventBase * event) { return false; }
+    virtual bool handleEvent(EventBase * /*event*/) { return false; }
 
     /**
      * @brief Will be generated to run the tick() function defined in
@@ -117,8 +118,12 @@ namespace state_machine {
      *  then recurse up through the tree to the root.
      *
      *  *Should only be called on leaf nodes!*
+     *
+     *  virtual: history pseudostates override this to restore the
+     *  parent's history instead, and they may be reached through a
+     *  StateBase pointer.
      */
-    void makeActive(void) {
+    virtual void makeActive(void) {
       if (_parentState != nullptr) {
         _parentState->setActiveChild(this);
         _parentState->makeActive();
@@ -178,4 +183,4 @@ namespace state_machine {
     StateBase *_parentState;
   }; // class StateBase
 
-} // namespace state_machine
+} // namespace espp::state_machine

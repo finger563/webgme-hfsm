@@ -16,9 +16,47 @@ define([], function() {
     sanitizeString: function(str) {
       return str.replace(/[ \-]/gi,'_');
     },
+    // C++ keywords: never legal as any emitted identifier, including
+    // individual namespace segments (exported separately so the CLI
+    // can validate `-n foo::bar` per segment -- generated-name
+    // reservations like 'Root' are fine as namespace segments)
+    cppKeywords: [
+      'alignas','alignof','and','and_eq','asm','auto','bitand','bitor','bool',
+      'break','case','catch','char','char8_t','char16_t','char32_t','class',
+      'compl','concept','const','consteval','constexpr','constinit','const_cast',
+      'continue','co_await','co_return','co_yield','decltype','default','delete',
+      'do','double','dynamic_cast','else','enum','explicit','export','extern',
+      'false','float','for','friend','goto','if','inline','int','long','mutable',
+      'namespace','new','noexcept','not','not_eq','nullptr','operator','or',
+      'or_eq','private','protected','public','register','reinterpret_cast',
+      'requires','return','short','signed','sizeof','static','static_assert',
+      'static_cast','struct','switch','template','this','thread_local','throw',
+      'true','try','typedef','typeid','typename','union','unsigned','using',
+      'virtual','void','volatile','wchar_t','while','xor','xor_eq',
+    ],
+    // C++ keywords and other identifiers which cannot be used as
+    // state / event names since they are emitted directly into
+    // generated C++ code (class names, enum values, etc.)
+    generatedNames: [
+      // identifiers reserved by the generated code itself. 'Event' is
+      // included because an event with that name would generate
+      // `typedef Event<EventEventData> Event;` in the same scope as
+      // the `Event<T>` class template -- an illegal redeclaration.
+      'Root', 'StateBase', 'EventBase', 'GeneratedEventBase', 'EventType',
+      'EventFactory', 'Event', 'End_State', 'DeepHistoryState',
+      'ShallowHistoryState',
+      // namespace-scope identifiers emitted by the event-data /
+      // states templates: an event (whose typedef lands in the same
+      // scope) with one of these names would be an illegal
+      // redeclaration
+      'detail', 'event_data_to_string', 'consume_event', 'LogCallback'
+    ],
+    get reservedNames() {
+      return this.cppKeywords.concat(this.generatedNames);
+    },
     isValidString: function(str) {
-      var varDeclExp = new RegExp(/^[a-zA-Z_][a-zA-Z0-9_]+$/gi);
-      return varDeclExp.test(str);
+      var varDeclExp = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+      return varDeclExp.test(str) && this.reservedNames.indexOf(str) === -1;
     },
     checkName: function(obj) {
       var self = this;
@@ -60,14 +98,39 @@ define([], function() {
        */
       var self = this;
       var topLevelStateNames = [];
-      var eventNames = [];
+      // Event names (from transitions and Event definitions) are
+      // scoped per containing State Machine / Library -- each machine
+      // generates into its own namespace -- so both exact-duplicate
+      // definition tracking and the case-collision check are per
+      // machine, not global: { machinePath: [names] }
+      var eventNames = {};
+      var eventDefinitionNames = {};
       var topLevelObject = null;
+      // walk up to the containing State Machine / Library path
+      var machineKeyOf = function(obj) {
+        var p = model.objects[obj.parentPath];
+        while (p && p.type &&
+               p.type != 'State Machine' && p.type != 'Library') {
+          p = model.objects[p.parentPath];
+        }
+        return p ? p.path : '';
+      };
+      var addEventName = function(obj, name) {
+        var key = machineKeyOf(obj);
+        if (!eventNames[key]) {
+          eventNames[key] = [];
+        }
+        eventNames[key].push(name);
+      };
       var objPaths = Object.keys(model.objects);
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
         if (obj.type == 'Project' ||
-            obj.type == 'State Machine') {
-          // checks: name
+            obj.type == 'State Machine' ||
+            obj.type == 'Library') {
+          // checks: name -- rendered Library / machine names become
+          // C++ identifiers AND artifact file names, so this also
+          // blocks path characters ('../../x') from escaping --out
           self.checkName( obj );
           // save reference to this
           topLevelObject = obj;
@@ -82,7 +145,8 @@ define([], function() {
           if ( dst == undefined )
           self.badProperty(obj, 'dst');
           // store the event name for later
-          eventNames.push(obj.Event);
+          if ( self.hasEvent(obj) )
+            addEventName(obj, obj.Event);
         }
         else if (obj.type == 'Local Transition') {
           self.checkEvent(obj);
@@ -94,16 +158,31 @@ define([], function() {
           if ( dst == undefined )
           self.badProperty(obj, 'dst');
 
-          if ( !self.hasParentChildRelationship( src, dst ) ) {
-            console.log(`Local Transition ${objPath} does not have src/dst that are in an explicitly parent-child relationship - converting ${objPath} to External Transition!`);
-            obj.type == 'External Transition';
+          // local semantics require the source to be the composite
+          // parent and the destination one of its DIRECT children --
+          // the symmetric check also accepted child->parent, which is
+          // not local (and exported invalid SCXML type="internal")
+          if ( dst.parentPath !== src.path ) {
+            if (!model.warnings) {
+              model.warnings = [];
+            }
+            // a WARNING (not console noise): the conversion changes
+            // semantics -- as an External Transition the source state
+            // is exited and re-entered
+            model.warnings.push(
+              "Local Transition " + objPath + " (from '" + src.name +
+                "' to '" + dst.name + "') does not go from a composite" +
+                " state to one of its direct children; treating it as an" +
+                " External Transition (the source will be exited and" +
+                " re-entered).");
+            obj.type = 'External Transition';
           }
 
           if ( !self.hasEvent( obj ) ) {
             self.error(obj, "LOCAL TRANSITIONS MUST HAVE EVENTS");
           }
           // store the event name for later
-          eventNames.push(obj.Event);
+          addEventName(obj, obj.Event);
         }
         else if (obj.type == 'Internal Transition') {
           self.checkEvent(obj);
@@ -112,9 +191,33 @@ define([], function() {
             self.error(obj, "INTERNAL TRANSITIONS MUST HAVE EVENTS");
           }
           // store the event name for later
-          eventNames.push(obj.Event);
+          addEventName(obj, obj.Event);
         }
         else if (obj.type == 'End State') {
+          // the sanitized name becomes the generated END class name.
+          // 'End_State' itself is exempt from the reserved-name list:
+          // it is the conventional default name (the reservation
+          // exists to stop OTHER objects from colliding with it)
+          var sEndName = self.sanitizeString(obj.name);
+          if (sEndName !== 'End_State' && !self.isValidString(sEndName)) {
+            self.badProperty(obj, 'name',
+              'End State names must be valid C++ identifiers.');
+          }
+          // both the End State and its sibling States generate class
+          // declarations in the same scope -- a State named 'End'
+          // next to an End State named 'End' would be two classes of
+          // the same name
+          var endParent = model.objects[obj.parentPath];
+          if (endParent && endParent.State_list) {
+            endParent.State_list.forEach(function(sibling) {
+              if (self.sanitizeString(sibling.name) === sEndName) {
+                self.error(obj, "End State '" + obj.name +
+                  "' collides with sibling State '" + sibling.name +
+                  "' (" + sibling.path + "): both would generate a class named " +
+                  sEndName + "!");
+              }
+            });
+          }
         }
         // Process Choice Pseudostate Data
         else if (obj.type == 'Choice Pseudostate') {
@@ -123,7 +226,7 @@ define([], function() {
           // * exit transitions must not have events
           var outTrans = self.getTransitionsOutOf( obj, model.objects );
           outTrans.map(function(trans) {
-            if ( self.hasEvent( obj ) )
+            if ( self.hasEvent( trans ) )
            self.error(obj, "Transitions out of choice states cannot have events!");
           });
           var guardless = outTrans.filter(function(trans) { return !self.hasGuard( trans ); });
@@ -135,12 +238,98 @@ define([], function() {
           if (guardless.length != 1) {
             self.error(obj, "Choice states must have exactly 1 unguarded exiting transition!");
           }
+          // * no choice -> ... -> choice cycles: the generated code
+          //   inlines choice chains recursively, so a cycle would
+          //   overflow the template recursion. Each branch carries a
+          //   COPY of its path so converging DAGs remain valid.
+          var checkChoiceCycles = function(choice, pathSoFar) {
+            if (pathSoFar.indexOf(choice.path) > -1) {
+              self.error(obj, "Choice pseudostate cycle detected: " +
+                         pathSoFar.concat(choice.path).join(' -> '));
+            }
+            self.getTransitionsOutOf( choice, model.objects )
+              .forEach(function(t) {
+                var dst = model.objects[t.pointers['dst']];
+                if (dst && dst.type == 'Choice Pseudostate') {
+                  checkChoiceCycles(dst, pathSoFar.concat(choice.path));
+                }
+              });
+          };
+          checkChoiceCycles(obj, []);
         }
-        else if (obj.type == 'Deep History Pseudostate') {
+        else if (obj.type == 'Deep History Pseudostate' ||
+                 obj.type == 'Shallow History Pseudostate') {
+          // history names are emitted into C++ member identifiers
+          self.checkName( obj );
         }
-        else if (obj.type == 'Shallow History Pseudostate') {
+        else if (obj.type == 'Event') {
+          // Event payload definition, bound by name to transitions'
+          // Event attribute. checks:
+          // * name is a valid identifier
+          // * no two Event definitions share a name
+          // * field names are valid, unique within the event
+          // * field types are non-empty
+          //
+          // NOTE: the RAW name is validated (not the sanitized
+          // spelling checkName tests) because event names are emitted
+          // and matched verbatim -- 'BUTTON-PRESS' must be rejected,
+          // not silently accepted as BUTTON_PRESS. This matches the
+          // transition Event validation (checkEvent).
+          if ( !self.isValidString( obj.name ) ) {
+            self.badProperty(obj, 'name',
+              'Event names must be valid C++ identifiers (alphanumeric + underscore, starting with a letter).');
+          }
+          // find the containing machine for scoped uniqueness
+          var machine = model.objects[obj.parentPath];
+          while (machine && machine.type &&
+                 machine.type != 'State Machine' && machine.type != 'Library') {
+            machine = model.objects[machine.parentPath];
+          }
+          var machineKey = machine ? machine.path : '';
+          if (!eventDefinitionNames[machineKey]) {
+            eventDefinitionNames[machineKey] = [];
+          }
+          if (eventDefinitionNames[machineKey].indexOf(obj.name) > -1) {
+            self.error(obj, "Two Event definitions have the same name: " + obj.name);
+          }
+          eventDefinitionNames[machineKey].push(obj.name);
+          // participate in the case-collision check with used events
+          addEventName(obj, obj.name);
+          var fieldNames = [];
+          (obj.Field_list || []).map(function(field) {
+            // field names are emitted verbatim as C++ members --
+            // validate the raw name
+            if ( !self.isValidString( field.name ) ) {
+              self.badProperty(field, 'name',
+                'Field names must be valid C++ identifiers (alphanumeric + underscore, starting with a letter).');
+            }
+            if (fieldNames.indexOf(field.name) > -1) {
+              self.error(obj, "Event " + obj.name +
+                         " has two fields named: " + field.name);
+            }
+            fieldNames.push(field.name);
+            if (!field.Type || !field.Type.trim().length) {
+              self.badProperty(field, 'Type',
+                               'Event fields must have a C++ type.');
+            }
+          });
+          // 'data' is the generated payload alias in guard / action
+          // scope; a field cannot shadow it
+          if (fieldNames.indexOf('data') > -1) {
+            self.error(obj, "Event fields cannot be named 'data' " +
+                       "(reserved for the payload alias).");
+          }
         }
-        else if (obj.type == 'End State') {
+        else if (obj.type == 'Field') {
+          // field NAMES / TYPES are validated through the parent
+          // Event's Field_list above; here ensure that parent really
+          // is an Event -- otherwise the Field is in no Field_list
+          // and would silently skip validation entirely
+          var fieldParent = model.objects[obj.parentPath];
+          if (!fieldParent || fieldParent.type !== 'Event') {
+            self.error(obj, "Fields must be children of Event definitions" +
+              (fieldParent ? " (parent is a " + fieldParent.type + ")" : "") + "!");
+          }
         }
         else if (obj.type == 'Initial') {
           // checks:
@@ -170,7 +359,7 @@ define([], function() {
           self.checkName( obj );
           var parentObj = model.objects[obj.parentPath];
           // cannot have includes set
-          if (obj.Includes.trim().length > 0) {
+          if ((obj.Includes || '').trim().length > 0) {
             self.error(obj, "States cannot have 'Includes'");
           }
           // make sure no direct siblings of this state share its name
@@ -189,7 +378,7 @@ define([], function() {
             topLevelStateNames.push(obj.name);
           }
           // must have 'Initial' if there are children
-          if (obj.State_list && obj.State_list > 0) {
+          if (obj.State_list && obj.State_list.length > 0) {
             if (!obj.Initial_list || obj.Initial_list.length === 0) {
               self.error(obj, "State must have an Initial state if it has children!");
             }
@@ -216,7 +405,7 @@ define([], function() {
                 _map[t.Event] = [t];
               }
               return _map;
-            }, {});
+            }, Object.create(null));
             Object.entries(eventTransitionMap).forEach(([event, transitions]) => {
               // if this event is empty, then we need to make sure
               // there is a child End State
@@ -237,7 +426,7 @@ define([], function() {
               }
               // ensure no two transitions for this event have the same guard
               var guards = transitions.filter(self.hasGuard.bind(self)).map(self.getGuard.bind(self));
-              var guardMap = {};
+              var guardMap = Object.create(null);
               guards.forEach((g) => {
                 if (g in guardMap) {
                   self.error(obj, "Two transitions have the same Event / Guard combination!");
@@ -254,7 +443,7 @@ define([], function() {
           }
           else if (endTrans.length == 1) {
             if (self.hasGuard( endTrans[0] )) {
-              self.error(obj, "END TRANSITION cannot have gaurd!");
+              self.error(obj, "END TRANSITION cannot have guard!");
             }
           }
           else { // has no end transition
@@ -263,22 +452,62 @@ define([], function() {
               self.error(obj, "State has END State but no END TRANSITION!");
             }
           }
-          // non-zero timer period if non-zero substates
-          if (!obj.Initial_list && !obj.State_list && obj['Timer Period'] <= 0) {
-            self.error(obj, "Leaf state must have non-zero timer period!");
+          // leaf states (determined by LIST LENGTHS -- an empty list
+          // is not a child) need a finite numeric timer period > 0;
+          // string-coerced comparison also let values like "abc" or
+          // "Infinity" through into `return (double)(abc)`
+          var isLeaf = (obj.State_list || []).length === 0 &&
+              (obj.Initial_list || []).length === 0;
+          if (isLeaf) {
+            var period = Number(obj['Timer Period']);
+            if (!isFinite(period) || period <= 0) {
+              self.badProperty(obj, 'Timer Period',
+                'Leaf states must have a finite numeric timer period greater than zero.');
+            }
           }
         }
       });
+      // Rendered sibling objects (States, End States, history
+      // pseudostates) each generate a Root member named
+      // <SANITIZED_UPPERCASE>_OBJ, so uniqueness must hold on the
+      // GENERATED identifier, not the raw name: siblings 'Foo'/'foo'
+      // or 'A-B'/'A B' would collide.
+      var renderedListKeys = ['State_list', 'End State_list',
+                              'Deep History Pseudostate_list',
+                              'Shallow History Pseudostate_list'];
+      objPaths.map(function(objPath) {
+        var parent = model.objects[objPath];
+        var byGenerated = Object.create(null);
+        renderedListKeys.forEach(function(key) {
+          (parent[key] || []).forEach(function(child) {
+            var gen = self.sanitizeString(child.name).toUpperCase();
+            if (byGenerated[gen]) {
+              self.error(child, "'" + child.name + "' (" + child.path +
+                ") and '" + byGenerated[gen].name + "' (" +
+                byGenerated[gen].path + ") both generate the identifier " +
+                gen + "_OBJ!");
+            }
+            byGenerated[gen] = child;
+          });
+        });
+      });
+
       // now that we've processed the model, check a few extras:
-      // checks: event name uniqueness
-      if (eventNames) {
-        eventNames.reduce((_map, event) => {
+      // checks: event name uniqueness (per machine -- events in
+      // different machines generate into separate namespaces and
+      // never collide)
+      Object.keys(eventNames).forEach(function(machineKey) {
+        var errTarget = model.objects[machineKey] || topLevelObject;
+        // null-prototype accumulator: with a plain object, an event
+        // named e.g. 'constructor' would hit the inherited property
+        // via `in` and crash / misvalidate
+        eventNames[machineKey].reduce((_map, event) => {
           var e = event.trim().toLowerCase();
           if (e in _map) {
             if (_map[e].indexOf(event) == -1) {
               var msg = "Cannot have multiple events with similar names!";
               msg += `\n name "${event}" will collide with "${_map[e][0]}"`;
-              self.error(topLevelObject, msg);
+              self.error(errTarget, msg);
             } else {
               // we're fine, this is the exact same event we already had :)
             }
@@ -286,8 +515,8 @@ define([], function() {
             _map[e] = [event];
           }
           return _map;
-        }, {});
-      }
+        }, Object.create(null));
+      });
     },
     // MODEL TRAVERSAL
     getEndTransitions: function( stateObj, objDict ) {
@@ -331,34 +560,24 @@ define([], function() {
 
       var transitions = self.getTransitionsOutOf(stateObj, objDict);
       var dest = objDict[transitions[0].pointers['dst']];
-      if (dest.type == 'State') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
-          self.error(dest, 'Initial state must be within the parent!');
-        }
-      } else if (dest.type == 'Choice Pseudostate') {
+      // directional: the destination must be a DIRECT CHILD of the
+      // parent composite. The old symmetric relationship check also
+      // accepted the composite's own parent as "within".
+      var isDirectChild = function(d) {
+        return d.parentPath === parentObj.path;
+      };
+      if (dest.type == 'Choice Pseudostate') {
         var destinations  = self.getChoiceDestinations(dest, objDict);
         // ensure all choice pseudostate transitions along this
         // path stay within the parent state
         destinations.map((d) => {
-          // check that it's a sibling
-          if (!self.hasParentChildRelationship(d, parentObj)) {
+          if (!isDirectChild(d)) {
             self.error(d, 'Initial state must be within the parent!');
           }
         });
-      } else if (dest.type == 'Deep History Pseudostate') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
-          self.error(dest, 'Initial state must be within the parent!');
-        }
-      } else if (dest.type == 'Shallow History Pseudostate') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
-          self.error(dest, 'Initial state must be within the parent!');
-        }
-      } else if (dest.type == 'End State') {
-        // check that it's a sibling
-        if (!self.hasParentChildRelationship(dest, parentObj)) {
+      } else {
+        // State / Deep History / Shallow History / End State
+        if (!isDirectChild(dest)) {
           self.error(dest, 'Initial state must be within the parent!');
         }
       }

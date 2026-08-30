@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  generator:
+    name: Generator tests, golden diff, generated-code compile + trace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # The full WebGME dependency tree is old and heavy; the
+      # standalone generator + tests only need these packages.
+      - name: Install generator dependencies
+        run: >
+          npm install --no-save --no-package-lock --ignore-scripts
+          requirejs requirejs-text handlebars underscore mocha
+
+      - name: Run generator unit + golden tests
+        run: ./node_modules/.bin/mocha test/generator.spec.js test/declParser.spec.js
+
+      - name: Compile and trace-check golden generated code
+        run: ./scripts/run_generated_tests.sh
+
+      - name: CLI smoke test (generation + interop exports)
+        run: |
+          node bin/hfsm-gen.js test/fixtures/features.json \
+            -o build/cli-smoke -t -e all
+          test -f build/cli-smoke/Features_generated_states.cpp
+          test -f build/cli-smoke/Features.scxml
+          test -f build/cli-smoke/Features.puml
+          test -f build/cli-smoke/Features.mmd
+
+      - name: Validate SCXML export is well-formed XML
+        run: |
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+          xmllint --noout build/cli-smoke/Features.scxml
+
+  samples:
+    name: Compile and run sample_code
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Simple sample regenerates from its committed model; all
+      # samples must build with their own Makefiles and exit cleanly
+      # on end-of-input (regression check for the EOF spin bug).
+      - name: Build samples
+        run: |
+          for d in Simple Medium Complex; do
+            make -C "sample_code/$d" test debug
+          done
+
+      # `timeout` is not available on macOS runners; perl's alarm is
+      # a portable hang-guard (the binaries must exit on EOF anyway)
+      - name: Run samples with scripted input
+        run: |
+          with_timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+          printf '0\n' | with_timeout 10 sample_code/Simple/Simple_test_DEBUG
+          printf '1\n' | with_timeout 10 sample_code/Medium/Medium_test_DEBUG
+          printf '1\n2\n0\n' | with_timeout 10 sample_code/Complex/Complex_test_DEBUG
+
+  regen-simple:
+    name: Simple sample regenerates from its model (no drift)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install generator dependencies
+        run: >
+          npm install --no-save --no-package-lock --ignore-scripts
+          requirejs requirejs-text handlebars underscore
+
+      - name: Regenerate and diff
+        run: |
+          node bin/hfsm-gen.js sample_code/Simple/Simple_model.json \
+            -o build/regen-simple -t
+          for f in Simple_generated_states.hpp Simple_generated_states.cpp \
+                   Simple_event_data.hpp Simple_test.cpp Makefile \
+                   state_base.hpp deep_history_state.hpp \
+                   shallow_history_state.hpp; do
+            diff -u "sample_code/Simple/$f" "build/regen-simple/$f"
+          done

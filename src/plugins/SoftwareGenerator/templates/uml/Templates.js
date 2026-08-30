@@ -6,6 +6,7 @@ define(['bower/handlebars/handlebars.min',
         'text!./static/shallow_history_state.hpp',
         'text!./InternalEvent.tmpl',
         'text!./ExternalEvent.tmpl',
+        'text!./RootAliases.tmpl',
         'text!./ExternalTransition.tmpl',
         'text!./ExecuteTransition.tmpl',
         'text!./InitTransition.tmpl',
@@ -27,6 +28,7 @@ define(['bower/handlebars/handlebars.min',
                 ShallowHistoryData,
                 InternalEventTempl,
                 ExternalEventTempl,
+                RootAliasesTempl,
                 ExternalTransitionTempl,
                 ExecuteTransitionTempl,
                 InitTransitionTempl,
@@ -49,6 +51,7 @@ define(['bower/handlebars/handlebars.min',
          var Partials = {
            InternalEventTempl: InternalEventTempl,
            ExternalEventTempl: ExternalEventTempl,
+           RootAliasesTempl: RootAliasesTempl,
            ExternalTransitionTempl: ExternalTransitionTempl,
            ExecuteTransitionTempl: ExecuteTransitionTempl,
            InitTransitionTempl: InitTransitionTempl,
@@ -92,8 +95,17 @@ define(['bower/handlebars/handlebars.min',
 
          var localRoot = null;
 
+         // True if `path` is `ancestorPath` or lies beneath it in the
+         // containment tree. Uses proper path-segment prefix matching:
+         // naive substring matching (indexOf) would treat e.g. '/c/v1'
+         // as inside '/c/v'.
+         function isPathWithin(ancestorPath, path) {
+           return path === ancestorPath ||
+             (path && ancestorPath && path.indexOf(ancestorPath + '/') === 0);
+         };
+
          function objInBranchOfRoot(obj, root) {
-           return root && obj && obj.path && obj.path.indexOf( root.path ) > -1;
+           return !!(root && obj && obj.path && isPathWithin( root.path, obj.path ));
          };
 
          function getBranch( obj ) {
@@ -104,8 +116,8 @@ define(['bower/handlebars/handlebars.min',
              var matchedPath = currentObj.path;
              branch.push( currentObj );
              while (matchedPath != obj.path) {
-               var children = currentObj.State_list.filter(function(s) {
-                 return obj.path.indexOf( s.path ) > -1;
+               var children = (currentObj.State_list || []).filter(function(s) {
+                 return isPathWithin( s.path, obj.path );
                });
                if (children.length) {
                  var child = children[0];
@@ -131,7 +143,7 @@ define(['bower/handlebars/handlebars.min',
          };
 
          function sameBranch( a, b ) {
-           return a.path.indexOf(b.path) > -1 || b.path.indexOf(a.path) > -1;
+           return isPathWithin(b.path, a.path) || isPathWithin(a.path, b.path);
          };
 
          function getStateExits( root, oldState, newState, isLocal ) {

@@ -101,6 +101,15 @@ define(['js/util',
                });	       
            };
 
+	   /**
+	    * Programmatically close the dialog (e.g. when the model is
+	    * switched while a choice is open). The hidden.bs.modal
+	    * listener resolves the promise with undefined.
+	    */
+	   Choice.prototype.dismiss = function() {
+	       this._dialog.modal('hide');
+	   };
+
 	   Choice.prototype.renderChoices = function( choices ) {
 	       var self = this;
 	       self._choiceForm.empty();

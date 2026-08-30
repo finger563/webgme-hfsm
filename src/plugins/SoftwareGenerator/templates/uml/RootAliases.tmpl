@@ -1,0 +1,8 @@
+{{#if rootAliases.length}}
+// Reference aliases so guards / actions / state code can use the
+// HFSM's variables directly (equivalent to _root-> access; compiles
+// to identical code)
+{{#each rootAliases}}
+[[maybe_unused]] auto &{{{name}}} = _root->{{{name}}};
+{{/each}}
+{{/if}}

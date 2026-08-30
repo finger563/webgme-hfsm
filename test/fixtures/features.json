@@ -1,0 +1,270 @@
+{
+  "root": "/p",
+  "objects": {
+    "/p": {
+      "name": "FixtureProject",
+      "type": "Project"
+    },
+    "/p/m": {
+      "name": "Features",
+      "type": "State Machine",
+      "Includes": "#include <cstdio>",
+      "Declarations": "bool goLeft = false;\nint count = 0;",
+      "Initialization": "goLeft = false;\ncount = 0;"
+    },
+    "/p/m/i": {
+      "name": "Initial",
+      "type": "Initial"
+    },
+    "/p/m/ti": {
+      "name": "InitialTransition",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/p/m/i",
+        "dst": "/p/m/A"
+      }
+    },
+    "/p/m/A": {
+      "name": "StateA",
+      "type": "State",
+      "Entry": "printf(\"A ENTRY\\n\");",
+      "Exit": "printf(\"A EXIT\\n\");"
+    },
+    "/p/m/A/i": {
+      "name": "Initial",
+      "type": "Initial"
+    },
+    "/p/m/A/ti": {
+      "name": "AInitialTransition",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/p/m/A/i",
+        "dst": "/p/m/A/A1"
+      }
+    },
+    "/p/m/A/A1": {
+      "name": "StateA1",
+      "type": "State",
+      "Timer Period": 0.1,
+      "Entry": "printf(\"A1 ENTRY\\n\");",
+      "Exit": "printf(\"A1 EXIT\\n\");"
+    },
+    "/p/m/A/A2": {
+      "name": "StateA2",
+      "type": "State",
+      "Timer Period": 0.1,
+      "Entry": "printf(\"A2 ENTRY\\n\");",
+      "Exit": "printf(\"A2 EXIT\\n\");"
+    },
+    "/p/m/A/it": {
+      "name": "toggleInternal",
+      "type": "Internal Transition",
+      "Event": "TOGGLE",
+      "Guard": "_root->count < 10",
+      "Action": "_root->count++; printf(\"TOGGLE %d\\n\", _root->count);"
+    },
+    "/p/m/A/t12": {
+      "name": "a1ToA2",
+      "type": "External Transition",
+      "Event": "NEXT",
+      "pointers": {
+        "src": "/p/m/A/A1",
+        "dst": "/p/m/A/A2"
+      }
+    },
+    "/p/m/lt": {
+      "name": "localToA2",
+      "type": "Local Transition",
+      "Event": "LOCAL_GO",
+      "Action": "printf(\"LOCAL ACTION\\n\");",
+      "pointers": {
+        "src": "/p/m/A",
+        "dst": "/p/m/A/A2"
+      }
+    },
+    "/p/m/B": {
+      "name": "StateB",
+      "type": "State",
+      "Entry": "printf(\"B ENTRY\\n\");",
+      "Exit": "printf(\"B EXIT\\n\");"
+    },
+    "/p/m/B/i": {
+      "name": "Initial",
+      "type": "Initial"
+    },
+    "/p/m/B/ti": {
+      "name": "BInitialTransition",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/p/m/B/i",
+        "dst": "/p/m/B/B1"
+      }
+    },
+    "/p/m/B/B1": {
+      "name": "StateB1",
+      "type": "State",
+      "Timer Period": 0.1,
+      "Entry": "printf(\"B1 ENTRY\\n\");",
+      "Exit": "printf(\"B1 EXIT\\n\");"
+    },
+    "/p/m/B/B2": {
+      "name": "StateB2",
+      "type": "State",
+      "Entry": "printf(\"B2 ENTRY\\n\");",
+      "Exit": "printf(\"B2 EXIT\\n\");"
+    },
+    "/p/m/B/B2/i": {
+      "name": "Initial",
+      "type": "Initial"
+    },
+    "/p/m/B/B2/ti": {
+      "name": "B2InitialTransition",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/p/m/B/B2/i",
+        "dst": "/p/m/B/B2/B2a"
+      }
+    },
+    "/p/m/B/B2/B2a": {
+      "name": "StateB2a",
+      "type": "State",
+      "Timer Period": 0.1,
+      "Entry": "printf(\"B2a ENTRY\\n\");",
+      "Exit": "printf(\"B2a EXIT\\n\");"
+    },
+    "/p/m/B/B2/B2b": {
+      "name": "StateB2b",
+      "type": "State",
+      "Timer Period": 0.1,
+      "Entry": "printf(\"B2b ENTRY\\n\");",
+      "Exit": "printf(\"B2b EXIT\\n\");"
+    },
+    "/p/m/B/B2/tab": {
+      "name": "b2aToB2b",
+      "type": "External Transition",
+      "Event": "NEXT",
+      "pointers": {
+        "src": "/p/m/B/B2/B2a",
+        "dst": "/p/m/B/B2/B2b"
+      }
+    },
+    "/p/m/B/t12": {
+      "name": "b1ToB2",
+      "type": "External Transition",
+      "Event": "NEXT",
+      "pointers": {
+        "src": "/p/m/B/B1",
+        "dst": "/p/m/B/B2"
+      }
+    },
+    "/p/m/B/H": {
+      "name": "ShallowHistory",
+      "type": "Shallow History Pseudostate"
+    },
+    "/p/m/B/DH": {
+      "name": "DeepHistory",
+      "type": "Deep History Pseudostate"
+    },
+    "/p/m/c": {
+      "name": "Choice1",
+      "type": "Choice Pseudostate"
+    },
+    "/p/m/d": {
+      "name": "Choice2",
+      "type": "Choice Pseudostate"
+    },
+    "/p/m/tc": {
+      "name": "aToChoice",
+      "type": "External Transition",
+      "Event": "CHOOSE",
+      "Action": "printf(\"CHOOSE ACTION\\n\");",
+      "pointers": {
+        "src": "/p/m/A",
+        "dst": "/p/m/c"
+      }
+    },
+    "/p/m/c1": {
+      "name": "choiceToB",
+      "type": "External Transition",
+      "Guard": "_root->goLeft",
+      "pointers": {
+        "src": "/p/m/c",
+        "dst": "/p/m/B"
+      }
+    },
+    "/p/m/c3": {
+      "name": "choiceToChoice2",
+      "type": "External Transition",
+      "Guard": "_root->count > 5",
+      "pointers": {
+        "src": "/p/m/c",
+        "dst": "/p/m/d"
+      }
+    },
+    "/p/m/c2": {
+      "name": "choiceElseToA",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/p/m/c",
+        "dst": "/p/m/A"
+      }
+    },
+    "/p/m/d1": {
+      "name": "choice2ToB2",
+      "type": "External Transition",
+      "Guard": "_root->count > 8",
+      "pointers": {
+        "src": "/p/m/d",
+        "dst": "/p/m/B/B2"
+      }
+    },
+    "/p/m/d2": {
+      "name": "choice2ElseToA1",
+      "type": "External Transition",
+      "pointers": {
+        "src": "/p/m/d",
+        "dst": "/p/m/A/A1"
+      }
+    },
+    "/p/m/th": {
+      "name": "aToShallowHistory",
+      "type": "External Transition",
+      "Event": "GO_HIST",
+      "pointers": {
+        "src": "/p/m/A",
+        "dst": "/p/m/B/H"
+      }
+    },
+    "/p/m/td": {
+      "name": "aToDeepHistory",
+      "type": "External Transition",
+      "Event": "GO_DEEP",
+      "pointers": {
+        "src": "/p/m/A",
+        "dst": "/p/m/B/DH"
+      }
+    },
+    "/p/m/tb": {
+      "name": "bToA",
+      "type": "External Transition",
+      "Event": "BACK",
+      "pointers": {
+        "src": "/p/m/B",
+        "dst": "/p/m/A"
+      }
+    },
+    "/p/m/end": {
+      "name": "End",
+      "type": "End State"
+    },
+    "/p/m/tf": {
+      "name": "bToEnd",
+      "type": "External Transition",
+      "Event": "FINISH",
+      "pointers": {
+        "src": "/p/m/B",
+        "dst": "/p/m/end"
+      }
+    }
+  }
+}

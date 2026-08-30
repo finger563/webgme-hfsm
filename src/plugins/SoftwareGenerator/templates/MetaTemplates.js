@@ -38,7 +38,7 @@ define(['bower/handlebars/handlebars.min',
              self.makeVariableName( obj );
              var pName = obj.VariableName;
              var parent = objDict[ obj.parentPath ];
-             if (parent && obj.type != 'State Machine') {
+             if (parent && obj.type != 'State Machine' && obj.type != 'Library') {
                self.makePointerName( parent, objDict );
                pName = parent.pointerName + '__' + pName;
              }
@@ -52,7 +52,7 @@ define(['bower/handlebars/handlebars.min',
              self.makeVariableName( obj );
              var fqName = obj.VariableName;
              var parent = objDict[ obj.parentPath ];
-             if (parent && obj.type != 'State Machine') {
+             if (parent && obj.type != 'State Machine' && obj.type != 'Library') {
                self.makeFullyQualifiedVariableName( parent, objDict );
                fqName = parent.fullyQualifiedVariableName + '.' + fqName;
              }
@@ -65,7 +65,7 @@ define(['bower/handlebars/handlebars.min',
              var fqName = obj.sanitizedName;
              var parent = objDict[ obj.parentPath ];
              // make sure we have a relatively unique name for the state
-             if (parent && parent.type != 'State Machine') {
+             if (parent && parent.type != 'State Machine' && parent.type != 'Library') {
                self.makeFullyQualifiedName( parent, objDict );
                fqName = parent.fullyQualifiedName + '::' + fqName;
              }
@@ -76,6 +76,13 @@ define(['bower/handlebars/handlebars.min',
              var objects = model.objects;
              var root    = model.root;
              var artifacts = {};
+             // with a single machine the Makefile keeps its
+             // conventional name (make -C <dir>); with several, each
+             // machine gets its own Makefile.<name> so they cannot
+             // collide (build with make -f Makefile.<name>)
+             var machineCount = Object.keys(objects).filter(function(p) {
+               return objects[p].type === 'State Machine';
+             }).length;
              Object.keys(objects).map(function (path) {
                var obj = objects[ path ];
                obj['namespace'] = namespace;
@@ -84,19 +91,27 @@ define(['bower/handlebars/handlebars.min',
                  Object.keys(templDict).map(function(templPath) {
                    var templName = templDict[ templPath ];
                    var fileName = handlebars.compile( templPath )( obj );
+                   if (fileName === 'Makefile' && machineCount > 1) {
+                     fileName = 'Makefile.' + obj.sanitizedName;
+                   }
                    var fileData = handlebars.compile(
                      Partials[ templName ]
                    )(
                      obj
                    );
                    if (objToFilePrefixFn) {
-                     var fileName = null;
                      var prefix = objToFilePrefixFn( obj );
-                     if (prefix) {
-                       fileName = prefix + fileName;
-                     }
+                     // no prefix for this object means skip its artifacts
+                     fileName = prefix ? prefix + fileName : null;
                    }
                    if (fileName) {
+                     if (Object.prototype.hasOwnProperty.call(artifacts, fileName) &&
+                         artifacts[fileName] !== fileData) {
+                       throw "ERROR: machine '" + obj.name + "' (" + obj.path +
+                         ") generates test artifact '" + fileName +
+                         "' which collides with another machine's -- " +
+                         "rename one of the machines.";
+                     }
                      artifacts[ fileName ] = fileData;
                    }
                  });
@@ -108,8 +123,24 @@ define(['bower/handlebars/handlebars.min',
              var self    = this;
              var objects = model.objects;
              var root    = model.root;
-             var rootTypes = ['State Machine'];
+             var rootTypes = ['State Machine', 'Library'];
              var generatedArtifacts = {};
+             // artifact names derive from sanitized machine names, so
+             // two machines may collide; identical content (e.g. the
+             // shared static headers) is fine, different content must
+             // not be silently overwritten
+             var addArtifacts = function(target, added, machine) {
+               Object.keys(added).forEach(function(fname) {
+                 if (Object.prototype.hasOwnProperty.call(target, fname) &&
+                     target[fname] !== added[fname]) {
+                   throw "ERROR: machine '" + machine.name + "' (" +
+                     machine.path + ") generates artifact '" + fname +
+                     "' which collides with another machine's artifact " +
+                     "of the same name -- rename one of the machines.";
+                 }
+                 target[fname] = added[fname];
+               });
+             };
 
              // make variable names and such for objects
              Object.keys( objects ).map(function( path ) {
@@ -133,7 +164,8 @@ define(['bower/handlebars/handlebars.min',
                  self.makeFullyQualifiedVariableName( obj, model.objects );
                  self.makePointerName( obj, model.objects );
                }
-               else if (obj.type == 'State Machine') {
+               else if (obj.type == 'State Machine' ||
+                        obj.type == 'Library') {
                  // make rendered names
                  self.makeFullyQualifiedName( obj, model.objects );
                  self.makeFullyQualifiedVariableName( obj, model.objects );
@@ -179,10 +211,7 @@ define(['bower/handlebars/handlebars.min',
                      hfsmArtifacts = prefixedArtifacts;
                    }
 
-                   generatedArtifacts = Object.assign(
-                     generatedArtifacts,
-                     hfsmArtifacts
-                   );
+                   addArtifacts( generatedArtifacts, hfsmArtifacts, obj );
                  });
                }
              });

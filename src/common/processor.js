@@ -1,12 +1,19 @@
 
-define(['./checkModel', 'underscore'], function(checkModel, _) {
+define(['./checkModel', './declParser', 'underscore'], function(checkModel, declParser, _) {
   'use strict';
   return {
     stripRegex: /^([^\n]+)/gm,
+    // Set-based: a plain-object accumulator would treat names
+    // inherited from Object.prototype ('constructor', 'toString',
+    // ...) as already-seen and silently drop those events
     uniq: function(a) {
-      var seen = {};
+      var seen = new Set();
       return a.filter(function(item) {
-        return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+        if (seen.has(item)) {
+          return false;
+        }
+        seen.add(item);
+        return true;
       });
     },
     makeEventName: function(name) {
@@ -17,9 +24,9 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
       eventName = self.makeEventName(eventName);
       obj.EventName = eventName;
       if (eventName) {
-        // go to the State Machine object and add it there.
+        // go to the State Machine (or Library) object and add it there.
         var p = model.objects[obj.parentPath];
-        while (p && p.type && p.type != 'State Machine') {
+        while (p && p.type && p.type != 'State Machine' && p.type != 'Library') {
           p = model.objects[p.parentPath];
         }
         if (p) {
@@ -78,10 +85,17 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
       // FOR SELECT OBJECTS IN THE MODEL
 
       var objPaths = Object.keys(model.objects);
+      // FIRST PASS: init basic params on every object. This must be
+      // its own pass: addBasicParams resets Substates, so doing it
+      // lazily inside the main loop silently dropped children whose
+      // objects were serialized before their parent (makeSubstate had
+      // already linked them). Processing is order-independent now.
+      objPaths.map(function(objPath) {
+        self.addBasicParams( model.objects[objPath] );
+      });
+      // SECOND PASS: type-specific processing and relationship links
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
-        // init all basic params
-        self.addBasicParams( obj );
         // Make sure top-level State Machine objects
         // are good and code attributes are properly prefixed.
         if (obj.type == 'State Machine' || obj.type == 'Library') {
@@ -216,6 +230,40 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
           // for mustache template
           obj.isShallowHistory = true;
         }
+        // Event payload definition: binds payload fields to the event
+        // name; the event participates in the machine's event list
+        // even if no transition uses it yet (event-library semantics).
+        else if (obj.type == 'Event') {
+          self.addEvent( model, obj, obj.name );
+          var machine = model.objects[obj.parentPath];
+          while (machine && machine.type &&
+                 machine.type != 'State Machine' && machine.type != 'Library') {
+            machine = model.objects[machine.parentPath];
+          }
+          if (machine) {
+            if (!machine.eventDefinitions) {
+              machine.eventDefinitions = {};
+            }
+            machine.eventDefinitions[ obj.name ] = {
+              name: obj.name,
+              fields: (obj.Field_list || []).map(function(f) {
+                return {
+                  name: f.name,
+                  type: (f.Type || '').trim(),
+                  default: (f.Default || '').trim(),
+                  // collapsed to one line: the template emits this
+                  // after a single '//', so embedded newlines would
+                  // become raw C++ in the generated header. A
+                  // trailing backslash would line-splice the comment
+                  // into the next declaration, so pad it with a space.
+                  description: (f.Description || '').trim()
+                    .replace(/\s+/g, ' ')
+                    .replace(/\\$/, '\\ '),
+                };
+              }),
+            };
+          }
+        }
         // make the state names for the variables and such
         else if (obj.type == 'State') {
           // make a substate of its parent
@@ -237,12 +285,149 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
       // make sure event names are unique and sort them
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
-        if (obj.type == 'State Machine') {
+        if (obj.type == 'State Machine' || obj.type == 'Library') {
           obj.eventNames = self.uniq( obj.eventNames ).sort();
+          // full event descriptors for the templates: name + payload
+          // fields (empty for events without an Event definition)
+          var defs = obj.eventDefinitions || {};
+          obj.events = obj.eventNames.map(function(name) {
+            var fields = (defs[name] && defs[name].fields) || [];
+            return { name: name, fields: fields, hasData: fields.length > 0 };
+          });
+          // mark each state's event infos so the generated
+          // handleEvent can bind the payload alias
+          self.markEventData( obj, defs );
+          // compute the root-variable aliases each state's generated
+          // functions bind, so guards / actions can use bare names
+          // (e.g. `someNumber < someValue`) instead of `_root->...`
+          self.markRootAliases( obj, model );
         }
       });
       // make sure all objects have convenience members
       self.makeConvenience( model );
+    },
+    // Compute, for every State in the machine, the list of root HFSM
+    // variables its generated functions alias by reference so user
+    // code (guards, actions, entry / exit / tick) can use bare names
+    // instead of `_root->name`. Best-effort: only variables the
+    // declaration parser understands are aliased; names that would
+    // collide with generated locals are skipped, as are names the
+    // state's own Declarations shadow.
+    markRootAliases: function(machine, model) {
+      var self = this;
+      if (model && !model.warnings) {
+        model.warnings = [];
+      }
+      // Identifiers the generated state-scope code references itself:
+      // an alias with one of these names would shadow the member,
+      // method, or type and break the generated implementation (e.g.
+      // aliasing `_activeState` breaks the tick() child traversal).
+      var reservedLocals = [
+        // generated locals
+        'event', 'handled', 'data',
+        // StateBase members / Root pointer
+        '_root', '_activeState', '_parentState',
+        // StateBase / generated methods called in function bodies
+        'initialize', 'entry', 'exit', 'tick', 'getTimerPeriod',
+        'handleEvent', 'makeActive', 'exitChildren', 'getActiveChild',
+        'getActiveLeaf', 'setActiveChild', 'setShallowHistory',
+        'setDeepHistory', 'setParentState', 'getParentState',
+        'getInitial', 'log',
+      ];
+      // event-derived typedef names referenced in the case blocks
+      var eventDerived = Object.create(null);
+      (machine.eventNames || []).forEach(function(n) {
+        eventDerived[n + 'Event'] = true;
+        eventDerived[n + 'EventData'] = true;
+      });
+      var isReservedIdentifier = function(name) {
+        return reservedLocals.indexOf(name) > -1 ||
+          checkModel.reservedNames.indexOf(name) > -1 ||
+          eventDerived[name] === true;
+      };
+      var allVars = declParser
+          .parseDeclarations( machine.Declarations || '' ).variables;
+      var rootVars = allVars.filter(function(v) {
+        return !isReservedIdentifier(v.name);
+      });
+      if (model) {
+        allVars.forEach(function(v) {
+          if (isReservedIdentifier(v.name)) {
+            model.warnings.push(
+              "Machine variable '" + v.name + "' matches an identifier " +
+                "used by the generated code; no bare-name alias is " +
+                "generated for it (use _root->" + v.name + ").");
+          }
+        });
+      }
+      var rootNames = rootVars.map(function(v) { return v.name; });
+      var visit = function(state) {
+        if (state.isState) {
+          var parsed = declParser
+              .parseDeclarations( state.Declarations || '' );
+          var ownNames = parsed.variables.map(function(v) { return v.name; });
+          // a state variable with the same name as a machine variable
+          // shadows it in that state's code -- legal, but surprising
+          // now that bare-name access resolves to the machine
+          // variable everywhere else
+          var shadowed = ownNames.filter(function(n) {
+            return rootNames.indexOf(n) > -1;
+          });
+          if (shadowed.length && model) {
+            model.warnings.push(
+              "State '" + (state.name || state.path) + "' (" + state.path +
+                ") declares variable(s) shadowing machine variable(s): " +
+                shadowed.join(', ') +
+                " -- bare references in this state resolve to the state's" +
+                " own variable, not the machine's.");
+          }
+          // CONSERVATIVE: a machine-variable name appearing in an
+          // UNPARSED (opaque) declaration statement may also be a
+          // shadowing member (e.g. `int count[4];`). Emitting an
+          // alias for it would silently redirect bare references from
+          // the state member to the machine member, so treat such
+          // names as shadowed too, and say so.
+          var opaqueShadowed = [];
+          parsed.opaque.forEach(function(stmt) {
+            declParser.referencedNames(stmt, rootNames).forEach(function(n) {
+              if (ownNames.indexOf(n) === -1 &&
+                  opaqueShadowed.indexOf(n) === -1) {
+                opaqueShadowed.push(n);
+              }
+            });
+          });
+          if (opaqueShadowed.length && model) {
+            model.warnings.push(
+              "State '" + (state.name || state.path) + "' (" + state.path +
+                ") has unparsed declaration(s) mentioning machine" +
+                " variable(s): " + opaqueShadowed.join(', ') +
+                " -- conservatively treated as shadowed: no bare-name" +
+                " alias is generated for them in this state (use _root->" +
+                " there if the machine variable is intended).");
+          }
+          var excluded = ownNames.concat(opaqueShadowed);
+          state.opaqueShadowedNames = opaqueShadowed;
+          state.rootAliases = rootVars.filter(function(v) {
+            return excluded.indexOf(v.name) === -1;
+          }).map(function(v) { return { name: v.name }; });
+        }
+        (state.Substates || []).forEach(visit);
+      };
+      (machine.Substates || []).forEach(visit);
+    },
+    // recursively set hasData on every InternalEvents / ExternalEvents
+    // info in the machine's substate tree
+    markEventData: function(obj, defs) {
+      var self = this;
+      ['InternalEvents', 'ExternalEvents'].forEach(function(key) {
+        (obj[key] || []).forEach(function(info) {
+          var def = defs[info.name];
+          info.hasData = !!(def && def.fields && def.fields.length);
+        });
+      });
+      (obj.Substates || []).forEach(function(s) {
+        self.markEventData( s, defs );
+      });
     },
     // MAKE CONVENIENCE FOR WHAT EVENTS ARE HANDLED BY WHICH STATES
     makeSubstate: function(obj, objDict) {
@@ -256,7 +441,11 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
     findUnhandledEvents: function(obj, objDict) {
       var self = this;
       var parent = objDict[ obj.parentPath ];
-      if (parent) {
+      // The root State Machine's UnhandledEvents is seeded with all of
+      // its event names by makeConvenience; do not recompute it from a
+      // containing Project object (whose UnhandledEvents is empty) --
+      // that silently disabled this optimization for every state.
+      if (parent && !obj.isRoot) {
         // figure out disjoint set of events
         var handledEventNames = [];
         if (obj.InternalEvents) {
@@ -288,11 +477,17 @@ define(['./checkModel', 'underscore'], function(checkModel, _) {
         }
       });
     },
+    // Guarded transitions come before the (single) unguarded
+    // transition so the generated else-if chain checks guards first.
+    // Among guarded transitions, sort by model path so generation is
+    // deterministic (model iteration order is not guaranteed).
     transitionSort: function(transA, transB) {
       var a = transA.Guard;
       var b = transB.Guard;
       if (!a && b) return 1;
       if (a && !b) return -1;
+      if (transA.path < transB.path) return -1;
+      if (transA.path > transB.path) return 1;
       return 0;
     },
     getEventInfo: function( key, obj, eventName ) {

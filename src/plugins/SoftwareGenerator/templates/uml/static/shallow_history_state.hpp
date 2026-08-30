@@ -17,7 +17,7 @@ namespace {{{namespace}}} {
     /**
      * @brief Calls _parentState->setShallowHistory().
      */
-    void                      makeActive ( ) {
+    void                      makeActive ( ) override {
       if (_parentState) {
         _parentState->setShallowHistory();
       }

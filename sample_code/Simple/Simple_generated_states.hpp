@@ -1,26 +1,32 @@
 #pragma once
 
-#include "state_base.hpp"
-#include "deep_history_state.hpp"
-#include "shallow_history_state.hpp"
-
-#include <functional>
+#include <chrono>
+#include <condition_variable>
+#include <cstddef>
 #include <deque>
-#include <string>
+#include <functional>
 #include <mutex>
+#include <string>
+#include <string_view>
+
+#include "deep_history_state.hpp"
 #include "magic_enum.hpp"
+#include "shallow_history_state.hpp"
+#include "state_base.hpp"
+
 #include "Simple_event_data.hpp"
 
 // User Includes for the HFSM
 //::::/9::::Includes::::
+#include <vector>
 
-
-namespace state_machine::Simple {
+namespace espp::state_machine::Simple {
 
     typedef std::function<void(std::string_view)> LogCallback;
 
     enum class EventType {
       INPUTEVENT,
+      Test,
     }; // ENUMS GENERATED FROM MODEL
 
     /**
@@ -30,14 +36,28 @@ namespace state_machine::Simple {
     class GeneratedEventBase : public EventBase {
     protected:
       EventType type;
-    public:
+      // protected: only the typed Event<T> subclasses may construct
+      // events, and they bind `type` to the payload type through
+      // EventTypeFor below -- so get_type() always matches the
+      // dynamic type and the generated payload downcasts are safe
       explicit GeneratedEventBase(const EventType& t) : type(t) {}
+    public:
       virtual ~GeneratedEventBase() {}
       EventType get_type() const { return type; }
       virtual std::string to_string() const {
         return std::string(magic_enum::enum_name(type));
       }
     }; // Class GeneratedEventBase
+
+    // compile-time pairing between payload structs and EventType
+    // values: a mismatched (type, payload) event is unrepresentable
+    template <typename T> struct EventTypeFor;
+    template <> struct EventTypeFor<INPUTEVENTEventData> {
+      static constexpr EventType value = EventType::INPUTEVENT;
+    };
+    template <> struct EventTypeFor<TestEventData> {
+      static constexpr EventType value = EventType::Test;
+    };
 
     /**
      * @brief Class representing all events that this HFSM can respond
@@ -47,10 +67,24 @@ namespace state_machine::Simple {
     template <typename T>
     class Event : public GeneratedEventBase {
       T data;
+      // private: only the generated EventFactory constructs events.
+      // EventTypeFor is a public trait and could be specialized for a
+      // foreign payload type, but without a way to construct such an
+      // Event the (type, payload) pairing still cannot be forged.
+      explicit Event(const T& d)
+        : GeneratedEventBase(EventTypeFor<T>::value), data(d) {}
+      friend class EventFactory;
     public:
-      explicit Event(const EventType& t, const T& d) : GeneratedEventBase(t), data(d) {}
       virtual ~Event() {}
-      T get_data() const { return data; }
+      // const reference: guards / actions bind `data` to this without
+      // copying the payload (the event outlives its handling)
+      const T &get_data() const { return data; }
+      // event name plus payload fields (payload omitted when empty)
+      std::string to_string() const override {
+        std::string payload = event_data_to_string(data);
+        return payload.empty() ? GeneratedEventBase::to_string()
+                               : GeneratedEventBase::to_string() + " " + payload;
+      }
     }; // Class Event
 
     // free the memory associated with the event
@@ -59,6 +93,7 @@ namespace state_machine::Simple {
     }
 
     typedef Event<INPUTEVENTEventData> INPUTEVENTEvent;
+    typedef Event<TestEventData> TestEvent;
 
     /**
      * @brief Class handling all Event creation, memory management, and
@@ -73,8 +108,15 @@ namespace state_machine::Simple {
       }
 
       void spawn_INPUTEVENT_event(const INPUTEVENTEventData &data) {
-        log("\033[32mSPAWN: INPUTEVENT\033[0m");
-        GeneratedEventBase *new_event = new INPUTEVENTEvent{EventType::INPUTEVENT, data};
+        GeneratedEventBase *new_event = new INPUTEVENTEvent{data};
+        log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        events_.push_back(new_event);
+        queue_cv_.notify_one();
+      }
+      void spawn_Test_event(const TestEventData &data) {
+        GeneratedEventBase *new_event = new TestEvent{data};
+        log("\033[32mSPAWN: " + new_event->to_string() + "\033[0m");
         std::lock_guard<std::mutex> lock(queue_mutex_);
         events_.push_back(new_event);
         queue_cv_.notify_one();
@@ -86,22 +128,26 @@ namespace state_machine::Simple {
         return events_.size();
       }
 
-      // Blocks until an event is available
+      // Blocks until an event is available. Uses a predicate so that
+      // spurious wakeups do not cause a return with an empty queue.
       void wait_for_events(void) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait(lock);
+        queue_cv_.wait(lock, [this] { return !events_.empty(); });
       }
 
       // Blocks until an event is available or the timeout is reached
       void sleep_until_event(float seconds) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds));
+        queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds),
+                           [this] { return !events_.empty(); });
       }
 
-      // Blocks until an event is available
+      // Blocks until an event is available, then removes and returns
+      // it. Waits and pops under a single lock so that no other
+      // consumer can drain the queue in between.
       GeneratedEventBase *get_next_event_blocking(void) {
         std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait(lock, [this]{ return events_.size() > 0; });
+        queue_cv_.wait(lock, [this] { return !events_.empty(); });
         GeneratedEventBase *ptr = events_.front();
         events_.pop_front(); // remove the event from the Q
         return ptr;
@@ -121,17 +167,25 @@ namespace state_machine::Simple {
 
       // Clears the event queue and frees all event memory
       void clear_events(void) {
-        GeneratedEventBase *ptr = get_next_event();
-        while (ptr != nullptr) {
+        // copy the queue so we can free the memory without holding the lock
+        std::deque<GeneratedEventBase*> deq_copy;
+        { std::lock_guard<std::mutex> lock(queue_mutex_);
+          deq_copy = events_;
+          events_.clear();
+        }
+        // make sure we don't hold the lock while freeing memory
+        for (auto ptr : deq_copy) {
           consume_event(ptr);
-          ptr = get_next_event();
         }
       }
 
       std::string to_string(void) {
         std::lock_guard<std::mutex> lock(queue_mutex_);
         std::string qStr = "[ ";
-        for (int i = 0; i < events_.size(); i++) {
+        for (size_t i = 0; i < events_.size(); i++) {
+          if (i > 0) {
+            qStr += ", ";
+          }
           qStr += events_[i]->to_string();
         }
         qStr += " ]";
@@ -181,12 +235,13 @@ namespace state_machine::Simple {
 
       // helper functions for spawning events into the HFSM
       void spawn_INPUTEVENT_event(const INPUTEVENTEventData &data) { event_factory.spawn_INPUTEVENT_event(data); }
+      void spawn_Test_event(const TestEventData &data) { event_factory.spawn_Test_event(data); }
 
       // Constructors
       Root() : StateBase(),
-            SIMPLE_OBJ__STATE_2_OBJ__STATE_OBJ ( this, &SIMPLE_OBJ__STATE_2_OBJ ),
+      SIMPLE_OBJ__STATE_1_OBJ ( this, this ),
+                  SIMPLE_OBJ__STATE_2_OBJ__STATE_OBJ ( this, &SIMPLE_OBJ__STATE_2_OBJ ),
                   SIMPLE_OBJ__STATE_2_OBJ ( this, this ),
-            SIMPLE_OBJ__STATE_1_OBJ ( this, this ),
             _root(this)
       {}
       ~Root(void) {}
@@ -196,7 +251,7 @@ namespace state_machine::Simple {
        *  code from the model, then sets the inital state and runs the
        *  initial transition and entry actions accordingly.
        */
-      void initialize(void);
+      void initialize(void) override;
 
       /**
        * @brief Returns true if there are any events in the event queue.
@@ -207,12 +262,17 @@ namespace state_machine::Simple {
 
       /**
        * @brief Sleeps until an event is available or the current state's timer
-       *  period expires, then returns. This will block until an event is
-       *  available. The amount of time spent sleeping is determined by the
-       *  current state's timer period.
+       *  period expires, then returns. If the current state has no
+       *  timer period (e.g. the END state), this blocks until an event
+       *  is available instead of busy-spinning on a zero timeout.
        */
       void sleep_until_event(void) {
-        event_factory.sleep_until_event(getActiveLeaf()->getTimerPeriod());
+        double period = getActiveLeaf()->getTimerPeriod();
+        if (period > 0) {
+          event_factory.sleep_until_event((float)period);
+        } else {
+          event_factory.wait_for_events();
+        }
       }
 
       /**
@@ -256,7 +316,7 @@ namespace state_machine::Simple {
        *
        * @return true if event is consumed, false otherwise
        */
-      bool handleEvent(EventBase * event) {
+      bool handleEvent(EventBase * event) override {
         return handleEvent( static_cast<GeneratedEventBase*>(event) );
       }
 
@@ -270,6 +330,33 @@ namespace state_machine::Simple {
       bool handleEvent(GeneratedEventBase * event);
 
       // Child Substates
+      // Declaration for State_1 : /9/Y
+      class State_1 : public StateBase {
+      public:
+        // User Declarations for the State
+        //::::/9/Y::::Declarations::::
+        
+      
+      public:
+        // Pointer to the root of the HFSM.
+        Root *_root;
+      
+        // Constructors
+        State_1  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
+        ~State_1 ( void ) {}
+      
+        // StateBase Interface
+        void   initialize ( void ) override;
+        void   entry ( void ) override;
+        void   exit ( void ) override;
+        void   tick ( void ) override;
+        double getTimerPeriod ( void ) override;
+        bool   handleEvent ( EventBase* event ) override {
+          return handleEvent( static_cast<GeneratedEventBase*>(event) );
+        }
+        virtual bool   handleEvent ( GeneratedEventBase* event );
+      
+      };
       // Declaration for State_2 : /9/v
       class State_2 : public StateBase {
       public:
@@ -286,12 +373,12 @@ namespace state_machine::Simple {
         ~State_2 ( void ) {}
       
         // StateBase Interface
-        void   initialize ( void );
-        void   entry ( void );
-        void   exit ( void );
-        void   tick ( void );
-        double getTimerPeriod ( void );
-        virtual bool   handleEvent ( EventBase* event ) {
+        void   initialize ( void ) override;
+        void   entry ( void ) override;
+        void   exit ( void ) override;
+        void   tick ( void ) override;
+        double getTimerPeriod ( void ) override;
+        bool   handleEvent ( EventBase* event ) override {
           return handleEvent( static_cast<GeneratedEventBase*>(event) );
         }
         virtual bool   handleEvent ( GeneratedEventBase* event );
@@ -312,54 +399,27 @@ namespace state_machine::Simple {
           ~State ( void ) {}
         
           // StateBase Interface
-          void   initialize ( void );
-          void   entry ( void );
-          void   exit ( void );
-          void   tick ( void );
-          double getTimerPeriod ( void );
-          virtual bool   handleEvent ( EventBase* event ) {
+          void   initialize ( void ) override;
+          void   entry ( void ) override;
+          void   exit ( void ) override;
+          void   tick ( void ) override;
+          double getTimerPeriod ( void ) override;
+          bool   handleEvent ( EventBase* event ) override {
             return handleEvent( static_cast<GeneratedEventBase*>(event) );
           }
           virtual bool   handleEvent ( GeneratedEventBase* event );
         
         };
       };
-      // Declaration for State_1 : /9/Y
-      class State_1 : public StateBase {
-      public:
-        // User Declarations for the State
-        //::::/9/Y::::Declarations::::
-        
-      
-      public:
-        // Pointer to the root of the HFSM.
-        Root *_root;
-      
-        // Constructors
-        State_1  ( Root* root, StateBase* parent ) : StateBase(parent), _root(root) {}
-        ~State_1 ( void ) {}
-      
-        // StateBase Interface
-        void   initialize ( void );
-        void   entry ( void );
-        void   exit ( void );
-        void   tick ( void );
-        double getTimerPeriod ( void );
-        virtual bool   handleEvent ( EventBase* event ) {
-          return handleEvent( static_cast<GeneratedEventBase*>(event) );
-        }
-        virtual bool   handleEvent ( GeneratedEventBase* event );
-      
-      };
 
       // END STATE
 
       // State Objects
+      State_1 SIMPLE_OBJ__STATE_1_OBJ;
       State_2::State SIMPLE_OBJ__STATE_2_OBJ__STATE_OBJ;
       State_2 SIMPLE_OBJ__STATE_2_OBJ;
-      State_1 SIMPLE_OBJ__STATE_1_OBJ;
       // Keep a _root for easier templating, it will point to us
       Root *_root;
     }; // class Root
 
-}; // namespace state_machine::Simple
+}; // namespace espp::state_machine::Simple

@@ -107,15 +107,17 @@ clean:
 
 .PRECIOUS : $(CPPOBJ)
 
-$(CPPOBJ) : %.o : %.cpp
+HEADERS = $(wildcard *.hpp)
+
+$(CPPOBJ) : %.o : %.cpp $(HEADERS)
 	@echo
 	@echo Compiling CPP Source: $<
-	g++ $(ALL_CFLAGS $< -o $@
+	g++ -c $(ALL_CFLAGS) $< -o $@
 
-Complex_test:
+Complex_test: $(CPPSRC) $(HEADERS)
 	@echo Compiling Complex_test
 	g++ -o Complex_test Complex_test.cpp Complex_generated_states.cpp $(ALL_CFLAGS)
-Complex_test_DEBUG:
+Complex_test_DEBUG: $(CPPSRC) $(HEADERS)
 	@echo Compiling Complex_test_DEBUG
 	g++ -o Complex_test_DEBUG Complex_test.cpp Complex_generated_states.cpp $(ALL_CFLAGS) $(DEBUG_DEFS)
 run_Complex_test: Complex_test
