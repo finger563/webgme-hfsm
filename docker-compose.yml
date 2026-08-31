@@ -19,6 +19,10 @@ services:
     ports:
       - "27017:27017"
   webgme-hfsm:
+    # build locally: without this, `docker compose up` tries to PULL
+    # `webgme-hfsm` from a registry and fails on a fresh checkout.
+    # `image:` names the image the build produces.
+    build: .
     image: webgme-hfsm
     depends_on:
       - mongo

@@ -466,7 +466,7 @@ including the checklist for public instances.
 **Local (docker compose)** -- the classic setup:
 
 ```bash
-docker compose up -d --build   # webgme-hfsm + mongo
+docker compose up -d --build   # builds the image, starts webgme + mongo
 # open http://localhost:8081
 ```
 

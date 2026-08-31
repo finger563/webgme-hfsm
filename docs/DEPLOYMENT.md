@@ -8,11 +8,16 @@ an always-on shared deployment.
 ## 1. Local: docker compose
 
 ```bash
-docker compose up -d --build   # webgme-hfsm + mongo
+docker compose up -d --build   # builds the image, starts webgme + mongo
 # open http://localhost:8081
 docker compose logs -f webgme-hfsm
 docker compose down            # add -v to also drop the database
 ```
+
+The `webgme-hfsm` service carries both `build: .` and
+`image: webgme-hfsm`, so a fresh checkout builds the image locally
+rather than trying to pull it. (`build_and_run_docker.sh` does the
+same thing by hand and predates this; compose is the simpler path.)
 
 ## 2. GitHub Codespaces / devcontainer
 

@@ -112,6 +112,21 @@ jobs:
             console.log('fallback uri ok');
           "
 
+      # the documented `docker compose up -d --build` must work on a
+      # FRESH checkout: without a build definition compose tries to
+      # PULL the image and fails for anyone who has not built it
+      - name: Base compose service builds the image locally
+        run: |
+          ctx=$(docker compose config --format json |
+                jq -r '.services["webgme-hfsm"].build.context // empty')
+          test -n "$ctx" || {
+            echo "webgme-hfsm has no build definition: 'docker compose up --build'"
+            echo "would try to PULL the image and fail on a fresh checkout"
+            exit 1
+          }
+          test -f "$ctx/Dockerfile"
+          echo "base build context: $ctx"
+
       - name: Devcontainer compose files merge and resolve
         run: |
           # relative paths in extra -f files resolve against the FIRST
