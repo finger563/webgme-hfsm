@@ -30,12 +30,6 @@ define(['q',
 
          var FormDialog;
 
-         function escapeHtml(str) {
-           return String(str === undefined || str === null ? '' : str)
-             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-             .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-         }
-
          FormDialog = function () {
            this._dialog = $(FormDialogTemplate);
            this._dialog.appendTo($(document.body));
@@ -63,19 +57,32 @@ define(['q',
 
            $(self._title).text(title || 'Edit');
            self._form.empty();
+           // Keep direct references to the inputs instead of looking
+           // them up later by a selector built from the key: keys come
+           // from the model (field names), and building '#fd_' + key
+           // would break for any key containing CSS-selector special
+           // characters. A null-prototype map because '__proto__' is a
+           // valid C++ identifier and therefore a legal field name.
+           self._inputs = Object.create(null);
            self._fields.forEach(function(f) {
-             self._form.append([
-               '<div class="formDialogRow">',
-               '<label class="formDialogLabel" for="fd_' + escapeHtml(f.key) + '">',
-               escapeHtml(f.label || f.key),
-               (f.optional ? ' <span class="formDialogOptional">(optional)</span>' : ''),
-               '</label>',
-               '<input class="formDialogInput" id="fd_' + escapeHtml(f.key) + '"',
-               ' type="text" value="' + escapeHtml(f.value) + '"',
-               ' aria-label="' + escapeHtml(f.label || f.key) + '"/>',
-               (f.hint ? '<div class="formDialogHint">' + escapeHtml(f.hint) + '</div>' : ''),
-               '</div>',
-             ].join(''));
+             var row = $('<div class="formDialogRow"></div>');
+             var label = $('<label class="formDialogLabel"></label>')
+                 .text(f.label || f.key);
+             if (f.optional) {
+               label.append($('<span class="formDialogOptional"></span>')
+                            .text(' (optional)'));
+             }
+             var input = $('<input class="formDialogInput" type="text"/>')
+                 .attr('aria-label', f.label || f.key)
+                 .val(f.value === undefined || f.value === null ? '' : f.value);
+             // clicking the label focuses its own input (no id needed)
+             label.on('click', function() { input.focus(); });
+             row.append(label).append(input);
+             if (f.hint) {
+               row.append($('<div class="formDialogHint"></div>').text(f.hint));
+             }
+             self._form.append(row);
+             self._inputs[f.key] = input;
            });
 
            self._dialog.modal({ show: false });
@@ -107,9 +114,10 @@ define(['q',
 
          FormDialog.prototype._values = function () {
            var self = this;
-           var values = {};
+           var values = Object.create(null);
            self._fields.forEach(function(f) {
-             values[f.key] = self._form.find('#fd_' + f.key).first().val();
+             var input = self._inputs[f.key];
+             values[f.key] = input ? input.val() : '';
            });
            return values;
          };
