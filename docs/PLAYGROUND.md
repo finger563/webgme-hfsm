@@ -42,6 +42,15 @@ the templates, or the page itself.
 - **Take it away**: view any file, copy it, download one, or download
   all of them.
 
+Both panes are [CodeMirror](https://codemirror.net/5/) editors, so the
+model is edited with JSON highlighting and line numbers, and generated
+files are shown highlighted by type: C++ (`.hpp` / `.cpp`), XML
+(`.scxml`), and shell (`Makefile`, an approximation — CodeMirror has
+no Makefile mode). Mermaid and PlantUML have no mode and render as
+plain text. Highlighting is strictly optional: if the editor library
+fails to load, the page falls back to a plain textarea and `<pre>` and
+generation still works.
+
 ## What it does not do (yet)
 
 - **No editing or simulation.** Those live in the WebGME visualizer,

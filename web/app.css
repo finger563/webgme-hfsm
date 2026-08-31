@@ -75,6 +75,14 @@ button.primary:hover { background: #1a7f37; }
 .filebtn { position: relative; overflow: hidden; display: inline-block; }
 .filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
 
+.editor-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 #modelInput {
     flex: 1 1 auto;
     min-height: 0;
@@ -86,6 +94,19 @@ button.primary:hover { background: #1a7f37; }
     resize: none;
     outline: none;
 }
+
+/* CodeMirror fills whichever pane it was mounted into */
+.editor-wrap .CodeMirror,
+.viewer-body .CodeMirror {
+    flex: 1 1 auto;
+    height: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.viewer-body .CodeMirror { border: 0; }
+/* read-only view: hide the blinking cursor, keep selection usable */
+.viewer-body .CodeMirror-cursors { visibility: hidden !important; }
 
 .pane-foot {
     display: flex;
@@ -180,13 +201,14 @@ button.primary:hover { background: #1a7f37; }
 .viewer-body {
     flex: 1 1 auto;
     margin: 0;
-    padding: 10px;
     overflow: auto;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 12px;
     line-height: 1.5;
     white-space: pre;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 /* the hidden attribute must win over the display below, or the

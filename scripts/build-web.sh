@@ -57,6 +57,25 @@ cp "$(find_first "$REPO_ROOT/node_modules/underscore/underscore-umd.js" \
    "$OUT/vendor/underscore-umd.js"
 say "vendor (requirejs, text, handlebars, underscore)"
 
+# CodeMirror for syntax highlighting -- editor for the model,
+# read-only views for the generated code. The directory layout is
+# preserved because the mode files resolve '../../lib/codemirror'
+# relative to themselves under AMD; flattening it would load the
+# library twice and the modes would register on the wrong copy.
+CM_SRC="$(dirname "$(find_first "$REPO_ROOT/node_modules/codemirror/lib/codemirror.js")")/.."
+mkdir -p "$OUT/vendor/codemirror/lib" \
+         "$OUT/vendor/codemirror/mode/javascript" \
+         "$OUT/vendor/codemirror/mode/clike" \
+         "$OUT/vendor/codemirror/mode/xml" \
+         "$OUT/vendor/codemirror/mode/shell"
+cp "$CM_SRC/lib/codemirror.js"  "$OUT/vendor/codemirror/lib/"
+cp "$CM_SRC/lib/codemirror.css" "$OUT/vendor/codemirror/lib/"
+cp "$CM_SRC/mode/javascript/javascript.js" "$OUT/vendor/codemirror/mode/javascript/"
+cp "$CM_SRC/mode/clike/clike.js"           "$OUT/vendor/codemirror/mode/clike/"
+cp "$CM_SRC/mode/xml/xml.js"               "$OUT/vendor/codemirror/mode/xml/"
+cp "$CM_SRC/mode/shell/shell.js"           "$OUT/vendor/codemirror/mode/shell/"
+say "codemirror (json, c++, xml, shell modes)"
+
 # 4. example models -- the same fixtures the test suite generates from,
 #    so the playground can never demo something CI does not cover
 cp "$REPO_ROOT"/test/fixtures/*.json "$OUT/examples/"

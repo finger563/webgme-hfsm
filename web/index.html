@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>HFSM Playground</title>
+<link rel="stylesheet" href="vendor/codemirror/lib/codemirror.css"/>
 <link rel="stylesheet" href="app.css"/>
 </head>
 <body>
@@ -27,9 +28,11 @@
         </label>
       </div>
     </div>
-    <textarea id="modelInput" spellcheck="false"
-              aria-label="Model JSON"
-              placeholder="Paste a model JSON here, load an example, open a file, or drop a .json file anywhere on the page."></textarea>
+    <div class="editor-wrap">
+      <textarea id="modelInput" spellcheck="false"
+                aria-label="Model JSON"
+                placeholder="Paste a model JSON here, load an example, open a file, or drop a .json file anywhere on the page."></textarea>
+    </div>
     <div class="pane-foot">
       <label class="opt">Namespace
         <input type="text" id="namespaceInput" value="state_machine" spellcheck="false"/>
@@ -60,7 +63,7 @@
             <button id="downloadBtn" type="button" disabled>Download</button>
           </span>
         </div>
-        <pre id="viewer" class="viewer-body" tabindex="0"></pre>
+        <div id="viewer" class="viewer-body" tabindex="0"></div>
       </div>
     </div>
   </section>

@@ -40,6 +40,13 @@ function must(file) {
 ['index.html', 'app.js', 'app.css',
  'vendor/require.js', 'vendor/text.js',
  'vendor/handlebars.min.js', 'vendor/underscore-umd.js',
+ // CodeMirror: the mode files resolve '../../lib/codemirror'
+ // relative to themselves, so this layout must be preserved
+ 'vendor/codemirror/lib/codemirror.js', 'vendor/codemirror/lib/codemirror.css',
+ 'vendor/codemirror/mode/javascript/javascript.js',
+ 'vendor/codemirror/mode/clike/clike.js',
+ 'vendor/codemirror/mode/xml/xml.js',
+ 'vendor/codemirror/mode/shell/shell.js',
  'src/common/resolveModel.js', 'src/common/processor.js',
  'src/common/checkModel.js', 'src/common/declParser.js',
  'src/common/exporters.js',
@@ -79,7 +86,9 @@ requirejs.config({
   paths: {
     'bower/handlebars/handlebars.min': path.join(dist, 'vendor/handlebars.min'),
     'underscore': path.join(dist, 'vendor/underscore-umd'),
-    'text': path.join(repoRoot, 'node_modules/requirejs-text/text'),
+    // from the BUILD, not node_modules: the point is to exercise the
+    // artifacts the browser will actually load
+    'text': path.join(dist, 'vendor/text'),
     'hfsm': path.join(dist, 'src/common'),
     'templates': path.join(dist, 'src/plugins/SoftwareGenerator/templates'),
   },
@@ -111,7 +120,9 @@ requirejs([
     Object.assign(artifacts, MetaTemplates.renderTestCode(model, NAMESPACE));
     Object.keys(model.objects).sort().forEach(function (p) {
       var obj = model.objects[p];
-      if (obj.type === 'State Machine') {
+      // State Machine AND Library -- hfsm-gen and web/app.js export
+      // both, so this must too or it could miss drift
+      if (obj.type === 'State Machine' || obj.type === 'Library') {
         artifacts[obj.sanitizedName + '.mmd'] = exporters.toMermaid(model, p);
         artifacts[obj.sanitizedName + '.puml'] = exporters.toPlantUML(model, p);
         artifacts[obj.sanitizedName + '.scxml'] = exporters.toSCXML(model, p);

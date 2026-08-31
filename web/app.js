@@ -26,18 +26,62 @@
       'hfsm': 'src/common',
       'templates': 'src/plugins/SoftwareGenerator/templates',
     },
+    // The default is 7s, which the generator can exceed on a slow
+    // link or a single-threaded static server: it pulls every
+    // template through the text! plugin (one request each) alongside
+    // the editor library. Exceeding it aborts the whole load even
+    // though the files arrive fine moments later. Generous but still
+    // bounded, so a genuinely missing module still reports.
+    waitSeconds: 60,
   });
+
+  var CM_ID = 'vendor/codemirror/lib/codemirror';
+  var CM_MODES = [
+    'vendor/codemirror/mode/javascript/javascript', // JSON
+    'vendor/codemirror/mode/clike/clike',           // C++
+    'vendor/codemirror/mode/xml/xml',               // SCXML
+    'vendor/codemirror/mode/shell/shell',           // Makefile (close enough)
+  ];
 
   var el = function (id) { return document.getElementById(id); };
   var mods = null;
   var artifacts = Object.create(null);
   var currentName = null;
+  var CodeMirror = null;   // null until the editor library loads
+  var modelEditor = null;  // the editable model view
+  var viewerEditor = null; // the read-only output view
 
   var EXAMPLES = [
     { label: 'Basic (two states, one event)', file: 'examples/basic.json' },
     { label: 'Features (hierarchy, history, choices)', file: 'examples/features.json' },
     { label: 'Payloads (typed event data)', file: 'examples/payloads.json' },
   ];
+
+  // the textarea remains the fallback when CodeMirror is unavailable,
+  // so every read/write of the model goes through these two
+  function getModelText() {
+    return modelEditor ? modelEditor.getValue() : el('modelInput').value;
+  }
+
+  function setModelText(text) {
+    if (modelEditor) {
+      modelEditor.setValue(text);
+    } else {
+      el('modelInput').value = text;
+    }
+  }
+
+  /** CodeMirror mode for a generated file, by extension. */
+  function modeFor(name) {
+    var ext = extensionOf(name);
+    if (ext === 'hpp' || ext === 'cpp' || ext === 'h' || ext === 'cc') {
+      return 'text/x-c++src';
+    }
+    if (ext === 'json') return 'application/json';
+    if (ext === 'scxml' || ext === 'xml') return 'application/xml';
+    if (name === 'Makefile' || name.indexOf('Makefile.') === 0) return 'text/x-sh';
+    return null; // .mmd / .puml and anything else: plain text
+  }
 
   function setStatus(text, kind) {
     var s = el('status');
@@ -108,13 +152,85 @@
   function showFile(name) {
     currentName = name;
     el('viewerName').textContent = name;
-    el('viewer').textContent = artifacts[name];
+    if (viewerEditor) {
+      viewerEditor.setOption('mode', modeFor(name));
+      viewerEditor.setValue(artifacts[name]);
+      viewerEditor.refresh();
+    } else {
+      el('viewer').textContent = artifacts[name];
+    }
     el('copyBtn').disabled = false;
     el('downloadBtn').disabled = false;
     Array.prototype.forEach.call(
       document.querySelectorAll('.filelist-item'), function (b) {
         b.classList.toggle('active', b.textContent === name);
       });
+  }
+
+  /**
+   * Copy to the clipboard.
+   *
+   * navigator.clipboard only exists in secure contexts -- https, or
+   * localhost. Serving the playground over plain http on a LAN (a
+   * perfectly normal way to host it) leaves it undefined, so calling
+   * it unconditionally would throw inside the click handler. Fall
+   * back to a selection + execCommand, and if even that is
+   * unavailable, select the text so the user can copy it themselves.
+   */
+  function copyText(text, label) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        setStatus('copied ' + label, 'ok');
+      }, function () {
+        legacyCopy(text, label);
+      });
+      return;
+    }
+    legacyCopy(text, label);
+  }
+
+  function legacyCopy(text, label) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    // keep it out of view and out of the tab order
+    ta.setAttribute('readonly', '');
+    ta.setAttribute('aria-hidden', 'true');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    var ok = false;
+    try {
+      ta.select();
+      ok = document.execCommand && document.execCommand('copy');
+    } catch (e) {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    if (ok) {
+      setStatus('copied ' + label, 'ok');
+    } else {
+      // last resort: put the text under the user's cursor
+      selectViewerText();
+      setStatus('copy unavailable here — text selected, press ' +
+                (navigator.platform.indexOf('Mac') > -1 ? '\u2318C' : 'Ctrl+C'),
+                'warn');
+    }
+  }
+
+  function selectViewerText() {
+    if (viewerEditor) {
+      viewerEditor.focus();
+      viewerEditor.execCommand('selectAll');
+      return;
+    }
+    var node = el('viewer');
+    if (!node || !window.getSelection || !document.createRange) return;
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
 
   function downloadOne(name, content) {
@@ -138,13 +254,13 @@
     artifacts = Object.create(null);
     currentName = null;
     el('fileList').textContent = '';
-    el('viewer').textContent = '';
+    if (viewerEditor) { viewerEditor.setValue(''); } else { el('viewer').textContent = ''; }
     el('viewerName').textContent = 'No file selected';
     el('copyBtn').disabled = true;
     el('downloadBtn').disabled = true;
     el('downloadAllBtn').disabled = true;
 
-    var raw = el('modelInput').value;
+    var raw = getModelText();
     if (!raw.trim()) {
       showDiagnostics(['Nothing to generate: paste or load a model first.'], 'error');
       setStatus('no model', 'error');
@@ -243,7 +359,7 @@
         if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
         return r.text();
       }).then(function (text) {
-        el('modelInput').value = text;
+        setModelText(text);
         setStatus('example loaded');
         generate();
       }).catch(function (e) {
@@ -256,7 +372,7 @@
   function readFile(file) {
     var reader = new FileReader();
     reader.onload = function () {
-      el('modelInput').value = String(reader.result);
+      setModelText(String(reader.result));
       setStatus('loaded ' + file.name);
       generate();
     };
@@ -298,11 +414,7 @@
     });
     el('copyBtn').addEventListener('click', function () {
       if (!currentName) return;
-      navigator.clipboard.writeText(artifacts[currentName]).then(function () {
-        setStatus('copied ' + currentName, 'ok');
-      }, function () {
-        setStatus('clipboard unavailable', 'warn');
-      });
+      copyText(artifacts[currentName], currentName);
     });
     el('downloadBtn').addEventListener('click', function () {
       if (currentName) downloadOne(currentName, artifacts[currentName]);
@@ -318,8 +430,51 @@
     wireDragAndDrop();
   }
 
+  /**
+   * Upgrade the plain textarea / pre into highlighted CodeMirror
+   * views. Entirely optional: if the library fails to load the app
+   * keeps working with the plain controls, so highlighting can never
+   * be the reason generation breaks.
+   */
+  function initEditors(cm) {
+    CodeMirror = cm;
+    modelEditor = CodeMirror.fromTextArea(el('modelInput'), {
+      mode: 'application/json',
+      lineNumbers: true,
+      lineWrapping: false,
+      matchBrackets: true,
+      tabSize: 2,
+      viewportMargin: 30,
+    });
+    modelEditor.setSize('100%', '100%');
+
+    viewerEditor = CodeMirror(el('viewer'), {
+      value: '',
+      mode: null,
+      lineNumbers: true,
+      lineWrapping: false,
+      readOnly: true,     // still selectable / copyable
+      viewportMargin: 30,
+    });
+    viewerEditor.setSize('100%', '100%');
+
+    // re-render what is already on screen
+    if (currentName) showFile(currentName);
+  }
+
   setStatus('loading generator…');
   wire();
+
+  requirejs([CM_ID].concat(CM_MODES), function (cm) {
+    try {
+      initEditors(cm);
+    } catch (e) {
+      // never let the editor take the app down with it
+      console.warn('CodeMirror init failed, using plain views:', e);
+    }
+  }, function (err) {
+    console.warn('CodeMirror unavailable, using plain views:', err.message);
+  });
 
   requirejs([
     'hfsm/resolveModel',
