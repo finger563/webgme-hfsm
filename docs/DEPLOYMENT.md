@@ -67,10 +67,13 @@ separate database; it defaults to `MONGO_URI`.
 
 Checklist for a public deployment:
 
-- **Authentication is off by default.** WebGME's `config.default.js`
-  runs open with a `guest` user; enable
-  `config.authentication.enable` (and set a real JWT key pair) before
-  exposing an instance to the internet.
+- **Anonymous access is on by default.** `config/config.default.js`
+  sets `config.authentication.enable = true` *and*
+  `config.authentication.allowGuests = true`, so an instance is
+  effectively open: anyone reaching it acts as the `guest` user. Set
+  `config.authentication.allowGuests = false` (and configure real
+  users plus a proper JWT key pair) before exposing an instance to
+  the internet.
 - **Persist the blob storage.** Uploaded/generated artifacts live in
   `blob-local-storage/` inside the container; mount a volume or
   configure an external blob backend so they survive redeploys.

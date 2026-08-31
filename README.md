@@ -483,9 +483,10 @@ point it at a managed database such as a free-tier MongoDB Atlas
 cluster via the `MONGO_URI` environment variable:
 
 ```bash
-NODE_ENV=docker \
-MONGO_URI='mongodb+srv://user:pass@cluster.mongodb.net/webgme_hfsm?retryWrites=true' \
-npm start
+docker run -d -p 8081:8081 \
+  -e NODE_ENV=docker \
+  -e MONGO_URI='mongodb+srv://user:pass@cluster.mongodb.net/webgme_hfsm?retryWrites=true' \
+  webgme-hfsm
 ```
 
 (`MONGO_URI_UI_RECORDING` optionally stores UI recordings in a

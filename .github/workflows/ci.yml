@@ -127,7 +127,7 @@ jobs:
       - name: Devcontainer metadata is well formed
         run: |
           # devcontainer.json permits // comments; strip them for jq
-          grep -v '^\s*//' .devcontainer/devcontainer.json > /tmp/devcontainer.json
+          grep -v '^[[:space:]]*//' .devcontainer/devcontainer.json > /tmp/devcontainer.json
           jq -e '.service == "webgme-hfsm"' /tmp/devcontainer.json > /dev/null
           jq -e '.forwardPorts | index(8081) != null' /tmp/devcontainer.json > /dev/null
           echo "devcontainer.json ok"
