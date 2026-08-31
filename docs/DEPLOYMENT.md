@@ -70,6 +70,19 @@ docker run -d -p 8081:8081 \
 `MONGO_URI_UI_RECORDING` optionally directs UI recordings to a
 separate database; it defaults to `MONGO_URI`.
 
+> **Note on the UI recorder.** `webgme-ui-replay` bundles its own
+> older MongoDB driver (2.2.x, pinned in `package-lock.json`) that
+> WebGME's main driver does not share. That version does understand
+> `mongodb+srv://` URIs -- it resolves the SRV record, defaults SSL
+> on, and reads TXT options -- and it ignores newer connection
+> options such as `retryWrites` rather than rejecting them. Still, it
+> is an old driver talking to a modern cluster, so if the recorder
+> ever fails to start against your provider (authentication
+> mechanisms are the most likely friction), point it at a plain
+> `mongodb://` database with `MONGO_URI_UI_RECORDING`, or drop the
+> `UIRecorder` component from `config/config.docker.js`. The rest of
+> the application is unaffected either way.
+
 Checklist for a public deployment:
 
 - **Anonymous access is on by default.** `config/config.default.js`

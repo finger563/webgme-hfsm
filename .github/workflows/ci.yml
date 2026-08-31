@@ -127,6 +127,56 @@ jobs:
           test -f "$ctx/Dockerfile"
           echo "base build context: $ctx"
 
+      # boot the real stack: this exercises component startup
+      # (including the UIRecorder router, which carries its own older
+      # MongoDB driver) rather than only checking config resolution
+      - name: Compose stack boots and serves
+        run: |
+          docker compose up -d --build
+          code=000
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/ || true)
+            [ "$code" = "200" ] && break
+            sleep 5
+          done
+          echo "http: $code"
+          docker compose logs webgme-hfsm > /tmp/server.log 2>&1 || true
+          test "$code" = "200" || { tail -40 /tmp/server.log; exit 1; }
+          grep -q "Server is listening" /tmp/server.log
+          # no component (e.g. UIRecorder) may fail during startup
+          if grep -niE "uirecorder.*(error|fail)" /tmp/server.log; then
+            echo "UIRecorder reported an error during startup"; exit 1
+          fi
+          docker compose down -v
+
+      # the same boot, but driven through MONGO_URI -- the variable
+      # cloud deployments set (and which UIRecorder also receives)
+      - name: Compose stack boots with MONGO_URI set
+        run: |
+          cat > /tmp/mongo-uri-override.yml <<'YAML'
+          services:
+            webgme-hfsm:
+              environment:
+                - "NODE_ENV=docker"
+                - "MONGO_URI=mongodb://mongo:27017/webgme_hfsm_citest"
+          YAML
+          docker compose -f docker-compose.yml -f /tmp/mongo-uri-override.yml up -d --build
+          code=000
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/ || true)
+            [ "$code" = "200" ] && break
+            sleep 5
+          done
+          echo "http: $code"
+          docker compose -f docker-compose.yml -f /tmp/mongo-uri-override.yml \
+            logs webgme-hfsm > /tmp/server-uri.log 2>&1 || true
+          test "$code" = "200" || { tail -40 /tmp/server-uri.log; exit 1; }
+          grep -q "webgme_hfsm_citest" /tmp/server-uri.log
+          if grep -niE "uirecorder.*(error|fail)" /tmp/server-uri.log; then
+            echo "UIRecorder reported an error during startup"; exit 1
+          fi
+          docker compose -f docker-compose.yml -f /tmp/mongo-uri-override.yml down -v
+
       - name: Devcontainer compose files merge and resolve
         run: |
           # relative paths in extra -f files resolve against the FIRST
