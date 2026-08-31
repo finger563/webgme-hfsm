@@ -1,0 +1,44 @@
+#formDialogTitle {
+    font-size: 20px;
+    margin: 0;
+}
+
+.formDialogRow {
+    margin-bottom: 10px;
+}
+
+.formDialogLabel {
+    display: block;
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.formDialogOptional {
+    font-weight: normal;
+    font-style: italic;
+    color: #888;
+}
+
+.formDialogInput {
+    width: 100%;
+    font-family: monospace;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 4px 6px;
+}
+
+.formDialogHint {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.formDialogError {
+    float: left;
+    color: #a94442;
+    font-size: 13px;
+    line-height: 34px;
+    text-align: left;
+}

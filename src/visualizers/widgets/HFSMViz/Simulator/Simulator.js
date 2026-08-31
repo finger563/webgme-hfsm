@@ -5,6 +5,7 @@
 define(['js/util',
         'q',
         './Choice',
+        './FormDialog',
         'hfsm/declParser',
         'hfsm/checkModel',
         'bower/mustache.js/mustache.min',
@@ -16,6 +17,7 @@ define(['js/util',
        function(Util,
                 Q,
                 Choice,
+                FormDialog,
                 declParser,
                 checkModel,
                 mustache,
@@ -119,9 +121,20 @@ define(['js/util',
            // so a model switch can dismiss it, and the epoch counter
            // invalidates its (stale) resolution
            self._activeChoice = null;
+           // an open add/edit form dialog, dismissed on model switch
+           self._activeDialog = null;
            self._simEpoch = 0;
            var addEventBtn = self._el.find('#addEventBtn').first();
            addEventBtn.on('click', function() { self.onAddEvent(); });
+           // when on, clicking a payload-carrying event button asks for
+           // that spawn's values instead of using the panel's directly
+           self._promptForPayload = false;
+           var promptToggle = self._el.find('#promptPayloadToggle').first();
+           promptToggle.on('change', function() {
+             self._promptForPayload = $(this).is(':checked');
+             self.log('Payload prompt ' +
+                      (self._promptForPayload ? 'enabled' : 'disabled'));
+           });
 
            // STATE INFO DISPLAY
            self._stateInfo = self._el.find('#stateInfo').first();
@@ -577,6 +590,82 @@ define(['js/util',
            return metaIds.length ? metaIds[0] : null;
          };
 
+         /**
+          * Validation shared by the add / edit dialogs. Returns an
+          * error string (kept inline in the dialog) or undefined.
+          */
+         Simulator.prototype.validateEventName = function( name ) {
+           var self = this;
+           if (!name || !name.trim()) {
+             return 'An event name is required.';
+           }
+           name = name.trim();
+           if (!isValidEventName(name)) {
+             return '"' + name + '" must be a C++ identifier and not a ' +
+               'keyword or reserved generated name.';
+           }
+           if (self.getEventDefinition(name)) {
+             return 'An Event definition named "' + name + '" already exists.';
+           }
+           // names differing only by case collide in checkModel; an
+           // EXACT match with a used (but undefined) event is fine --
+           // that is how a used event gains its payload definition
+           var lower = name.toLowerCase();
+           var clash = self.getEventNames().filter(function(e) {
+             return e && e.trim().length;
+           }).filter(function(e) {
+             return e.toLowerCase() == lower && e != name;
+           });
+           if (clash.length) {
+             return '"' + name + '" differs only by case from the existing ' +
+               'event "' + clash[0] + '"; the model checker rejects that.';
+           }
+         };
+
+         Simulator.prototype.validateFieldValues = function( def, values, fieldId ) {
+           var name = (values.name || '').trim();
+           if (!name) {
+             return 'A field name is required.';
+           }
+           if (!isValidFieldName(name)) {
+             return '"' + name + '" must be a C++ identifier, not a keyword ' +
+               'or reserved generated name, and not "data".';
+           }
+           var duplicate = def.fields.filter(function(f) {
+             return f.name == name && f.id !== fieldId;
+           });
+           if (duplicate.length) {
+             return def.name + ' already has a field named "' + name + '".';
+           }
+           if (!(values.type || '').trim()) {
+             return 'A C++ type is required.';
+           }
+         };
+
+         /**
+          * Open a form dialog, tracking it so a model switch dismisses
+          * it (see reset()).
+          */
+         Simulator.prototype.openFormDialog = function( title, fields, validate ) {
+           var self = this;
+           var epoch = self._simEpoch;
+           var dialog = new FormDialog();
+           self._activeDialog = dialog;
+           dialog.initialize( title, fields, validate );
+           dialog.show();
+           return dialog.waitForValues().then(function(values) {
+             if (self._activeDialog === dialog) {
+               self._activeDialog = null;
+             }
+             // the model was switched while this dialog was open: its
+             // target objects may be gone, so do not act on it
+             if (epoch !== self._simEpoch) {
+               return undefined;
+             }
+             return values;
+           });
+         };
+
          Simulator.prototype.onAddEvent = function() {
            var self = this;
            var machineId = self.getTopLevelId();
@@ -586,43 +675,24 @@ define(['js/util',
                    'this State Machine -- is the Event meta type installed?');
              return;
            }
-           var name = window.prompt('New event name (C++ identifier):');
-           if (!name) return;
-           name = name.trim();
-           // same rules the generator enforces (identifier syntax,
-           // C++ keywords, reserved generated names)
-           if (!isValidEventName(name)) {
-             alert('"' + name + '" is not a valid event name ' +
-                   '(must be a C++ identifier and not a keyword / reserved name)!');
-             return;
-           }
-           if (self.getEventDefinition(name)) {
-             alert('An Event definition named "' + name + '" already exists!');
-             return;
-           }
-           // names differing only by case collide in checkModel; an
-           // EXACT match with a used (but undefined) event is fine --
-           // that is how a used event gains its payload definition
-           var lower = name.toLowerCase();
-           var caseClash = self.getEventNames().filter(function(e) {
-             return e && e.trim().length;
-           }).some(function(e) {
-             return e.toLowerCase() == lower && e != name;
-           });
-           if (caseClash) {
-             alert('"' + name + '" differs only by case from an existing ' +
-                   'event name; the model checker rejects that!');
-             return;
-           }
-           self._client.startTransaction();
-           var newId = self._client.createChild({
-             parentId: machineId,
-             baseId: metaId,
-           }, 'Adding Event definition ' + name);
-           self._client.setAttribute(newId, 'name', name,
-                                     'Naming new Event ' + name);
-           self._client.completeTransaction();
-           self.log('Added Event definition: ' + name);
+           self.openFormDialog('Add event', [
+             { key: 'name', label: 'Event name', value: '',
+               hint: 'C++ identifier; matches transitions using this event' },
+           ], function(values) {
+             return self.validateEventName( values.name );
+           }).then(function(values) {
+             if (!values) return; // cancelled
+             var name = values.name.trim();
+             self._client.startTransaction();
+             var newId = self._client.createChild({
+               parentId: machineId,
+               baseId: metaId,
+             }, 'Adding Event definition ' + name);
+             self._client.setAttribute(newId, 'name', name,
+                                       'Naming new Event ' + name);
+             self._client.completeTransaction();
+             self.log('Added Event definition: ' + name);
+           }).done();
          };
 
          Simulator.prototype.onAddField = function( def ) {
@@ -633,75 +703,65 @@ define(['js/util',
                    'definitions -- is the Field meta type installed?');
              return;
            }
-           var name = window.prompt('New field name for ' + def.name +
-                                    ' (C++ identifier):');
-           if (!name) return;
-           name = name.trim();
-           if (!isValidFieldName(name)) {
-             alert('"' + name + '" is not a valid field name ' +
-                   '(must be a C++ identifier, not a keyword / reserved name, not data)!');
-             return;
-           }
-           if (def.fields.some(function(f) { return f.name == name; })) {
-             alert(def.name + ' already has a field named "' + name + '"!');
-             return;
-           }
-           var type = window.prompt('C++ type for ' + name + ':', 'int');
-           if (!type || !type.trim()) return;
-           var dflt = window.prompt('Default value for ' + name +
-                                    ' (optional):', '');
-           if (dflt === null) return; // Cancel must not mutate the model
-           self._client.startTransaction();
-           var newId = self._client.createChild({
-             parentId: def.id,
-             baseId: metaId,
-           }, 'Adding Field ' + name);
-           self._client.setAttribute(newId, 'name', name);
-           self._client.setAttribute(newId, 'Type', type.trim());
-           if (dflt && dflt.trim()) {
-             self._client.setAttribute(newId, 'Default', dflt.trim());
-           }
-           self._client.completeTransaction();
-           self.log('Added Field ' + def.name + '.' + name +
-                    ' : ' + type.trim());
+           self.openFormDialog('Add field to ' + def.name, [
+             { key: 'name', label: 'Field name', value: '',
+               hint: 'available in guards / actions as data.<name>' },
+             { key: 'type', label: 'C++ type', value: 'int' },
+             { key: 'default', label: 'Default value', value: '',
+               optional: true, hint: 'initializer expression, e.g. 0 or "idle"' },
+           ], function(values) {
+             return self.validateFieldValues( def, values );
+           }).then(function(values) {
+             if (!values) return; // cancelled
+             var name = values.name.trim();
+             var type = values.type.trim();
+             var dflt = (values.default || '').trim();
+             self._client.startTransaction();
+             var newId = self._client.createChild({
+               parentId: def.id,
+               baseId: metaId,
+             }, 'Adding Field ' + name);
+             self._client.setAttribute(newId, 'name', name);
+             self._client.setAttribute(newId, 'Type', type);
+             if (dflt) {
+               self._client.setAttribute(newId, 'Default', dflt);
+             }
+             self._client.completeTransaction();
+             self.log('Added Field ' + def.name + '.' + name + ' : ' + type);
+           }).done();
          };
 
          Simulator.prototype.onEditField = function( def, field ) {
            var self = this;
-           var name = window.prompt('Field name:', field.name);
-           if (!name) return;
-           name = name.trim();
-           if (!isValidFieldName(name)) {
-             alert('"' + name + '" is not a valid field name ' +
-                   '(must be a C++ identifier, not a keyword / reserved name, not data)!');
-             return;
-           }
-           // renaming to an existing sibling field would create a
-           // model the generator rejects
-           var duplicate = def.fields.some(function(f) {
-             return f.name == name && f.id != field.id;
-           });
-           if (duplicate) {
-             alert(def.name + ' already has a field named "' + name + '"!');
-             return;
-           }
-           var type = window.prompt('C++ type:', field.type);
-           if (!type || !type.trim()) return;
-           var dflt = window.prompt('Default value (empty for none):',
-                                    field.default);
-           if (dflt === null) return;
-           self._client.startTransaction();
-           if (name != field.name) {
-             self._client.setAttribute(field.id, 'name', name);
-           }
-           if (type.trim() != field.type) {
-             self._client.setAttribute(field.id, 'Type', type.trim());
-           }
-           if (dflt.trim() != field.default) {
-             self._client.setAttribute(field.id, 'Default', dflt.trim());
-           }
-           self._client.completeTransaction();
-           self.log('Updated Field ' + def.name + '.' + name);
+           self.openFormDialog('Edit ' + def.name + '.' + field.name, [
+             { key: 'name', label: 'Field name', value: field.name },
+             { key: 'type', label: 'C++ type', value: field.type },
+             { key: 'default', label: 'Default value', value: field.default,
+               optional: true },
+           ], function(values) {
+             return self.validateFieldValues( def, values, field.id );
+           }).then(function(values) {
+             if (!values) return; // cancelled
+             var name = values.name.trim();
+             var type = values.type.trim();
+             var dflt = (values.default || '').trim();
+             if (name === field.name && type === field.type &&
+                 dflt === field.default) {
+               return; // nothing changed: no transaction, no log noise
+             }
+             self._client.startTransaction();
+             if (name !== field.name) {
+               self._client.setAttribute(field.id, 'name', name);
+             }
+             if (type !== field.type) {
+               self._client.setAttribute(field.id, 'Type', type);
+             }
+             if (dflt !== field.default) {
+               self._client.setAttribute(field.id, 'Default', dflt);
+             }
+             self._client.completeTransaction();
+             self.log('Updated Field ' + def.name + '.' + name);
+           }).done();
          };
 
          /**
@@ -721,6 +781,10 @@ define(['js/util',
            if (self._activeChoice) {
              try { self._activeChoice.dismiss(); } catch (e) { /* gone */ }
              self._activeChoice = null;
+           }
+           if (self._activeDialog) {
+             try { self._activeDialog.dismiss(); } catch (e) { /* gone */ }
+             self._activeDialog = null;
            }
            self._variableValues = null;
            self._machineVariables = Object.create(null);
@@ -1731,10 +1795,69 @@ define(['js/util',
            }
            else {
              self.updateActiveState();
-             if (self._activeState) {
+             if (!self._activeState) {
+               return;
+             }
+             // events carrying a payload can be spawned with per-spawn
+             // values (pre-filled from the Events panel) when the
+             // "prompt for payload" toggle is on; otherwise the panel
+             // values are used as-is
+             var def = self.getEventDefinition( eventName );
+             if (self._promptForPayload && def && def.fields.length) {
+               self.promptForPayload( def ).then(function(accepted) {
+                 if (!accepted) return; // cancelled: do not spawn
+                 self.updateActiveState();
+                 if (self._activeState) {
+                   self.handleEvent( eventName, self._activeState.id );
+                 }
+               }).done();
+             } else {
                self.handleEvent( eventName, self._activeState.id );
              }
            }
+         };
+
+         /**
+          * Ask for this spawn's payload values, pre-filled from the
+          * Events panel. Accepted values are written back to the panel
+          * (so they persist as the new defaults for the next spawn,
+          * matching how the panel already behaves).
+          *
+          * @return {Promise<boolean>} false when cancelled
+          */
+         Simulator.prototype.promptForPayload = function( def ) {
+           var self = this;
+           var stored = (self._eventFieldValues || {})[def.name] || {};
+           var fields = def.fields.map(function(f) {
+             var v = Object.prototype.hasOwnProperty.call(stored, f.name) ?
+                 stored[f.name] : f.default;
+             return {
+               key: f.name,
+               label: f.name + ' : ' + f.type,
+               value: v,
+               optional: true,
+               hint: f.description || undefined,
+             };
+           });
+           return self.openFormDialog('Spawn ' + def.name, fields)
+             .then(function(values) {
+               if (!values) return false;
+               if (!self._eventFieldValues) {
+                 self._eventFieldValues = Object.create(null);
+               }
+               if (!self._eventFieldValues[def.name]) {
+                 self._eventFieldValues[def.name] = Object.create(null);
+               }
+               Object.keys(values).forEach(function(k) {
+                 self._eventFieldValues[def.name][k] = values[k];
+               });
+               self.updateEventDefsPanel();
+               var shown = def.fields.map(function(f) {
+                 return f.name + '=' + values[f.name];
+               }).join(', ');
+               self.log('PAYLOAD: ' + def.name + ' { ' + shown + ' }');
+               return true;
+             });
          };
 
          Simulator.prototype.onShowEventButtonClick = function (e) {
