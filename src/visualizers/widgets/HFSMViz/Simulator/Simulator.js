@@ -1556,7 +1556,7 @@ define(['js/util',
              }
              var id = $(el).attr('id');
              if (id) {
-               WebGMEGlobal.State.registerActiveSelection([id]);
+               self._backend.setActiveSelection([id], self);
                e.stopPropagation();
                e.preventDefault();
              }
@@ -1575,7 +1575,7 @@ define(['js/util',
              }
              var id = $(el).attr('id');
              if (id) {
-               WebGMEGlobal.State.registerActiveSelection([id]);
+               self._backend.setActiveSelection([id], self);
              }
            }
          };

@@ -60,22 +60,27 @@ define(['js/util',
 
            /**
             * Initialize Dialog
-            * @param  {Object}     nodeDesc       Descriptor for the node that will be the parent
-            * @param  {Object}     client         Client object for creating nodes and setting attributes
+            * @param  {Object}     desc           Descriptor for the node that will be the parent
+            * @param  {Object}     backend        ModelBackend used to read the creatable
+            *                                     child types and to create the child
             * @return {void}
             */
-           Dialog.prototype.initialize = function ( desc, client, position) {
+           Dialog.prototype.initialize = function ( desc, backend, position) {
                var self = this;
-               self.client = client;
+               self.backend = backend;
 
                // Initialize Modal and append it to main DOM
                this._dialog.modal({ show: false});
 
                // add children types to selector
                this._childSelector.on('change', this.selectChild.bind(this));
-               this._childTypes = {};
-               this._childTypes = self.getValidChildrenTypes( desc, client );
-               var typeNames = Object.keys(this._childTypes).sort().reverse();
+               this._schemas = {};
+               backend.getChildTypeSchemas( desc.id ).forEach(function( schema ) {
+                   if ( !schema.isConnection &&
+                        ignoreTypes.indexOf( schema.name ) == -1 )
+                       self._schemas[ schema.name ] = schema;
+               });
+               var typeNames = Object.keys(this._schemas).sort().reverse();
                typeNames.map(function(t) {
                    $(self._childSelector).append(new Option(t, t));
                });
@@ -84,33 +89,29 @@ define(['js/util',
 
                // Event listener on click for SAVE button
                this._btnSave.on('click', function (event) {
-                   // Invoke callback to deal with modified text, like save it in client.
                    var attr = self.getAttributesFromForm();
-
-                   client.startTransaction();
                    var type = self.getSelectedChildType();
-                   var childCreationParams = {
-                       parentId: desc.id,
-                       baseId:   self.getSelectedChildMetaId(),
-                       position: position,
-                   };
                    var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
-                   var newChildPath = client.createChild( childCreationParams, msg );
-                   // save node data here dependent on the type of node
-                   Object.keys(attr).map(function( attrName ) {
-                       var attrVal = attr[attrName];
-                       var currentAttr = client.getNode(newChildPath).getAttribute(attrName);
-                       if (attrVal != currentAttr) {
-                           msg = 'Setting "'+attrName+'" to "'+attrVal+'"';
-                           client.setAttribute( newChildPath, attrName, attrVal, msg );
-                       }
+
+                   // the child and its attributes are one edit: a
+                   // half-configured node should never be a state the
+                   // user can land on by undoing
+                   var newChildPath = backend.transact(msg, function () {
+                       var childPath = backend.createChild( desc.id, type,
+                                                            { position: position } );
+                       Object.keys(attr).map(function( attrName ) {
+                           var attrVal = attr[attrName];
+                           // only write what the form actually changed,
+                           // so untouched fields keep inheriting
+                           if (attrVal != backend.getAttribute(childPath, attrName)) {
+                               backend.setAttribute( childPath, attrName, attrVal );
+                           }
+                       });
+                       return childPath;
                    });
-                   client.completeTransaction('', function(err, result) {
-                       if (err) {
-                       } else {
-                           WebGMEGlobal.State.registerActiveSelection([newChildPath], {invoker: this});
-                       }
-                   });
+                   if (newChildPath) {
+                       backend.setActiveSelection([newChildPath], self);
+                   }
 
                    // Close dialog
                    self._dialog.modal({ show: false});
@@ -157,14 +158,9 @@ define(['js/util',
                return $(self._childSelector).val();
            };
 
-           Dialog.prototype.getSelectedChildMetaId = function () {
+           Dialog.prototype.getCurrentSchema = function() {
                var self = this;
-               return self._childTypes[ self.getSelectedChildType() ];
-           };
-
-           Dialog.prototype.getCurrentMetaNode = function() {
-               var self = this;
-               return self.client.getNode( self.getSelectedChildMetaId() );
+               return self._schemas[ self.getSelectedChildType() ];
            };
 
            Dialog.prototype.selectChild = function (event) {
@@ -180,39 +176,18 @@ define(['js/util',
                self._attrForm.append( self.getForm() );
            };
 
-           Dialog.prototype.getValidChildrenTypes = function( desc, client ) {
-               var node = client.getNode( desc.id );
-               var validChildTypes = {};
-
-               // figure out what the allowable range is
-               var validChildren = node.getValidChildrenTypesDetailed( );
-               Object.keys( validChildren ).map(function( metaId ) {
-                   var child = client.getNode( metaId );
-                   var childType = child.getAttribute('name');
-                   var canCreateMore = validChildren[ metaId ];
-                   if ( canCreateMore &&
-                        !child.isAbstract() &&
-                        !child.isConnection() &&
-                        ignoreTypes.indexOf( childType ) == -1 )
-                       validChildTypes[ childType ] = metaId;
-               });
-
-               return validChildTypes;
-           };
-
            // ATTRIBUTE RELATED FUNCTIONS
 
-           Dialog.prototype.getCurrentAttributeNames = function () {
-               var self = this;
-               return self.getCurrentMetaNode().getAttributeNames().sort();
+           Dialog.prototype.getCurrentAttributes = function () {
+               var schema = this.getCurrentSchema();
+               return (schema && schema.attributes) || [];
            };
 
            Dialog.prototype.getForm = function ( ) {
                var self = this;
                var form = '';
-               var node = self.getCurrentMetaNode();
-               self.getCurrentAttributeNames().map( function(a) {
-                   form += self.renderAttributeForm( a, node.getAttributeMeta(a).type );
+               self.getCurrentAttributes().map( function(a) {
+                   form += self.renderAttributeForm( a.name, a.type );
                });
                return form;
            };
@@ -228,7 +203,8 @@ define(['js/util',
            Dialog.prototype.getAttributesFromForm = function () {
                var self = this;
                var attr = {};
-               self.getCurrentAttributeNames().map(function(a) {
+               self.getCurrentAttributes().map(function(schemaAttr) {
+                   var a = schemaAttr.name;
                    var el = $(self._dialog).find('#'+attrToID(a)).first();
                    var type = el.type || (el[0] && el[0].type);
                    var val = valueMap[type] ? valueMap[type](el) : el.val();

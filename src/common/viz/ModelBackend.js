@@ -33,22 +33,59 @@
  * `type` being the resolved meta-type NAME is what lets consumers
  * avoid meta lookups entirely on read paths.
  *
+ * getNodeInfo(id) vs getNode(id)
+ * -----------------------------
+ * `getNode` returns a descriptor from what the view currently holds.
+ * `getNodeInfo` answers `{id, name, type, typeId}` for ANY id the store
+ * knows -- including nodes outside the view, such as the palette
+ * entries WebGME's part browser drags in. Drag-and-drop needs the
+ * latter; everything else should prefer the former.
+ *
+ * `typeId` is an opaque token identifying the type itself -- the same
+ * token `getValidChildTypes` maps a type NAME onto. Backends whose
+ * types are just names may return the name; the only requirement is
+ * that the two agree, so a dragged node can be matched against what
+ * its would-be parent accepts.
+ *
+ * getChildTypeSchemas(parentId)
+ * ----------------------------
+ * Everything a "create a child here" form needs, in one read:
+ *
+ *   [{ name, typeId, isConnection,
+ *      attributes: [{ name, type }] }]
+ *
+ * The dialog decides what to show from this; it never sees a meta
+ * node. `type` is the attribute's declared type ('string', 'boolean',
+ * 'float', ...) so a form can pick an input widget for it.
+ *
+ * getAttribute(id, name) reads one attribute off a node -- the escape
+ * hatch for the few callers that need a value the descriptors do not
+ * carry (e.g. comparing a form field against what a node already has
+ * before writing it).
+ *
  * MUTATIONS
  * ---------
  * Every change goes through `transact(message, fn)`. The backend is
  * free to batch the calls made inside `fn` into one undoable unit
  * (WebGME does; a local backend can emit a single change event).
  * Backends must apply either all of the operations or none.
+ *
+ * `createInstances` exists because WebGME can create a node that
+ * INHERITS from an existing one. A store without prototypal
+ * inheritance may implement it as a deep copy -- callers must not
+ * assume the result stays linked to its base.
  */
 define([], function () {
   'use strict';
 
   var REQUIRED = [
     // reads
-    'getNode', 'getChildren', 'getValidChildTypes', 'isReadOnly',
+    'getNode', 'getChildren', 'getNodeInfo', 'getValidChildTypes',
+    'getValidConnectionTypes', 'getChildTypeSchemas', 'getAttribute',
+    'isReadOnly',
     // mutations
-    'transact', 'createChild', 'setAttribute', 'setPointer',
-    'setPosition', 'deleteNodes', 'moveNodes', 'copyNodes',
+    'transact', 'createChild', 'createInstances', 'setAttribute',
+    'setPointer', 'setPosition', 'deleteNodes', 'moveNodes', 'copyNodes',
     // selection
     'setActiveSelection',
   ];
