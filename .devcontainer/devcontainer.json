@@ -1,0 +1,23 @@
+{
+  "name": "webgme-hfsm",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "docker-compose.devcontainer.yml"
+  ],
+  "service": "webgme-hfsm",
+  "workspaceFolder": "/usr/app",
+  "forwardPorts": [8081],
+  "portsAttributes": {
+    "8081": {
+      "label": "WebGME-HFSM",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "postStartCommand": "bash -c 'nohup npm start > /tmp/webgme-hfsm.log 2>&1 &'",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint"]
+    }
+  }
+}

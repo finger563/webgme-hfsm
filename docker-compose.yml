@@ -10,7 +10,6 @@
 #  $ docker-compose stop
 # To clean up containers/images/networks:
 #  $ docker system prune
-version: '3'
 services:
   mongo:
     image: mongo

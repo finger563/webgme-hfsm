@@ -71,6 +71,67 @@ jobs:
           printf '1\n' | with_timeout 10 sample_code/Medium/Medium_test_DEBUG
           printf '1\n2\n0\n' | with_timeout 10 sample_code/Complex/Complex_test_DEBUG
 
+  deployment-config:
+    name: Deployment config and devcontainer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # config.docker.js is loaded by webgme's config validator, so a
+      # broken deployment config fails here rather than at deploy time
+      - name: Install config dependencies
+        run: npm install --no-save --no-package-lock --ignore-scripts webgme
+
+      - name: MONGO_URI is honored (cloud / Atlas deployments)
+        env:
+          NODE_ENV: docker
+          MONGO_URI: "mongodb+srv://user:pass@cluster.example.mongodb.net/webgme_hfsm?retryWrites=true"
+        run: |
+          node -e "
+            var c = require('./config');
+            var expected = process.env.MONGO_URI;
+            if (c.mongo.uri !== expected) {
+              throw new Error('MONGO_URI ignored: ' + c.mongo.uri);
+            }
+            console.log('mongo.uri honors MONGO_URI');
+          "
+
+      - name: Falls back to the compose service hostname
+        env:
+          NODE_ENV: docker
+        run: |
+          node -e "
+            var c = require('./config');
+            if (c.mongo.uri !== 'mongodb://mongo:27017/webgme_hfsm') {
+              throw new Error('unexpected fallback uri: ' + c.mongo.uri);
+            }
+            console.log('fallback uri ok');
+          "
+
+      - name: Devcontainer compose files merge and resolve
+        run: |
+          # relative paths in extra -f files resolve against the FIRST
+          # file's directory (a common footgun): assert the build
+          # context still lands inside the repo
+          ctx=$(docker compose -f docker-compose.yml \
+                  -f .devcontainer/docker-compose.devcontainer.yml \
+                  config --format json |
+                jq -r '.services["webgme-hfsm"].build.context')
+          echo "build context: $ctx"
+          test -f "$ctx/Dockerfile"
+
+      - name: Devcontainer metadata is well formed
+        run: |
+          # devcontainer.json permits // comments; strip them for jq
+          grep -v '^\s*//' .devcontainer/devcontainer.json > /tmp/devcontainer.json
+          jq -e '.service == "webgme-hfsm"' /tmp/devcontainer.json > /dev/null
+          jq -e '.forwardPorts | index(8081) != null' /tmp/devcontainer.json > /dev/null
+          echo "devcontainer.json ok"
+
   regen-simple:
     name: Simple sample regenerates from its model (no drift)
     runs-on: ubuntu-latest
