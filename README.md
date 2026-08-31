@@ -27,6 +27,7 @@ the UML State Machine specification, see [Wikipedia UML State Machine](https://e
     - [Code Generation](#code-generation)
         - [Standalone CLI Generation (no WebGME server)](#standalone-cli-generation-no-webgme-server)
         - [Test Bench Code](#test-bench-code)
+- [Playground (no install)](#playground-no-install)
 - [Deployment](#deployment)
 - [Validation & Testing](#validation--testing)
 - [Use Cases](#use-cases)
@@ -456,10 +457,33 @@ Finished
 
 </p></details>
 
+## Playground (no install)
+
+For turning a model into code without running a server at all, the
+repo ships a **static web playground**: load a model, validate it,
+generate the C++ (and Mermaid / PlantUML / SCXML), and download the
+result — entirely in the browser. No database, no authentication, no
+accounts, and it works offline.
+
+```bash
+npm run web    # build + serve on http://localhost:8080
+```
+
+It is also published to GitHub Pages on every push to `main`. It runs
+the *same* generator modules as the CLI and the WebGME plugin (copied
+into the build verbatim, with CI asserting the output stays
+byte-identical to the goldens), so what you get in the browser is
+what you get from `hfsm-gen`.
+
+It does not do modeling or simulation — those still need the WebGME
+editor below. See [docs/PLAYGROUND.md](docs/PLAYGROUND.md).
+
 ## Deployment
 
-GitHub Pages cannot host the server (WebGME needs Node.js +
-websockets and a MongoDB); these options can. See
+GitHub Pages cannot host the *editor* (WebGME needs Node.js +
+websockets and a MongoDB) — though it does host the
+[playground](#playground-no-install). For the full editor, these
+options work. See
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full guide,
 including the checklist for public instances.
 

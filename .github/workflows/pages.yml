@@ -1,0 +1,71 @@
+name: Deploy playground to GitHub Pages
+
+# The WebGME editor itself cannot run on Pages (it needs Node and
+# MongoDB -- see docs/DEPLOYMENT.md). The static playground can: it
+# runs the model checker, code generator and exporters entirely in the
+# browser.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'src/common/**'
+      - 'src/plugins/SoftwareGenerator/templates/**'
+      - 'test/fixtures/**'
+      - 'scripts/build-web.sh'
+      # the verifier gates publication, so a fix to it must be able to
+      # rerun a failed deploy
+      - 'scripts/verify-web-build.js'
+      # dependency versions decide which CodeMirror / RequireJS /
+      # handlebars / underscore actually get vendored
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# never cancel a half-finished deploy, but only one at a time
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install generator dependencies
+        run: >
+          npm install --no-save --no-package-lock --ignore-scripts
+          requirejs requirejs-text handlebars underscore
+
+      - name: Build the playground
+        run: ./scripts/build-web.sh
+
+      # do not publish something that has drifted from the CLI
+      - name: Verify the build
+        run: node scripts/verify-web-build.js
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

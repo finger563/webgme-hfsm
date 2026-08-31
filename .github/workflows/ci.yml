@@ -197,6 +197,36 @@ jobs:
           jq -e '.forwardPorts | index(8081) != null' /tmp/devcontainer.json > /dev/null
           echo "devcontainer.json ok"
 
+  web-playground:
+    name: Static playground builds and matches the CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install generator dependencies
+        run: >
+          npm install --no-save --no-package-lock --ignore-scripts
+          requirejs requirejs-text handlebars underscore
+
+      - name: Build the playground
+        run: ./scripts/build-web.sh
+
+      # asserts the build is self-contained (no CDN assets) and that
+      # the generator copied into it reproduces the goldens byte for
+      # byte -- i.e. the playground cannot drift from the CLI
+      - name: Verify the build
+        run: node scripts/verify-web-build.js
+
+      - name: Upload the playground
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfsm-playground
+          path: dist/web
+
   regen-simple:
     name: Simple sample regenerates from its model (no drift)
     runs-on: ubuntu-latest
