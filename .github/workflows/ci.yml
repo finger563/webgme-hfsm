@@ -71,6 +71,132 @@ jobs:
           printf '1\n' | with_timeout 10 sample_code/Medium/Medium_test_DEBUG
           printf '1\n2\n0\n' | with_timeout 10 sample_code/Complex/Complex_test_DEBUG
 
+  deployment-config:
+    name: Deployment config and devcontainer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # config.docker.js is loaded by webgme's config validator, so a
+      # broken deployment config fails here rather than at deploy time
+      - name: Install config dependencies
+        run: npm install --no-save --no-package-lock --ignore-scripts webgme
+
+      - name: MONGO_URI is honored (cloud / Atlas deployments)
+        env:
+          NODE_ENV: docker
+          MONGO_URI: "mongodb+srv://user:pass@cluster.example.mongodb.net/webgme_hfsm?retryWrites=true"
+        run: |
+          node -e "
+            var c = require('./config');
+            var expected = process.env.MONGO_URI;
+            if (c.mongo.uri !== expected) {
+              throw new Error('MONGO_URI ignored: ' + c.mongo.uri);
+            }
+            console.log('mongo.uri honors MONGO_URI');
+          "
+
+      - name: Falls back to the compose service hostname
+        env:
+          NODE_ENV: docker
+        run: |
+          node -e "
+            var c = require('./config');
+            if (c.mongo.uri !== 'mongodb://mongo:27017/webgme_hfsm') {
+              throw new Error('unexpected fallback uri: ' + c.mongo.uri);
+            }
+            console.log('fallback uri ok');
+          "
+
+      # the documented `docker compose up -d --build` must work on a
+      # FRESH checkout: without a build definition compose tries to
+      # PULL the image and fails for anyone who has not built it
+      - name: Base compose service builds the image locally
+        run: |
+          ctx=$(docker compose config --format json |
+                jq -r '.services["webgme-hfsm"].build.context // empty')
+          test -n "$ctx" || {
+            echo "webgme-hfsm has no build definition: 'docker compose up --build'"
+            echo "would try to PULL the image and fail on a fresh checkout"
+            exit 1
+          }
+          test -f "$ctx/Dockerfile"
+          echo "base build context: $ctx"
+
+      # boot the real stack: this exercises component startup
+      # (including the UIRecorder router, which carries its own older
+      # MongoDB driver) rather than only checking config resolution
+      - name: Compose stack boots and serves
+        run: |
+          docker compose up -d --build
+          code=000
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/ || true)
+            [ "$code" = "200" ] && break
+            sleep 5
+          done
+          echo "http: $code"
+          docker compose logs webgme-hfsm > /tmp/server.log 2>&1 || true
+          test "$code" = "200" || { tail -40 /tmp/server.log; exit 1; }
+          grep -q "Server is listening" /tmp/server.log
+          # no component (e.g. UIRecorder) may fail during startup
+          if grep -niE "uirecorder.*(error|fail)" /tmp/server.log; then
+            echo "UIRecorder reported an error during startup"; exit 1
+          fi
+          docker compose down -v
+
+      # the same boot, but driven through MONGO_URI -- the variable
+      # cloud deployments set (and which UIRecorder also receives)
+      - name: Compose stack boots with MONGO_URI set
+        run: |
+          cat > /tmp/mongo-uri-override.yml <<'YAML'
+          services:
+            webgme-hfsm:
+              environment:
+                - "NODE_ENV=docker"
+                - "MONGO_URI=mongodb://mongo:27017/webgme_hfsm_citest"
+          YAML
+          docker compose -f docker-compose.yml -f /tmp/mongo-uri-override.yml up -d --build
+          code=000
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/ || true)
+            [ "$code" = "200" ] && break
+            sleep 5
+          done
+          echo "http: $code"
+          docker compose -f docker-compose.yml -f /tmp/mongo-uri-override.yml \
+            logs webgme-hfsm > /tmp/server-uri.log 2>&1 || true
+          test "$code" = "200" || { tail -40 /tmp/server-uri.log; exit 1; }
+          grep -q "webgme_hfsm_citest" /tmp/server-uri.log
+          if grep -niE "uirecorder.*(error|fail)" /tmp/server-uri.log; then
+            echo "UIRecorder reported an error during startup"; exit 1
+          fi
+          docker compose -f docker-compose.yml -f /tmp/mongo-uri-override.yml down -v
+
+      - name: Devcontainer compose files merge and resolve
+        run: |
+          # relative paths in extra -f files resolve against the FIRST
+          # file's directory (a common footgun): assert the build
+          # context still lands inside the repo
+          ctx=$(docker compose -f docker-compose.yml \
+                  -f .devcontainer/docker-compose.devcontainer.yml \
+                  config --format json |
+                jq -r '.services["webgme-hfsm"].build.context')
+          echo "build context: $ctx"
+          test -f "$ctx/Dockerfile"
+
+      - name: Devcontainer metadata is well formed
+        run: |
+          # devcontainer.json permits // comments; strip them for jq
+          grep -v '^[[:space:]]*//' .devcontainer/devcontainer.json > /tmp/devcontainer.json
+          jq -e '.service == "webgme-hfsm"' /tmp/devcontainer.json > /dev/null
+          jq -e '.forwardPorts | index(8081) != null' /tmp/devcontainer.json > /dev/null
+          echo "devcontainer.json ok"
+
   regen-simple:
     name: Simple sample regenerates from its model (no drift)
     runs-on: ubuntu-latest

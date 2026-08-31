@@ -25,7 +25,11 @@ the UML State Machine specification, see [Wikipedia UML State Machine](https://e
     - [Creating a HFSM](#creating-a-hfsm)
     - [Simulating a HFSM](#simulating-a-hfsm)
     - [Code Generation](#code-generation)
+        - [Standalone CLI Generation (no WebGME server)](#standalone-cli-generation-no-webgme-server)
         - [Test Bench Code](#test-bench-code)
+- [Deployment](#deployment)
+- [Validation & Testing](#validation--testing)
+- [Use Cases](#use-cases)
 - [Examples](#examples)
 
 <!-- markdown-toc end -->
@@ -57,11 +61,33 @@ the UML State Machine specification, see [Wikipedia UML State Machine](https://e
   * User can select which guards are true when transitions have guards
   * Currently active state tree branch shown including all event actions
   * Simulator informs the user if the model is not well formed
+* **Typed event payloads**: `Event` definitions with typed `Field`s,
+  available to guards and transition actions as `data.<field>` in
+  both the simulator and the generated code
+* **Direct variable access** in guards / actions / state code:
+  `someNumber < someValue` instead of `_root->someNumber <
+  _root->someValue` (zero-cost generated aliases; both spellings
+  work), with warnings when state declarations shadow machine
+  variables
+* Simulator **Variables and Events panels**: inspect and edit the
+  machine's variables and simulated event payload values while
+  stepping the model; guard prompts show the current values the
+  guards reference
 * In-model **collaborative code attribute editing** for the HFSM (using [the CodeEditor](https://github.com/finger563/webgme-codeeditor))
 * Model transformation plugin to produce executable **C++** code from
   the HFSM (*with more languages coming soon*!)
   * Disabled transitions are not generated
-  * Model is checked before being generated
+  * Model is checked before being generated (with extensive
+    validation and non-fatal warnings; see
+    [docs/VALIDATION.md](docs/VALIDATION.md))
+* **Standalone CLI** (`hfsm-gen`) running the same pipeline without a
+  WebGME server -- for CI, scripting, and testing (see
+  [docs/CLI.md](docs/CLI.md))
+* **Interop exports**: Mermaid, PlantUML, and SCXML per state machine
+* Precisely documented **execution semantics** shared by the
+  simulator and the generated code
+  ([docs/SEMANTICS.md](docs/SEMANTICS.md)), enforced in CI by golden
+  generation diffs, sanitizer builds, and execution-trace checks
 
 ## Description
 
@@ -429,6 +455,72 @@ Finished
 ```
 
 </p></details>
+
+## Deployment
+
+GitHub Pages cannot host the server (WebGME needs Node.js +
+websockets and a MongoDB); these options can. See
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full guide,
+including the checklist for public instances.
+
+**Local (docker compose)** -- the classic setup:
+
+```bash
+docker compose up -d --build   # builds the image, starts webgme + mongo
+# open http://localhost:8081
+```
+
+**GitHub Codespaces / devcontainer (one-click, zero infra)** -- the
+repo ships a [devcontainer](.devcontainer/) that builds the image,
+starts mongo, installs dependencies, and launches the server with
+port 8081 forwarded. Open the repo in a Codespace (or "Reopen in
+Container" locally) and the app comes up automatically (server logs
+in `/tmp/webgme-hfsm.log`).
+
+**Cloud hosting (always-on shared instance)** -- run the container on
+any host that runs Docker images (Fly.io, Render, Railway, ...) and
+point it at a managed database such as a free-tier MongoDB Atlas
+cluster via the `MONGO_URI` environment variable:
+
+```bash
+docker run -d -p 8081:8081 \
+  -e NODE_ENV=docker \
+  -e MONGO_URI='mongodb+srv://user:pass@cluster.mongodb.net/webgme_hfsm?retryWrites=true' \
+  webgme-hfsm
+```
+
+(`MONGO_URI_UI_RECORDING` optionally stores UI recordings in a
+separate database; without `MONGO_URI` the container falls back to
+the compose service hostname `mongo`.)
+
+## Validation & Testing
+
+Models are validated before generation (structure, names, events,
+payloads, determinism -- see [docs/VALIDATION.md](docs/VALIDATION.md))
+and non-fatal warnings are surfaced in the CLI, the plugin, and the
+simulator. CI regenerates fixture models, byte-compares the output
+against committed goldens, compiles it warning-clean and under
+Address/UB sanitizers, and diffs scripted execution traces -- so the
+simulator's semantics, the documented semantics
+([docs/SEMANTICS.md](docs/SEMANTICS.md)), and the generated C++ can
+never silently drift apart. `sample_code/Simple` is regenerated from
+its committed model on every CI run with a zero-drift check.
+
+## Use Cases
+
+* **Embedded C++ state machines**: model, simulate, and generate
+  readable hierarchical state machines for firmware (ESP32 and
+  friends) -- typed event payloads, history states, and a
+  single-threaded dispatch contract with a thread-safe event queue
+* **Codegen in CI**: commit the model JSON next to your firmware and
+  regenerate with `hfsm-gen` on every build -- no WebGME server
+  required
+* **Living documentation**: export Mermaid diagrams straight into
+  READMEs / PRs (GitHub renders them natively), PlantUML for design
+  docs, SCXML for interchange with other statechart tools
+* **Design reviews & teaching**: collaborative editing plus in-model
+  simulation with variable / payload inspection makes state machine
+  behavior explorable without compiling anything
 
 ## Examples
 

@@ -1,0 +1,29 @@
+# Devcontainer / Codespaces override for the base docker-compose.yml:
+#  - builds the image from the repo's Dockerfile (the base file only
+#    references a pre-built image)
+#  - mounts the checked-out workspace over /usr/app so edits are live
+#    (postCreateCommand repopulates node_modules inside the mount)
+#  - keeps the container alive; the server is started by
+#    postStartCommand (logs in /tmp/webgme-hfsm.log)
+services:
+  webgme-hfsm:
+    build:
+      # NOTE: with multiple -f compose files, relative paths resolve
+      # against the FIRST file's directory (the repo root), not this
+      # file's directory -- so these are '.' rather than '..'
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/app:cached
+      # keep dependencies INSIDE the container: the workspace mount
+      # would otherwise shadow them with the host's (possibly
+      # non-Linux) builds. postCreateCommand populates these.
+      - hfsm-node-modules:/usr/app/node_modules
+      - hfsm-bower-components:/usr/app/bower_components
+    environment:
+      - NODE_ENV=docker
+    command: sleep infinity
+
+volumes:
+  hfsm-node-modules:
+  hfsm-bower-components:
