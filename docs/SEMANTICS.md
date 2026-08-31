@@ -126,6 +126,13 @@ even when no transition uses them yet (event-library semantics).
   unchanged.
 - A field cannot be named `data` (it would shadow the alias).
 
+In the simulator, an event's payload values are edited in the Events
+panel and used for every spawn of that event. Enabling **prompt for
+payload on spawn** instead asks for that spawn's values each time a
+payload-carrying event button is clicked (pre-filled from the panel,
+and written back to it when accepted), which is the quicker way to
+walk a guard through several payload values in one session.
+
 ## History
 
 - **Shallow history** re-enters the parent's most recent direct child
