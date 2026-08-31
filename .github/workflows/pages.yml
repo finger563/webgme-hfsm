@@ -13,6 +13,13 @@ on:
       - 'src/plugins/SoftwareGenerator/templates/**'
       - 'test/fixtures/**'
       - 'scripts/build-web.sh'
+      # the verifier gates publication, so a fix to it must be able to
+      # rerun a failed deploy
+      - 'scripts/verify-web-build.js'
+      # dependency versions decide which CodeMirror / RequireJS /
+      # handlebars / underscore actually get vendored
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 

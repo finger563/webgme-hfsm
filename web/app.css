@@ -74,6 +74,21 @@ button.primary { background: #1f883d; border-color: #1a7f37; color: #fff; font-w
 button.primary:hover { background: #1a7f37; }
 .filebtn { position: relative; overflow: hidden; display: inline-block; }
 .filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+/* the real input is transparent, so its focus ring is invisible:
+   surface focus on the visible label instead, or keyboard users
+   cannot tell where they are */
+.filebtn:focus-within {
+    outline: 2px solid #0969da;
+    outline-offset: 1px;
+    background: #eaeef2;
+}
+/* same for every other control, using the browser default ring */
+button:focus-visible,
+select:focus-visible,
+.opt input:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: 1px;
+}
 
 .editor-wrap {
     flex: 1 1 auto;

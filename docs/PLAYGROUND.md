@@ -83,6 +83,14 @@ If someone changes a template, the goldens move, and this check moves
 with them; if the playground ever started producing different output
 from the CLI, step 4 fails.
 
+## Namespace
+
+The **Namespace** box is an override and starts empty. Resolution
+matches the CLI exactly: an explicit value wins, otherwise the
+model's own top-level `namespace`, otherwise `state_machine`. After
+generating, the box's placeholder shows the namespace that was
+actually used, so an empty box is never ambiguous.
+
 ## Model format
 
 Same format the CLI takes — see [CLI.md](CLI.md). The bundled

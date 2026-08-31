@@ -276,7 +276,12 @@
       return;
     }
 
-    var namespace = (el('namespaceInput').value || 'state_machine').trim();
+    // Same precedence as the CLI (bin/hfsm-gen.js): an explicit
+    // value wins, then the model's own `namespace`, then the default.
+    // Leaving the box empty therefore means "use the model's".
+    var namespace = (el('namespaceInput').value || '').trim() ||
+        (typeof model.namespace === 'string' && model.namespace.trim()) ||
+        'state_machine';
     if (!/^[A-Za-z_]\w*(::[A-Za-z_]\w*)*$/.test(namespace)) {
       showDiagnostics(['Invalid C++ namespace "' + namespace +
                        '" (expected identifier or identifier::identifier...).'], 'error');
@@ -302,6 +307,10 @@
       setStatus('model rejected', 'error');
       return;
     }
+
+    // reflect the namespace actually used, so an empty box is never
+    // ambiguous about what it resolved to
+    el('namespaceInput').placeholder = namespace;
 
     try {
       var out = mods.MetaTemplates.renderHFSM(model, namespace);
