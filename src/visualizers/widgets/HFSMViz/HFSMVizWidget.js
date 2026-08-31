@@ -9,6 +9,7 @@ define([
   // local
   "text!./HFSM.html",
   "./Dialog/Dialog",
+  "./WebGMEBackend",
   "./Simulator/Simulator",
   "./Simulator/Choice",
   // built-ins
@@ -39,6 +40,7 @@ define([
     // local
     HFSMHtml,
     Dialog,
+    WebGMEBackend,
     Simulator,
     Choice,
     // built-ins
@@ -144,12 +146,22 @@ define([
     };
 
     HFSMVizWidget.prototype.initializeSimulator = function() {
+      var self = this;
       if (this._simulator) {
         delete this._simulator;
       }
+      // The backend is the ONLY thing here that knows about WebGME.
+      // Reads are served from the shared descriptor table, so a
+      // different backend can drive the same simulator over a plain
+      // JSON model (see src/common/viz/ModelBackend.js).
+      if (!this._backend) {
+        this._backend = WebGMEBackend(this._client, function () {
+          return self.nodes;
+        }, WebGMEGlobal);
+      }
       // SIMULATOR
       this._simulator = new Simulator();
-      this._simulator.initialize( this._left, this.nodes, this._client );
+      this._simulator.initialize( this._left, this.nodes, this._backend );
       this._simulator.onStateChanged( this.showActiveState.bind(this) );
       this._simulator.onAnimateElement( this.animateElement.bind(this) );
       this._simulator.onShowTransitions( this.showTransitions.bind(this) );

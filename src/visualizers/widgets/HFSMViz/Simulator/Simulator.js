@@ -79,14 +79,20 @@ define(['js/util',
          };
 
          /**
-          * @param  {DOM Element}    container   The container for the Simulator
-          * @param  {List of nodes}  nodes       The nodes describing the graph
+          * @param  {DOM Element}   container  The container for the Simulator
+          * @param  {Object}        nodes      Descriptor table (shared with
+          *                                    the widget; see ModelBackend)
+          * @param  {ModelBackend}  backend    Reads meta and applies edits.
+          *                                    The simulator never touches a
+          *                                    model store directly, so it can
+          *                                    run against WebGME or a plain
+          *                                    JSON model in the browser.
           * @return {void}
           */
-         Simulator.prototype.initialize = function ( container, nodes, client ) {
+         Simulator.prototype.initialize = function ( container, nodes, backend ) {
            var self = this;
 
-           self._client = client;
+           self._backend = backend;
 
            container.append( SimulatorHtml );
            self._container = container;
@@ -576,18 +582,15 @@ define(['js/util',
           * given parent node (e.g. 'Event' under the State Machine,
           * 'Field' under an Event).
           */
-         Simulator.prototype.getChildMetaId = function( parentId, typeName ) {
+         /**
+          * Whether `typeName` can still be created under `parentId`.
+          * The backend resolves what that means for its model store.
+          */
+         Simulator.prototype.canCreateChild = function( parentId, typeName ) {
            var self = this;
-           var parentNode = self._client.getNode( parentId );
-           if (!parentNode) return null;
-           var valid = parentNode.getValidChildrenTypesDetailed(null, true);
-           var metaIds = Object.keys(valid).filter(function(metaId) {
-             var metaNode = self._client.getNode(metaId);
-             return metaNode && valid[metaId] &&
-               metaNode.getAttribute('name') == typeName &&
-               !metaNode.isAbstract();
-           });
-           return metaIds.length ? metaIds[0] : null;
+           if (!self._backend) return false;
+           return Object.prototype.hasOwnProperty.call(
+             self._backend.getValidChildTypes( parentId ), typeName );
          };
 
          /**
@@ -669,8 +672,7 @@ define(['js/util',
          Simulator.prototype.onAddEvent = function() {
            var self = this;
            var machineId = self.getTopLevelId();
-           var metaId = self.getChildMetaId( machineId, 'Event' );
-           if (!metaId) {
+           if (!self.canCreateChild( machineId, 'Event' )) {
              alert('The metamodel does not allow Event definitions under ' +
                    'this State Machine -- is the Event meta type installed?');
              return;
@@ -683,22 +685,17 @@ define(['js/util',
            }).then(function(values) {
              if (!values) return; // cancelled
              var name = values.name.trim();
-             self._client.startTransaction();
-             var newId = self._client.createChild({
-               parentId: machineId,
-               baseId: metaId,
-             }, 'Adding Event definition ' + name);
-             self._client.setAttribute(newId, 'name', name,
-                                       'Naming new Event ' + name);
-             self._client.completeTransaction();
+             self._backend.transact('Adding Event definition ' + name, function () {
+               var newId = self._backend.createChild(machineId, 'Event');
+               self._backend.setAttribute(newId, 'name', name);
+             });
              self.log('Added Event definition: ' + name);
            }).done();
          };
 
          Simulator.prototype.onAddField = function( def ) {
            var self = this;
-           var metaId = self.getChildMetaId( def.id, 'Field' );
-           if (!metaId) {
+           if (!self.canCreateChild( def.id, 'Field' )) {
              alert('The metamodel does not allow Fields under Event ' +
                    'definitions -- is the Field meta type installed?');
              return;
@@ -716,17 +713,14 @@ define(['js/util',
              var name = values.name.trim();
              var type = values.type.trim();
              var dflt = (values.default || '').trim();
-             self._client.startTransaction();
-             var newId = self._client.createChild({
-               parentId: def.id,
-               baseId: metaId,
-             }, 'Adding Field ' + name);
-             self._client.setAttribute(newId, 'name', name);
-             self._client.setAttribute(newId, 'Type', type);
-             if (dflt) {
-               self._client.setAttribute(newId, 'Default', dflt);
-             }
-             self._client.completeTransaction();
+             self._backend.transact('Adding Field ' + name, function () {
+               var newId = self._backend.createChild(def.id, 'Field');
+               self._backend.setAttribute(newId, 'name', name);
+               self._backend.setAttribute(newId, 'Type', type);
+               if (dflt) {
+                 self._backend.setAttribute(newId, 'Default', dflt);
+               }
+             });
              self.log('Added Field ' + def.name + '.' + name + ' : ' + type);
            }).done();
          };
@@ -749,17 +743,17 @@ define(['js/util',
                  dflt === field.default) {
                return; // nothing changed: no transaction, no log noise
              }
-             self._client.startTransaction();
-             if (name !== field.name) {
-               self._client.setAttribute(field.id, 'name', name);
-             }
-             if (type !== field.type) {
-               self._client.setAttribute(field.id, 'Type', type);
-             }
-             if (dflt !== field.default) {
-               self._client.setAttribute(field.id, 'Default', dflt);
-             }
-             self._client.completeTransaction();
+             self._backend.transact('Updating Field ' + name, function () {
+               if (name !== field.name) {
+                 self._backend.setAttribute(field.id, 'name', name);
+               }
+               if (type !== field.type) {
+                 self._backend.setAttribute(field.id, 'Type', type);
+               }
+               if (dflt !== field.default) {
+                 self._backend.setAttribute(field.id, 'Default', dflt);
+               }
+             });
              self.log('Updated Field ' + def.name + '.' + name);
            }).done();
          };
@@ -1505,8 +1499,10 @@ define(['js/util',
            return template.content.firstChild;
          }
 
-         function getCode(nodeObj, codeAttr, doHighlight, markIncomplete) {
-           var originalCode = nodeObj.getAttribute( codeAttr ),
+         // takes a plain DESCRIPTOR (attributes are flattened onto it)
+         // rather than a live model node
+         function getCode(desc, codeAttr, doHighlight, markIncomplete) {
+           var originalCode = desc[ codeAttr ],
                code = escapeHtml(originalCode);
            var el = '';
            if (doHighlight) {
@@ -1586,29 +1582,31 @@ define(['js/util',
 
          Simulator.prototype.renderState = function( gmeId ) {
            var self = this;
-           var node = self._client.getNode( gmeId );
+           // descriptors already carry the resolved meta type name and
+           // every attribute, so none of this needs the model store
+           var node = self.nodes[ gmeId ];
+           if (!node) return '';
            var internalTransitions = [];
-           node.getChildrenIds().map(function(cid) {
-             var child = self._client.getNode( cid );
-             var childType = self._client.getNode( child.getMetaTypeId() ).getAttribute( 'name' );
-             if (childType == 'Internal Transition' && child.getAttribute('Enabled')) {
+           (node.childrenIds || []).map(function(cid) {
+             var child = self.nodes[ cid ];
+             if (child && child.type == 'Internal Transition' && child.Enabled) {
                internalTransitions.push({
                  id: cid,
                  Event: getCode(child, 'Event', false),
                  Guard: getCode(child, 'Guard', false),
-                 Action: getCode(child, 'Action', true, !node.getAttribute('isComplete')),
+                 Action: getCode(child, 'Action', true, !node.isComplete),
                });
              }
            });
            var stateObj = {
-             name: node.getAttribute('name'),
+             name: node.name,
              id: gmeId
            };
            var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
            var el = $(text).find('.internal-transitions');
-           addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true, !node.getAttribute('isComplete')) );
-           addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true, !node.getAttribute('isComplete')) );
-           addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true, !node.getAttribute('isComplete')) );
+           addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true, !node.isComplete) );
+           addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true, !node.isComplete) );
+           addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true, !node.isComplete) );
            internalTransitions.sort(function(a,b) { return a.Event.localeCompare(b.Event); }).map(function(i) {
              addCodeToList( el, i.id, i.Event, i.Guard, i.Action );
            });
@@ -1617,9 +1615,10 @@ define(['js/util',
 
          Simulator.prototype.renderStateMachine = function( gmeId ) {
            var self = this;
-           var node = self._client.getNode( gmeId );
+           var node = self.nodes[ gmeId ];
+           if (!node) return '';
            var stateObj = {
-             name: node.getAttribute('name'),
+             name: node.name,
              id: gmeId
            };
            var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
@@ -1631,9 +1630,9 @@ define(['js/util',
          Simulator.prototype.displayStateInfo = function ( gmeId ) {
            var self = this;
            //self.hideStateInfo();
-           var node = self._client.getNode( gmeId );
+           var node = self.nodes[ gmeId ];
            if (node) {
-             var nodeType = self._client.getNode( node.getMetaTypeId() ).getAttribute( 'name' );
+             var nodeType = node.type;
              if (nodeType == 'State') {
                if ( $(self._stateInfo).find('.uml-state-machine').length ) {
                  $(self._stateInfo).append(parentTempl);
@@ -1643,8 +1642,8 @@ define(['js/util',
                  .on('click', self.onClickInternalTransition.bind(self) );
                $(self._stateInfo).find('.uml-state-machine')
                  .on('click', self.onClickStateInfo.bind(self) );
-               if (node.getParentId()) {
-                 self.displayStateInfo( node.getParentId() );
+               if (node.parentId) {
+                 self.displayStateInfo( node.parentId );
                }
              }
              else if (rootTypes.indexOf(nodeType) > -1) {
