@@ -72,6 +72,13 @@
     text-overflow: ellipsis;
 }
 
+/* the machine has reached its terminal END STATE, so this button
+   would do nothing; clicking it still logs why */
+.eventButton.terminated {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .showEventButton {
     padding: 6px;
     width: 15%;

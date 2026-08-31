@@ -864,6 +864,7 @@ define(['js/util',
                    self._stateChangedCallback( self._activeState.id );
                  }
                }
+               self.refreshTerminationState();
              });
          };
 
@@ -878,6 +879,7 @@ define(['js/util',
              return self.getInitialState( activeId, true )
                .then(function(s) {
                  self._activeState = s;
+                 self.refreshTerminationState();
                });
            }
          };
@@ -888,6 +890,7 @@ define(['js/util',
            if (self._stateChangedCallback) {
              self._stateChangedCallback( null );
            }
+           self.refreshTerminationState();
          };
 
          Simulator.prototype.getActiveStateId = function( ) {
@@ -1232,7 +1235,7 @@ define(['js/util',
              if ( state.type == 'Choice Pseudostate' ) {
                self.handleChoice( state.id, self.handleNextState.bind(self) );
              }
-             else if (state.type == 'End State' && state.parentId != self.getTopLevelId()) {
+             else if (state.type == 'End State' && !self.isTerminalEndState( state )) {
                self.handleEnd( state.id )
                  .then(function(s) {
                    self.handleNextState( s );
@@ -1255,9 +1258,9 @@ define(['js/util',
                if ( state.id != self._activeState.id ) {
                  var msg = `STATE TRANSITION: ${self._activeState.name}->${state.name}`;
                  self.log( msg );
-                 if (state.type == 'End State') {
-                   // THIS IS THE TOP LEVEL END STATE!
-                   self.log('HFSM HAS TERMINATED!');
+                 if (self.isTerminalEndState( state )) {
+                   self.log('HFSM HAS TERMINATED: further events are ' +
+                            'ignored until HFSM-Restart');
                  }
                }
                // update active state!
@@ -1268,6 +1271,7 @@ define(['js/util',
                if (self._stateChangedCallback) {
                  self._stateChangedCallback( self._activeState.id );
                }
+               self.refreshTerminationState();
              }
            }
          };
@@ -1279,6 +1283,13 @@ define(['js/util',
            // can show its simulated payload values
            self._currentEventName = eventName;
            var deferred = Q.defer();
+           // a terminated machine consumes events without acting on
+           // them; without this they would bubble past the END STATE
+           // and fire transitions on its ancestors
+           if (self.hasTerminated()) {
+             deferred.resolve();
+             return deferred.promise;
+           }
            if (stateId) {
              var internalTransitionIds = self.getInternalTransitionIds( eventName, stateId );
              var externalTransitionIds = self.getExternalTransitionIds( eventName, stateId );
@@ -1344,6 +1355,34 @@ define(['js/util',
              return k;
            });
            return nodeEdges.filter(function (o) { return o; });
+         };
+
+         /**
+          * True once the machine has entered a terminal END STATE --
+          * one whose parent is the machine itself. This mirrors the
+          * generated code, where the END STATE swallows every event
+          * and its tick() does nothing: "the terminal END STATE for
+          * the HFSM, after which no events or other actions will be
+          * processed".
+          *
+          * Derived from the active state rather than tracked in a
+          * flag, so restarting, clearing, or loading another model
+          * cannot leave it stale.
+          */
+         Simulator.prototype.isTerminalEndState = function( state ) {
+           var self = this;
+           if (!state || state.type != 'End State')
+             return false;
+           // an END STATE directly under the machine ends it; one
+           // inside a composite state only ends that state, and hands
+           // control back through the parent's end transition
+           var parent = self.nodes[ state.parentId ];
+           return !!parent && rootTypes.indexOf( parent.type ) > -1;
+         };
+
+         Simulator.prototype.hasTerminated = function( ) {
+           var self = this;
+           return self.isTerminalEndState( self._activeState );
          };
 
          Simulator.prototype.getTopLevelId = function( ) {
@@ -1429,9 +1468,20 @@ define(['js/util',
                  deferred.resolve(s);
                });
              }
+             else if (self.isTerminalEndState(state)) {
+               // the machine ends here: there is nothing to descend
+               // into, and the END STATE itself becomes active
+               deferred.resolve(initState);
+             }
              else if (state.type == 'End State') {
-               // This means that the initial state is wired to an end state!
-               self.handleEnd(state.id);
+               // an END STATE inside a composite state: hand control
+               // back to the parent through its end transition.
+               //
+               // This used to call handleEnd() and drop the promise on
+               // the floor, so the caller's chain never continued: the
+               // log said the machine had ended while the active state
+               // silently stayed put, still consuming events.
+               deferred.resolve( self.handleEnd( state.id ) );
              }
              else {
                // we'll come here if 1) we have no children and 2) we
@@ -1764,12 +1814,35 @@ define(['js/util',
                showEventButton.on('click', self.onShowEventButtonClick.bind(self));
              }
            });
+
+           self.refreshTerminationState();
          };
 
          Simulator.prototype.updateEventButtons = function () {
            var self = this;
            self.createEventButtons();
            self.updateStateInfo();
+         };
+
+         // buttons that stay live in the terminal END STATE: they are
+         // how you get back out of it
+         var alwaysLiveEvents = ['HFSM-Restart', 'HFSM-Clear'];
+
+         /**
+          * Grey out the buttons that would do nothing now that the
+          * machine has terminated. Clicking one still logs why it was
+          * ignored -- this only makes it visible beforehand.
+          */
+         Simulator.prototype.refreshTerminationState = function () {
+           var self = this;
+           if (!self._eventButtons)
+             return;
+           var terminated = self.hasTerminated();
+           self._eventButtons.find('.eventButton').each(function () {
+             var name = self.getEventButtonText( this ).trim();
+             var inert = terminated && alwaysLiveEvents.indexOf( name ) == -1;
+             $(this).toggleClass('terminated', inert);
+           });
          };
 
          Simulator.prototype.getEventButtonText = function ( btnEl ) {
@@ -1788,11 +1861,19 @@ define(['js/util',
              self.clearActiveState();
            }
            else if (eventName == 'HFSM-Tick') {
+             if (self.hasTerminated()) {
+               self.log(`IGNORED ${eventName}: the HFSM has terminated (restart to run again)`);
+               return;
+             }
              var msg = `Tick down to leaf node ${self._activeState.name} : ${self._activeState.id}`;
              self.log(msg);
              self.updateActiveState();
            }
            else {
+             if (self.hasTerminated()) {
+               self.log(`IGNORED ${eventName}: the HFSM has terminated (restart to run again)`);
+               return;
+             }
              self.updateActiveState();
              if (!self._activeState) {
                return;
