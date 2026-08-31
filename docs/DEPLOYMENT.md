@@ -106,9 +106,13 @@ Pages *can* serve today: the docs, and the generator's static
 outputs (Mermaid/PlantUML/SCXML exports and sample generated code)
 produced by `hfsm-gen`.
 
-A future static "playground" -- load a model JSON, view it, simulate
-it, generate code entirely client-side -- is tracked with the
-Rust/WASM work: the model format and the
-`resolveModel`/`checkModel`/`processor`/`declParser` modules are
-already browser-safe and WebGME-independent. Collaborative editing
-and persistent project storage would remain server-only.
+The **static playground** now covers the server-free half of this:
+it loads a model, validates it, generates the C++, and produces the
+Mermaid / PlantUML / SCXML exports entirely client-side, and
+`.github/workflows/pages.yml` publishes it to Pages automatically.
+See [PLAYGROUND.md](PLAYGROUND.md).
+
+Editing, simulation, collaboration, and persistent project storage
+remain server-only -- they are built on WebGME's client APIs and its
+database. Bringing simulation to the browser is tracked with the
+Rust/WASM work.

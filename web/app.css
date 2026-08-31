@@ -1,0 +1,209 @@
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    color: #24292f;
+    background: #f6f8fa;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.topbar {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #24292f;
+    color: #fff;
+    flex: 0 0 auto;
+}
+.brand { font-weight: 600; font-size: 16px; }
+.tagline { color: #b9c0c8; font-size: 12px; flex: 1 1 auto; }
+.repo { color: #9dc7ff; text-decoration: none; font-size: 12px; }
+.repo:hover { text-decoration: underline; }
+
+.layout {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: minmax(320px, 38%) 1fr;
+    gap: 12px;
+    padding: 12px;
+    min-height: 0;
+}
+@media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 40%) 1fr; }
+}
+
+.pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.pane-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.pane-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #57606a; }
+.controls { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+button, select, .filebtn {
+    font: inherit;
+    font-size: 13px;
+    padding: 4px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #f6f8fa;
+    color: #24292f;
+    cursor: pointer;
+}
+button:hover:not(:disabled), .filebtn:hover { background: #eaeef2; }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: #1f883d; border-color: #1a7f37; color: #fff; font-weight: 600; }
+button.primary:hover { background: #1a7f37; }
+.filebtn { position: relative; overflow: hidden; display: inline-block; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+
+#modelInput {
+    flex: 1 1 auto;
+    min-height: 0;
+    border: 0;
+    padding: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+}
+
+.pane-foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-top: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.opt { font-size: 12px; color: #57606a; display: flex; align-items: center; gap: 6px; }
+.opt input[type="text"] {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    padding: 3px 6px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    width: 150px;
+}
+.opt.checkbox { cursor: pointer; }
+.pane-foot .primary { margin-left: auto; }
+
+.status { font-size: 12px; color: #57606a; }
+.status-ok { color: #1a7f37; }
+.status-warn { color: #9a6700; }
+.status-error { color: #cf222e; font-weight: 600; }
+
+.diagnostics {
+    padding: 8px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    max-height: 30%;
+    overflow: auto;
+    border-bottom: 1px solid #d0d7de;
+    white-space: pre-wrap;
+}
+.diagnostics-error { background: #ffebe9; color: #82071e; }
+.diagnostics-warn { background: #fff8c5; color: #7d4e00; }
+.diag-line + .diag-line { margin-top: 6px; }
+
+.results { flex: 1 1 auto; display: flex; min-height: 0; }
+.filelist {
+    flex: 0 0 240px;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    overflow: auto;
+    border-right: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.filelist-group {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #57606a;
+    margin: 8px 4px 2px;
+}
+.filelist-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.filelist-item:hover { background: #eaeef2; }
+.filelist-item.active { background: #ddf4ff; color: #0969da; font-weight: 600; }
+
+.viewer { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.viewer-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #d0d7de;
+}
+.viewer-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: #57606a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.viewer-actions { margin-left: auto; display: flex; gap: 6px; }
+.viewer-body {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 10px;
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre;
+    min-height: 0;
+}
+
+/* the hidden attribute must win over the display below, or the
+   overlay shows on page load */
+.dropoverlay[hidden] { display: none; }
+
+.dropoverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 136, 61, .12);
+    border: 3px dashed #1f883d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a7f37;
+    z-index: 10;
+    pointer-events: none;
+}

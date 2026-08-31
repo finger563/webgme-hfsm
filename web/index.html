@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HFSM Playground</title>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<header class="topbar">
+  <span class="brand">HFSM Playground</span>
+  <span class="tagline">model in, C++ and diagrams out &mdash; entirely in your browser</span>
+  <a class="repo" href="https://github.com/finger563/webgme-hfsm" target="_blank" rel="noopener">webgme-hfsm</a>
+</header>
+
+<main class="layout">
+  <section class="pane pane-input">
+    <div class="pane-head">
+      <h2>Model</h2>
+      <div class="controls">
+        <select id="exampleSelect" aria-label="Load an example model">
+          <option value="">Load example&hellip;</option>
+        </select>
+        <label class="filebtn">
+          Open file&hellip;
+          <input type="file" id="fileInput" accept=".json,application/json"/>
+        </label>
+      </div>
+    </div>
+    <textarea id="modelInput" spellcheck="false"
+              aria-label="Model JSON"
+              placeholder="Paste a model JSON here, load an example, open a file, or drop a .json file anywhere on the page."></textarea>
+    <div class="pane-foot">
+      <label class="opt">Namespace
+        <input type="text" id="namespaceInput" value="state_machine" spellcheck="false"/>
+      </label>
+      <label class="opt checkbox">
+        <input type="checkbox" id="testBenchInput" checked/> test bench
+      </label>
+      <button id="generateBtn" class="primary" type="button">Generate</button>
+    </div>
+  </section>
+
+  <section class="pane pane-output">
+    <div class="pane-head">
+      <h2>Output</h2>
+      <div class="controls">
+        <span id="status" class="status" role="status" aria-live="polite"></span>
+        <button id="downloadAllBtn" type="button" disabled>Download all</button>
+      </div>
+    </div>
+    <div id="diagnostics" class="diagnostics" hidden></div>
+    <div class="results">
+      <ul id="fileList" class="filelist" aria-label="Generated files"></ul>
+      <div class="viewer">
+        <div class="viewer-head">
+          <span id="viewerName" class="viewer-name">No file selected</span>
+          <span class="viewer-actions">
+            <button id="copyBtn" type="button" disabled>Copy</button>
+            <button id="downloadBtn" type="button" disabled>Download</button>
+          </span>
+        </div>
+        <pre id="viewer" class="viewer-body" tabindex="0"></pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="dropOverlay" class="dropoverlay" hidden>Drop a model .json</div>
+
+<script src="vendor/require.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
