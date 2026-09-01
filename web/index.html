@@ -45,9 +45,18 @@
     </div>
   </section>
 
+  <div id="paneSplitter" class="splitter" role="separator"
+       aria-orientation="vertical" tabindex="0"
+       aria-label="Resize the model pane" title="Drag to resize, double-click to collapse"></div>
+
   <section class="pane pane-output">
     <div class="pane-head">
       <h2>Output</h2>
+      <!-- lives here, not in the model pane's own header: a button
+           that disappears along with what it hides leaves no way back -->
+      <button id="collapseModelBtn" class="iconbtn" type="button"
+              aria-expanded="true"
+              title="Hide the model text (the diagram keeps the whole width)">&#9664; Model</button>
       <div class="tabs" role="tablist" aria-label="Output view">
         <button id="tabCode" class="tab is-active" type="button"
                 role="tab" aria-selected="true" aria-controls="viewCode">Code</button>
@@ -55,6 +64,8 @@
                 role="tab" aria-selected="false" aria-controls="viewDiagram">Diagram</button>
       </div>
       <div class="controls">
+        <button id="saveLayoutBtn" type="button" hidden
+                title="Write the positions you dragged back into the model text">Save layout</button>
         <span id="status" class="status" role="status" aria-live="polite"></span>
         <button id="downloadAllBtn" type="button" disabled>Download all</button>
       </div>

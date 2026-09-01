@@ -14,6 +14,7 @@
  */
 define([
   'jquery',
+  'underscore',
   'bower/cytoscape/dist/cytoscape.min',
   'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent',
   'cytoscape-edgehandles',
@@ -23,25 +24,32 @@ define([
   'hfsm/viz/LocalBackend',
   'hfsm/viz/HostServices',
   'hfsm/viz/describe',
+  'hfsm/exportModel',
   'widgets/HFSMViz/HFSMVizWidget',
   // the dialogs are bootstrap modals; nothing imports it, so it is
   // listed here to guarantee it is on the page before one opens
   'bootstrap',
-], function ($, cytoscape, coseBilkent, edgehandles, contextMenus, panzoom,
-             resolveModel, LocalBackend, HostServices, describe,
+], function ($, _, cytoscape, coseBilkent, edgehandles, contextMenus, panzoom,
+             resolveModel, LocalBackend, HostServices, describe, exportModel,
              HFSMVizWidget) {
   'use strict';
 
   // Cytoscape's extensions are UMD bundles that EXPORT a register
   // function and self-register only against a global `cytoscape`.
   // Loaded as AMD modules there is no global, so nothing registers
-  // them: the layout then runs and moves nothing, and the panzoom
-  // control never appears -- both silently, which is what makes this
-  // worth spelling out. WebGME gets away without it because cytoscape
-  // is a global there.
-  [coseBilkent, edgehandles, contextMenus, panzoom].forEach(function (ext) {
-    if (typeof ext === 'function') ext(cytoscape);
-  });
+  // them. WebGME gets away without this because cytoscape is a global
+  // there.
+  //
+  // Each register function takes DIFFERENT arguments, and they fail
+  // quietly when they do not get them -- edgehandles without its
+  // debounce/throttle leaves a drag that never ends, so a click picks
+  // a node up and never puts it down. Getting these wrong costs an
+  // afternoon, so they are spelled out one at a time rather than
+  // looped over.
+  coseBilkent(cytoscape);
+  edgehandles(cytoscape, _.debounce.bind(_), _.throttle.bind(_));
+  contextMenus(cytoscape, $);
+  panzoom(cytoscape, $);
 
   // The widget forks a logger; console is close enough for a page
   // with no logging framework behind it.
@@ -58,12 +66,14 @@ define([
 
   var widget = null;
   var backend = null;
+  var model = null;
 
   function destroy() {
     if (widget) {
       try { widget.destroy(); } catch (e) { console.error(e); }
       widget = null;
       backend = null;
+      model = null;
     }
   }
 
@@ -80,7 +90,7 @@ define([
 
     // resolve a COPY: resolveModel fills in parents, defaults and
     // childPaths in place, and the caller's object is the user's
-    var model = JSON.parse(JSON.stringify(rawModel));
+    model = JSON.parse(JSON.stringify(rawModel));
     resolveModel.resolve(model);
 
     backend = LocalBackend(model);
@@ -126,9 +136,47 @@ define([
     return backend;
   }
 
+  /**
+   * Re-measure after the container changed size. Cytoscape draws on a
+   * canvas sized at creation, so without this the graph keeps the
+   * dimensions it had when the pane was a different width.
+   */
+  function resize() {
+    if (widget && widget._cy) {
+      widget._cy.resize();
+    }
+  }
+
+  /**
+   * The model as it now stands, positions included -- dragging a
+   * state writes straight through the backend, so this is how that
+   * work gets back out to somewhere it can be saved.
+   */
+  function currentModelJSON() {
+    if (!backend || !widget || !widget._cy) return null;
+
+    // Take the positions from the GRAPH, not just from whatever was
+    // dragged. A model that arrived without a layout was arranged
+    // automatically, and that arrangement is just as much "how the
+    // diagram looks" as a drag is -- saving only the drags would
+    // leave the next load to arrange it all over again, differently.
+    widget._cy.nodes().forEach(function (node) {
+      var object = model.objects[node.id()];
+      if (!object) return;
+      var p = node.position();
+      if (typeof p.x === 'number' && typeof p.y === 'number') {
+        object.position = { x: p.x, y: p.y };
+      }
+    });
+
+    return exportModel.toJSON(model, {});
+  }
+
   return {
     mount: mount,
     destroy: destroy,
+    resize: resize,
+    currentModelJSON: currentModelJSON,
     /** the mounted widget, for the page to resize / refresh */
     current: function () { return widget; },
   };

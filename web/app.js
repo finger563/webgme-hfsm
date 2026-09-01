@@ -458,6 +458,7 @@
     el('tabDiagram').setAttribute('aria-selected', String(diagram));
     el('viewCode').hidden = diagram;
     el('viewDiagram').hidden = !diagram;
+    el('saveLayoutBtn').hidden = !diagram;
     vizShown = diagram;
     if (diagram) refreshDiagram();
   }
@@ -503,7 +504,114 @@
     });
   }
 
+  /* ------------------- resizing the two panes ------------------- */
+
+  // Reading a model and reading its diagram want opposite amounts of
+  // room, so where the split sits is the user's call. The width lives
+  // in a CSS variable; dragging and collapsing both just set it.
+  function wireSplitter() {
+    var layout = document.querySelector('.layout');
+    var splitter = el('paneSplitter');
+    var collapseBtn = el('collapseModelBtn');
+    var MIN = 180;              // narrower than this and nothing is readable
+    var lastWidth = null;       // what to restore when un-collapsing
+
+    function setWidth(px) {
+      layout.style.setProperty('--model-width', px + 'px');
+    }
+
+    function collapsed() {
+      return layout.classList.contains('is-collapsed');
+    }
+
+    function setCollapsed(yes) {
+      layout.classList.toggle('is-collapsed', yes);
+      collapseBtn.setAttribute('aria-expanded', String(!yes));
+      collapseBtn.innerHTML = (yes ? '&#9654;' : '&#9664;') + ' Model';
+      collapseBtn.title = yes
+        ? 'Show the model text'
+        : 'Hide the model text (the diagram keeps the whole width)';
+      if (!yes && lastWidth) setWidth(lastWidth);
+      // the graph sizes itself from its container, so it has to be
+      // told the container changed
+      resizeDiagram();
+    }
+
+    function onDrag(event) {
+      var x = event.clientX - layout.getBoundingClientRect().left;
+      var max = layout.clientWidth - MIN;
+      lastWidth = Math.max(MIN, Math.min(x, max));
+      setWidth(lastWidth);
+    }
+
+    function stopDrag() {
+      splitter.classList.remove('is-dragging');
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup', stopDrag);
+      // resize once at the end: cytoscape re-measuring on every
+      // mousemove makes the drag stutter
+      resizeDiagram();
+    }
+
+    splitter.addEventListener('mousedown', function (event) {
+      if (collapsed()) return;
+      event.preventDefault();
+      splitter.classList.add('is-dragging');
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup', stopDrag);
+    });
+
+    splitter.addEventListener('dblclick', function () { setCollapsed(!collapsed()); });
+    collapseBtn.addEventListener('click', function () { setCollapsed(!collapsed()); });
+
+    // keyboard: a splitter nobody can reach without a mouse is not a
+    // control, it is a decoration
+    splitter.addEventListener('keydown', function (event) {
+      var step = event.shiftKey ? 64 : 16;
+      var current = lastWidth ||
+        document.querySelector('.pane-input').getBoundingClientRect().width;
+      if (event.key === 'ArrowLeft') lastWidth = Math.max(MIN, current - step);
+      else if (event.key === 'ArrowRight') {
+        lastWidth = Math.min(layout.clientWidth - MIN, current + step);
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setCollapsed(!collapsed());
+        return;
+      } else return;
+      event.preventDefault();
+      setWidth(lastWidth);
+      resizeDiagram();
+    });
+  }
+
+  // the diagram draws on a canvas sized to its container, so a layout
+  // change has to be handed to it explicitly
+  function resizeDiagram() {
+    if (vizModule && vizModule.resize) vizModule.resize();
+  }
+
+  // Dragging a state writes its new position straight into the
+  // model the diagram is running on. This is how that gets back into
+  // the text -- explicitly, because rewriting the editor under the
+  // user on every drag would fight whatever they are typing.
+  function saveLayout() {
+    if (!vizModule || !vizModule.current()) {
+      showDiagnostics(['Nothing to save: the diagram is not showing a model.'],
+                      'error');
+      return;
+    }
+    var text = vizModule.currentModelJSON();
+    if (!text) return;
+    setModelText(text);
+    vizModelText = text.trim();   // the diagram already matches it
+    showDiagnostics([]);
+    setStatus('layout saved to the model');
+  }
+
   function wire() {
+    el('saveLayoutBtn').addEventListener('click', saveLayout);
+    wireSplitter();
+    window.addEventListener('resize', resizeDiagram);
     el('tabCode').addEventListener('click', function () { showTab('code'); });
     el('tabDiagram').addEventListener('click', function () { showTab('diagram'); });
     el('generateBtn').addEventListener('click', generate);

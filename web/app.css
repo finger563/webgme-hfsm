@@ -28,14 +28,76 @@ body {
 .layout {
     flex: 1 1 auto;
     display: grid;
-    grid-template-columns: minmax(320px, 38%) 1fr;
+    /* the model pane's width is a variable so the splitter can move
+       it, and so collapsing is just setting it to zero */
+    grid-template-columns: var(--model-width, minmax(320px, 38%)) 6px 1fr;
     gap: 12px;
     padding: 12px;
     min-height: 0;
 }
+/* Each pane is pinned to its own column. Without this, hiding the
+   model pane takes it out of the flow and everything after it slides
+   left -- the output pane lands in the six-pixel splitter column and
+   the page looks empty. */
+.pane-input  { grid-column: 1; }
+.splitter    { grid-column: 2; }
+.pane-output { grid-column: 3; }
+
 @media (max-width: 860px) {
-    .layout { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 40%) 1fr; }
+    .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(200px, 40%) 6px 1fr;
+    }
+    .pane-input  { grid-column: 1; grid-row: 1; }
+    .splitter    { grid-column: 1; grid-row: 2; cursor: row-resize; }
+    .pane-output { grid-column: 1; grid-row: 3; }
+    .layout.is-collapsed { grid-template-rows: 0 6px 1fr; }
 }
+
+/* ---- resizing ------------------------------------------------- */
+
+/* Reading a model and reading its diagram want opposite amounts of
+   room, so the split is the user's to set -- and to collapse
+   entirely, which is what you want once the diagram is the thing you
+   are looking at. */
+.splitter {
+    background: #d0d7de;
+    cursor: col-resize;
+    border-radius: 3px;
+    transition: background .15s;
+}
+.splitter:hover, .splitter:focus, .splitter.is-dragging { background: #0969da; outline: none; }
+
+.layout.is-collapsed { grid-template-columns: 0 6px 1fr; }
+.layout.is-collapsed .pane-input { display: none; }
+
+.iconbtn {
+    font: inherit;
+    font-size: 11px;
+    line-height: 1;
+    padding: 3px 6px;
+    border: 1px solid #d0d7de;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #57606a;
+}
+.iconbtn:hover { border-color: #0969da; color: #0969da; }
+
+/* The visualizer's own splitter between the simulator and the graph.
+   The widget implements the dragging itself; WebGME supplies the
+   styling that makes it visible, and without this it is an invisible
+   strip nobody would think to grab.
+
+   Colour only -- NO width. The widget lays those two panels out as
+   floats summing to exactly 100% (19.5 + 0.5 + 80), so a min-width
+   here pushes the total over and wraps the graph underneath the
+   simulator, off the bottom of the page. */
+#viewDiagram #hfsmVizHandle {
+    background: #d0d7de;
+    transition: background .15s;
+}
+#viewDiagram #hfsmVizHandle:hover { background: #0969da; }
 
 .pane {
     display: flex;
