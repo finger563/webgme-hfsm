@@ -160,16 +160,18 @@ define(['q',
              self.isDragging = false;
            }).mousemove(function(e) {
              if (self.isDragging) {
-               var selector = $(self._container).parent();
-               var mousePosY = e.pageY;
-
-               // convert Y position as needed
-               // get offset from split panel
-               var splitOffset = $(self._container).parents('.panel-base-wh').parent().position().top;
-               mousePosY -= splitOffset;
-               // get offset from top panel
-               var northOffset = $('.ui-layout-pane-center').position().top;
-               mousePosY -= northOffset;
+               // Measure against this panel's own box. The old code
+               // subtracted the offsets of two WebGME panels, whose
+               // selectors match nothing anywhere else -- .position()
+               // then returned undefined and reading .top off it threw,
+               // killing this handler and with it the drag.
+               var selector = self._el;
+               var box = self._el[0].getBoundingClientRect();
+               // the panel scrolls, so the point has to be in CONTENT
+               // coordinates -- the panels are sized as a percentage
+               // of it, not of what happens to be on screen
+               var mousePosY = e.pageY - (box.top + window.pageYOffset) +
+                   self._el[0].scrollTop;
 
                var maxHeight = selector.height();
                var handlePercent = 0.5;

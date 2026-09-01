@@ -174,6 +174,15 @@ for face in woff2 woff ttf; do
 done
 say "visualizer deps (cytoscape + 4 plugins, jquery, bootstrap, require-css, q, mustache, highlight)"
 
+# 3d. the decorator SVGs. The graph styles the End State, the
+#     documentation marker and a collapsed compound node with these,
+#     and the edge-creation handle is one too. WebGME serves them
+#     under assets/DecoratorSVG; the same layout is reproduced here so
+#     the SAME relative paths resolve, with nothing rewritten.
+mkdir -p "$OUT/assets/DecoratorSVG/svgs"
+cp "$REPO_ROOT"/src/svgs/*.svg "$OUT/assets/DecoratorSVG/svgs/"
+say "decorator svgs ($(ls "$OUT/assets/DecoratorSVG/svgs" | wc -l | tr -d ' '))"
+
 # 4. example models -- the same fixtures the test suite generates from,
 #    so the playground can never demo something CI does not cover
 cp "$REPO_ROOT"/test/fixtures/*.json "$OUT/examples/"

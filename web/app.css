@@ -99,6 +99,40 @@ body {
 }
 #viewDiagram #hfsmVizHandle:hover { background: #0969da; }
 
+/* ... and the one inside the simulator, between the event controls
+   and the selected-state view. Same rule: colour only. Those two
+   panels are 49.75% each with a 0.5% handle, so a height here would
+   push the column past 100%. */
+#viewDiagram #simulatorHandle {
+    background: #d0d7de;
+    transition: background .15s;
+}
+#viewDiagram #simulatorHandle:hover { background: #0969da; }
+
+/* The widget's toolbar -- print, zoom to fit, auto-layout. WebGME
+   puts it in the panel header; here it floats over the top-right of
+   the graph, which is the only spare corner. */
+.viz-toolbar {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    z-index: 3;
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, .92);
+    border: 1px solid #d0d7de;
+    border-radius: 5px;
+    padding: 4px 6px;
+}
+.viz-toolbar .split-panel-toolbar-btn {
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 4px;
+    color: #57606a;
+    font-size: 14px;
+}
+.viz-toolbar .split-panel-toolbar-btn:hover { background: #eaeef2; color: #0969da; }
+
 .pane {
     display: flex;
     flex-direction: column;

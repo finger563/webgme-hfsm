@@ -142,24 +142,32 @@ define([
       return windowPos;
     };
 
+    /**
+     * A page coordinate, expressed relative to this widget's own
+     * container.
+     *
+     * This used to subtract the offsets of two WebGME panels
+     * (`.panel-base-wh`, `.ui-layout-pane-center`). Those selectors
+     * match nothing in another host, so `.position()` came back
+     * undefined and reading `.left` off it threw -- silently killing
+     * the mousemove handler, which is why the splitter could be seen
+     * but not dragged outside WebGME.
+     *
+     * The container's own bounding box says the same thing without
+     * naming anyone else's DOM.
+     */
     HFSMVizWidget.prototype._getContainerPosFromEvent = function( e ) {
       var self = this;
-      var x = e.pageX || e.position.x,
-          y = e.pageY || e.position.y;
-      var selector = $(self._el).find(self._containerTag);
-      var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
-      var centerPanelPos = $(".ui-layout-pane-center").position();
-      // X OFFSET
-      x -= splitPos.left;
-      x -= centerPanelPos.left;
-
-      // Y OFFSET
-      y -= splitPos.top;
-      y -= centerPanelPos.top;
-
+      var x = e.pageX !== undefined ? e.pageX : e.position.x;
+      var y = e.pageY !== undefined ? e.pageY : e.position.y;
+      var node = self._container && self._container[0];
+      if (!node) {
+        return { x: x, y: y };
+      }
+      var rect = node.getBoundingClientRect();
       return {
-        x: x,
-        y: y
+        x: x - (rect.left + window.pageXOffset),
+        y: y - (rect.top + window.pageYOffset),
       };
     };
 
@@ -518,7 +526,10 @@ define([
       });
 
       var edgeHandleIcon = new Image(10,10);
-      edgeHandleIcon.src = "/assets/DecoratorSVG/svgs/edgeIcon.svg";
+      // relative, like the other decorator SVGs: an absolute path
+      // assumes the app is served from the domain root, which is true
+      // in WebGME and false for a project page under /<repo>/
+      edgeHandleIcon.src = "assets/DecoratorSVG/svgs/edgeIcon.svg";
 
       // the default values of each option are outlined below:
       var edgeHandleDefaults = {

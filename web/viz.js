@@ -100,6 +100,14 @@ define([
       HostServices.none()
     );
 
+    // The same toolbar WebGME's panel installs -- print the graph to
+    // a PNG, zoom to fit, run the auto-layout. The widget builds the
+    // buttons and wires them; all a host does is say where they go,
+    // so there is no second copy of any of it here.
+    var toolbar = $('<div class="viz-toolbar"></div>');
+    $(container).find('#hfsmVizRight').first().append(toolbar);
+    widget._addSplitPanelToolbarBtns(toolbar);
+
     // Feed the graph. Order does not matter: the widget defers any
     // node whose parent or endpoints have not arrived yet.
     var anyPositions = false;
