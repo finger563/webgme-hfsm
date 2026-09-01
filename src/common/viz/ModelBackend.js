@@ -52,11 +52,14 @@
  * Everything a "create a child here" form needs, in one read:
  *
  *   [{ name, typeId, isConnection,
- *      attributes: [{ name, type }] }]
+ *      attributes: [{ name, type, defaultValue }] }]
  *
  * The dialog decides what to show from this; it never sees a meta
  * node. `type` is the attribute's declared type ('string', 'boolean',
- * 'float', ...) so a form can pick an input widget for it.
+ * 'float', ...) so a form can pick an input widget for it, and
+ * `defaultValue` is what a newly created node of that type starts
+ * with -- a form must SHOW it, or every field the user leaves alone
+ * gets written back as empty over the default.
  *
  * getAttribute(id, name) reads one attribute off a node -- the escape
  * hatch for the few callers that need a value the descriptors do not

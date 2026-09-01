@@ -89,20 +89,28 @@ define([
       return "#" + gmeId.replace(/\//gm, "\\/");
     };
 
-    HFSMVizWidget = function (logger, container, client) {
+    /**
+     * @param backendFactory  optional; getNodes -> ModelBackend. The
+     *   backend is the ONLY thing here that knows about WebGME, so a
+     *   host with a different store (the playground's LocalBackend
+     *   over plain JSON) installs it here rather than editing this
+     *   file. It takes the node-table getter because the descriptor
+     *   table lives on the widget and reads are served from it.
+     *
+     *   Defaults to WebGMEBackend, which is this widget's WebGME
+     *   host wiring, not a hard dependency of the widget itself.
+     */
+    HFSMVizWidget = function (logger, container, client, backendFactory) {
       this._logger = logger.fork("Widget");
 
       this._el = container;
 
       this._client = client;
-      // The backend is the ONLY thing here that knows about WebGME.
-      // Reads are served from the shared descriptor table, so a
-      // different backend can drive the same widget and simulator
-      // over a plain JSON model (see src/common/viz/ModelBackend.js).
       var self = this;
-      this._backend = WebGMEBackend(client, function () {
-        return self.nodes;
-      }, WebGMEGlobal);
+      var getNodes = function () { return self.nodes; };
+      this._backend = backendFactory
+        ? backendFactory(getNodes)
+        : WebGMEBackend(client, getNodes, WebGMEGlobal);
       this._initialize();
 
       this._logger.debug("ctor finished");
@@ -2036,12 +2044,12 @@ define([
 
       var parentId = srcDesc.parentId;
 
-      function makeOption(src, dst, connId, connName) {
+      function makeOption(src, dst, connName) {
         var option = {
           name: connName,
           icon: false,
           fn: function() {
-            self.createNewEdge( parentId, src, dst, connId );
+            self.createNewEdge( parentId, src, dst, connName );
           }
         };
         if (connName.includes("Local Transition")) {
@@ -2068,7 +2076,7 @@ define([
         var i = 0;
         validConnections.map(function(conn) {
           var key = ""+i;
-          var option = makeOption( srcId, dstId, conn.typeId, conn.name );
+          var option = makeOption( srcId, dstId, conn.name );
           if (option !== null) {
             i++;
             options[key] = option;
@@ -2087,10 +2095,16 @@ define([
       }
     };
 
-    HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeMetaId ) {
+    /**
+     * @param edgeType  the connection TYPE NAME, as reported by
+     *   getValidConnectionTypes().name. Not the accompanying typeId:
+     *   that token is opaque, and a backend is free to make it
+     *   something that is not a node id at all (LocalBackend uses the
+     *   type name), so resolving it through getNodeInfo only ever
+     *   worked against WebGME.
+     */
+    HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeType ) {
       var self = this;
-      var edgeInfo = self._backend.getNodeInfo(edgeMetaId);
-      var edgeType = edgeInfo && edgeInfo.type;
       // default to old case of edge being sibling of src
       var edgeParentId = parentId;
       // get common parent to make the edge a child of the

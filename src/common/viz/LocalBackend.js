@@ -164,7 +164,11 @@ define(['./ModelBackend', '../metaRules'], function (ModelBackend, metaRules) {
         typeId: name,
         isConnection: !!type.isConnection,
         attributes: Object.keys(type.attributes).sort().map(function (attr) {
-          return { name: attr, type: type.attributes[attr].type };
+          return {
+            name: attr,
+            type: type.attributes[attr].type,
+            defaultValue: type.attributes[attr].default,
+          };
         }),
       };
     });

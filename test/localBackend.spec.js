@@ -121,6 +121,55 @@ describe('LocalBackend', function() {
       })[0];
       assert.strictEqual(transition.isConnection, true);
     });
+
+    it('reports each attribute default, so a form can show it', function() {
+      // a form rendered from this must not write '' over a default it
+      // never displayed
+      var backend = LocalBackend(emptyModel());
+      var schemas = backend.getChildTypeSchemas('/p/m');
+      var byType = {};
+      schemas.forEach(function(s) { byType[s.name] = s; });
+      function defaultOf(typeName, attr) {
+        return byType[typeName].attributes.filter(function(a) {
+          return a.name === attr;
+        })[0].defaultValue;
+      }
+      assert.strictEqual(defaultOf('State', 'isComplete'), true);
+      assert.strictEqual(defaultOf('State', 'Timer Period'), 0);
+      assert.strictEqual(defaultOf('External Transition', 'Enabled'), true);
+
+      var event = backend.transact('e', function() {
+        return backend.createChild('/p/m', 'Event');
+      });
+      var field = backend.getChildTypeSchemas(event).filter(function(s) {
+        return s.name === 'Field';
+      })[0];
+      assert.strictEqual(field.attributes.filter(function(a) {
+        return a.name === 'Type';
+      })[0].defaultValue, 'int');
+    });
+
+    it('names connection types by name, since typeId is opaque', function() {
+      // the widget builds an edge from getValidConnectionTypes().name;
+      // resolving the accompanying typeId as a node id only ever
+      // worked against WebGME
+      var model = emptyModel();
+      var backend = LocalBackend(model);
+      var ids = backend.transact('build', function() {
+        return {
+          initial: backend.createChild('/p/m', 'Initial'),
+          state: backend.createChild('/p/m', 'State'),
+        };
+      });
+      var conns = backend.getValidConnectionTypes(ids.initial, ids.state, '/p/m');
+      assert.deepStrictEqual(conns.map(function(c) { return c.name; }),
+                             ['External Transition']);
+      // the name is what createChild accepts
+      var edge = backend.transact('edge', function() {
+        return backend.createChild('/p/m', conns[0].name);
+      });
+      assert.strictEqual(model.objects[edge].type, 'External Transition');
+    });
   });
 
   describe('editing', function() {

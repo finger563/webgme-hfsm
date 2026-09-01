@@ -102,7 +102,14 @@ define([
         isConnection: meta.isConnection(),
         attributes: meta.getAttributeNames().sort().map(function (attr) {
           var attrMeta = meta.getAttributeMeta(attr) || {};
-          return { name: attr, type: attrMeta.type };
+          return {
+            name: attr,
+            type: attrMeta.type,
+            // the meta node's own value IS the default an instance
+            // starts with (getAttributeMeta carries the type, not a
+            // default)
+            defaultValue: meta.getAttribute(attr),
+          };
         }),
       };
     }).filter(Boolean);

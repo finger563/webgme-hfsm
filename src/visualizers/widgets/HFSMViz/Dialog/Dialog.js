@@ -89,6 +89,18 @@ define(['js/util',
 
                // Event listener on click for SAVE button
                this._btnSave.on('click', function (event) {
+                   // The dialog now stays open until the commit is
+                   // confirmed, so without this a second click during
+                   // that window starts a second transaction and
+                   // creates a duplicate child.
+                   if (self._saving) {
+                       event.stopPropagation();
+                       event.preventDefault();
+                       return;
+                   }
+                   self._saving = true;
+                   self._btnSave.prop('disabled', true);
+
                    var attr = self.getAttributesFromForm();
                    var type = self.getSelectedChildType();
                    var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
@@ -125,6 +137,11 @@ define(['js/util',
                            // transact() returned threw away everything the
                            // user typed if the commit was then rejected,
                            // with nothing to retry from.
+                           // re-enable either way: on failure so the
+                           // user can retry, on success so a reopened
+                           // dialog is not stuck disabled
+                           self._saving = false;
+                           self._btnSave.prop('disabled', false);
                            if (err) {
                                console.error('Could not create child: ', err);
                                self.showError('Could not create the ' + type +
@@ -136,7 +153,13 @@ define(['js/util',
                            }
                            self.hide();
                        });
-                   } catch (e) { /* already reported above */ }
+                   } catch (e) {
+                       // already reported through the callback above;
+                       // make sure Save comes back even if a backend
+                       // threw without reporting
+                       self._saving = false;
+                       self._btnSave.prop('disabled', false);
+                   }
 
                    event.stopPropagation();
                    event.preventDefault();
@@ -192,6 +215,22 @@ define(['js/util',
                var self = this;
                self._attrForm.empty();
                self._attrForm.append( self.getForm() );
+               // Show what the node would start with. The form used to
+               // render empty, so saving without touching a field wrote
+               // '' over its default -- a Field left alone lost its
+               // 'int' Type, an untouched State its isComplete.
+               self.getCurrentAttributes().map(function( a ) {
+                   if (a.defaultValue === undefined || a.defaultValue === null)
+                       return;
+                   var el = $(self._dialog).find('#' + attrToID(a.name)).first();
+                   if (!el.length)
+                       return;
+                   if (el[0].type === 'checkbox') {
+                       el[0].checked = !!a.defaultValue;
+                   } else {
+                       el.val(a.defaultValue);
+                   }
+               });
            };
 
            // ATTRIBUTE RELATED FUNCTIONS

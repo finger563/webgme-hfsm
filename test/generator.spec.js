@@ -515,6 +515,15 @@ describe('hfsm generator', function() {
   // pipeline happily generated code from any of these.
   describe('metamodel enforcement', function() {
 
+    it('rejects the metamodel\'s own infrastructure types', function() {
+      // 'Language' is a concrete meta type but not a MODEL type: the
+      // processor has no notion of it, so accepting one would resolve
+      // and then be silently dropped from the output
+      expectResolveError('basic', function(objects) {
+        objects['/p/lang'] = { name: 'HFSM', type: 'Language' };
+      }, /unknown type 'Language'/);
+    });
+
     it('rejects a State Machine nested inside a State', function() {
       // used to be generated as a whole second top-level machine
       expectResolveError('basic', function(objects) {

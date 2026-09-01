@@ -43,7 +43,17 @@ define(['./metaRules'], function(metaRules) {
   // emits for the exported project root, so it has no meta type and
   // no containment rules of its own.
   var EXPORT_ROOT_TYPE = 'Project';
-  var VALID_TYPES = [EXPORT_ROOT_TYPE].concat(metaRules.concreteTypes());
+
+  // ... and not every meta type is a MODEL type. 'Language' is the
+  // container the HFSM metamodel itself lives in; the processor has
+  // no notion of it, so accepting one here would let it resolve and
+  // then be silently dropped from the generated output.
+  var INFRASTRUCTURE_TYPES = ['Language'];
+
+  var VALID_TYPES = [EXPORT_ROOT_TYPE].concat(
+    metaRules.concreteTypes().filter(function(name) {
+      return INFRASTRUCTURE_TYPES.indexOf(name) === -1;
+    }));
 
   // a type's attribute defaults, so templates never see undefined
   // code attributes
