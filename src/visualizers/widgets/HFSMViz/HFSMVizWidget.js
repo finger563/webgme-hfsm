@@ -1096,7 +1096,7 @@ define([
         // ask if they really want to randomize the layout
         var choice = new Choice();
         var choices = [
-          "Yes, run cose-bilkent layout.",
+          "Yes, run the " + self._layout_options.name + " layout.",
           "No, do not change any positions"
         ];
         choice.initialize( choices, "Really change the layout?" );
@@ -1331,6 +1331,17 @@ define([
      *   layout from the one the toolbar's Auto-Arrange offers, so it
      *   can ask for one rather than reach into _cy.
      */
+    /**
+     * Change the layout this widget uses by default -- both the
+     * toolbar's button and any host that asks for an automatic
+     * arrangement. A host whose models carry no saved positions
+     * needs a different one from WebGME's, so it can say so once
+     * rather than passing overrides at every call site.
+     */
+    HFSMVizWidget.prototype.setLayoutOptions = function( overrides ) {
+      this._layout_options = _.extend({}, this._layout_options, overrides || {});
+    };
+
     HFSMVizWidget.prototype.reLayout = function( overrides ) {
       var self = this;
       var options = overrides

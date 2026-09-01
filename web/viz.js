@@ -100,6 +100,22 @@ define([
       HostServices.none()
     );
 
+    // A state machine reads as a flow from its initial state, so
+    // breadthfirst suits it -- and, unlike WebGME's cose-bilkent, it
+    // demonstrably moves the nodes here. cose-bilkent registers and
+    // reports a completed run in this page but leaves every position
+    // untouched, while the same file rearranges the same kind of graph
+    // inside WebGME; the cause is not yet known, so the playground
+    // uses a layout whose result can be seen.
+    widget.setLayoutOptions({
+      name: 'breadthfirst',
+      directed: true,
+      spacingFactor: 1.1,
+      animate: false,
+      fit: true,
+      padding: 30,
+    });
+
     // The same toolbar WebGME's panel installs -- print the graph to
     // a PNG, zoom to fit, run the auto-layout. The widget builds the
     // buttons and wires them; all a host does is say where they go,
@@ -123,18 +139,7 @@ define([
     // compute one instead. If the model DOES carry positions they are
     // the author's and are left alone.
     if (!anyPositions) {
-      // breadthfirst, not the toolbar's cose-bilkent: a state machine
-      // reads as a flow from its initial state, and the force-directed
-      // layout has nothing but edges to go on, so it piles the nested
-      // compound boxes on top of each other.
-      widget.reLayout({
-        name: 'breadthfirst',
-        directed: true,
-        spacingFactor: 1.1,
-        animate: false,
-        fit: true,
-        padding: 30,
-      });
+      widget.reLayout();
     }
 
     // the feed is over, so the warnings it produced along the way --

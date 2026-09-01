@@ -109,6 +109,19 @@ body {
 }
 #viewDiagram #simulatorHandle:hover { background: #0969da; }
 
+/* The search box and the pan/zoom control ask for z-index 9999 and
+   99999. Those beat a bootstrap modal (1050), so the simulator's
+   dialogs -- the guard prompt, the payload form, "really change the
+   layout?" -- came up UNDERNEATH them.
+
+   Rather than bid higher for the modal, the two are brought down to
+   just above cytoscape's canvases (which top out at 4) and this
+   toolbar. Dialogs then win by the ordinary rules, which is what
+   those rules are for. Scoped to the diagram view, so nothing here
+   reaches the widget running inside WebGME. */
+#viewDiagram #search { z-index: 20; }
+#viewDiagram .cy-panzoom { z-index: 21; }
+
 /* The widget's toolbar -- print, zoom to fit, auto-layout. WebGME
    puts it in the panel header; here it floats over the top-right of
    the graph, which is the only spare corner.
