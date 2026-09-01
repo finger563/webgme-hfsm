@@ -68,7 +68,14 @@
  * Every change goes through `transact(message, fn, onComplete)`. The
  * backend is free to batch the calls made inside `fn` into one unit
  * (WebGME does; a local backend can emit a single change event).
- * Backends must apply either all of the operations or none.
+ *
+ * A backend SHOULD apply either all of the operations or none.
+ * LocalBackend does, by snapshotting. WebGMEBackend cannot: the
+ * WebGME client has no way to abort an open transaction, so if the
+ * body throws, whatever it had already done is committed (and stays
+ * undoable by the user). Both report the failure through
+ * `onComplete`, so a caller can tell success from a partial edit
+ * even where it cannot be prevented.
  *
  * `transact` returns whatever `fn` returned, and the ids in it are
  * usable at once. Whether the change was actually PERSISTED may only

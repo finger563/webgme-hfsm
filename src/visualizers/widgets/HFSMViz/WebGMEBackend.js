@@ -133,9 +133,17 @@ define([
     try {
       result = fn();
     } catch (e) {
-      // still close the transaction: leaving it open would wedge
-      // every later edit in the session
+      // The contract asks for all-or-none, and WebGME cannot give it
+      // here: the client exposes no way to abort an open transaction
+      // (completeTransaction always saves), and leaving it open would
+      // wedge every later edit in the session. So whatever `fn` had
+      // already done is committed, and stays undoable by the user.
+      //
+      // What we can do is not hide it: report the failure through
+      // onComplete like any other, so callers do not treat a
+      // half-applied edit as a success.
       client.completeTransaction('');
+      if (onComplete) onComplete(e);
       throw e;
     }
     // The ids fn() produced are usable immediately -- the client

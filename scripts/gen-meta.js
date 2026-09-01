@@ -46,6 +46,12 @@ var zlib = require('zlib');
 
 var repoRoot = path.resolve(__dirname, '..');
 var DEFAULT_SOURCE = path.join(repoRoot, 'src/meta/meta.webgmex');
+// The metamodel is duplicated in the seeds, and THAT copy is what
+// actually governs a project at runtime (config points only at
+// src/seeds, never at src/meta). --check verifies them too, so a seed
+// re-exported from a changed metamodel cannot leave the editor and
+// the standalone tooling silently disagreeing.
+var SEED_DIR = path.join(repoRoot, 'src/seeds');
 var OUTPUT = path.join(repoRoot, 'src/common/meta.json');
 // AMD companion: the same data as a module. meta.json is the
 // reviewable artifact and what non-JS tooling reads, but requiring
@@ -410,6 +416,8 @@ function main(argv) {
   }
 
   if (check) {
+    var failed = false;
+
     var stale = [OUTPUT, OUTPUT_AMD].filter(function (file, i) {
       var expected = i === 0 ? text : amd;
       return !fs.existsSync(file) || fs.readFileSync(file, 'utf8') !== expected;
@@ -422,12 +430,43 @@ function main(argv) {
       });
       console.error('  the metamodel changed without regenerating it;' +
                     ' run `npm run gen:meta` and commit the result');
-      return 1;
+      failed = true;
+    } else {
+      console.log('gen-meta: meta.json and meta.js match ' +
+                  path.relative(repoRoot, source) +
+                  ' (' + Object.keys(meta.types).length + ' types)');
     }
-    console.log('gen-meta: meta.json and meta.js match ' +
-                path.relative(repoRoot, source) +
-                ' (' + Object.keys(meta.types).length + ' types)');
-    return 0;
+
+    // compare the TYPES only: `source` names the archive each was
+    // read from and is expected to differ
+    var reference = JSON.stringify(meta.types);
+    fs.readdirSync(SEED_DIR).filter(function (file) {
+      return file.slice(-8) === '.webgmex';
+    }).sort().forEach(function (file) {
+      var seed = path.join(SEED_DIR, file);
+      var seedMeta;
+      try {
+        seedMeta = generate(seed);
+      } catch (e) {
+        console.error('gen-meta: cannot read ' + path.relative(repoRoot, seed) +
+                      ': ' + e.message);
+        failed = true;
+        return;
+      }
+      if (JSON.stringify(seedMeta.types) !== reference) {
+        console.error('gen-meta: ' + path.relative(repoRoot, seed) +
+                      ' defines a DIFFERENT metamodel than ' +
+                      path.relative(repoRoot, source));
+        console.error('  the seed governs projects at runtime, so the editor' +
+                      ' and the standalone tooling would disagree');
+        failed = true;
+      } else {
+        console.log('gen-meta: ' + path.relative(repoRoot, seed) +
+                    ' carries the same metamodel');
+      }
+    });
+
+    return failed ? 1 : 0;
   }
 
   fs.writeFileSync(OUTPUT, text);

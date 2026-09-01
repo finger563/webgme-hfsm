@@ -100,51 +100,58 @@ define(['js/util',
                    // callback sees it even if a backend settles
                    // synchronously
                    var newChildPath = null;
-                   backend.transact(msg, function () {
-                       var childPath = backend.createChild( desc.id, type,
-                                                            { position: position } );
-                       Object.keys(attr).map(function( attrName ) {
-                           var attrVal = attr[attrName];
-                           // only write what the form actually changed,
-                           // so untouched fields keep inheriting
-                           if (attrVal != backend.getAttribute(childPath, attrName)) {
-                               backend.setAttribute( childPath, attrName, attrVal );
+                   // transact() reports the failure through the
+                   // completion callback below and then rethrows;
+                   // letting it escape here would also raise WebGME's
+                   // global "uncaught exception" banner over a
+                   // failure the dialog is already showing
+                   try {
+                       backend.transact(msg, function () {
+                           var childPath = backend.createChild( desc.id, type,
+                                                                { position: position } );
+                           Object.keys(attr).map(function( attrName ) {
+                               var attrVal = attr[attrName];
+                               // only write what the form actually changed,
+                               // so untouched fields keep inheriting
+                               if (attrVal != backend.getAttribute(childPath, attrName)) {
+                                   backend.setAttribute( childPath, attrName, attrVal );
+                               }
+                           });
+                           newChildPath = childPath;
+                           return childPath;
+                       }, function (err) {
+                           // The dialog closes only once the store has
+                           // ACCEPTED the change. Hiding it as soon as
+                           // transact() returned threw away everything the
+                           // user typed if the commit was then rejected,
+                           // with nothing to retry from.
+                           if (err) {
+                               console.error('Could not create child: ', err);
+                               self.showError('Could not create the ' + type +
+                                              ': ' + (err.message || err));
+                               return;
                            }
+                           if (newChildPath) {
+                               backend.setActiveSelection([newChildPath], self);
+                           }
+                           self.hide();
                        });
-                       newChildPath = childPath;
-                       return childPath;
-                   }, function (err) {
-                       // don't select a node the store rejected
-                       if (err) {
-                           console.error('Could not create child: ', err);
-                           return;
-                       }
-                       if (newChildPath) {
-                           backend.setActiveSelection([newChildPath], self);
-                       }
-                   });
+                   } catch (e) { /* already reported above */ }
 
-                   // Close dialog
-                   self._dialog.modal({ show: false});
-                   self._dialog.modal('hide');
                    event.stopPropagation();
                    event.preventDefault();
                });
 
                // Event listener on click for CLOSE button
                this._btnClose.on('click', function (event) {
-                   // Close dialog
-                   self._dialog.modal({ show: false});
-                   self._dialog.modal('hide');
+                   self.hide();
                    event.stopPropagation();
                    event.preventDefault();
                });
 
                // Event listener on click for CANCEL button
                this._btnCancel.on('click', function (event) {
-                   // Close dialog
-                   self._dialog.modal({ show: false});
-                   self._dialog.modal('hide');
+                   self.hide();
                    event.stopPropagation();
                    event.preventDefault();
                });
@@ -241,6 +248,28 @@ define(['js/util',
            Dialog.prototype.show = function () {
                var self = this;
                self._dialog.modal('show');
+           };
+
+           Dialog.prototype.hide = function () {
+               var self = this;
+               self._dialog.modal({ show: false });
+               self._dialog.modal('hide');
+           };
+
+           /**
+            * Report a failed save in the dialog itself. The form stays
+            * open and filled in, so the user can retry rather than
+            * retype.
+            */
+           Dialog.prototype.showError = function (message) {
+               var self = this;
+               if (!self._error || !self._error.length) {
+                   self._error = $('<div class="alert alert-danger dialog-error"></div>');
+                   self._attrForm.before(self._error);
+               }
+               // .text(), never .html(): the message can carry model
+               // content and error text from the store
+               self._error.text(message).show();
            };
 
            return Dialog;

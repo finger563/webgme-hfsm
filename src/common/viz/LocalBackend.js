@@ -17,45 +17,14 @@
  *
  * See src/common/viz/ModelBackend.js for the contract.
  */
-define(['./ModelBackend', '../meta'], function (ModelBackend, meta) {
+define(['./ModelBackend', '../metaRules'], function (ModelBackend, metaRules) {
   'use strict';
 
-  var TYPES = meta.types;
-
-  // 'Project' is the exported root wrapper rather than a meta type
-  // (see resolveModel); it constrains nothing.
-  var UNCONSTRAINED_TYPES = ['Project'];
+  var TYPES = metaRules.types;
 
   // attributes every node carries, whatever its type
   var STRUCTURAL = ['path', 'type', 'parentPath', 'childPaths',
                     'pointers', 'attributes', 'position'];
-
-  /* * * * * * * * * *  metamodel helpers  * * * * * * * * * */
-
-  function isDescendantType(candidate, ancestor) {
-    for (var cur = candidate; cur; cur = TYPES[cur] && TYPES[cur].base) {
-      if (cur === ancestor) return true;
-    }
-    return false;
-  }
-
-  // a rule naming an abstract type admits its concrete descendants
-  function concreteDescendants(name) {
-    return Object.keys(TYPES).filter(function (candidate) {
-      return !TYPES[candidate].isAbstract &&
-        isDescendantType(candidate, name);
-    });
-  }
-
-  function expand(names) {
-    var out = {};
-    (names || []).forEach(function (name) {
-      concreteDescendants(name).forEach(function (concrete) {
-        out[concrete] = true;
-      });
-    });
-    return Object.keys(out).sort();
-  }
 
   /* * * * * * * * * * * *  the backend  * * * * * * * * * * * */
 
@@ -131,12 +100,36 @@ define(['./ModelBackend', '../meta'], function (ModelBackend, meta) {
     };
   };
 
+  // how many children of each type `parentId` already has
+  LocalBackend.prototype._childCounts = function (parentId) {
+    var objects = this._objects();
+    var counts = {};
+    Object.keys(objects).forEach(function (path) {
+      if (objects[path].parentPath !== parentId) return;
+      var type = objects[path].type;
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    return counts;
+  };
+
+  /**
+   * Only the types you could actually add right now. WebGME's
+   * getValidChildrenTypesDetailed(null, true) answers "can create
+   * MORE of this", and WebGMEBackend filters on it, so ignoring
+   * max here would make the two backends offer different palettes:
+   * a second Initial would be offered, created, and only then
+   * rejected by resolveModel.
+   */
   LocalBackend.prototype.getValidChildTypes = function (parentId) {
     var parent = this._objects()[parentId];
     var out = {};
-    if (!parent || !TYPES[parent.type]) return out;
-    expand(Object.keys(TYPES[parent.type].children)).forEach(function (name) {
-      out[name] = name;
+    if (!parent) return out;
+    var counts = this._childCounts(parentId);
+    var rules = metaRules.childRules(parent.type);
+    Object.keys(rules).forEach(function (name) {
+      if (metaRules.canContainMore(parent.type, name, counts[name] || 0)) {
+        out[name] = name;
+      }
     });
     return out;
   };
@@ -149,21 +142,22 @@ define(['./ModelBackend', '../meta'], function (ModelBackend, meta) {
     if (!src || !dst || !parent) return [];
 
     var allowedHere = this.getValidChildTypes(parentId);
-    return Object.keys(TYPES).filter(function (name) {
-      var type = TYPES[name];
-      if (!type.isConnection || type.isAbstract) return false;
-      if (!allowedHere[name]) return false;
-      return expand(type.pointers.src.targets).indexOf(src.type) > -1 &&
-        expand(type.pointers.dst.targets).indexOf(dst.type) > -1;
+    return Object.keys(allowedHere).filter(function (name) {
+      if (!metaRules.isConnection(name)) return false;
+      var endpoints = metaRules.endpointTypes(name);
+      return endpoints.src && endpoints.dst &&
+        endpoints.src[src.type] && endpoints.dst[dst.type];
     }).sort().map(function (name) {
       return { typeId: name, name: name };
     });
   };
 
+  // same cardinality filtering as getValidChildTypes: a form must
+  // not offer to create what cannot be created
   LocalBackend.prototype.getChildTypeSchemas = function (parentId) {
     var parent = this._objects()[parentId];
-    if (!parent || !TYPES[parent.type]) return [];
-    return expand(Object.keys(TYPES[parent.type].children)).map(function (name) {
+    if (!parent) return [];
+    return Object.keys(this.getValidChildTypes(parentId)).sort().map(function (name) {
       var type = TYPES[name];
       return {
         name: name,
@@ -191,13 +185,35 @@ define(['./ModelBackend', '../meta'], function (ModelBackend, meta) {
 
   /* * * * * * * * * * * *  mutations  * * * * * * * * * * * */
 
+  /**
+   * All of the operations or none, as the contract requires. An
+   * in-memory store can actually deliver that: the outermost
+   * transaction snapshots the objects and restores them if the body
+   * throws, so a failed edit leaves nothing half-applied.
+   *
+   * Only the OUTERMOST transaction snapshots -- an inner one that
+   * throws unwinds into its caller, which restores the whole thing.
+   */
   LocalBackend.prototype.transact = function (message, fn, onComplete) {
     var result;
+    var snapshot = this._depth === 0
+      ? JSON.parse(JSON.stringify(this._objects()))
+      : null;
+
     this._depth++;
     try {
       result = fn();
     } catch (e) {
       this._depth--;
+      if (snapshot) {
+        // restore IN PLACE: callers (and the model handed to the
+        // checker) hold a reference to this same objects map
+        var objects = this._objects();
+        Object.keys(objects).forEach(function (path) { delete objects[path]; });
+        Object.keys(snapshot).forEach(function (path) {
+          objects[path] = snapshot[path];
+        });
+      }
       if (onComplete) onComplete(e);
       throw e;
     }
@@ -340,22 +356,38 @@ define(['./ModelBackend', '../meta'], function (ModelBackend, meta) {
       moved.push(target);
     });
 
-    // pointers are paths: a relocated subtree's internal transitions
-    // would otherwise still name the old endpoints
-    if (!keepOriginal) {
-      Object.keys(objects).forEach(function (path) {
-        var pointers = objects[path].pointers || {};
-        Object.keys(pointers).forEach(function (name) {
-          ids.forEach(function (id, i) {
-            var value = pointers[name];
-            if (typeof value !== 'string') return;
-            if (value === id || value.indexOf(id + '/') === 0) {
-              pointers[name] = moved[i] + value.slice(id.length);
-            }
-          });
+    // Pointers are paths, so a relocated subtree needs them rewritten
+    // -- but the two cases differ:
+    //
+    //   move: the original is gone, so EVERY pointer that named it
+    //         has to follow, including transitions that live outside
+    //         the moved subtree and point into it.
+    //   copy: the original stays. Only pointers INSIDE the copy get
+    //         rewritten; rewriting the rest would silently re-aim the
+    //         existing model at the duplicate. Leaving the copy's own
+    //         transitions pointing at the source is the bug this
+    //         guards: they would dangle the moment the source is
+    //         deleted.
+    var scope = keepOriginal
+      ? moved.reduce(function (acc, target) {
+          return acc.concat(self._subtree(target));
+        }, [])
+      : Object.keys(objects);
+
+    scope.forEach(function (path) {
+      var node = objects[path];
+      if (!node) return;
+      var pointers = node.pointers || {};
+      Object.keys(pointers).forEach(function (name) {
+        ids.forEach(function (id, i) {
+          var value = pointers[name];
+          if (typeof value !== 'string') return;
+          if (value === id || value.indexOf(id + '/') === 0) {
+            pointers[name] = moved[i] + value.slice(id.length);
+          }
         });
       });
-    }
+    });
     return moved;
   };
 

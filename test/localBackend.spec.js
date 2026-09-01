@@ -225,6 +225,100 @@ describe('LocalBackend', function() {
       assert.notStrictEqual(copy, source);
     });
 
+    it('rolls the model back when a transaction throws', function() {
+      var model = emptyModel();
+      var backend = LocalBackend(model);
+      var before = JSON.stringify(model.objects);
+      assert.throws(function() {
+        backend.transact('half an edit', function() {
+          backend.createChild('/p/m', 'State');
+          backend.createChild('/p/m', 'Initial');
+          throw new Error('boom');
+        });
+      }, /boom/);
+      assert.strictEqual(JSON.stringify(model.objects), before,
+                         'a failed transaction must leave nothing behind');
+    });
+
+    it('rolls back the whole outer transaction, not just the inner one', function() {
+      var model = emptyModel();
+      var backend = LocalBackend(model);
+      var before = JSON.stringify(model.objects);
+      assert.throws(function() {
+        backend.transact('outer', function() {
+          backend.createChild('/p/m', 'State');
+          backend.transact('inner', function() {
+            backend.createChild('/p/m', 'Initial');
+            throw new Error('inner boom');
+          });
+        });
+      }, /inner boom/);
+      assert.strictEqual(JSON.stringify(model.objects), before);
+    });
+
+    it('stops offering a type once its maximum is reached', function() {
+      var model = emptyModel();
+      var backend = LocalBackend(model);
+      // the metamodel allows at most one Initial under a machine
+      assert.strictEqual(meta.types['State Machine'].children.Initial.max, 1);
+      assert.ok(backend.getValidChildTypes('/p/m').Initial);
+      backend.transact('add', function() { backend.createChild('/p/m', 'Initial'); });
+      assert.strictEqual(backend.getValidChildTypes('/p/m').Initial, undefined,
+                         'a second Initial must not be offered');
+      assert.ok(backend.getValidChildTypes('/p/m').State,
+                'unbounded types stay on offer');
+      // and the form must not offer it either
+      var offered = backend.getChildTypeSchemas('/p/m').map(function(s) {
+        return s.name;
+      });
+      assert.ok(offered.indexOf('Initial') === -1);
+      assert.throws(function() {
+        backend.transact('one too many', function() {
+          backend.createChild('/p/m', 'Initial');
+        });
+      }, /not a valid child type/);
+    });
+
+    it('rewrites only the copy\'s own pointers, leaving the source alone', function() {
+      var model = emptyModel();
+      var backend = LocalBackend(model);
+      var built = backend.transact('build', function() {
+        var outer = backend.createChild('/p/m', 'State');
+        var inner = backend.createChild(outer, 'State');
+        var initial = backend.createChild(outer, 'Initial');
+        var trans = backend.createChild(outer, 'External Transition');
+        backend.setPointer(trans, 'src', initial);
+        backend.setPointer(trans, 'dst', inner);
+        return { outer: outer, inner: inner, trans: trans };
+      });
+      var host = backend.transact('host', function() {
+        return backend.createChild('/p/m', 'State');
+      });
+
+      var copy = backend.transact('copy', function() {
+        return backend.copyNodes([built.outer], host);
+      })[0];
+
+      // the copy's transition must point INSIDE the copy, not back at
+      // the original -- otherwise deleting the source dangles it
+      var copiedTrans = copy + built.trans.slice(built.outer.length);
+      var copied = model.objects[copiedTrans].pointers;
+      assert.strictEqual(copied.dst, copy + built.inner.slice(built.outer.length));
+      assert.ok(copied.dst.indexOf(copy) === 0, 'dst should live in the copy');
+      assert.ok(copied.src.indexOf(copy) === 0, 'src should live in the copy');
+
+      // ... and the original is untouched
+      var original = model.objects[built.trans].pointers;
+      assert.strictEqual(original.dst, built.inner);
+
+      // deleting the source must not dangle the copy
+      backend.transact('drop source', function() {
+        backend.deleteNodes([built.outer]);
+      });
+      assert.ok(model.objects[copied.dst], 'the copy still resolves');
+      assert.ok(model.objects[copied.src], 'the copy still resolves');
+    });
+
     it('honors read-only', function() {
       var backend = LocalBackend(emptyModel());
       backend.setReadOnly(true);

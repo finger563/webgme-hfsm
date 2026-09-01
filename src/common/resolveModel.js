@@ -23,10 +23,10 @@
  *     and the templates
  *   - sets model.root to the resolved root object
  */
-define(['./meta'], function(meta) {
+define(['./metaRules'], function(metaRules) {
   'use strict';
 
-  var TYPES = meta.types;
+  var TYPES = metaRules.types;
 
   // Everything below is DERIVED from the metamodel generated out of
   // WebGME (scripts/gen-meta.js), so the CLI and the playground apply
@@ -37,16 +37,13 @@ define(['./meta'], function(meta) {
   // typo like "state" would otherwise take the empty-default path,
   // be ignored by checkModel / processor, and produce malformed
   // generated code (e.g. a transition targeting a never-rendered
-  // state)
+  // state).
   //
   // 'Project' is not one of them: it is the wrapper webgme-to-json
   // emits for the exported project root, so it has no meta type and
   // no containment rules of its own.
   var EXPORT_ROOT_TYPE = 'Project';
-  var VALID_TYPES = [EXPORT_ROOT_TYPE].concat(
-    Object.keys(TYPES).filter(function(name) {
-      return !TYPES[name].isAbstract;
-    }));
+  var VALID_TYPES = [EXPORT_ROOT_TYPE].concat(metaRules.concreteTypes());
 
   // a type's attribute defaults, so templates never see undefined
   // code attributes
@@ -58,39 +55,6 @@ define(['./meta'], function(meta) {
       if (attrs[attr].default !== undefined) {
         DEFAULT_ATTRIBUTES[name][attr] = attrs[attr].default;
       }
-    });
-  });
-
-  // `A` may contain `B`, following inheritance: a rule naming an
-  // abstract type admits its concrete descendants
-  function concreteDescendants(name) {
-    return Object.keys(TYPES).filter(function(candidate) {
-      if (TYPES[candidate].isAbstract) return false;
-      for (var cur = candidate; cur; cur = TYPES[cur] && TYPES[cur].base) {
-        if (cur === name) return true;
-      }
-      return false;
-    });
-  }
-
-  var VALID_CHILDREN = {};   // parent type -> { child type: true }
-  var VALID_ENDPOINTS = {};  // connection type -> { src|dst: { type: true } }
-  Object.keys(TYPES).forEach(function(name) {
-    VALID_CHILDREN[name] = {};
-    Object.keys(TYPES[name].children).forEach(function(child) {
-      concreteDescendants(child).forEach(function(concrete) {
-        VALID_CHILDREN[name][concrete] = true;
-      });
-    });
-    var pointers = TYPES[name].pointers;
-    VALID_ENDPOINTS[name] = {};
-    Object.keys(pointers).forEach(function(ptr) {
-      VALID_ENDPOINTS[name][ptr] = {};
-      pointers[ptr].targets.forEach(function(target) {
-        concreteDescendants(target).forEach(function(concrete) {
-          VALID_ENDPOINTS[name][ptr][concrete] = true;
-        });
-      });
     });
   });
 
@@ -272,7 +236,7 @@ define(['./meta'], function(meta) {
         var obj = objects[path];
         if (path === rootPath) return;
         var parent = objects[obj.parentPath];
-        var allowed = parent && VALID_CHILDREN[parent.type];
+        var allowed = parent && metaRules.childRules(parent.type);
         // a type the metamodel does not describe (the exported
         // 'Project' wrapper) constrains nothing
         if (!allowed || !Object.keys(allowed).length) return;
@@ -284,9 +248,33 @@ define(['./meta'], function(meta) {
         }
       });
 
+      // ... and how MANY of each. Exceeding a maximum is not a
+      // harmless extra node: a second Documentation under a State, or
+      // a second End State under a machine, currently reaches the
+      // processor and dies there with an internal TypeError rather
+      // than anything a modeler could act on.
+      paths.forEach(function(parentPath) {
+        var parent = objects[parentPath];
+        var rules = metaRules.childRules(parent.type);
+        if (!Object.keys(rules).length) return;
+        var counts = {};
+        (parent.childPaths || []).forEach(function(childPath) {
+          var child = objects[childPath];
+          if (!child) return;
+          counts[child.type] = (counts[child.type] || 0) + 1;
+        });
+        Object.keys(counts).sort().forEach(function(type) {
+          var rule = rules[type];
+          if (!rule || rule.max === -1 || counts[type] <= rule.max) return;
+          throw "ERROR: " + parentPath + " (a '" + parent.type + "') has " +
+            counts[type] + " '" + type + "' children, but the metamodel " +
+            "allows at most " + rule.max + ".";
+        });
+      });
+
       paths.forEach(function(path) {
         var obj = objects[path];
-        var endpoints = VALID_ENDPOINTS[obj.type];
+        var endpoints = metaRules.endpointTypes(obj.type);
         if (!endpoints) return;
         Object.keys(endpoints).forEach(function(ptr) {
           var targetPath = obj.pointers[ptr];
