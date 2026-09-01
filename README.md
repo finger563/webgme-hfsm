@@ -541,6 +541,15 @@ copy of them: `resolveModel` rejects ill-typed containment and
 transition endpoints, and `LocalBackend` (the WebGME-free
 `ModelBackend`) offers exactly the types the editor would offer.
 
+## Model layout travels with the model
+
+Laying out a state chart is real work, so `position` is part of the
+model format rather than something the editor keeps to itself. The
+`SoftwareGenerator` plugin writes `<Machine>_model.json` next to the
+generated code with the layout as you left it; the CLI and the
+playground read it back, so the same model draws the same way
+everywhere. Models with no positions are arranged automatically.
+
 ## Validation & Testing
 
 Models are validated before generation (structure, names, events,
