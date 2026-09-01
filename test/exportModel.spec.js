@@ -25,19 +25,43 @@ function fixture(name) {
 
 describe('exportModel', function() {
 
+  var NAMESPACE = 'state_machine';
+
   before(function() {
     return amdLoader.load([
       'src/common/exportModel',
       'src/common/resolveModel',
       'src/common/processor',
       'src/common/meta',
+      'src/common/exporters',
+      'src/plugins/SoftwareGenerator/templates/MetaTemplates',
     ]).then(function(loaded) {
       mods.exportModel = loaded[0];
       mods.resolveModel = loaded[1];
       mods.processor = loaded[2];
       mods.meta = loaded[3];
+      mods.exporters = loaded[4];
+      mods.MetaTemplates = loaded[5];
     });
   });
+
+  /** everything the generator produces for an already-processed model */
+  function generateArtifacts(model) {
+    var artifacts = {};
+    Object.assign(artifacts, mods.MetaTemplates.renderHFSM(model, NAMESPACE));
+    Object.assign(artifacts, mods.MetaTemplates.renderTestCode(model, NAMESPACE));
+    Object.keys(model.objects).sort().forEach(function(p) {
+      var obj = model.objects[p];
+      if (obj.type === 'State Machine' || obj.type === 'Library') {
+        artifacts[obj.sanitizedName + '.mmd'] = mods.exporters.toMermaid(model, p);
+        artifacts[obj.sanitizedName + '.puml'] = mods.exporters.toPlantUML(model, p);
+        artifacts[obj.sanitizedName + '.scxml'] = mods.exporters.toSCXML(model, p);
+      }
+    });
+    // written on every run from the clock, so not comparable
+    delete artifacts['hfsm_metadata.json'];
+    return artifacts;
+  }
 
   it('keeps positions, rounded to whole pixels', function() {
     var model = fixture('basic');
@@ -103,8 +127,13 @@ describe('exportModel', function() {
 
   it('round-trips: the export generates the same code as the original',
      function() {
-       // the guarantee that matters -- a model can go out and come
-       // back without becoming a different machine
+       // The guarantee that matters -- a model can go out and come
+       // back without becoming a different machine. Comparing the
+       // GENERATED ARTIFACTS rather than a chosen handful of fields is
+       // what makes that claim, and only that: an export that dropped
+       // a Guard, an Entry action or an event's payload type would
+       // still line up field by field on ids and names.
+       this.timeout(20000);
        ['basic', 'features', 'payloads'].forEach(function(name) {
          var original = fixture(name);
          mods.resolveModel.resolve(original);
@@ -117,17 +146,16 @@ describe('exportModel', function() {
          mods.resolveModel.resolve(reimported);
          mods.processor.processModel(reimported);
 
-         // compare what the templates actually consume
-         assert.deepStrictEqual(
-           Object.keys(reimported.objects).sort(),
-           Object.keys(original.objects).sort(),
-           name + ': the object set changed');
-         Object.keys(original.objects).forEach(function(p) {
-           var a = original.objects[p], b = reimported.objects[p];
-           assert.strictEqual(b.type, a.type, name + ' ' + p + ': type');
-           assert.strictEqual(b.name, a.name, name + ' ' + p + ': name');
-           assert.deepStrictEqual(b.pointers, a.pointers,
-                                  name + ' ' + p + ': pointers');
+         var before = generateArtifacts(original);
+         var after = generateArtifacts(reimported);
+
+         assert.deepStrictEqual(Object.keys(after).sort(),
+                                Object.keys(before).sort(),
+                                name + ': the generated file set changed');
+         Object.keys(before).forEach(function(file) {
+           assert.strictEqual(after[file], before[file],
+                              name + ': ' + file +
+                              ' generated from the export differs');
          });
        });
      });

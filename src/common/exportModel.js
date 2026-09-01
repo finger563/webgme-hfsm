@@ -51,7 +51,12 @@ define(['./metaRules'], function (metaRules) {
       var objects = model.objects || {};
       var out = {};
 
-      Object.keys(objects).sort().forEach(function (path) {
+      // The model's own object order is kept, NOT sorted. Sibling
+      // order is what the generator declares states in, so sorting
+      // here would quietly rewrite the output of every model whose
+      // author did not happen to name things alphabetically -- an
+      // export that changes the generated code is not a round trip.
+      Object.keys(objects).forEach(function (path) {
         var obj = objects[path];
         if (!obj || !obj.type) return;
 

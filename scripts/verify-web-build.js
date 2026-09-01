@@ -168,24 +168,60 @@ function firstExisting(candidates) {
 
 // ---- 3. every copied source matches the original ------------------
 // The playground must run the SAME code as WebGME and the CLI, so
-// nothing may be edited on its way into the build.
-['src/common', 'src/common/viz',
- 'src/visualizers/widgets/HFSMViz',
- 'src/visualizers/widgets/HFSMViz/Simulator',
- 'src/visualizers/widgets/HFSMViz/Dialog',
-].forEach(function (dir) {
+// nothing may be edited on its way into the build -- and nothing may
+// go MISSING either. The widget loads its markup through `text!` and
+// its styles through `css!`, so a lost .html or .css breaks the
+// Diagram tab exactly as a lost .js would, and a check that skipped
+// them (or that treated "not copied" as "fine") would pass over it.
+//
+// Hence: compare the whole copied tree, and name the only two files
+// allowed to be absent.
+var NOT_SHIPPED = [
+  // WebGME-only adapters; their absence is asserted above
+  'src/visualizers/widgets/HFSMViz/WebGMEBackend.js',
+  'src/visualizers/widgets/HFSMViz/WebGMEHost.js',
+];
+
+function relPath(full) {
+  return path.relative(repoRoot, full).split(path.sep).join('/');
+}
+
+/** every file under `dir`, recursively, compared byte for byte */
+function verifyCopiedTree(dir) {
+  walkFiles(path.join(repoRoot, dir), function (source) {
+    verifyCopied(source);
+  });
+}
+
+/** just the .js directly in `dir` -- what build-web.sh copies there */
+function verifyCopiedModules(dir) {
   fs.readdirSync(path.join(repoRoot, dir))
     .filter(function (f) { return f.slice(-3) === '.js'; })
     .forEach(function (f) {
-      var shipped = path.join(dist, dir, f);
-      // the WebGME adapters are deliberately not shipped
-      if (!fs.existsSync(shipped)) return;
-      var a = fs.readFileSync(path.join(repoRoot, dir, f), 'utf8');
-      if (a !== fs.readFileSync(shipped, 'utf8')) {
-        fail(dir + '/' + f + ' differs from the build copy');
-      }
+      verifyCopied(path.join(repoRoot, dir, f));
     });
-});
+}
+
+function verifyCopied(source) {
+  var rel = relPath(source);
+  if (NOT_SHIPPED.indexOf(rel) > -1) return;
+  var shipped = path.join(dist, rel);
+  if (!fs.existsSync(shipped)) {
+    fail(rel + ' was not copied into the build -- the playground ' +
+         'cannot load what is not there');
+  }
+  if (fs.readFileSync(source).compare(fs.readFileSync(shipped)) !== 0) {
+    fail(rel + ' differs from the build copy');
+  }
+}
+
+// the generator: build-web.sh copies the .js in these two directories
+// (src/common also holds meta.json, a build input the page never
+// loads, and a Templates/ tree the playground does not use)
+verifyCopiedModules('src/common');
+verifyCopiedModules('src/common/viz');
+// the visualizer: copied wholesale, so compared wholesale
+verifyCopiedTree('src/visualizers/widgets/HFSMViz');
 
 // ---- 4. same output as the CLI / goldens --------------------------
 var requirejs = require('requirejs');

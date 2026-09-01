@@ -71,10 +71,14 @@ define([
   function destroy() {
     if (widget) {
       try { widget.destroy(); } catch (e) { console.error(e); }
-      widget = null;
-      backend = null;
-      model = null;
     }
+    // cleared whatever happened above, and whether or not a widget
+    // was ever built: `mount` sets the backend before the widget, so
+    // a constructor that throws part-way would otherwise leave this
+    // module holding a model nothing is showing.
+    widget = null;
+    backend = null;
+    model = null;
   }
 
   /**
@@ -124,19 +128,32 @@ define([
 
     // Feed the graph. Order does not matter: the widget defers any
     // node whose parent or endpoints have not arrived yet.
-    var anyPositions = false;
+    var unpositioned = 0;
     Object.keys(model.objects).sort().forEach(function (path) {
-      if (model.objects[path].position) anyPositions = true;
       var desc = describe.finish(backend.getNode(path));
-      if (desc) widget.addNode(desc);
+      if (!desc) return;
+      widget.addNode(desc);
+      // an edge is drawn from its endpoints, so only the boxes need a
+      // position of their own
+      if (!desc.isConnection && !model.objects[path].position) {
+        unpositioned++;
+      }
     });
 
     // A model authored by hand -- or exported by the CLI -- carries no
     // layout, so every node would sit at (0, 0) in a heap. WebGME
     // models have positions because the editor saved them; here we
-    // compute one instead. If the model DOES carry positions they are
-    // the author's and are left alone.
-    if (!anyPositions) {
+    // compute one instead. If every drawable node carries a position
+    // it is the author's, and it is left alone.
+    //
+    // A PARTIALLY positioned model is arranged too, rather than only
+    // when nothing is placed: cytoscape's layouts move everything
+    // they are handed, so there is no placing just the nodes that are
+    // missing coordinates. Of the two whole-graph answers, arranging
+    // it all at least produces a readable diagram, where honouring a
+    // partial layout would leave the rest stacked on top of each
+    // other at (0, 0).
+    if (unpositioned) {
       widget.reLayout();
     }
 

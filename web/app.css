@@ -43,10 +43,13 @@ body {
 .splitter    { grid-column: 2; }
 .pane-output { grid-column: 3; }
 
+/* Narrow: the panes stack, and the splitter turns on its side. The
+   model pane's size then lives in --model-height, which is what the
+   drag and the arrow keys write in this layout. */
 @media (max-width: 860px) {
     .layout {
         grid-template-columns: 1fr;
-        grid-template-rows: minmax(200px, 40%) 6px 1fr;
+        grid-template-rows: var(--model-height, minmax(200px, 40%)) 6px 1fr;
     }
     .pane-input  { grid-column: 1; grid-row: 1; }
     .splitter    { grid-column: 1; grid-row: 2; cursor: row-resize; }
@@ -68,7 +71,13 @@ body {
 }
 .splitter:hover, .splitter:focus, .splitter.is-dragging { background: #0969da; outline: none; }
 
-.layout.is-collapsed { grid-template-columns: 0 6px 1fr; }
+/* Collapsing zeroes the model pane's track -- the COLUMN one only
+   where there are columns. Below 860px every pane shares column 1,
+   so zeroing it would take the output pane down with it; the stacked
+   layout collapses the row instead (above). */
+@media (min-width: 861px) {
+    .layout.is-collapsed { grid-template-columns: 0 6px 1fr; }
+}
 .layout.is-collapsed .pane-input { display: none; }
 
 .iconbtn {

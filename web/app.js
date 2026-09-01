@@ -377,6 +377,13 @@
       return extensionOf(n) === 'hpp';
     })[0] || Object.keys(artifacts).sort()[0];
     if (first) showFile(first);
+
+    // Loading an example or a file generates, so this is also how a
+    // newly loaded model reaches an already-open Diagram tab. It is
+    // deliberately NOT hooked to typing: redrawing takes the layout
+    // with it, and doing that on every keystroke would throw away
+    // work nobody asked to discard.
+    refreshDiagram({ keepStatus: true });
   }
 
   function loadExampleList() {
@@ -463,11 +470,29 @@
     if (diagram) refreshDiagram();
   }
 
-  function refreshDiagram() {
+  // Take the diagram down. A machine left on screen next to an error
+  // message reads as though the error were about what is drawn, and
+  // it leaves `Save layout` pointing at a model the text no longer
+  // contains.
+  function clearDiagram() {
+    if (vizModule) vizModule.destroy();
+    vizModelText = null;
+  }
+
+  /**
+   * @param opts.keepStatus  leave the status line and the diagnostics
+   *   alone when the drawing succeeds -- generate() has just written
+   *   a more useful summary there ("12 files . 2 warnings"), and the
+   *   redraw is a side effect of what it did, not the thing asked for
+   */
+  function refreshDiagram(opts) {
     if (!vizShown) return;
+    var quiet = !!(opts && opts.keepStatus);
     var raw = getModelText().trim();
     if (!raw) {
+      clearDiagram();
       showDiagnostics(['Nothing to draw: paste or load a model first.'], 'error');
+      setStatus('nothing to draw', 'error');
       return;
     }
     if (raw === vizModelText && vizModule && vizModule.current()) {
@@ -478,18 +503,22 @@
     try {
       model = JSON.parse(raw);
     } catch (e) {
+      clearDiagram();
       showDiagnostics(['The model is not valid JSON: ' + e.message], 'error');
+      setStatus('parse error', 'error');
       return;
     }
 
-    setStatus('drawing...');
+    if (!quiet) setStatus('drawing...');
     requirejs(['viz'], function (viz) {
       vizModule = viz;
       try {
         viz.mount(el('viewDiagram'), model);
         vizModelText = raw;
-        showDiagnostics([]);
-        setStatus('ready');
+        if (!quiet) {
+          showDiagnostics([]);
+          setStatus('ready');
+        }
       } catch (e) {
         // the diagram resolves the model exactly as the generator
         // does, so an ill-typed model fails here the same way
@@ -507,17 +536,34 @@
   /* ------------------- resizing the two panes ------------------- */
 
   // Reading a model and reading its diagram want opposite amounts of
-  // room, so where the split sits is the user's call. The width lives
+  // room, so where the split sits is the user's call. The size lives
   // in a CSS variable; dragging and collapsing both just set it.
+  //
+  // The split turns on its side on a narrow screen -- the panes stack,
+  // and the same bar then moves the boundary up and down. Everything
+  // here therefore works in "size along the splitter's axis" rather
+  // than in width, or the control would be inert in exactly the
+  // layout where space is tightest.
   function wireSplitter() {
     var layout = document.querySelector('.layout');
     var splitter = el('paneSplitter');
     var collapseBtn = el('collapseModelBtn');
-    var MIN = 180;              // narrower than this and nothing is readable
-    var lastWidth = null;       // what to restore when un-collapsing
+    var stacked = window.matchMedia('(max-width: 860px)');
+    var lastSize = null;        // what to restore when un-collapsing
 
-    function setWidth(px) {
-      layout.style.setProperty('--model-width', px + 'px');
+    // narrower/shorter than this and nothing in the pane is readable
+    function minSize() { return stacked.matches ? 120 : 180; }
+    function totalSize() {
+      return stacked.matches ? layout.clientHeight : layout.clientWidth;
+    }
+    function paneSize() {
+      var box = document.querySelector('.pane-input').getBoundingClientRect();
+      return stacked.matches ? box.height : box.width;
+    }
+
+    function setSize(px) {
+      layout.style.setProperty(
+        stacked.matches ? '--model-height' : '--model-width', px + 'px');
     }
 
     function collapsed() {
@@ -531,17 +577,35 @@
       collapseBtn.title = yes
         ? 'Show the model text'
         : 'Hide the model text (the diagram keeps the whole width)';
-      if (!yes && lastWidth) setWidth(lastWidth);
+      if (!yes && lastSize) setSize(lastSize);
       // the graph sizes itself from its container, so it has to be
       // told the container changed
       resizeDiagram();
     }
 
+    // A separator BETWEEN left and right panes is itself vertical; one
+    // between stacked panes is horizontal. Screen readers announce the
+    // arrow keys from this, so it has to follow the layout.
+    function syncOrientation() {
+      splitter.setAttribute('aria-orientation',
+                            stacked.matches ? 'horizontal' : 'vertical');
+      // measured along the other axis, so it means nothing now
+      lastSize = null;
+    }
+    syncOrientation();
+    if (stacked.addEventListener) {
+      stacked.addEventListener('change', syncOrientation);
+    } else if (stacked.addListener) {
+      stacked.addListener(syncOrientation);   // Safari < 14
+    }
+
     function onDrag(event) {
-      var x = event.clientX - layout.getBoundingClientRect().left;
-      var max = layout.clientWidth - MIN;
-      lastWidth = Math.max(MIN, Math.min(x, max));
-      setWidth(lastWidth);
+      var box = layout.getBoundingClientRect();
+      var along = stacked.matches
+        ? event.clientY - box.top
+        : event.clientX - box.left;
+      lastSize = Math.max(minSize(), Math.min(along, totalSize() - minSize()));
+      setSize(lastSize);
     }
 
     function stopDrag() {
@@ -565,21 +629,25 @@
     collapseBtn.addEventListener('click', function () { setCollapsed(!collapsed()); });
 
     // keyboard: a splitter nobody can reach without a mouse is not a
-    // control, it is a decoration
+    // control, it is a decoration. Both arrow pairs are accepted in
+    // both layouts -- the one that matches the orientation is the
+    // obvious choice, and the other is no worse than doing nothing.
+    var SMALLER = { ArrowLeft: true, ArrowUp: true };
+    var BIGGER = { ArrowRight: true, ArrowDown: true };
     splitter.addEventListener('keydown', function (event) {
       var step = event.shiftKey ? 64 : 16;
-      var current = lastWidth ||
-        document.querySelector('.pane-input').getBoundingClientRect().width;
-      if (event.key === 'ArrowLeft') lastWidth = Math.max(MIN, current - step);
-      else if (event.key === 'ArrowRight') {
-        lastWidth = Math.min(layout.clientWidth - MIN, current + step);
+      var current = lastSize || paneSize();
+      if (SMALLER[event.key]) {
+        lastSize = Math.max(minSize(), current - step);
+      } else if (BIGGER[event.key]) {
+        lastSize = Math.min(totalSize() - minSize(), current + step);
       } else if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         setCollapsed(!collapsed());
         return;
       } else return;
       event.preventDefault();
-      setWidth(lastWidth);
+      setSize(lastSize);
       resizeDiagram();
     });
   }
@@ -598,6 +666,17 @@
     if (!vizModule || !vizModule.current()) {
       showDiagnostics(['Nothing to save: the diagram is not showing a model.'],
                       'error');
+      return;
+    }
+    // The model text sits beside the diagram, so it can have moved on
+    // since the diagram was drawn -- and what gets written back is the
+    // machine the diagram is running, not the one in the editor.
+    // Saving anyway would silently throw away whatever was typed.
+    if (getModelText().trim() !== vizModelText) {
+      showDiagnostics(['The model text has changed since the diagram was ' +
+                       'drawn, and saving would overwrite it. Press Generate ' +
+                       'to redraw from the current text first.'], 'error');
+      setStatus('layout not saved', 'error');
       return;
     }
     var text = vizModule.currentModelJSON();
