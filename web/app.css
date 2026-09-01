@@ -111,12 +111,18 @@ body {
 
 /* The widget's toolbar -- print, zoom to fit, auto-layout. WebGME
    puts it in the panel header; here it floats over the top-right of
-   the graph, which is the only spare corner. */
+   the graph, which is the only spare corner.
+
+   The z-index has to clear cytoscape's canvases. The topmost is the
+   edgehandles layer, which the widget puts at 4 (its `stackOrder`
+   option) -- and being transparent, it let the toolbar show through
+   while quietly swallowing every click on it. 10 leaves room for
+   another canvas without going near the panzoom control's 99999. */
 .viz-toolbar {
     position: absolute;
     top: 8px;
     right: 12px;
-    z-index: 3;
+    z-index: 10;
     display: flex;
     gap: 4px;
     background: rgba(255, 255, 255, .92);
