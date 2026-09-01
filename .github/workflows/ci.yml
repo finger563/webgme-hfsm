@@ -23,8 +23,10 @@ jobs:
           npm install --no-save --no-package-lock --ignore-scripts
           requirejs requirejs-text handlebars underscore mocha
 
+      # `npm test` globs test/*.spec.js, so a spec added later runs
+      # here without anyone remembering to list it
       - name: Run generator unit + golden tests
-        run: ./node_modules/.bin/mocha test/generator.spec.js test/declParser.spec.js
+        run: npm test
 
       - name: Compile and trace-check golden generated code
         run: ./scripts/run_generated_tests.sh
@@ -226,6 +228,28 @@ jobs:
         with:
           name: hfsm-playground
           path: dist/web
+
+  meta-sync:
+    name: Committed metamodel matches the WebGME meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # src/common/meta.json is generated from the WebGME metamodel by
+      # hand (npm run gen:meta) and committed, so the CLI, the
+      # playground and any non-WebGME backend can read the same rules
+      # the editor enforces. It must not be edited directly or left
+      # behind when the metamodel changes.
+      #
+      # check:meta also compares the copies inside src/seeds, which
+      # are what actually govern a project at runtime -- so this is
+      # exactly the command a contributor runs locally.
+      - name: meta.json, meta.js and the seeds agree
+        run: npm run check:meta
 
   regen-simple:
     name: Simple sample regenerates from its model (no drift)

@@ -5,12 +5,14 @@
   },
   "scripts": {
     "start": "node app.js",
-    "test": "node ./node_modules/mocha/bin/mocha test/generator.spec.js test/declParser.spec.js",
+    "test": "node ./node_modules/mocha/bin/mocha \"test/*.spec.js\"",
     "test:generated": "./scripts/run_generated_tests.sh",
     "postinstall": "bower install",
     "build:web": "./scripts/build-web.sh",
     "web": "./scripts/build-web.sh && python3 -m http.server -d dist/web 8080",
-    "verify:web": "node scripts/verify-web-build.js"
+    "verify:web": "node scripts/verify-web-build.js",
+    "gen:meta": "node scripts/gen-meta.js",
+    "check:meta": "node scripts/gen-meta.js --check"
   },
   "version": "1.6.0",
   "repository": {

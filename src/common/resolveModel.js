@@ -23,56 +23,50 @@
  *     and the templates
  *   - sets model.root to the resolved root object
  */
-define([], function() {
+define(['./metaRules'], function(metaRules) {
   'use strict';
 
-  var DEFAULT_ATTRIBUTES = {
-    'State Machine': {
-      'Includes': '',
-      'Declarations': '',
-      'Definitions': '',
-      'Initialization': '',
-    },
-    'Library': {
-      'Includes': '',
-      'Declarations': '',
-      'Definitions': '',
-      'Initialization': '',
-    },
-    'State': {
-      'Entry': '',
-      'Exit': '',
-      'Tick': '',
-      'Includes': '',
-      'Declarations': '',
-      'Definitions': '',
-      'Timer Period': 0,
-    },
-    'External Transition': {
-      'Event': '',
-      'Guard': '',
-      'Action': '',
-      'Enabled': true,
-    },
-    'Local Transition': {
-      'Event': '',
-      'Guard': '',
-      'Action': '',
-      'Enabled': true,
-    },
-    'Internal Transition': {
-      'Event': '',
-      'Guard': '',
-      'Action': '',
-      'Enabled': true,
-    },
-    'Event': {},
-    'Field': {
-      'Type': 'int',
-      'Default': '',
-      'Description': '',
-    },
-  };
+  var TYPES = metaRules.types;
+
+  // Everything below is DERIVED from the metamodel generated out of
+  // WebGME (scripts/gen-meta.js), so the CLI and the playground apply
+  // the same rules the editor enforces instead of a hand-kept copy
+  // that silently falls behind.
+
+  // the full set of model-node types the pipeline understands; a
+  // typo like "state" would otherwise take the empty-default path,
+  // be ignored by checkModel / processor, and produce malformed
+  // generated code (e.g. a transition targeting a never-rendered
+  // state).
+  //
+  // 'Project' is not one of them: it is the wrapper webgme-to-json
+  // emits for the exported project root, so it has no meta type and
+  // no containment rules of its own.
+  var EXPORT_ROOT_TYPE = 'Project';
+
+  // ... and not every meta type is a MODEL type. 'Language' is the
+  // container the HFSM metamodel itself lives in; the processor has
+  // no notion of it, so accepting one here would let it resolve and
+  // then be silently dropped from the generated output.
+  var INFRASTRUCTURE_TYPES = ['Language'];
+
+  var VALID_TYPES = [EXPORT_ROOT_TYPE].concat(
+    metaRules.concreteTypes().filter(function(name) {
+      return INFRASTRUCTURE_TYPES.indexOf(name) === -1;
+    }));
+
+  // a type's attribute defaults, so templates never see undefined
+  // code attributes
+  var DEFAULT_ATTRIBUTES = {};
+  Object.keys(TYPES).forEach(function(name) {
+    var attrs = TYPES[name].attributes;
+    DEFAULT_ATTRIBUTES[name] = {};
+    Object.keys(attrs).forEach(function(attr) {
+      if (attrs[attr].default !== undefined) {
+        DEFAULT_ATTRIBUTES[name][attr] = attrs[attr].default;
+      }
+    });
+  });
 
   return {
     resolve: function(model) {
@@ -94,20 +88,6 @@ define([], function() {
         }
       }
 
-      // the full set of model-node types the pipeline understands; a
-      // typo like "state" would otherwise take the empty-default path,
-      // be ignored by checkModel / processor, and produce malformed
-      // generated code (e.g. a transition targeting a never-rendered
-      // state)
-      var VALID_TYPES = [
-        'Project', 'State Machine', 'Library', 'State', 'Initial',
-        'End State', 'Choice Pseudostate', 'Deep History Pseudostate',
-        'Shallow History Pseudostate', 'External Transition',
-        'Local Transition', 'Internal Transition', 'Event', 'Field',
-        // known non-semantic types
-        'Documentation',
-      ];
-
       // basic per-object normalization
       paths.forEach(function(path) {
         var obj = objects[path];
@@ -122,7 +102,7 @@ define([], function() {
         }
         if (VALID_TYPES.indexOf(obj.type) === -1) {
           throw "ERROR: " + path + " has unknown type '" + obj.type +
-            "'. Valid types: " + VALID_TYPES.join(', ') + ".";
+            "'. Valid types: " + VALID_TYPES.slice().sort().join(', ') + ".";
         }
         // flatten attributes onto the object like webgme-to-json
         // does. Structural fields must not be overwritable through
@@ -256,6 +236,70 @@ define([], function() {
           cur = parent;
         }
       });
+
+      // CONTAINMENT and CONNECTION ENDPOINTS, straight from the
+      // metamodel. Without this the standalone pipeline accepts
+      // models the editor could never build -- a State Machine nested
+      // in a State used to generate a whole second machine, and an
+      // Event parented by a State reached the generated header.
+      paths.forEach(function(path) {
+        var obj = objects[path];
+        if (path === rootPath) return;
+        var parent = objects[obj.parentPath];
+        var allowed = parent && metaRules.childRules(parent.type);
+        // a type the metamodel does not describe (the exported
+        // 'Project' wrapper) constrains nothing
+        if (!allowed || !Object.keys(allowed).length) return;
+        if (!allowed[obj.type]) {
+          throw "ERROR: " + path + " is a '" + obj.type + "' inside a '" +
+            parent.type + "' (" + parent.path + "), which the metamodel " +
+            "does not allow. A '" + parent.type + "' may contain: " +
+            Object.keys(allowed).sort().join(', ') + ".";
+        }
+      });
+
+      // ... and how MANY of each. Exceeding a maximum is not a
+      // harmless extra node: a second Documentation under a State, or
+      // a second End State under a machine, currently reaches the
+      // processor and dies there with an internal TypeError rather
+      // than anything a modeler could act on.
+      paths.forEach(function(parentPath) {
+        var parent = objects[parentPath];
+        var rules = metaRules.childRules(parent.type);
+        if (!Object.keys(rules).length) return;
+        var counts = {};
+        (parent.childPaths || []).forEach(function(childPath) {
+          var child = objects[childPath];
+          if (!child) return;
+          counts[child.type] = (counts[child.type] || 0) + 1;
+        });
+        Object.keys(counts).sort().forEach(function(type) {
+          var rule = rules[type];
+          if (!rule || rule.max === -1 || counts[type] <= rule.max) return;
+          throw "ERROR: " + parentPath + " (a '" + parent.type + "') has " +
+            counts[type] + " '" + type + "' children, but the metamodel " +
+            "allows at most " + rule.max + ".";
+        });
+      });
+
+      paths.forEach(function(path) {
+        var obj = objects[path];
+        var endpoints = metaRules.endpointTypes(obj.type);
+        if (!endpoints) return;
+        Object.keys(endpoints).forEach(function(ptr) {
+          var targetPath = obj.pointers[ptr];
+          if (targetPath === undefined || targetPath === null) return;
+          var target = objects[targetPath];
+          if (!target) return;  // dangling pointers are checkModel's call
+          if (!endpoints[ptr][target.type]) {
+            throw "ERROR: " + path + " is a '" + obj.type + "' whose '" +
+              ptr + "' points at a '" + target.type + "' (" + targetPath +
+              "), which the metamodel does not allow. Valid " + ptr +
+              " types: " + Object.keys(endpoints[ptr]).sort().join(', ') + ".";
+          }
+        });
+      });
+
       return model;
     },
   };

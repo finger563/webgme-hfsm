@@ -79,14 +79,20 @@ define(['js/util',
          };
 
          /**
-          * @param  {DOM Element}    container   The container for the Simulator
-          * @param  {List of nodes}  nodes       The nodes describing the graph
+          * @param  {DOM Element}   container  The container for the Simulator
+          * @param  {Object}        nodes      Descriptor table (shared with
+          *                                    the widget; see ModelBackend)
+          * @param  {ModelBackend}  backend    Reads meta and applies edits.
+          *                                    The simulator never touches a
+          *                                    model store directly, so it can
+          *                                    run against WebGME or a plain
+          *                                    JSON model in the browser.
           * @return {void}
           */
-         Simulator.prototype.initialize = function ( container, nodes, client ) {
+         Simulator.prototype.initialize = function ( container, nodes, backend ) {
            var self = this;
 
-           self._client = client;
+           self._backend = backend;
 
            container.append( SimulatorHtml );
            self._container = container;
@@ -576,18 +582,15 @@ define(['js/util',
           * given parent node (e.g. 'Event' under the State Machine,
           * 'Field' under an Event).
           */
-         Simulator.prototype.getChildMetaId = function( parentId, typeName ) {
+         /**
+          * Whether `typeName` can still be created under `parentId`.
+          * The backend resolves what that means for its model store.
+          */
+         Simulator.prototype.canCreateChild = function( parentId, typeName ) {
            var self = this;
-           var parentNode = self._client.getNode( parentId );
-           if (!parentNode) return null;
-           var valid = parentNode.getValidChildrenTypesDetailed(null, true);
-           var metaIds = Object.keys(valid).filter(function(metaId) {
-             var metaNode = self._client.getNode(metaId);
-             return metaNode && valid[metaId] &&
-               metaNode.getAttribute('name') == typeName &&
-               !metaNode.isAbstract();
-           });
-           return metaIds.length ? metaIds[0] : null;
+           if (!self._backend) return false;
+           return Object.prototype.hasOwnProperty.call(
+             self._backend.getValidChildTypes( parentId ), typeName );
          };
 
          /**
@@ -669,8 +672,7 @@ define(['js/util',
          Simulator.prototype.onAddEvent = function() {
            var self = this;
            var machineId = self.getTopLevelId();
-           var metaId = self.getChildMetaId( machineId, 'Event' );
-           if (!metaId) {
+           if (!self.canCreateChild( machineId, 'Event' )) {
              alert('The metamodel does not allow Event definitions under ' +
                    'this State Machine -- is the Event meta type installed?');
              return;
@@ -683,22 +685,17 @@ define(['js/util',
            }).then(function(values) {
              if (!values) return; // cancelled
              var name = values.name.trim();
-             self._client.startTransaction();
-             var newId = self._client.createChild({
-               parentId: machineId,
-               baseId: metaId,
-             }, 'Adding Event definition ' + name);
-             self._client.setAttribute(newId, 'name', name,
-                                       'Naming new Event ' + name);
-             self._client.completeTransaction();
+             self._backend.transact('Adding Event definition ' + name, function () {
+               var newId = self._backend.createChild(machineId, 'Event');
+               self._backend.setAttribute(newId, 'name', name);
+             });
              self.log('Added Event definition: ' + name);
            }).done();
          };
 
          Simulator.prototype.onAddField = function( def ) {
            var self = this;
-           var metaId = self.getChildMetaId( def.id, 'Field' );
-           if (!metaId) {
+           if (!self.canCreateChild( def.id, 'Field' )) {
              alert('The metamodel does not allow Fields under Event ' +
                    'definitions -- is the Field meta type installed?');
              return;
@@ -716,17 +713,14 @@ define(['js/util',
              var name = values.name.trim();
              var type = values.type.trim();
              var dflt = (values.default || '').trim();
-             self._client.startTransaction();
-             var newId = self._client.createChild({
-               parentId: def.id,
-               baseId: metaId,
-             }, 'Adding Field ' + name);
-             self._client.setAttribute(newId, 'name', name);
-             self._client.setAttribute(newId, 'Type', type);
-             if (dflt) {
-               self._client.setAttribute(newId, 'Default', dflt);
-             }
-             self._client.completeTransaction();
+             self._backend.transact('Adding Field ' + name, function () {
+               var newId = self._backend.createChild(def.id, 'Field');
+               self._backend.setAttribute(newId, 'name', name);
+               self._backend.setAttribute(newId, 'Type', type);
+               if (dflt) {
+                 self._backend.setAttribute(newId, 'Default', dflt);
+               }
+             });
              self.log('Added Field ' + def.name + '.' + name + ' : ' + type);
            }).done();
          };
@@ -749,17 +743,17 @@ define(['js/util',
                  dflt === field.default) {
                return; // nothing changed: no transaction, no log noise
              }
-             self._client.startTransaction();
-             if (name !== field.name) {
-               self._client.setAttribute(field.id, 'name', name);
-             }
-             if (type !== field.type) {
-               self._client.setAttribute(field.id, 'Type', type);
-             }
-             if (dflt !== field.default) {
-               self._client.setAttribute(field.id, 'Default', dflt);
-             }
-             self._client.completeTransaction();
+             self._backend.transact('Updating Field ' + name, function () {
+               if (name !== field.name) {
+                 self._backend.setAttribute(field.id, 'name', name);
+               }
+               if (type !== field.type) {
+                 self._backend.setAttribute(field.id, 'Type', type);
+               }
+               if (dflt !== field.default) {
+                 self._backend.setAttribute(field.id, 'Default', dflt);
+               }
+             });
              self.log('Updated Field ' + def.name + '.' + name);
            }).done();
          };
@@ -870,6 +864,7 @@ define(['js/util',
                    self._stateChangedCallback( self._activeState.id );
                  }
                }
+               self.refreshTerminationState();
              });
          };
 
@@ -884,6 +879,7 @@ define(['js/util',
              return self.getInitialState( activeId, true )
                .then(function(s) {
                  self._activeState = s;
+                 self.refreshTerminationState();
                });
            }
          };
@@ -894,6 +890,7 @@ define(['js/util',
            if (self._stateChangedCallback) {
              self._stateChangedCallback( null );
            }
+           self.refreshTerminationState();
          };
 
          Simulator.prototype.getActiveStateId = function( ) {
@@ -1238,7 +1235,7 @@ define(['js/util',
              if ( state.type == 'Choice Pseudostate' ) {
                self.handleChoice( state.id, self.handleNextState.bind(self) );
              }
-             else if (state.type == 'End State' && state.parentId != self.getTopLevelId()) {
+             else if (state.type == 'End State' && !self.isTerminalEndState( state )) {
                self.handleEnd( state.id )
                  .then(function(s) {
                    self.handleNextState( s );
@@ -1261,9 +1258,9 @@ define(['js/util',
                if ( state.id != self._activeState.id ) {
                  var msg = `STATE TRANSITION: ${self._activeState.name}->${state.name}`;
                  self.log( msg );
-                 if (state.type == 'End State') {
-                   // THIS IS THE TOP LEVEL END STATE!
-                   self.log('HFSM HAS TERMINATED!');
+                 if (self.isTerminalEndState( state )) {
+                   self.log('HFSM HAS TERMINATED: further events are ' +
+                            'ignored until HFSM-Restart');
                  }
                }
                // update active state!
@@ -1274,6 +1271,7 @@ define(['js/util',
                if (self._stateChangedCallback) {
                  self._stateChangedCallback( self._activeState.id );
                }
+               self.refreshTerminationState();
              }
            }
          };
@@ -1285,6 +1283,13 @@ define(['js/util',
            // can show its simulated payload values
            self._currentEventName = eventName;
            var deferred = Q.defer();
+           // a terminated machine consumes events without acting on
+           // them; without this they would bubble past the END STATE
+           // and fire transitions on its ancestors
+           if (self.hasTerminated()) {
+             deferred.resolve();
+             return deferred.promise;
+           }
            if (stateId) {
              var internalTransitionIds = self.getInternalTransitionIds( eventName, stateId );
              var externalTransitionIds = self.getExternalTransitionIds( eventName, stateId );
@@ -1350,6 +1355,34 @@ define(['js/util',
              return k;
            });
            return nodeEdges.filter(function (o) { return o; });
+         };
+
+         /**
+          * True once the machine has entered a terminal END STATE --
+          * one whose parent is the machine itself. This mirrors the
+          * generated code, where the END STATE swallows every event
+          * and its tick() does nothing: "the terminal END STATE for
+          * the HFSM, after which no events or other actions will be
+          * processed".
+          *
+          * Derived from the active state rather than tracked in a
+          * flag, so restarting, clearing, or loading another model
+          * cannot leave it stale.
+          */
+         Simulator.prototype.isTerminalEndState = function( state ) {
+           var self = this;
+           if (!state || state.type != 'End State')
+             return false;
+           // an END STATE directly under the machine ends it; one
+           // inside a composite state only ends that state, and hands
+           // control back through the parent's end transition
+           var parent = self.nodes[ state.parentId ];
+           return !!parent && rootTypes.indexOf( parent.type ) > -1;
+         };
+
+         Simulator.prototype.hasTerminated = function( ) {
+           var self = this;
+           return self.isTerminalEndState( self._activeState );
          };
 
          Simulator.prototype.getTopLevelId = function( ) {
@@ -1435,9 +1468,20 @@ define(['js/util',
                  deferred.resolve(s);
                });
              }
+             else if (self.isTerminalEndState(state)) {
+               // the machine ends here: there is nothing to descend
+               // into, and the END STATE itself becomes active
+               deferred.resolve(initState);
+             }
              else if (state.type == 'End State') {
-               // This means that the initial state is wired to an end state!
-               self.handleEnd(state.id);
+               // an END STATE inside a composite state: hand control
+               // back to the parent through its end transition.
+               //
+               // This used to call handleEnd() and drop the promise on
+               // the floor, so the caller's chain never continued: the
+               // log said the machine had ended while the active state
+               // silently stayed put, still consuming events.
+               deferred.resolve( self.handleEnd( state.id ) );
              }
              else {
                // we'll come here if 1) we have no children and 2) we
@@ -1505,8 +1549,10 @@ define(['js/util',
            return template.content.firstChild;
          }
 
-         function getCode(nodeObj, codeAttr, doHighlight, markIncomplete) {
-           var originalCode = nodeObj.getAttribute( codeAttr ),
+         // takes a plain DESCRIPTOR (attributes are flattened onto it)
+         // rather than a live model node
+         function getCode(desc, codeAttr, doHighlight, markIncomplete) {
+           var originalCode = desc[ codeAttr ],
                code = escapeHtml(originalCode);
            var el = '';
            if (doHighlight) {
@@ -1560,7 +1606,7 @@ define(['js/util',
              }
              var id = $(el).attr('id');
              if (id) {
-               WebGMEGlobal.State.registerActiveSelection([id]);
+               self._backend.setActiveSelection([id], self);
                e.stopPropagation();
                e.preventDefault();
              }
@@ -1579,36 +1625,38 @@ define(['js/util',
              }
              var id = $(el).attr('id');
              if (id) {
-               WebGMEGlobal.State.registerActiveSelection([id]);
+               self._backend.setActiveSelection([id], self);
              }
            }
          };
 
          Simulator.prototype.renderState = function( gmeId ) {
            var self = this;
-           var node = self._client.getNode( gmeId );
+           // descriptors already carry the resolved meta type name and
+           // every attribute, so none of this needs the model store
+           var node = self.nodes[ gmeId ];
+           if (!node) return '';
            var internalTransitions = [];
-           node.getChildrenIds().map(function(cid) {
-             var child = self._client.getNode( cid );
-             var childType = self._client.getNode( child.getMetaTypeId() ).getAttribute( 'name' );
-             if (childType == 'Internal Transition' && child.getAttribute('Enabled')) {
+           (node.childrenIds || []).map(function(cid) {
+             var child = self.nodes[ cid ];
+             if (child && child.type == 'Internal Transition' && child.Enabled) {
                internalTransitions.push({
                  id: cid,
                  Event: getCode(child, 'Event', false),
                  Guard: getCode(child, 'Guard', false),
-                 Action: getCode(child, 'Action', true, !node.getAttribute('isComplete')),
+                 Action: getCode(child, 'Action', true, !node.isComplete),
                });
              }
            });
            var stateObj = {
-             name: node.getAttribute('name'),
+             name: node.name,
              id: gmeId
            };
            var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
            var el = $(text).find('.internal-transitions');
-           addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true, !node.getAttribute('isComplete')) );
-           addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true, !node.getAttribute('isComplete')) );
-           addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true, !node.getAttribute('isComplete')) );
+           addCodeToList( el, null, 'Entry', null, getCode(node, 'Entry', true, !node.isComplete) );
+           addCodeToList( el, null, 'Exit', null, getCode(node, 'Exit', true, !node.isComplete) );
+           addCodeToList( el, null, 'Tick', null, getCode(node, 'Tick', true, !node.isComplete) );
            internalTransitions.sort(function(a,b) { return a.Event.localeCompare(b.Event); }).map(function(i) {
              addCodeToList( el, i.id, i.Event, i.Guard, i.Action );
            });
@@ -1617,9 +1665,10 @@ define(['js/util',
 
          Simulator.prototype.renderStateMachine = function( gmeId ) {
            var self = this;
-           var node = self._client.getNode( gmeId );
+           var node = self.nodes[ gmeId ];
+           if (!node) return '';
            var stateObj = {
-             name: node.getAttribute('name'),
+             name: node.name,
              id: gmeId
            };
            var text = htmlToElement( mustache.render( stateTemplate, stateObj ) );
@@ -1631,9 +1680,9 @@ define(['js/util',
          Simulator.prototype.displayStateInfo = function ( gmeId ) {
            var self = this;
            //self.hideStateInfo();
-           var node = self._client.getNode( gmeId );
+           var node = self.nodes[ gmeId ];
            if (node) {
-             var nodeType = self._client.getNode( node.getMetaTypeId() ).getAttribute( 'name' );
+             var nodeType = node.type;
              if (nodeType == 'State') {
                if ( $(self._stateInfo).find('.uml-state-machine').length ) {
                  $(self._stateInfo).append(parentTempl);
@@ -1643,8 +1692,8 @@ define(['js/util',
                  .on('click', self.onClickInternalTransition.bind(self) );
                $(self._stateInfo).find('.uml-state-machine')
                  .on('click', self.onClickStateInfo.bind(self) );
-               if (node.getParentId()) {
-                 self.displayStateInfo( node.getParentId() );
+               if (node.parentId) {
+                 self.displayStateInfo( node.parentId );
                }
              }
              else if (rootTypes.indexOf(nodeType) > -1) {
@@ -1765,12 +1814,35 @@ define(['js/util',
                showEventButton.on('click', self.onShowEventButtonClick.bind(self));
              }
            });
+
+           self.refreshTerminationState();
          };
 
          Simulator.prototype.updateEventButtons = function () {
            var self = this;
            self.createEventButtons();
            self.updateStateInfo();
+         };
+
+         // buttons that stay live in the terminal END STATE: they are
+         // how you get back out of it
+         var alwaysLiveEvents = ['HFSM-Restart', 'HFSM-Clear'];
+
+         /**
+          * Grey out the buttons that would do nothing now that the
+          * machine has terminated. Clicking one still logs why it was
+          * ignored -- this only makes it visible beforehand.
+          */
+         Simulator.prototype.refreshTerminationState = function () {
+           var self = this;
+           if (!self._eventButtons)
+             return;
+           var terminated = self.hasTerminated();
+           self._eventButtons.find('.eventButton').each(function () {
+             var name = self.getEventButtonText( this ).trim();
+             var inert = terminated && alwaysLiveEvents.indexOf( name ) == -1;
+             $(this).toggleClass('terminated', inert);
+           });
          };
 
          Simulator.prototype.getEventButtonText = function ( btnEl ) {
@@ -1789,11 +1861,19 @@ define(['js/util',
              self.clearActiveState();
            }
            else if (eventName == 'HFSM-Tick') {
+             if (self.hasTerminated()) {
+               self.log(`IGNORED ${eventName}: the HFSM has terminated (restart to run again)`);
+               return;
+             }
              var msg = `Tick down to leaf node ${self._activeState.name} : ${self._activeState.id}`;
              self.log(msg);
              self.updateActiveState();
            }
            else {
+             if (self.hasTerminated()) {
+               self.log(`IGNORED ${eventName}: the HFSM has terminated (restart to run again)`);
+               return;
+             }
              self.updateActiveState();
              if (!self._activeState) {
                return;

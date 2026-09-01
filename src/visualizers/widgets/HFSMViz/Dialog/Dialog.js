@@ -60,22 +60,27 @@ define(['js/util',
 
            /**
             * Initialize Dialog
-            * @param  {Object}     nodeDesc       Descriptor for the node that will be the parent
-            * @param  {Object}     client         Client object for creating nodes and setting attributes
+            * @param  {Object}     desc           Descriptor for the node that will be the parent
+            * @param  {Object}     backend        ModelBackend used to read the creatable
+            *                                     child types and to create the child
             * @return {void}
             */
-           Dialog.prototype.initialize = function ( desc, client, position) {
+           Dialog.prototype.initialize = function ( desc, backend, position) {
                var self = this;
-               self.client = client;
+               self.backend = backend;
 
                // Initialize Modal and append it to main DOM
                this._dialog.modal({ show: false});
 
                // add children types to selector
                this._childSelector.on('change', this.selectChild.bind(this));
-               this._childTypes = {};
-               this._childTypes = self.getValidChildrenTypes( desc, client );
-               var typeNames = Object.keys(this._childTypes).sort().reverse();
+               this._schemas = {};
+               backend.getChildTypeSchemas( desc.id ).forEach(function( schema ) {
+                   if ( !schema.isConnection &&
+                        ignoreTypes.indexOf( schema.name ) == -1 )
+                       self._schemas[ schema.name ] = schema;
+               });
+               var typeNames = Object.keys(this._schemas).sort().reverse();
                typeNames.map(function(t) {
                    $(self._childSelector).append(new Option(t, t));
                });
@@ -84,55 +89,92 @@ define(['js/util',
 
                // Event listener on click for SAVE button
                this._btnSave.on('click', function (event) {
-                   // Invoke callback to deal with modified text, like save it in client.
+                   // The dialog now stays open until the commit is
+                   // confirmed, so without this a second click during
+                   // that window starts a second transaction and
+                   // creates a duplicate child.
+                   if (self._saving) {
+                       event.stopPropagation();
+                       event.preventDefault();
+                       return;
+                   }
+                   self._saving = true;
+                   self._btnSave.prop('disabled', true);
+
                    var attr = self.getAttributesFromForm();
-
-                   client.startTransaction();
                    var type = self.getSelectedChildType();
-                   var childCreationParams = {
-                       parentId: desc.id,
-                       baseId:   self.getSelectedChildMetaId(),
-                       position: position,
-                   };
                    var msg = 'Creating new child of type ' + type + ' with parent ' + desc.id;
-                   var newChildPath = client.createChild( childCreationParams, msg );
-                   // save node data here dependent on the type of node
-                   Object.keys(attr).map(function( attrName ) {
-                       var attrVal = attr[attrName];
-                       var currentAttr = client.getNode(newChildPath).getAttribute(attrName);
-                       if (attrVal != currentAttr) {
-                           msg = 'Setting "'+attrName+'" to "'+attrVal+'"';
-                           client.setAttribute( newChildPath, attrName, attrVal, msg );
-                       }
-                   });
-                   client.completeTransaction('', function(err, result) {
-                       if (err) {
-                       } else {
-                           WebGMEGlobal.State.registerActiveSelection([newChildPath], {invoker: this});
-                       }
-                   });
 
-                   // Close dialog
-                   self._dialog.modal({ show: false});
-                   self._dialog.modal('hide');
+                   // the child and its attributes are one edit: a
+                   // half-configured node should never be a state the
+                   // user can land on by undoing
+                   // captured inside the body so the completion
+                   // callback sees it even if a backend settles
+                   // synchronously
+                   var newChildPath = null;
+                   // transact() reports the failure through the
+                   // completion callback below and then rethrows;
+                   // letting it escape here would also raise WebGME's
+                   // global "uncaught exception" banner over a
+                   // failure the dialog is already showing
+                   try {
+                       backend.transact(msg, function () {
+                           var childPath = backend.createChild( desc.id, type,
+                                                                { position: position } );
+                           Object.keys(attr).map(function( attrName ) {
+                               var attrVal = attr[attrName];
+                               // only write what the form actually changed,
+                               // so untouched fields keep inheriting
+                               if (attrVal != backend.getAttribute(childPath, attrName)) {
+                                   backend.setAttribute( childPath, attrName, attrVal );
+                               }
+                           });
+                           newChildPath = childPath;
+                           return childPath;
+                       }, function (err) {
+                           // The dialog closes only once the store has
+                           // ACCEPTED the change. Hiding it as soon as
+                           // transact() returned threw away everything the
+                           // user typed if the commit was then rejected,
+                           // with nothing to retry from.
+                           // re-enable either way: on failure so the
+                           // user can retry, on success so a reopened
+                           // dialog is not stuck disabled
+                           self._saving = false;
+                           self._btnSave.prop('disabled', false);
+                           if (err) {
+                               console.error('Could not create child: ', err);
+                               self.showError('Could not create the ' + type +
+                                              ': ' + (err.message || err));
+                               return;
+                           }
+                           if (newChildPath) {
+                               backend.setActiveSelection([newChildPath], self);
+                           }
+                           self.hide();
+                       });
+                   } catch (e) {
+                       // already reported through the callback above;
+                       // make sure Save comes back even if a backend
+                       // threw without reporting
+                       self._saving = false;
+                       self._btnSave.prop('disabled', false);
+                   }
+
                    event.stopPropagation();
                    event.preventDefault();
                });
 
                // Event listener on click for CLOSE button
                this._btnClose.on('click', function (event) {
-                   // Close dialog
-                   self._dialog.modal({ show: false});
-                   self._dialog.modal('hide');
+                   self.hide();
                    event.stopPropagation();
                    event.preventDefault();
                });
 
                // Event listener on click for CANCEL button
                this._btnCancel.on('click', function (event) {
-                   // Close dialog
-                   self._dialog.modal({ show: false});
-                   self._dialog.modal('hide');
+                   self.hide();
                    event.stopPropagation();
                    event.preventDefault();
                });
@@ -157,14 +199,9 @@ define(['js/util',
                return $(self._childSelector).val();
            };
 
-           Dialog.prototype.getSelectedChildMetaId = function () {
+           Dialog.prototype.getCurrentSchema = function() {
                var self = this;
-               return self._childTypes[ self.getSelectedChildType() ];
-           };
-
-           Dialog.prototype.getCurrentMetaNode = function() {
-               var self = this;
-               return self.client.getNode( self.getSelectedChildMetaId() );
+               return self._schemas[ self.getSelectedChildType() ];
            };
 
            Dialog.prototype.selectChild = function (event) {
@@ -178,41 +215,36 @@ define(['js/util',
                var self = this;
                self._attrForm.empty();
                self._attrForm.append( self.getForm() );
-           };
-
-           Dialog.prototype.getValidChildrenTypes = function( desc, client ) {
-               var node = client.getNode( desc.id );
-               var validChildTypes = {};
-
-               // figure out what the allowable range is
-               var validChildren = node.getValidChildrenTypesDetailed( );
-               Object.keys( validChildren ).map(function( metaId ) {
-                   var child = client.getNode( metaId );
-                   var childType = child.getAttribute('name');
-                   var canCreateMore = validChildren[ metaId ];
-                   if ( canCreateMore &&
-                        !child.isAbstract() &&
-                        !child.isConnection() &&
-                        ignoreTypes.indexOf( childType ) == -1 )
-                       validChildTypes[ childType ] = metaId;
+               // Show what the node would start with. The form used to
+               // render empty, so saving without touching a field wrote
+               // '' over its default -- a Field left alone lost its
+               // 'int' Type, an untouched State its isComplete.
+               self.getCurrentAttributes().map(function( a ) {
+                   if (a.defaultValue === undefined || a.defaultValue === null)
+                       return;
+                   var el = $(self._dialog).find('#' + attrToID(a.name)).first();
+                   if (!el.length)
+                       return;
+                   if (el[0].type === 'checkbox') {
+                       el[0].checked = !!a.defaultValue;
+                   } else {
+                       el.val(a.defaultValue);
+                   }
                });
-
-               return validChildTypes;
            };
 
            // ATTRIBUTE RELATED FUNCTIONS
 
-           Dialog.prototype.getCurrentAttributeNames = function () {
-               var self = this;
-               return self.getCurrentMetaNode().getAttributeNames().sort();
+           Dialog.prototype.getCurrentAttributes = function () {
+               var schema = this.getCurrentSchema();
+               return (schema && schema.attributes) || [];
            };
 
            Dialog.prototype.getForm = function ( ) {
                var self = this;
                var form = '';
-               var node = self.getCurrentMetaNode();
-               self.getCurrentAttributeNames().map( function(a) {
-                   form += self.renderAttributeForm( a, node.getAttributeMeta(a).type );
+               self.getCurrentAttributes().map( function(a) {
+                   form += self.renderAttributeForm( a.name, a.type );
                });
                return form;
            };
@@ -228,7 +260,8 @@ define(['js/util',
            Dialog.prototype.getAttributesFromForm = function () {
                var self = this;
                var attr = {};
-               self.getCurrentAttributeNames().map(function(a) {
+               self.getCurrentAttributes().map(function(schemaAttr) {
+                   var a = schemaAttr.name;
                    var el = $(self._dialog).find('#'+attrToID(a)).first();
                    var type = el.type || (el[0] && el[0].type);
                    var val = valueMap[type] ? valueMap[type](el) : el.val();
@@ -254,6 +287,28 @@ define(['js/util',
            Dialog.prototype.show = function () {
                var self = this;
                self._dialog.modal('show');
+           };
+
+           Dialog.prototype.hide = function () {
+               var self = this;
+               self._dialog.modal({ show: false });
+               self._dialog.modal('hide');
+           };
+
+           /**
+            * Report a failed save in the dialog itself. The form stays
+            * open and filled in, so the user can retry rather than
+            * retype.
+            */
+           Dialog.prototype.showError = function (message) {
+               var self = this;
+               if (!self._error || !self._error.length) {
+                   self._error = $('<div class="alert alert-danger dialog-error"></div>');
+                   self._attrForm.before(self._error);
+               }
+               // .text(), never .html(): the message can carry model
+               // content and error text from the store
+               self._error.text(message).show();
            };
 
            return Dialog;

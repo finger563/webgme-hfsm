@@ -1,3 +1,8 @@
 h3 {
     font-size: 25px;
 }
+/* a save the store rejected: the form stays open so the user can
+   retry instead of retyping */
+.dialog-error {
+    margin: 8px 16px 0 16px;
+}

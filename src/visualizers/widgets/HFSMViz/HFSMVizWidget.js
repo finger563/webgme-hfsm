@@ -9,11 +9,11 @@ define([
   // local
   "text!./HFSM.html",
   "./Dialog/Dialog",
+  "./WebGMEBackend",
   "./Simulator/Simulator",
   "./Simulator/Choice",
   // built-ins
   "js/Constants",
-  "js/Utils/GMEConcepts",
   "js/Controls/ContextMenu",
   "js/DragDrop/DropTarget",
   "js/DragDrop/DragConstants",
@@ -39,11 +39,11 @@ define([
     // local
     HFSMHtml,
     Dialog,
+    WebGMEBackend,
     Simulator,
     Choice,
     // built-ins
     CONSTANTS,
-    GMEConcepts,
     ContextMenu,
     dropTarget,
     DROP_CONSTANTS,
@@ -89,13 +89,28 @@ define([
       return "#" + gmeId.replace(/\//gm, "\\/");
     };
 
-    HFSMVizWidget = function (logger, container, client) {
+    /**
+     * @param backendFactory  optional; getNodes -> ModelBackend. The
+     *   backend is the ONLY thing here that knows about WebGME, so a
+     *   host with a different store (the playground's LocalBackend
+     *   over plain JSON) installs it here rather than editing this
+     *   file. It takes the node-table getter because the descriptor
+     *   table lives on the widget and reads are served from it.
+     *
+     *   Defaults to WebGMEBackend, which is this widget's WebGME
+     *   host wiring, not a hard dependency of the widget itself.
+     */
+    HFSMVizWidget = function (logger, container, client, backendFactory) {
       this._logger = logger.fork("Widget");
 
       this._el = container;
 
       this._client = client;
-      GMEConcepts.initialize(client);
+      var self = this;
+      var getNodes = function () { return self.nodes; };
+      this._backend = backendFactory
+        ? backendFactory(getNodes)
+        : WebGMEBackend(client, getNodes, WebGMEGlobal);
       this._initialize();
 
       this._logger.debug("ctor finished");
@@ -144,12 +159,13 @@ define([
     };
 
     HFSMVizWidget.prototype.initializeSimulator = function() {
+      var self = this;
       if (this._simulator) {
         delete this._simulator;
       }
       // SIMULATOR
       this._simulator = new Simulator();
-      this._simulator.initialize( this._left, this.nodes, this._client );
+      this._simulator.initialize( this._left, this.nodes, this._backend );
       this._simulator.onStateChanged( this.showActiveState.bind(this) );
       this._simulator.onAnimateElement( this.animateElement.bind(this) );
       this._simulator.onShowTransitions( this.showTransitions.bind(this) );
@@ -183,7 +199,7 @@ define([
     HFSMVizWidget.prototype._branchChanged = function(args) {
       var self = this;
       self.branchChanged = false;
-      self._readOnly = self._client.isReadOnly();
+      self._readOnly = self._backend.isReadOnly();
       if (self._cy) {
         self._cy.autoungrabify(self._readOnly);
       }
@@ -191,7 +207,7 @@ define([
 
     HFSMVizWidget.prototype._branchStatusChanged = function(args) {
       var self = this;
-      self._readOnly = self._client.isReadOnly();
+      self._readOnly = self._backend.isReadOnly();
       if (self._cy) {
         self._cy.autoungrabify(self._readOnly);
       }
@@ -221,7 +237,7 @@ define([
           self = this;
 
       // is the project readonly?
-      this._readOnly = this._client.isReadOnly();
+      this._readOnly = this._backend.isReadOnly();
 
       // Root Info
       this.HFSMName = "";
@@ -632,7 +648,7 @@ define([
                 var dialog = new Dialog();
                 dialog.initialize(
                   self.nodes[ node.id() ],
-                  self._client,
+                  self._backend,
                   childPosition
                 );
                 dialog.show();
@@ -869,10 +885,7 @@ define([
       // update selected nodes
       self._selectedNodes = _.union(self._selectedNodes, ids);
       // register updated selection state
-      WebGMEGlobal.State.registerActiveSelection(
-        self._selectedNodes.slice(0),
-        {invoker: self}
-      );
+      self._backend.setActiveSelection(self._selectedNodes, self);
     };
 
     HFSMVizWidget.prototype.unselectNodes = function(ids) {
@@ -924,7 +937,9 @@ define([
 
       editorDialog.initialize(documentation, function (text) {
         try {
-          self._client.setAttribute(gmeId, "documentation", text, "updated documentation for " + gmeId);
+          self._backend.transact("updated documentation for " + gmeId, function () {
+            self._backend.setAttribute(gmeId, "documentation", text);
+          });
         } catch (e) {
           console.error("Could not save documentation: ");
           console.error(e);
@@ -948,9 +963,52 @@ define([
       self._cy.autoungrabify(true);
     };
 
+    // Zoom-to-fit padding, shared by the toolbar button and the
+    // post-model-switch reset so both land on the same framing.
+    var FIT_PADDING = 50;
+
+    HFSMVizWidget.prototype.resetView = function() {
+      var self = this;
+      if (!self._cy)
+        return;
+      var elements = self._cy.elements();
+      if (elements.length) {
+        self._cy.fit( elements, FIT_PADDING );
+      } else {
+        // nothing to frame: go back to the identity viewport rather
+        // than fitting to an empty graph, which leaves the zoom at
+        // whatever cytoscape's minimum happens to be
+        self._cy.reset();
+      }
+    };
+
+    /**
+     * The viewport belongs to the VIEW, not to the model, so clearing
+     * the graph on a model switch left the next HFSM drawn under the
+     * pan and zoom the user had left on the previous one -- often
+     * entirely off-screen.
+     *
+     * Nodes arrive one territory event at a time, so fitting on the
+     * first one would frame a single node. This coalesces: each
+     * arrival pushes the fit back, and it runs once the batch stops.
+     */
+    HFSMVizWidget.prototype.scheduleViewReset = function() {
+      var self = this;
+      if (!self._viewNeedsReset)
+        return;
+      if (self._viewResetTimer) {
+        clearTimeout( self._viewResetTimer );
+      }
+      self._viewResetTimer = setTimeout(function() {
+        self._viewResetTimer = null;
+        self._viewNeedsReset = false;
+        self.resetView();
+      }, 50);
+    };
+
     HFSMVizWidget.prototype.onZoomClicked = function() {
       var self = this;
-      var layoutPadding = 50;
+      var layoutPadding = FIT_PADDING;
       self._cy.fit( self._cy.elements(), layoutPadding);
       /*
         self._cy.animate({
@@ -1063,10 +1121,7 @@ define([
       // update selected nodes
       self._selectedNodes = [];
       // update selection state
-      WebGMEGlobal.State.registerActiveSelection(
-        self._selectedNodes.slice(0),
-        {invoker: this}
-      );
+      self._backend.setActiveSelection(self._selectedNodes, this);
       var tidSelector = transitionIDs.reduce((sel, id) => {
         self._selectedNodes.push(id);
         // highlight the Transition
@@ -1080,10 +1135,7 @@ define([
       edges.select();
       self.highlightNodes( edges );
       // update selection state
-      WebGMEGlobal.State.registerActiveSelection(
-        self._selectedNodes.slice(0),
-        {invoker: this}
-      );
+      self._backend.setActiveSelection(self._selectedNodes, this);
     };
 
 
@@ -1166,32 +1218,29 @@ define([
 
       var keys = Object.keys(self._unsavedNodePositions);
 
-      self._client.startTransaction();
-
-      keys.map(function(k) {
-        var id = k;
-        if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1 ) {
-          var pos = self._unsavedNodePositions[id];
-          var originalPos = self.nodes[id].position;
-          if (!_.isEqual(pos, originalPos)) {
-            //console.log('saving for '+id);
-            //console.log(originalPos);
-            //console.log(pos);
-            self._client.setRegistry(id, "position", pos);
+      self._backend.transact("Saving node positions", function () {
+        keys.map(function(k) {
+          var id = k;
+          if (self.nodes[id] && rootTypes.indexOf(self.nodes[id].type) == -1 ) {
+            var pos = self._unsavedNodePositions[id];
+            var originalPos = self.nodes[id].position;
+            if (!_.isEqual(pos, originalPos)) {
+              self._backend.setPosition(id, pos);
+            }
           }
-        }
-      });
-
-      self._client.completeTransaction("", (err, result) => {
+        });
+      }, function (err) {
+        // keep the pending positions if the commit was rejected:
+        // dropping them would lose the user's layout silently
         if (err) {
-        } else {
-          self._unsavedNodePositions = {};
+          console.error("Could not save node positions: ", err);
+          return;
         }
+        self._unsavedNodePositions = {};
       });
     };
 
     /* * * * * * * * Graph Creation Functions  * * * * * * * */
-
 
     HFSMVizWidget.prototype.checkDependencies = function(desc) {
       var self = this;
@@ -1368,6 +1417,7 @@ define([
           }
         }
         self._simulator.update( );
+        self.scheduleViewReset();
       }
     };
 
@@ -1401,7 +1451,7 @@ define([
             self._selectedNodes = self._selectedNodes.filter((id) => {
               return id != gmeId;
             });
-            WebGMEGlobal.State.registerActiveSelection(self._selectedNodes.slice(0), {invoker: this});
+            self._backend.setActiveSelection(self._selectedNodes, this);
           }
           delete self.nodes[gmeId];
           delete self.waitingNodes[gmeId];
@@ -1523,57 +1573,55 @@ define([
       menu.show(position);
     };
 
+    /**
+     * Every connection that removing `ids` would leave dangling --
+     * including transitions attached to the doomed nodes' DESCENDANTS,
+     * which go away with their parent.
+     *
+     * Deliberately not the simulator's edge helpers: those skip
+     * disabled transitions, and a disabled transition still has to
+     * follow the state it points at.
+     */
+    HFSMVizWidget.prototype.dependentEdges = function( ids ) {
+      var self = this;
+      var doomed = {};
+
+      function claimSubtree( id ) {
+        var node = self.nodes[ id ];
+        if (!node || doomed[ id ])
+          return;
+        doomed[ id ] = true;
+        (node.childrenIds || []).map( claimSubtree );
+      }
+      ids.map( claimSubtree );
+
+      return Object.keys( self.nodes ).filter(function( id ) {
+        var node = self.nodes[ id ];
+        // edges inside the doomed subtree are removed with it
+        return node && node.isConnection && !doomed[ id ] &&
+          ( doomed[ node.src ] || doomed[ node.dst ] );
+      });
+    };
+
     HFSMVizWidget.prototype.deleteNode = function( nodeId ) {
       var self = this;
-      var edgesTo = self._simulator.getEdgesToNode( nodeId );
-      var edgesFrom = self._simulator.getEdgesFromNode( nodeId );
-
-      self._client.startTransaction();
-
-      if (edgesTo) {
-        edgesTo.map(function(eid) {
-          self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
-        });
-      }
-      if (edgesFrom) {
-        edgesFrom.map(function(eid) {
-          self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
-        });
-      }
-      self._client.deleteNode( nodeId, "Removing " + nodeId );
-
-      self._client.completeTransaction();
+      // one transaction: a state removed without its now-dangling
+      // transitions is not a valid intermediate model
+      self._backend.transact("Removing " + nodeId, function () {
+        self._backend.deleteNodes(
+          _.union([nodeId], self.dependentEdges([nodeId])));
+      });
     };
 
     HFSMVizWidget.prototype.deleteSelection = function( ) {
       var self = this;
 
-      var selection = self._selectedNodes,
-          edgesTo = [],
-          edgesFrom = [];
+      var selection = self._selectedNodes;
 
-      selection.map(id => {
-        edgesTo = _.union(edgesTo, self._simulator.getEdgesToNode( id ));
-        edgesFrom = _.union(edgesFrom, self._simulator.getEdgesFromNode( id ));
+      self._backend.transact("Removing selection", function () {
+        self._backend.deleteNodes(
+          _.union(selection, self.dependentEdges( selection )));
       });
-
-      self._client.startTransaction();
-
-      selection.map(id => {
-        self._client.deleteNode( id, "Removing selected " + id );
-      });
-      if (edgesTo) {
-        edgesTo.map(function(eid) {
-          self._client.deleteNode( eid, "Removing dependent (dst) transition: " + eid );
-        });
-      }
-      if (edgesFrom) {
-        edgesFrom.map(function(eid) {
-          self._client.deleteNode( eid, "Removing dependent (src) transition: " + eid );
-        });
-      }
-
-      self._client.completeTransaction();
     };
 
     HFSMVizWidget.prototype.getHiddenChildren = function( nodeId ) {
@@ -1653,23 +1701,6 @@ define([
 
     /* * * * * * * Drag & Drop Related Functions * * * * * * */
 
-    function getValidChildrenTypes( desc, client ) {
-      var node = client.getNode( desc.id );
-      var validChildTypes = {};
-
-      // figure out what the allowable range is
-      var validChildren = node.getValidChildrenTypesDetailed(null, true);
-      Object.keys( validChildren ).map(function( metaId ) {
-        var child = client.getNode( metaId );
-        var childType = child.getAttribute("name");
-        var canCreateMore = validChildren[ metaId ];
-        if ( canCreateMore &&
-             !child.isAbstract() )
-          validChildTypes[ childType ] = metaId;
-      });
-      return validChildTypes;
-    };
-
     HFSMVizWidget.prototype._isValidDrop = function (dragInfo, parentId) {
       if (!dragInfo || !parentId || this._readOnly)
         return false;
@@ -1706,118 +1737,88 @@ define([
         return false;
 
       var validChildrenTypes,
-          nodeObj,
-          nodeName,
-          metaObj,
-          metaName;
+          info;
 
       if (parentId && nodeId) {
-        validChildrenTypes = getValidChildrenTypes(
-          self.nodes[ parentId ],
-          self._client
-        );
+        validChildrenTypes = self._backend.getValidChildTypes( parentId );
 
-        nodeObj = self._client.getNode(nodeId);
-        nodeName = nodeObj.getAttribute("name");
-        metaObj = self._client.getNode(nodeObj.getMetaTypeId());
-        if (metaObj) {
-          metaName = metaObj.getAttribute("name");
-        }
+        // the dragged node may be an instance or the palette's meta
+        // node itself, so accept either identity for its type
+        info = self._backend.getNodeInfo( nodeId );
 
-        canCreate = validChildrenTypes && metaName &&
-          ( validChildrenTypes[ metaName ] == nodeId ||
-            validChildrenTypes[ metaName ] == nodeObj.getMetaTypeId() );
+        canCreate = !!(info && info.type &&
+                       ( validChildrenTypes[ info.type ] == info.typeId ||
+                         validChildrenTypes[ info.type ] == info.id ));
       }
       return canCreate;
     };
 
     HFSMVizWidget.prototype._createNode = function( baseId, parentId, childPosition ) {
-      var self = this,
-          client = self._client;
+      var self = this;
 
       if (baseId) {
-
-        client.startTransaction();
-
         var selector = gmeIdToCySelector(parentId),
-            cyNode = self._cy.$(selector),
-            node = client.getNode(baseId);
-
+            cyNode = self._cy.$(selector);
         self.forceShowChildren( cyNode.id() );
-
         var pos = self.screenPosToCyPos( childPosition );
-        var childCreationParams = {
-          parentId: parentId,
-          baseId: baseId,
-          position: pos
-        };
 
-        var newChildPath = client.createChild(childCreationParams, "Creating new child");
-
-        client.completeTransaction("", function(err, result) {
-          WebGMEGlobal.State.registerActiveSelection([newChildPath]);
+        // captured inside the body so the completion callback sees
+        // it even if a backend settles synchronously
+        var newChildPath = null;
+        self._backend.transact("Creating new child", function () {
+          // baseId here is a palette entry: ask the backend what it
+          // is, so the widget never resolves meta types itself
+          var info = self._backend.getNodeInfo(baseId);
+          newChildPath = self._backend.createChild(parentId, info && info.type,
+                                                   { position: pos });
+          return newChildPath;
+        }, function (err) {
+          // don't select a node the store rejected
+          if (err) {
+            console.error("Could not create child: ", err);
+            return;
+          }
+          if (newChildPath) {
+            self._backend.setActiveSelection([newChildPath], self);
+          }
         });
       }
     };
 
     HFSMVizWidget.prototype._instanceNodes = function( nodeIds, parentId, childPosition ) {
-      var self = this,
-          client = self._client;
+      var self = this;
 
       if (nodeIds.length > 0) {
-        client.startTransaction("Creating node instances into " + parentId);
+        var selector = gmeIdToCySelector(parentId);
+        var cyNode = self._cy.$(selector);
+        self.forceShowChildren( cyNode.id() );
+        var pos = self.screenPosToCyPos( childPosition );
 
-        nodeIds.map(function(nodeId) {
-          var selector = gmeIdToCySelector(parentId);
-          var cyNode = self._cy.$(selector);
-          var node = client.getNode(nodeId);
-
-          self.forceShowChildren( cyNode.id() );
-          var pos = self.screenPosToCyPos( childPosition );
-
-          var childCreationParams = {
-            parentId: parentId,
-            baseId: nodeId,
-            position: pos
-          };
-          client.createChild(childCreationParams);
+        self._backend.transact("Creating node instances into " + parentId,
+                               function () {
+          self._backend.createInstances(parentId, nodeIds, pos);
         });
-
-        client.completeTransaction();
       }
     };
 
     HFSMVizWidget.prototype._copyNodes = function( nodeIds, parentId, childPosition ) {
-      var self = this,
-          client = self._client;
+      var self = this;
 
       if (nodeIds.length > 0) {
-        client.startTransaction("Copying Nodes into " + parentId);
-
         var selector = gmeIdToCySelector(parentId);
         var cyNode = self._cy.$(selector);
 
         self.forceShowChildren( cyNode.id() );
         var pos = self.screenPosToCyPos( childPosition );
-        var params = {parentId: parentId};
 
-        nodeIds.map(function(nodeId) {
-          params[nodeId] = {
-            "registry": {
-              "position": pos
-            }
-          };
+        self._backend.transact("Copying Nodes into " + parentId, function () {
+          self._backend.copyNodes(nodeIds, parentId, pos);
         });
-
-        client.copyMoreNodes(params);
-
-        client.completeTransaction();
       }
     };
 
     HFSMVizWidget.prototype._moveNodes = function( nodeIds, parentId, childPosition ) {
-      var self = this,
-          client = self._client;
+      var self = this;
 
       if (nodeIds.length > 0) {
         if (nodeIds.indexOf(parentId) != -1) {
@@ -1826,30 +1827,19 @@ define([
           return;
         }
 
+        var selector = gmeIdToCySelector(parentId);
+        var cyNode = self._cy.$(selector);
+        self.forceShowChildren( cyNode.id() );
+        var pos = self.screenPosToCyPos( childPosition );
+
         try {
-          client.startTransaction("Moving nodes into " + parentId);
-
-          var selector = gmeIdToCySelector(parentId);
-          var cyNode = self._cy.$(selector);
-
-          var params = {parentId: parentId};
-
-          self.forceShowChildren( cyNode.id() );
-          var pos = self.screenPosToCyPos( childPosition );
-
-          nodeIds.map(function(nodeId) {
-            params[nodeId] = {
-              "registry": {
-                "position": pos
-              }
-            };
+          self._backend.transact("Moving nodes into " + parentId, function () {
+            self._backend.moveNodes(nodeIds, parentId, pos);
           });
-
-          client.moveMoreNodes(params);
-
-          client.completeTransaction();
         }
         catch (ex) {
+          // transact() has already closed the transaction; report the
+          // failure the way this handler always has
           alert(ex);
         }
       }
@@ -1931,8 +1921,6 @@ define([
     };
 
     HFSMVizWidget.prototype.dropRequiresMenu = function(dragInfo) {
-      var self = this,
-          client = self._client;
       // default to all items require a drop menu
       var requiresMenu = dragInfo && dragInfo[DROP_CONSTANTS.DRAG_EFFECTS].length > 1;
 
@@ -2036,8 +2024,7 @@ define([
     /* * * * * * * * Edge Creation Functions   * * * * * * * */
 
     HFSMVizWidget.prototype.edgeContextMenu = function(cySource, cyTargets, addedEdges, position) {
-      var self = this,
-          client = self._client;
+      var self = this;
       // get the valid connections that can be made
       if (!cySource || !cyTargets || !addedEdges) {
       }
@@ -2057,14 +2044,12 @@ define([
 
       var parentId = srcDesc.parentId;
 
-      function makeOption(src, dst, connId) {
-        var conn = client.getNode(connId);
-        var connName = conn.getAttribute("name");
+      function makeOption(src, dst, connName) {
         var option = {
           name: connName,
           icon: false,
           fn: function() {
-            self.createNewEdge( parentId, src, dst, connId );
+            self.createNewEdge( parentId, src, dst, connName );
           }
         };
         if (connName.includes("Local Transition")) {
@@ -2083,16 +2068,15 @@ define([
       }
 
       // figure out what kind of connections the parent can have
-      var parentNode = client.getNode(parentId);
-      var validConnections = GMEConcepts.getValidConnectionTypesInAspect(srcId, dstId, parentId, CONSTANTS.ASPECT_ALL);
+      var validConnections = self._backend.getValidConnectionTypes(srcId, dstId, parentId);
 
       if (validConnections.length > 0) {
         var options = {};
         var localKey = "" + validConnections.length;
         var i = 0;
-        validConnections.map(function(typeId) {
+        validConnections.map(function(conn) {
           var key = ""+i;
-          var option = makeOption( srcId, dstId, typeId);
+          var option = makeOption( srcId, dstId, conn.name );
           if (option !== null) {
             i++;
             options[key] = option;
@@ -2111,11 +2095,16 @@ define([
       }
     };
 
-    HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeMetaId ) {
+    /**
+     * @param edgeType  the connection TYPE NAME, as reported by
+     *   getValidConnectionTypes().name. Not the accompanying typeId:
+     *   that token is opaque, and a backend is free to make it
+     *   something that is not a node id at all (LocalBackend uses the
+     *   type name), so resolving it through getNodeInfo only ever
+     *   worked against WebGME.
+     */
+    HFSMVizWidget.prototype.createNewEdge = function( parentId, srcId, dstId, edgeType ) {
       var self = this;
-      var client = self._client;
-      var edgeMetaNode = client.getNode(edgeMetaId);
-      var edgeType = edgeMetaNode.getAttribute("name");
       // default to old case of edge being sibling of src
       var edgeParentId = parentId;
       // get common parent to make the edge a child of the
@@ -2140,23 +2129,17 @@ define([
         edgeParentId = commonAncestorCy && commonAncestorCy.id();
       }
 
-      var childCreationParams = {
-        parentId: edgeParentId,
-        baseId: edgeMetaId,
-      };
-
-      client.startTransaction();
-
       var msg = "Creating " + edgeType + " between " + srcId + " and "+dstId;
-      var newEdgePath = client.createChild( childCreationParams, msg);
-      if (newEdgePath) {
-        msg = "Setting src pointer for " + newEdgePath + " to " + srcId;
-        client.setPointer( newEdgePath, "src", srcId, msg );
-        msg = "Setting dst pointer for " + newEdgePath + " to " + dstId;
-        client.setPointer( newEdgePath, "dst", dstId, msg );
-      }
-
-      client.completeTransaction();
+      // one transaction: an edge without its endpoints is not a
+      // meaningful intermediate state to leave in the model
+      var newEdgePath = self._backend.transact(msg, function () {
+        var path = self._backend.createChild( edgeParentId, edgeType );
+        if (path) {
+          self._backend.setPointer( path, "src", srcId );
+          self._backend.setPointer( path, "dst", dstId );
+        }
+        return path;
+      });
 
       return newEdgePath;
     };
@@ -2272,9 +2255,21 @@ define([
       if (this._simulator && this._simulator.reset) {
         this._simulator.reset();
       }
+      // ... and frame whatever loads next, instead of inheriting this
+      // model's pan and zoom
+      if (this._viewResetTimer) {
+        clearTimeout( this._viewResetTimer );
+        this._viewResetTimer = null;
+      }
+      this._viewNeedsReset = true;
+      this.resetView();
     };
 
     HFSMVizWidget.prototype.shutdown = function() {
+      if (this._viewResetTimer) {
+        clearTimeout( this._viewResetTimer );
+        this._viewResetTimer = null;
+      }
       if (this._simulator) {
         delete this._simulator;
       }
@@ -2287,6 +2282,11 @@ define([
     };
 
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
+
+    // These two stay on the WebGME client on purpose: branch changes
+    // and the shared active-selection state are properties of the
+    // WebGME *host*, not of the model. A host without branches simply
+    // never calls them, so they are not part of ModelBackend.
     HFSMVizWidget.prototype._attachClientEventListeners = function () {
       this._detachClientEventListeners();
       WebGMEGlobal.State.on("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
