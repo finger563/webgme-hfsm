@@ -955,9 +955,52 @@ define([
       self._cy.autoungrabify(true);
     };
 
+    // Zoom-to-fit padding, shared by the toolbar button and the
+    // post-model-switch reset so both land on the same framing.
+    var FIT_PADDING = 50;
+
+    HFSMVizWidget.prototype.resetView = function() {
+      var self = this;
+      if (!self._cy)
+        return;
+      var elements = self._cy.elements();
+      if (elements.length) {
+        self._cy.fit( elements, FIT_PADDING );
+      } else {
+        // nothing to frame: go back to the identity viewport rather
+        // than fitting to an empty graph, which leaves the zoom at
+        // whatever cytoscape's minimum happens to be
+        self._cy.reset();
+      }
+    };
+
+    /**
+     * The viewport belongs to the VIEW, not to the model, so clearing
+     * the graph on a model switch left the next HFSM drawn under the
+     * pan and zoom the user had left on the previous one -- often
+     * entirely off-screen.
+     *
+     * Nodes arrive one territory event at a time, so fitting on the
+     * first one would frame a single node. This coalesces: each
+     * arrival pushes the fit back, and it runs once the batch stops.
+     */
+    HFSMVizWidget.prototype.scheduleViewReset = function() {
+      var self = this;
+      if (!self._viewNeedsReset)
+        return;
+      if (self._viewResetTimer) {
+        clearTimeout( self._viewResetTimer );
+      }
+      self._viewResetTimer = setTimeout(function() {
+        self._viewResetTimer = null;
+        self._viewNeedsReset = false;
+        self.resetView();
+      }, 50);
+    };
+
     HFSMVizWidget.prototype.onZoomClicked = function() {
       var self = this;
-      var layoutPadding = 50;
+      var layoutPadding = FIT_PADDING;
       self._cy.fit( self._cy.elements(), layoutPadding);
       /*
         self._cy.animate({
@@ -1366,6 +1409,7 @@ define([
           }
         }
         self._simulator.update( );
+        self.scheduleViewReset();
       }
     };
 
@@ -2197,9 +2241,21 @@ define([
       if (this._simulator && this._simulator.reset) {
         this._simulator.reset();
       }
+      // ... and frame whatever loads next, instead of inheriting this
+      // model's pan and zoom
+      if (this._viewResetTimer) {
+        clearTimeout( this._viewResetTimer );
+        this._viewResetTimer = null;
+      }
+      this._viewNeedsReset = true;
+      this.resetView();
     };
 
     HFSMVizWidget.prototype.shutdown = function() {
+      if (this._viewResetTimer) {
+        clearTimeout( this._viewResetTimer );
+        this._viewResetTimer = null;
+      }
       if (this._simulator) {
         delete this._simulator;
       }
