@@ -10,6 +10,7 @@ define([
   "text!./HFSM.html",
   "./Dialog/Dialog",
   "hfsm/viz/HostServices",
+  "hfsm/viz/layoutInput",
   "./Simulator/Simulator",
   "./Simulator/Choice",
   // built-ins
@@ -35,6 +36,7 @@ define([
     HFSMHtml,
     Dialog,
     HostServices,
+    layoutInput,
     Simulator,
     Choice,
     // built-ins
@@ -1093,18 +1095,29 @@ define([
       });
 
       toolbarEl.find('#layout').on('click', function(){
-        // ask if they really want to randomize the layout
+        // Offer every layout this cytoscape actually has, rather than
+        // one hardcoded name: which one reads best depends on the
+        // machine, and the only way to find out is to try them.
+        var available = self.availableLayouts();
+        var choices = available.map(function(name) {
+          return name === self._layout_options.name
+            ? "Run the " + name + " layout (current)"
+            : "Run the " + name + " layout";
+        });
+        choices.push("No, do not change any positions");
+
         var choice = new Choice();
-        var choices = [
-          "Yes, run the " + self._layout_options.name + " layout.",
-          "No, do not change any positions"
-        ];
-        choice.initialize( choices, "Really change the layout?" );
+        choice.initialize( choices, "Re-arrange the diagram with which layout?" );
         choice.show();
         return choice.waitForChoice()
-          .then(function(choice) {
-            if (choice == choices[0])
-              self.reLayout();
+          .then(function(picked) {
+            var index = choices.indexOf(picked);
+            if (index < 0 || index >= available.length)
+              return;   // cancelled, or the "do not change" entry
+            // remember it, so the next automatic arrangement and the
+            // "(current)" marker both follow what was chosen
+            self.setLayoutOptions({ name: available[index] });
+            self.reLayout();
           });
       });
     };
@@ -1338,17 +1351,62 @@ define([
      * needs a different one from WebGME's, so it can say so once
      * rather than passing overrides at every call site.
      */
+    // Layouts worth offering: cytoscape's own, plus the extension the
+    // app registers. Whether each is really there is asked of
+    // cytoscape rather than assumed -- an extension that failed to
+    // register should not be offered.
+    var CANDIDATE_LAYOUTS = ['breadthfirst', 'cose', 'cose-bilkent',
+                             'circle', 'concentric', 'grid', 'random'];
+
+    HFSMVizWidget.prototype.availableLayouts = function() {
+      return CANDIDATE_LAYOUTS.filter(function(name) {
+        return typeof cytoscape('layout', name) === 'function';
+      });
+    };
+
     HFSMVizWidget.prototype.setLayoutOptions = function( overrides ) {
       this._layout_options = _.extend({}, this._layout_options, overrides || {});
     };
 
     HFSMVizWidget.prototype.reLayout = function( overrides ) {
       var self = this;
-      var options = overrides
-        ? _.extend({}, self._layout_options, overrides)
-        : self._layout_options;
+      var options = _.extend({}, self._layout_options, overrides || {},
+                             { eles: self._layoutElements() });
       var layout = self._cy.layout(options);
       layout.run();
+    };
+
+    /**
+     * The graph to lay out: everything, minus the edges a layout
+     * cannot cope with.
+     *
+     * A local transition is an edge from a state into its own
+     * substate, and cose-bilkent quietly abandons an entire layout on
+     * finding one -- no error, no exception, `layoutstop` still fires,
+     * and every node keeps the position it already had. Since such an
+     * edge says nothing about where anything should go (containment
+     * already places the child), dropping it from the INPUT loses
+     * nothing and gets the layout to run. The edge is still drawn.
+     */
+    HFSMVizWidget.prototype._layoutElements = function() {
+      var self = this;
+      var excluded = layoutInput.excludedEdges({
+        nodes: self._cy.nodes().map(function(node) {
+          var parent = node.parent();
+          return { id: node.id(),
+                   parent: parent && parent.length ? parent.id() : null };
+        }),
+        edges: self._cy.edges().map(function(edge) {
+          return { id: edge.id(),
+                   source: edge.source().id(),
+                   target: edge.target().id() };
+        }),
+      });
+      if (!excluded.length)
+        return self._cy.elements();
+      return self._cy.elements().filter(function(ele) {
+        return excluded.indexOf(ele.id()) < 0;
+      });
     };
 
     /**

@@ -3,6 +3,7 @@
  */
 
 define(['q',
+        'underscore',
         './Choice',
         './FormDialog',
         'hfsm/declParser',
@@ -14,6 +15,7 @@ define(['q',
         'css!bower/highlightjs/styles/default.css',
         'css!./Simulator.css'],
        function(Q,
+                _,
                 Choice,
                 FormDialog,
                 declParser,

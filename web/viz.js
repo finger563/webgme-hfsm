@@ -101,12 +101,10 @@ define([
     );
 
     // A state machine reads as a flow from its initial state, so
-    // breadthfirst suits it -- and, unlike WebGME's cose-bilkent, it
-    // demonstrably moves the nodes here. cose-bilkent registers and
-    // reports a completed run in this page but leaves every position
-    // untouched, while the same file rearranges the same kind of graph
-    // inside WebGME; the cause is not yet known, so the playground
-    // uses a layout whose result can be seen.
+    // breadthfirst suits it. The toolbar offers every other layout the
+    // page has registered, cose-bilkent included -- see
+    // `layoutInput` for why that one needs the local transitions kept
+    // out of its input before it will run at all.
     widget.setLayoutOptions({
       name: 'breadthfirst',
       directed: true,

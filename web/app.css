@@ -119,7 +119,7 @@ body {
    toolbar. Dialogs then win by the ordinary rules, which is what
    those rules are for. Scoped to the diagram view, so nothing here
    reaches the widget running inside WebGME. */
-#viewDiagram #search { z-index: 20; }
+#viewDiagram .search { z-index: 20; }   /* the wrapper carries it, not the input */
 #viewDiagram .cy-panzoom { z-index: 21; }
 
 /* The widget's toolbar -- print, zoom to fit, auto-layout. WebGME

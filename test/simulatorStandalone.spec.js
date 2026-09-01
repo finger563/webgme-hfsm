@@ -147,6 +147,43 @@ describe('simulator outside WebGME', function() {
               Object.keys(seen).length);
   });
 
+  it('imports every library it uses, rather than relying on a global',
+     function() {
+       // The loader tests only prove a module can be CONSTRUCTED. A
+       // library referenced from inside a function -- underscore's
+       // `_`, say -- resolves against the global scope, which WebGME
+       // populates and a plain page does not. That leaves the module
+       // loading cleanly and then throwing the moment the feature is
+       // used: `_ is not defined` is what stopped the simulator's
+       // choice and guard dialogs from ever appearing.
+       var globals = [
+         { name: '_', module: 'underscore', use: /(^|[^a-zA-Z0-9_.'"$])_\./ },
+         { name: '$', module: 'jquery', use: /(^|[^a-zA-Z0-9_.'"])\$\(/ },
+       ];
+       var files = [
+         'src/visualizers/widgets/HFSMViz/HFSMVizWidget.js',
+         'src/visualizers/widgets/HFSMViz/Simulator/Simulator.js',
+         'src/visualizers/widgets/HFSMViz/Simulator/Choice.js',
+         'src/visualizers/widgets/HFSMViz/Simulator/FormDialog.js',
+         'src/visualizers/widgets/HFSMViz/Dialog/Dialog.js',
+       ];
+       files.forEach(function(file) {
+         var text = fs.readFileSync(path.join(repoRoot, file), 'utf8');
+         globals.forEach(function(g) {
+           if (!g.use.test(text)) return;
+           // jQuery is the one exception: every host that can render
+           // this widget has it, and WebGME, the playground and the
+           // dialogs all take it from the page rather than the loader
+           if (g.name === '$') return;
+           var declared = new RegExp("['\"]" + g.module + "['\"]").test(text);
+           assert.ok(declared,
+                     file + ' uses ' + g.name + ' but never asks for ' +
+                     g.module + ', so it only works where a host happens ' +
+                     'to put it on the page');
+         });
+       });
+     });
+
   it('mentions no WebGME module anywhere in its source', function() {
     // Belt and braces. The two tests above only see what they can
     // reach: one loads the modules, the other reads define([...])
