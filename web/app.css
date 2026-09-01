@@ -163,6 +163,9 @@ select:focus-visible,
 .diag-line + .diag-line { margin-top: 6px; }
 
 .results { flex: 1 1 auto; display: flex; min-height: 0; }
+/* `display` beats the hidden attribute, so a flex pane that can be
+   switched off has to say so explicitly. */
+.results[hidden] { display: none; }
 .filelist {
     flex: 0 0 240px;
     margin: 0;
@@ -244,3 +247,34 @@ select:focus-visible,
     z-index: 10;
     pointer-events: none;
 }
+
+/* ---- Output tabs: generated code, or the model as a diagram ---- */
+.tabs {
+    display: flex;
+    gap: 2px;
+    margin-left: 12px;
+}
+.tab {
+    font: inherit;
+    padding: 3px 12px;
+    border: 1px solid var(--line, #d0d7de);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.tab.is-active {
+    background: var(--accent, #0969da);
+    border-color: var(--accent, #0969da);
+    color: #fff;
+}
+
+/* The visualizer sizes itself from its container, so this has to be
+   a real box with a height rather than a wrapper that collapses. */
+.viewdiagram {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+}
+.viewdiagram[hidden] { display: none; }

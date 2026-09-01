@@ -28,14 +28,19 @@ mkdir -p "$OUT/vendor" "$OUT/examples" \
 echo "building HFSM Playground -> $OUT"
 
 # 1. the page itself
-cp "$REPO_ROOT/web/index.html" "$REPO_ROOT/web/app.js" "$REPO_ROOT/web/app.css" "$OUT/"
+cp "$REPO_ROOT/web/index.html" "$REPO_ROOT/web/app.js" \
+   "$REPO_ROOT/web/app.css" "$REPO_ROOT/web/viz.js" "$OUT/"
 say "page"
 
 # 2. the generator: copied verbatim, never edited for the browser
 cp "$REPO_ROOT"/src/common/*.js "$OUT/src/common/"
+# ... including the viz contracts (ModelBackend, HostServices) and the
+# LocalBackend the playground drives the visualizer through
+mkdir -p "$OUT/src/common/viz"
+cp "$REPO_ROOT"/src/common/viz/*.js "$OUT/src/common/viz/"
 cp -R "$REPO_ROOT/src/plugins/SoftwareGenerator/templates" \
       "$OUT/src/plugins/SoftwareGenerator/templates"
-say "generator ($(ls "$OUT/src/common" | wc -l | tr -d ' ') common modules + templates)"
+say "generator ($(ls "$OUT"/src/common/*.js "$OUT"/src/common/viz/*.js | wc -l | tr -d ' ') common modules + templates)"
 
 # 3. third-party runtime deps (vendored: the app must work offline)
 find_first() {
@@ -75,6 +80,74 @@ cp "$CM_SRC/mode/clike/clike.js"           "$OUT/vendor/codemirror/mode/clike/"
 cp "$CM_SRC/mode/xml/xml.js"               "$OUT/vendor/codemirror/mode/xml/"
 cp "$CM_SRC/mode/shell/shell.js"           "$OUT/vendor/codemirror/mode/shell/"
 say "codemirror (json, c++, xml, shell modes)"
+
+# 3b. the visualizer: the SAME widget and simulator WebGME runs, not a
+#     second implementation. Phase A/B put the model behind
+#     ModelBackend and the host UI behind HostServices, so the widget
+#     itself no longer references WebGME -- which is what makes this
+#     copy possible. Its two WebGME adapters are deliberately NOT
+#     copied: nothing here can load them, and leaving them out keeps
+#     the shipped tree provably free of WebGME.
+VIZ_SRC="$REPO_ROOT/src/visualizers/widgets/HFSMViz"
+mkdir -p "$OUT/src/visualizers/widgets"
+cp -R "$VIZ_SRC" "$OUT/src/visualizers/widgets/HFSMViz"
+rm -f "$OUT/src/visualizers/widgets/HFSMViz/WebGMEBackend.js" \
+      "$OUT/src/visualizers/widgets/HFSMViz/WebGMEHost.js"
+# the simulator styles UML states with this repo's own decorator sheet
+mkdir -p "$OUT/src/decorators/UMLStateMachineDecorator/DiagramDesigner"
+cp "$REPO_ROOT/src/decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css" \
+   "$OUT/src/decorators/UMLStateMachineDecorator/DiagramDesigner/"
+say "visualizer (widget + simulator, WebGME adapters excluded)"
+
+# 3c. the front-end libraries the visualizer needs. The 'bower/...'
+#     layout is preserved because the widget names its dependencies
+#     that way; a flat copy would need the module ids rewritten, and
+#     rewriting them is exactly the drift this build exists to avoid.
+WG_BOWER="$REPO_ROOT/node_modules/webgme/src/client/bower_components"
+mkdir -p "$OUT/vendor/bower/cytoscape/dist" \
+         "$OUT/vendor/bower/cytoscape-cose-bilkent" \
+         "$OUT/vendor/bower/cytoscape-edgehandles" \
+         "$OUT/vendor/bower/cytoscape-context-menus" \
+         "$OUT/vendor/bower/cytoscape-panzoom" \
+         "$OUT/vendor/bower/mustache.js" \
+         "$OUT/vendor/bower/handlebars" \
+         "$OUT/vendor/bower/blob-util/dist" \
+         "$OUT/vendor/bower/highlightjs/styles"
+
+cp "$(find_first "$REPO_ROOT/bower_components/cytoscape/dist/cytoscape.min.js")" \
+   "$OUT/vendor/bower/cytoscape/dist/cytoscape.min.js"
+cp "$(find_first "$REPO_ROOT/bower_components/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js")" \
+   "$OUT/vendor/bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js"
+cp "$(find_first "$REPO_ROOT/bower_components/cytoscape-edgehandles/cytoscape-edgehandles.js")" \
+   "$OUT/vendor/bower/cytoscape-edgehandles/cytoscape-edgehandles.js"
+cp "$(find_first "$REPO_ROOT/bower_components/cytoscape-context-menus/cytoscape-context-menus.js")" \
+   "$OUT/vendor/bower/cytoscape-context-menus/cytoscape-context-menus.js"
+cp "$(find_first "$REPO_ROOT/bower_components/cytoscape-context-menus/cytoscape-context-menus.css")" \
+   "$OUT/vendor/bower/cytoscape-context-menus/cytoscape-context-menus.css"
+cp "$(find_first "$REPO_ROOT/bower_components/cytoscape-panzoom/cytoscape-panzoom.js")" \
+   "$OUT/vendor/bower/cytoscape-panzoom/cytoscape-panzoom.js"
+cp "$(find_first "$REPO_ROOT/bower_components/cytoscape-panzoom/cytoscape.js-panzoom.css")" \
+   "$OUT/vendor/bower/cytoscape-panzoom/cytoscape.js-panzoom.css"
+cp "$(find_first "$REPO_ROOT/bower_components/mustache.js/mustache.min.js")" \
+   "$OUT/vendor/bower/mustache.js/mustache.min.js"
+cp "$OUT/vendor/handlebars.min.js" "$OUT/vendor/bower/handlebars/handlebars.min.js"
+cp "$(find_first "$REPO_ROOT/bower_components/blob-util/dist/blob-util.min.js")" \
+   "$OUT/vendor/bower/blob-util/dist/blob-util.min.js"
+cp "$(find_first "$REPO_ROOT/bower_components/highlightjs/highlight.pack.min.js")" \
+   "$OUT/vendor/bower/highlightjs/highlight.pack.min.js"
+cp "$(find_first "$REPO_ROOT/bower_components/highlightjs/styles/default.css")" \
+   "$OUT/vendor/bower/highlightjs/styles/default.css"
+
+# jQuery + bootstrap's modal (the dialogs are bootstrap modals), the
+# require-css plugin (the widget loads its styles through `css!`),
+# and Q for the simulator's promises
+cp "$(find_first "$REPO_ROOT/bower_components/jquery/dist/jquery.min.js" \
+                 "$WG_BOWER/jquery/dist/jquery.min.js")" "$OUT/vendor/jquery.min.js"
+cp "$(find_first "$WG_BOWER/bootstrap/dist/js/bootstrap.min.js")" "$OUT/vendor/bootstrap.min.js"
+cp "$(find_first "$WG_BOWER/bootstrap/dist/css/bootstrap.min.css")" "$OUT/vendor/bootstrap.min.css"
+cp "$(find_first "$WG_BOWER/require-css/css.min.js")" "$OUT/vendor/css.min.js"
+cp "$(find_first "$REPO_ROOT/node_modules/q/q.js")" "$OUT/vendor/q.js"
+say "visualizer deps (cytoscape + 4 plugins, jquery, bootstrap, require-css, q, mustache, highlight)"
 
 # 4. example models -- the same fixtures the test suite generates from,
 #    so the playground can never demo something CI does not cover

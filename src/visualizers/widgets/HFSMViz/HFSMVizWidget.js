@@ -1314,10 +1314,31 @@ define([
       });
     };
 
-    HFSMVizWidget.prototype.reLayout = function() {
+    /**
+     * @param overrides  optional cytoscape layout options. A host
+     *   whose models carry no saved positions needs a different
+     *   layout from the one the toolbar's Auto-Arrange offers, so it
+     *   can ask for one rather than reach into _cy.
+     */
+    HFSMVizWidget.prototype.reLayout = function( overrides ) {
       var self = this;
-      var layout = self._cy.layout(self._layout_options);
+      var options = overrides
+        ? _.extend({}, self._layout_options, overrides)
+        : self._layout_options;
+      var layout = self._cy.layout(options);
       layout.run();
+    };
+
+    /**
+     * Drop the simulator's log. Loading a model feeds it one node at
+     * a time, and the checks it runs on the way report on a model
+     * that is still half-built -- true at the moment, but noise by
+     * the time it is all there.
+     */
+    HFSMVizWidget.prototype.clearSimulationLog = function() {
+      if (this._simulator && this._simulator.clearLogs) {
+        this._simulator.clearLogs();
+      }
     };
 
     HFSMVizWidget.prototype.getDescData = function(desc) {

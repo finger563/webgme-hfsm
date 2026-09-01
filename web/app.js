@@ -25,6 +25,33 @@
       'text': 'vendor/text',
       'hfsm': 'src/common',
       'templates': 'src/plugins/SoftwareGenerator/templates',
+
+      // the visualizer, copied in verbatim, names its dependencies
+      // the way it does inside WebGME -- so they are mapped, not
+      // rewritten. See scripts/build-web.sh.
+      'widgets': 'src/visualizers/widgets',
+      'decorators': 'src/decorators',
+      'bower': 'vendor/bower',
+      'q': 'vendor/q',
+      'css': 'vendor/css.min',
+      'jquery': 'vendor/jquery.min',
+      'bootstrap': 'vendor/bootstrap.min',
+      'cytoscape-edgehandles': 'vendor/bower/cytoscape-edgehandles/cytoscape-edgehandles',
+      'cytoscape-context-menus': 'vendor/bower/cytoscape-context-menus/cytoscape-context-menus',
+      'cytoscape-panzoom': 'vendor/bower/cytoscape-panzoom/cytoscape-panzoom',
+    },
+    // cytoscape's plugins register themselves on the library, so it
+    // has to be there before they run
+    shim: {
+      // bootstrap is a jQuery plugin: it needs jQuery on the page
+      // before it runs, and exports nothing of its own
+      'bootstrap': { deps: ['jquery'] },
+      'cytoscape-edgehandles': { deps: ['bower/cytoscape/dist/cytoscape.min'] },
+      'cytoscape-context-menus': { deps: ['bower/cytoscape/dist/cytoscape.min'] },
+      'cytoscape-panzoom': { deps: ['bower/cytoscape/dist/cytoscape.min'] },
+      'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent': {
+        deps: ['bower/cytoscape/dist/cytoscape.min'],
+      },
     },
     // The default is 7s, which the generator can exceed on a slow
     // link or a single-threaded static server: it pulls every
@@ -414,7 +441,71 @@
     });
   }
 
+  /* ---------------------- the Diagram tab ---------------------- */
+
+  // loaded on first use: the visualizer pulls in cytoscape and its
+  // plugins, which is a lot to fetch for someone who only wants the
+  // generated code
+  var vizModule = null;
+  var vizShown = false;
+  var vizModelText = null;   // what the diagram was last built from
+
+  function showTab(which) {
+    var diagram = which === 'diagram';
+    el('tabCode').classList.toggle('is-active', !diagram);
+    el('tabDiagram').classList.toggle('is-active', diagram);
+    el('tabCode').setAttribute('aria-selected', String(!diagram));
+    el('tabDiagram').setAttribute('aria-selected', String(diagram));
+    el('viewCode').hidden = diagram;
+    el('viewDiagram').hidden = !diagram;
+    vizShown = diagram;
+    if (diagram) refreshDiagram();
+  }
+
+  function refreshDiagram() {
+    if (!vizShown) return;
+    var raw = getModelText().trim();
+    if (!raw) {
+      showDiagnostics(['Nothing to draw: paste or load a model first.'], 'error');
+      return;
+    }
+    if (raw === vizModelText && vizModule && vizModule.current()) {
+      return;   // already showing this model
+    }
+
+    var model;
+    try {
+      model = JSON.parse(raw);
+    } catch (e) {
+      showDiagnostics(['The model is not valid JSON: ' + e.message], 'error');
+      return;
+    }
+
+    setStatus('drawing...');
+    requirejs(['viz'], function (viz) {
+      vizModule = viz;
+      try {
+        viz.mount(el('viewDiagram'), model);
+        vizModelText = raw;
+        showDiagnostics([]);
+        setStatus('ready');
+      } catch (e) {
+        // the diagram resolves the model exactly as the generator
+        // does, so an ill-typed model fails here the same way
+        viz.destroy();
+        vizModelText = null;
+        showDiagnostics([String(e.message || e)], 'error');
+        setStatus('model rejected');
+      }
+    }, function (err) {
+      showDiagnostics(['Could not load the visualizer: ' + err.message], 'error');
+      setStatus('error');
+    });
+  }
+
   function wire() {
+    el('tabCode').addEventListener('click', function () { showTab('code'); });
+    el('tabDiagram').addEventListener('click', function () { showTab('diagram'); });
     el('generateBtn').addEventListener('click', generate);
     el('fileInput').addEventListener('change', function (e) {
       var f = e.target.files && e.target.files[0];
