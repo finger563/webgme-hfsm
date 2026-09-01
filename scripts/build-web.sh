@@ -147,6 +147,24 @@ cp "$(find_first "$WG_BOWER/bootstrap/dist/js/bootstrap.min.js")" "$OUT/vendor/b
 cp "$(find_first "$WG_BOWER/bootstrap/dist/css/bootstrap.min.css")" "$OUT/vendor/bootstrap.min.css"
 cp "$(find_first "$WG_BOWER/require-css/css.min.js")" "$OUT/vendor/css.min.js"
 cp "$(find_first "$REPO_ROOT/node_modules/q/q.js")" "$OUT/vendor/q.js"
+
+# Font Awesome: the simulator's buttons and the graph toolbar are
+# icons, and without the font they render as empty boxes sized for
+# text that is not there. WebGME serves this; a static page has to
+# carry it.
+#
+# The font files keep the 'fonts/' directory the stylesheet expects
+# (it asks for '../fonts/...'). Only the three modern formats are
+# copied: the stylesheet lists eot and svg first and last for very
+# old browsers, which pick them by preference -- anything that can
+# run cytoscape takes the woff2 and never asks for the others.
+FA="$WG_BOWER/font-awesome"
+mkdir -p "$OUT/vendor/font-awesome/css" "$OUT/vendor/font-awesome/fonts"
+cp "$(find_first "$FA/css/font-awesome.min.css")" "$OUT/vendor/font-awesome/css/"
+for face in woff2 woff ttf; do
+  cp "$(find_first "$FA/fonts/fontawesome-webfont.$face")" \
+     "$OUT/vendor/font-awesome/fonts/"
+done
 say "visualizer deps (cytoscape + 4 plugins, jquery, bootstrap, require-css, q, mustache, highlight)"
 
 # 4. example models -- the same fixtures the test suite generates from,
