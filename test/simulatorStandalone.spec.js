@@ -106,6 +106,62 @@ describe('simulator outside WebGME', function() {
     });
   });
 
+  it('keeps the whole widget dependency closure free of WebGME', function() {
+    // The widget itself cannot be loaded here (cytoscape needs a
+    // DOM), so this walks the define([...]) lists statically instead:
+    // start at the widget and follow every relative / hfsm dependency,
+    // asserting no WebGME-only module id appears anywhere in the
+    // closure. A single one of those is enough to stop the module
+    // loading in a host that is not WebGME, which is the whole point.
+    var start = 'src/visualizers/widgets/HFSMViz/HFSMVizWidget.js';
+    var seen = {};
+    var offenders = [];
+
+    function depsOf(file) {
+      var text = fs.readFileSync(path.join(repoRoot, file), 'utf8');
+      var body = text.slice(text.indexOf('define('));
+      var list = body.slice(0, body.indexOf(']'));
+      var ids = [];
+      list.replace(/['"]([^'"]+)['"]/g, function(_, id) { ids.push(id); return _; });
+      return ids;
+    }
+
+    function walk(file) {
+      if (seen[file]) return;
+      seen[file] = true;
+      depsOf(file).forEach(function(id) {
+        // strip loader plugins: what they load is markup / styling
+        var bare = id.replace(/^(text|css)!/, '');
+        // 'js/' and 'client/' are WebGME's own client modules
+        if (/^(js|client)\//.test(bare)) {
+          offenders.push(file + ' -> ' + id);
+          return;
+        }
+        var next = null;
+        if (bare.charAt(0) === '.') {
+          next = path.join(path.dirname(file), bare);
+        } else if (bare.indexOf('hfsm/') === 0) {
+          next = path.join('src/common', bare.slice('hfsm/'.length));
+        } else if (bare.indexOf('decorators/') === 0) {
+          // 'decorators/' is THIS repo's src/decorators, which a host
+          // maps for itself exactly like it maps 'hfsm/'
+          next = path.join('src', bare);
+        }
+        if (!next) return;   // third-party: vendorable, not WebGME
+        if (!/\.[a-z]+$/.test(next)) next += '.js';
+        if (fs.existsSync(path.join(repoRoot, next))) walk(next);
+      });
+    }
+
+    walk(start);
+    assert.deepStrictEqual(offenders, [],
+      'the widget must not reach a WebGME-only module:\n  ' +
+      offenders.join('\n  '));
+    assert.ok(Object.keys(seen).length > 3,
+              'the walk should have followed several modules, saw ' +
+              Object.keys(seen).length);
+  });
+
   it('names no WebGME module in its dependency list', function() {
     // belt and braces: the loader test above can only catch what it
     // reaches, and a lazily-required id would slip past it

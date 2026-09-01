@@ -8,12 +8,16 @@ define([
     'js/PanelBase/PanelBaseWithHeader',
     'js/PanelManager/IActivePanel',
     'widgets/HFSMViz/HFSMVizWidget',
+    'widgets/HFSMViz/WebGMEBackend',
+    'widgets/HFSMViz/WebGMEHost',
     './HFSMVizControl',
     'underscore'
 ], function (
     PanelBaseWithHeader,
     IActivePanel,
     HFSMVizWidget,
+    WebGMEBackend,
+    WebGMEHost,
     HFSMVizControl,
     _
 ) {
@@ -48,7 +52,17 @@ define([
         //set Widget title
         this.setTitle('');
 
-        this.widget = new HFSMVizWidget(this.logger, this.$el, this._client);
+        // The panel is where WebGME meets the widget: the widget
+        // itself depends on neither the client nor the WebGME UI, so
+        // its two adapters are wired up here.
+        var client = this._client;
+        this.widget = new HFSMVizWidget(
+            this.logger, this.$el, client,
+            function (getNodes) {
+                return WebGMEBackend(client, getNodes, WebGMEGlobal);
+            },
+            WebGMEHost(client, WebGMEGlobal)
+        );
 
         this.widget.setTitle = function (title) {
             self.setTitle(title);

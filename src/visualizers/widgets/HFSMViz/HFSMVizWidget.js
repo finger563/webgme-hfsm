@@ -1,4 +1,4 @@
-/*globals define, WebGMEGlobal*/
+/*globals define*/
 /*jshint browser: true*/
 
 /**
@@ -9,15 +9,10 @@ define([
   // local
   "text!./HFSM.html",
   "./Dialog/Dialog",
-  "./WebGMEBackend",
+  "hfsm/viz/HostServices",
   "./Simulator/Simulator",
   "./Simulator/Choice",
   // built-ins
-  "js/Constants",
-  "js/Controls/ContextMenu",
-  "js/DragDrop/DropTarget",
-  "js/DragDrop/DragConstants",
-  "decorators/DocumentDecorator/DiagramDesigner/DocumentEditorDialog",
   // cytoscape
   "bower/cytoscape/dist/cytoscape.min",
   "cytoscape-edgehandles",
@@ -39,15 +34,10 @@ define([
     // local
     HFSMHtml,
     Dialog,
-    WebGMEBackend,
+    HostServices,
     Simulator,
     Choice,
     // built-ins
-    CONSTANTS,
-    ContextMenu,
-    dropTarget,
-    DROP_CONSTANTS,
-    DocumentEditorDialog,
     // cytoscape
     cytoscape,
     cyEdgehandles,
@@ -90,17 +80,26 @@ define([
     };
 
     /**
-     * @param backendFactory  optional; getNodes -> ModelBackend. The
-     *   backend is the ONLY thing here that knows about WebGME, so a
-     *   host with a different store (the playground's LocalBackend
-     *   over plain JSON) installs it here rather than editing this
-     *   file. It takes the node-table getter because the descriptor
-     *   table lives on the widget and reads are served from it.
+     * This widget knows nothing about WebGME. Both of the things that
+     * would tie it to one application are handed in:
      *
-     *   Defaults to WebGMEBackend, which is this widget's WebGME
-     *   host wiring, not a hard dependency of the widget itself.
+     * @param backendFactory  getNodes -> ModelBackend, the model. It
+     *   takes the node-table getter because the descriptor table
+     *   lives on the widget and reads are served from it.
+     * @param hostServices    HostServices, the surrounding
+     *   application: context menus, the documentation editor, the
+     *   palette dragged from.
+     *
+     * The WebGME panel wires up WebGMEBackend and WebGMEHost; the
+     * playground wires up its own. Defaulting to the WebGME ones here
+     * would put them back in this module's dependency list, which is
+     * exactly what stops it loading anywhere else.
+     *
+     * @param client  passed through to the control for WebGME; unused
+     *   by the widget itself.
      */
-    HFSMVizWidget = function (logger, container, client, backendFactory) {
+    HFSMVizWidget = function (logger, container, client, backendFactory,
+                              hostServices) {
       this._logger = logger.fork("Widget");
 
       this._el = container;
@@ -108,9 +107,12 @@ define([
       this._client = client;
       var self = this;
       var getNodes = function () { return self.nodes; };
-      this._backend = backendFactory
-        ? backendFactory(getNodes)
-        : WebGMEBackend(client, getNodes, WebGMEGlobal);
+      if (typeof backendFactory !== 'function') {
+        throw new Error('HFSMVizWidget needs a backend factory ' +
+                        '(see src/common/viz/ModelBackend.js)');
+      }
+      this._backend = backendFactory(getNodes);
+      this._host = hostServices || HostServices.none();
       this._initialize();
 
       this._logger.debug("ctor finished");
@@ -933,9 +935,8 @@ define([
     HFSMVizWidget.prototype.onEditDocumentation = function(gmeId) {
       var self = this;
       var documentation = self.nodes[gmeId].documentation;
-      var editorDialog = new DocumentEditorDialog();
 
-      editorDialog.initialize(documentation, function (text) {
+      self._host.editDocument(documentation, function (text) {
         try {
           self._backend.transact("updated documentation for " + gmeId, function () {
             self._backend.setAttribute(gmeId, "documentation", text);
@@ -945,8 +946,6 @@ define([
           console.error(e);
         }
       });
-
-      editorDialog.show();
     };
 
     HFSMVizWidget.prototype.onPanningClicked = function() {
@@ -1558,19 +1557,8 @@ define([
 
     /* * * * * * * * Context Menu Functions    * * * * * * * */
 
-    HFSMVizWidget.prototype.createWebGMEContextMenu = function(menuItems, fnCallback, position) {
-      var self = this;
-
-      var menu = new ContextMenu({
-        items: menuItems,
-        callback: function(key) {
-          if (fnCallback)
-            fnCallback(key);
-        }
-      });
-
-      position = position || {x: 200, y:200};
-      menu.show(position);
+    HFSMVizWidget.prototype.createContextMenu = function(menuItems, fnCallback, position) {
+      this._host.contextMenu(menuItems, fnCallback, position);
     };
 
     /**
@@ -1716,10 +1704,10 @@ define([
       if (self._readOnly)
         return false;
 
-      var isValid = dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length > 0;
+      var isValid = dragInfo.items.length > 0;
 
-      for (var i=0; i<dragInfo[DROP_CONSTANTS.DRAG_ITEMS].length; i++) {
-        var nodeId = dragInfo[DROP_CONSTANTS.DRAG_ITEMS][i];
+      for (var i=0; i<dragInfo.items.length; i++) {
+        var nodeId = dragInfo.items[i];
         if (!self._canCreateChild( nodeId, parentId )) {
           isValid = false;
           break;
@@ -1922,7 +1910,7 @@ define([
 
     HFSMVizWidget.prototype.dropRequiresMenu = function(dragInfo) {
       // default to all items require a drop menu
-      var requiresMenu = dragInfo && dragInfo[DROP_CONSTANTS.DRAG_EFFECTS].length > 1;
+      var requiresMenu = dragInfo && dragInfo.effects.length > 1;
 
       return requiresMenu;
     };
@@ -1941,7 +1929,7 @@ define([
           self.showDropMenu(menuPos, childPosition, dragInfo);
         else {
           self._createNode(
-            dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+            dragInfo.items,
             parentId,
             childPosition
           );
@@ -1958,7 +1946,7 @@ define([
               icon: false,
               fn: function() {
                 self._instanceNodes(
-                  dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                  dragInfo.items,
                   parentId,
                   childPosition
                 );
@@ -1969,7 +1957,7 @@ define([
               icon: false,
               fn: function() {
                 self._moveNodes(
-                  dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                  dragInfo.items,
                   parentId,
                   childPosition
                 );
@@ -1980,7 +1968,7 @@ define([
               icon: false,
               fn: function() {
                 self._copyNodes(
-                  dragInfo[DROP_CONSTANTS.DRAG_ITEMS],
+                  dragInfo.items,
                   parentId,
                   childPosition
                 );
@@ -1991,7 +1979,7 @@ define([
       if (self._readOnly)
         return;
 
-      self.createWebGMEContextMenu(options, function(option) {
+      self.createContextMenu(options, function(option) {
         if (options[option] && options[option].fn)
           options[option].fn();
       }, menuPosition);
@@ -2004,7 +1992,7 @@ define([
       self._right.addClass("drop-area");
       //self._div.append(self.__iconAssignNullPointer);
 
-      dropTarget.makeDroppable(self._right, {
+      self._undoDroppable = self._host.makeDroppable(self._right, {
         over: function (event, dragInfo) {
           self._isDropping = true;
           self._dropInfo = dragInfo;
@@ -2088,7 +2076,7 @@ define([
         targetPos.x += $(self._left).width();
         targetPos = self._relativeToWindowPos( targetPos );
 
-        self.createWebGMEContextMenu(options, function(option) {
+        self.createContextMenu(options, function(option) {
           if (options[option] && options[option].fn)
             options[option].fn();
         }, targetPos);
@@ -2283,27 +2271,29 @@ define([
 
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
 
-    // These two stay on the WebGME client on purpose: branch changes
-    // and the shared active-selection state are properties of the
-    // WebGME *host*, not of the model. A host without branches simply
-    // never calls them, so they are not part of ModelBackend.
+    // Branch changes and the shared active-selection state are
+    // properties of the HOST application, not of the model, so they
+    // are the host's to provide -- and optional, since a host without
+    // branches or a shared selection has nothing to report.
     HFSMVizWidget.prototype._attachClientEventListeners = function () {
+      var self = this;
       this._detachClientEventListeners();
-      WebGMEGlobal.State.on("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
-                            this._stateActiveSelectionChanged, this);
-      this.boundBranchChanged = this._branchChanged.bind(this);
-      this._client.addEventListener(this._client.CONSTANTS.BRANCH_CHANGED,
-                                    this.boundBranchChanged);
-      this.boundBranchStatusChanged = this._branchStatusChanged.bind(this);
-      this._client.addEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED,
-                                    this.boundBranchStatusChanged);
+      if (!this._host.observe)
+        return;
+      this._stopObserving = this._host.observe({
+        selectionChanged: function (model, selection, opts) {
+          self._stateActiveSelectionChanged(model, selection, opts);
+        },
+        branchChanged: function (args) { self._branchChanged(args); },
+        branchStatusChanged: function (args) { self._branchStatusChanged(args); },
+      });
     }
 
     HFSMVizWidget.prototype._detachClientEventListeners = function () {
-      WebGMEGlobal.State.off("change:" + CONSTANTS.STATE_ACTIVE_SELECTION,
-                             this._stateActiveSelectionChanged, this);
-      this._client.removeEventListener(this._client.CONSTANTS.BRANCH_CHANGED, this.boundBranchChanged);
-      this._client.removeEventListener(this._client.CONSTANTS.BRANCH_STATUS_CHANGED, this.boundBranchStatusChanged);
+      if (this._stopObserving) {
+        this._stopObserving();
+        this._stopObserving = null;
+      }
     }
 
     HFSMVizWidget.prototype.destroy = function () {
