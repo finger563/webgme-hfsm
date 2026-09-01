@@ -1,0 +1,127 @@
+'use strict';
+
+/**
+ * The simulator is meant to run outside WebGME -- that is the whole
+ * point of ModelBackend. This loads it the way a non-WebGME host
+ * would: a requirejs context with NO WebGME module paths configured
+ * at all, so any lingering `js/...` or `decorators/...` dependency
+ * fails to resolve instead of quietly working because WebGME happened
+ * to be serving it.
+ *
+ * `text!` and `css!` are stubbed rather than mapped: a host still has
+ * to supply those plugins, but what they load is markup and styling,
+ * not WebGME behaviour.
+ */
+
+var assert = require('assert');
+var fs = require('fs');
+var path = require('path');
+
+var repoRoot = path.resolve(__dirname, '..');
+
+function firstExisting(candidates, what) {
+  for (var i = 0; i < candidates.length; i++) {
+    if (fs.existsSync(candidates[i] + '.js')) return candidates[i];
+  }
+  throw new Error('cannot find ' + what + '; run npm install');
+}
+
+function standaloneContext(name) {
+  var requirejs = require('requirejs');
+  return requirejs.config({
+    context: name,
+    baseUrl: repoRoot,
+    nodeRequire: require,
+    paths: {
+      // the HFSM modules, exactly as any host maps them
+      hfsm: path.join(repoRoot, 'src/common'),
+
+      // third-party runtime deps -- vendorable, not WebGME
+      q: firstExisting([path.join(repoRoot, 'node_modules/q/q')], 'q'),
+      'bower/mustache.js/mustache.min': firstExisting([
+        path.join(repoRoot, 'bower_components/mustache.js/mustache.min'),
+        path.join(repoRoot, 'node_modules/mustache/mustache.min'),
+      ], 'mustache'),
+      'bower/highlightjs/highlight.pack.min': firstExisting([
+        path.join(repoRoot, 'bower_components/highlightjs/highlight.pack.min'),
+      ], 'highlight.js'),
+      underscore: firstExisting([
+        path.join(repoRoot, 'node_modules/underscore/underscore-umd'),
+        path.join(repoRoot, 'node_modules/underscore/underscore'),
+      ], 'underscore'),
+      'bower/handlebars/handlebars.min': firstExisting([
+        path.join(repoRoot, 'bower_components/handlebars/handlebars.min'),
+        path.join(repoRoot, 'node_modules/handlebars/dist/handlebars.min'),
+      ], 'handlebars'),
+
+      // NOTE: deliberately absent -- js/*, decorators/*, WebGMEGlobal
+    },
+    map: {
+      '*': {
+        text: 'test/stubs/text',
+        css: 'test/stubs/css',
+      },
+    },
+  });
+}
+
+describe('simulator outside WebGME', function() {
+
+  it('loads with no WebGME module paths configured', function() {
+    this.timeout(10000);
+    var req = standaloneContext('standalone-sim');
+    return new Promise(function(resolve, reject) {
+      req(['src/visualizers/widgets/HFSMViz/Simulator/Simulator'],
+          function(Simulator) {
+            assert.strictEqual(typeof Simulator, 'function',
+                               'Simulator should be a constructor');
+            resolve();
+          },
+          function(err) {
+            reject(new Error('Simulator still depends on something ' +
+                             'WebGME-only: ' + err.message));
+          });
+    });
+  });
+
+  it('loads its dialogs the same way', function() {
+    this.timeout(10000);
+    var req = standaloneContext('standalone-dialogs');
+    return new Promise(function(resolve, reject) {
+      req(['src/visualizers/widgets/HFSMViz/Simulator/Choice',
+           'src/visualizers/widgets/HFSMViz/Simulator/FormDialog',
+           'src/visualizers/widgets/HFSMViz/Dialog/Dialog'],
+          function(Choice, FormDialog, Dialog) {
+            [['Choice', Choice], ['FormDialog', FormDialog],
+             ['Dialog', Dialog]].forEach(function(pair) {
+               assert.strictEqual(typeof pair[1], 'function',
+                                  pair[0] + ' should be a constructor');
+             });
+            resolve();
+          },
+          function(err) {
+            reject(new Error('a dialog still depends on something ' +
+                             'WebGME-only: ' + err.message));
+          });
+    });
+  });
+
+  it('names no WebGME module in its dependency list', function() {
+    // belt and braces: the loader test above can only catch what it
+    // reaches, and a lazily-required id would slip past it
+    var files = [
+      'src/visualizers/widgets/HFSMViz/Simulator/Simulator.js',
+      'src/visualizers/widgets/HFSMViz/Simulator/Choice.js',
+      'src/visualizers/widgets/HFSMViz/Simulator/FormDialog.js',
+      'src/visualizers/widgets/HFSMViz/Dialog/Dialog.js',
+    ];
+    // `decorators/` is this repo's own (src/decorators), so a css!
+    // include of it is not a WebGME dependency
+    var webgmeOnly = /'(js\/[^']*|client\/[^']*)'|\bWebGMEGlobal\b/;
+    files.forEach(function(file) {
+      var text = fs.readFileSync(path.join(repoRoot, file), 'utf8');
+      var hit = text.match(webgmeOnly);
+      assert.ok(!hit, file + ' references WebGME-only ' + (hit && hit[0]));
+    });
+  });
+});
