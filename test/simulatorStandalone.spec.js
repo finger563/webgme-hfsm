@@ -10,7 +10,9 @@
  *
  * `text!` and `css!` are stubbed rather than mapped: a host still has
  * to supply those plugins, but what they load is markup and styling,
- * not WebGME behaviour.
+ * not WebGME behaviour. The third-party runtime libraries are stubbed
+ * for the same reason -- see test/stubs/{text,css,q,mustache,
+ * highlight}.js, each of which documents why.
  */
 
 var assert = require('assert');
@@ -29,9 +31,10 @@ function standaloneContext(name) {
       // the HFSM modules, exactly as any host maps them
       hfsm: path.join(repoRoot, 'src/common'),
 
-      // Third-party runtime deps, stubbed: see test/stubs/lib.js.
-      // They are vendorable by definition, so whether they happen to
-      // be installed says nothing about the question being asked.
+      // Third-party runtime deps, stubbed (one file each -- see the
+      // note in test/stubs/q.js). They are vendorable by definition,
+      // so whether they happen to be installed says nothing about
+      // the question being asked.
       q: 'test/stubs/q',
       'bower/mustache.js/mustache.min': 'test/stubs/mustache',
       'bower/highlightjs/highlight.pack.min': 'test/stubs/highlight',
@@ -144,10 +147,15 @@ describe('simulator outside WebGME', function() {
               Object.keys(seen).length);
   });
 
-  it('names no WebGME module in its dependency list', function() {
-    // belt and braces: the loader test above can only catch what it
-    // reaches, and a lazily-required id would slip past it
+  it('mentions no WebGME module anywhere in its source', function() {
+    // Belt and braces. The two tests above only see what they can
+    // reach: one loads the modules, the other reads define([...])
+    // lists. Neither would notice a lazy require('js/...') or a bare
+    // WebGMEGlobal buried in a function body -- least of all in the
+    // widget, which is the main thing being decoupled and which the
+    // loader test cannot even run (cytoscape needs a DOM).
     var files = [
+      'src/visualizers/widgets/HFSMViz/HFSMVizWidget.js',
       'src/visualizers/widgets/HFSMViz/Simulator/Simulator.js',
       'src/visualizers/widgets/HFSMViz/Simulator/Choice.js',
       'src/visualizers/widgets/HFSMViz/Simulator/FormDialog.js',
