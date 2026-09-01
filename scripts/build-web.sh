@@ -141,8 +141,15 @@ cp "$(find_first "$REPO_ROOT/bower_components/highlightjs/styles/default.css")" 
 # jQuery + bootstrap's modal (the dialogs are bootstrap modals), the
 # require-css plugin (the widget loads its styles through `css!`),
 # and Q for the simulator's promises
-cp "$(find_first "$REPO_ROOT/bower_components/jquery/dist/jquery.min.js" \
-                 "$WG_BOWER/jquery/dist/jquery.min.js")" "$OUT/vendor/jquery.min.js"
+# WebGME's jQuery first, deliberately: that is the one the widget
+# actually runs against in the editor, and it is pinned by webgme's
+# own dependencies. Ours arrives as a floating transitive dependency
+# of the cytoscape plugins -- 3.6.0 here, 3.7.1 on a fresh install --
+# so preferring it would make the playground drift from the editor
+# depending on when someone last ran bower.
+cp "$(find_first "$WG_BOWER/jquery/dist/jquery.min.js" \
+                 "$REPO_ROOT/bower_components/jquery/dist/jquery.min.js")" \
+   "$OUT/vendor/jquery.min.js"
 cp "$(find_first "$WG_BOWER/bootstrap/dist/js/bootstrap.min.js")" "$OUT/vendor/bootstrap.min.js"
 cp "$(find_first "$WG_BOWER/bootstrap/dist/css/bootstrap.min.css")" "$OUT/vendor/bootstrap.min.css"
 cp "$(find_first "$WG_BOWER/require-css/css.min.js")" "$OUT/vendor/css.min.js"
