@@ -2,13 +2,11 @@
  * @author William Emfinger  https://github.com/finger563
  */
 
-define(['js/util',
-	'q',
+define(['q',
 	'bower/mustache.js/mustache.min',
 	'text!./Choice.html',
 	'css!./Choice.css'],
-       function(Util,
-		Q,
+       function(Q,
 		mustache,
 		ChoiceTemplate){
            'use strict';

@@ -2,13 +2,11 @@
  * @author William Emfinger  https://github.com/finger563
  */
 
-define(['js/util',
-        'bower/mustache.js/mustache.min',
+define(['bower/mustache.js/mustache.min',
         'text!./Dialog.html',
         'text!./Type.html',
         'css!./Dialog.css'],
-       function(Util,
-                mustache,
+       function(mustache,
                 DialogTemplate,
                 TypeTemplate){
            'use strict';

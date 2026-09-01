@@ -2,8 +2,7 @@
  * @author William Emfinger  https://github.com/finger563
  */
 
-define(['js/util',
-        'q',
+define(['q',
         './Choice',
         './FormDialog',
         'hfsm/declParser',
@@ -14,8 +13,7 @@ define(['js/util',
         'css!decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
         'css!bower/highlightjs/styles/default.css',
         'css!./Simulator.css'],
-       function(Util,
-                Q,
+       function(Q,
                 Choice,
                 FormDialog,
                 declParser,
