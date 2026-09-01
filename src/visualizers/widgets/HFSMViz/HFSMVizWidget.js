@@ -1178,8 +1178,15 @@ define([
             }
           }
         });
+      }, function (err) {
+        // keep the pending positions if the commit was rejected:
+        // dropping them would lose the user's layout silently
+        if (err) {
+          console.error("Could not save node positions: ", err);
+          return;
+        }
+        self._unsavedNodePositions = {};
       });
-      self._unsavedNodePositions = {};
     };
 
     /* * * * * * * * Graph Creation Functions  * * * * * * * */
@@ -1514,32 +1521,54 @@ define([
       menu.show(position);
     };
 
+    /**
+     * Every connection that removing `ids` would leave dangling --
+     * including transitions attached to the doomed nodes' DESCENDANTS,
+     * which go away with their parent.
+     *
+     * Deliberately not the simulator's edge helpers: those skip
+     * disabled transitions, and a disabled transition still has to
+     * follow the state it points at.
+     */
+    HFSMVizWidget.prototype.dependentEdges = function( ids ) {
+      var self = this;
+      var doomed = {};
+
+      function claimSubtree( id ) {
+        var node = self.nodes[ id ];
+        if (!node || doomed[ id ])
+          return;
+        doomed[ id ] = true;
+        (node.childrenIds || []).map( claimSubtree );
+      }
+      ids.map( claimSubtree );
+
+      return Object.keys( self.nodes ).filter(function( id ) {
+        var node = self.nodes[ id ];
+        // edges inside the doomed subtree are removed with it
+        return node && node.isConnection && !doomed[ id ] &&
+          ( doomed[ node.src ] || doomed[ node.dst ] );
+      });
+    };
+
     HFSMVizWidget.prototype.deleteNode = function( nodeId ) {
       var self = this;
-      var edgesTo = self._simulator.getEdgesToNode( nodeId ) || [];
-      var edgesFrom = self._simulator.getEdgesFromNode( nodeId ) || [];
-
       // one transaction: a state removed without its now-dangling
       // transitions is not a valid intermediate model
       self._backend.transact("Removing " + nodeId, function () {
-        self._backend.deleteNodes(_.union(edgesTo, edgesFrom, [nodeId]));
+        self._backend.deleteNodes(
+          _.union([nodeId], self.dependentEdges([nodeId])));
       });
     };
 
     HFSMVizWidget.prototype.deleteSelection = function( ) {
       var self = this;
 
-      var selection = self._selectedNodes,
-          edgesTo = [],
-          edgesFrom = [];
-
-      selection.map(id => {
-        edgesTo = _.union(edgesTo, self._simulator.getEdgesToNode( id ));
-        edgesFrom = _.union(edgesFrom, self._simulator.getEdgesFromNode( id ));
-      });
+      var selection = self._selectedNodes;
 
       self._backend.transact("Removing selection", function () {
-        self._backend.deleteNodes(_.union(selection, edgesTo, edgesFrom));
+        self._backend.deleteNodes(
+          _.union(selection, self.dependentEdges( selection )));
       });
     };
 
@@ -1681,16 +1710,26 @@ define([
         self.forceShowChildren( cyNode.id() );
         var pos = self.screenPosToCyPos( childPosition );
 
-        var newChildPath = self._backend.transact("Creating new child", function () {
+        // captured inside the body so the completion callback sees
+        // it even if a backend settles synchronously
+        var newChildPath = null;
+        self._backend.transact("Creating new child", function () {
           // baseId here is a palette entry: ask the backend what it
           // is, so the widget never resolves meta types itself
           var info = self._backend.getNodeInfo(baseId);
-          return self._backend.createChild(parentId, info && info.type,
-                                           { position: pos });
+          newChildPath = self._backend.createChild(parentId, info && info.type,
+                                                   { position: pos });
+          return newChildPath;
+        }, function (err) {
+          // don't select a node the store rejected
+          if (err) {
+            console.error("Could not create child: ", err);
+            return;
+          }
+          if (newChildPath) {
+            self._backend.setActiveSelection([newChildPath], self);
+          }
         });
-        if (newChildPath) {
-          self._backend.setActiveSelection([newChildPath], self);
-        }
       }
     };
 

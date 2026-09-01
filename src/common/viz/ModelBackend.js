@@ -65,10 +65,17 @@
  *
  * MUTATIONS
  * ---------
- * Every change goes through `transact(message, fn)`. The backend is
- * free to batch the calls made inside `fn` into one undoable unit
+ * Every change goes through `transact(message, fn, onComplete)`. The
+ * backend is free to batch the calls made inside `fn` into one unit
  * (WebGME does; a local backend can emit a single change event).
  * Backends must apply either all of the operations or none.
+ *
+ * `transact` returns whatever `fn` returned, and the ids in it are
+ * usable at once. Whether the change was actually PERSISTED may only
+ * be known later, so `onComplete(err)` is optional and called when
+ * the store has settled: pass it when a caller must not commit UI
+ * state (clearing a pending-edit buffer, closing a dialog) to a
+ * change the store went on to reject.
  *
  * `createInstances` exists because WebGME can create a node that
  * INHERITS from an existing one. A store without prototypal

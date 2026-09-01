@@ -126,7 +126,7 @@ define([
 
   /* * * * * * * * * *  mutations  * * * * * * * * * */
 
-  WebGMEBackend.prototype.transact = function (message, fn) {
+  WebGMEBackend.prototype.transact = function (message, fn, onComplete) {
     var client = this._client;
     client.startTransaction(message || '');
     var result;
@@ -138,7 +138,19 @@ define([
       client.completeTransaction('');
       throw e;
     }
-    client.completeTransaction(message || '');
+    // The ids fn() produced are usable immediately -- the client
+    // applies the change to its in-memory core before the commit
+    // reaches the server -- which is why this returns synchronously.
+    // Whether the commit was ACCEPTED is only known later, so a
+    // caller that must not act on a rejected commit passes
+    // onComplete; otherwise the failure is at least never silent.
+    client.completeTransaction(message || '', function (err, commit) {
+      if (onComplete) {
+        onComplete(err, commit);
+      } else if (err) {
+        console.error('transaction failed: ' + (message || ''), err);
+      }
+    });
     return result;
   };
 

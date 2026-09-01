@@ -96,7 +96,11 @@ define(['js/util',
                    // the child and its attributes are one edit: a
                    // half-configured node should never be a state the
                    // user can land on by undoing
-                   var newChildPath = backend.transact(msg, function () {
+                   // captured inside the body so the completion
+                   // callback sees it even if a backend settles
+                   // synchronously
+                   var newChildPath = null;
+                   backend.transact(msg, function () {
                        var childPath = backend.createChild( desc.id, type,
                                                             { position: position } );
                        Object.keys(attr).map(function( attrName ) {
@@ -107,11 +111,18 @@ define(['js/util',
                                backend.setAttribute( childPath, attrName, attrVal );
                            }
                        });
+                       newChildPath = childPath;
                        return childPath;
+                   }, function (err) {
+                       // don't select a node the store rejected
+                       if (err) {
+                           console.error('Could not create child: ', err);
+                           return;
+                       }
+                       if (newChildPath) {
+                           backend.setActiveSelection([newChildPath], self);
+                       }
                    });
-                   if (newChildPath) {
-                       backend.setActiveSelection([newChildPath], self);
-                   }
 
                    // Close dialog
                    self._dialog.modal({ show: false});
