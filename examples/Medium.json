@@ -1,0 +1,407 @@
+{
+  "root": "/o",
+  "namespace": "espp::state_machine",
+  "objects": {
+    "/o": {
+      "name": "Medium",
+      "type": "State Machine",
+      "position": {
+        "x": 448,
+        "y": 158
+      },
+      "Declarations": "bool reInitialize{false};\nbool goToShallowHistory{false};\nbool goToDeepHistory{true};\nbool cycle{true};"
+    },
+    "/o/6": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "goToShallowHistory",
+      "pointers": {
+        "dst": "/o/r/A",
+        "src": "/o/S"
+      }
+    },
+    "/o/C": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 146,
+        "y": 300
+      }
+    },
+    "/o/D": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "reInitialize",
+      "pointers": {
+        "dst": "/o/r",
+        "src": "/o/S"
+      }
+    },
+    "/o/E": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/o/r",
+        "src": "/o/C"
+      }
+    },
+    "/o/K": {
+      "name": "State3",
+      "type": "State",
+      "position": {
+        "x": 561,
+        "y": 223
+      },
+      "Timer Period": 0.1
+    },
+    "/o/M": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT1",
+      "pointers": {
+        "dst": "/o/y",
+        "src": "/o/r"
+      }
+    },
+    "/o/P": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "goToDeepHistory",
+      "pointers": {
+        "dst": "/o/r/x",
+        "src": "/o/S"
+      }
+    },
+    "/o/S": {
+      "name": "Choice Pseudostate",
+      "type": "Choice Pseudostate",
+      "position": {
+        "x": 461,
+        "y": 150
+      }
+    },
+    "/o/T": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/o/X",
+        "src": "/o/r"
+      }
+    },
+    "/o/X": {
+      "name": "End State",
+      "type": "End State",
+      "position": {
+        "x": 382,
+        "y": 151
+      }
+    },
+    "/o/c": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/o/X",
+        "src": "/o/S"
+      }
+    },
+    "/o/g": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "pointers": {
+        "dst": "/o/q",
+        "src": "/o/K"
+      }
+    },
+    "/o/q": {
+      "name": "State4",
+      "type": "State",
+      "position": {
+        "x": 562,
+        "y": 154
+      },
+      "Timer Period": 0.1
+    },
+    "/o/r": {
+      "name": "State1",
+      "type": "State",
+      "position": {
+        "x": 317,
+        "y": 293
+      }
+    },
+    "/o/r/0": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT2",
+      "pointers": {
+        "dst": "/o/r/P",
+        "src": "/o/r/6"
+      }
+    },
+    "/o/r/4": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "pointers": {
+        "dst": "/o/r/O",
+        "src": "/o/r/P"
+      }
+    },
+    "/o/r/6": {
+      "name": "Child2",
+      "type": "State",
+      "position": {
+        "x": 250,
+        "y": 321
+      }
+    },
+    "/o/r/6/7": {
+      "name": "Grand2",
+      "type": "State",
+      "position": {
+        "x": 355,
+        "y": 338
+      },
+      "Timer Period": 0.1
+    },
+    "/o/r/6/B": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "pointers": {
+        "dst": "/o/r/6/w",
+        "src": "/o/r/6/7"
+      }
+    },
+    "/o/r/6/a": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/o/r/6/w",
+        "src": "/o/r/6/f"
+      }
+    },
+    "/o/r/6/f": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 256,
+        "y": 339
+      }
+    },
+    "/o/r/6/w": {
+      "name": "Grand",
+      "type": "State",
+      "position": {
+        "x": 286,
+        "y": 339
+      },
+      "Timer Period": 0.1
+    },
+    "/o/r/6/y": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT3",
+      "pointers": {
+        "dst": "/o/r/6/7",
+        "src": "/o/r/6/w"
+      }
+    },
+    "/o/r/7": {
+      "name": "End State",
+      "type": "End State",
+      "position": {
+        "x": 329,
+        "y": 250
+      }
+    },
+    "/o/r/A": {
+      "name": "Shallow History Pseudostate",
+      "type": "Shallow History Pseudostate",
+      "position": {
+        "x": 457,
+        "y": 337
+      }
+    },
+    "/o/r/G": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT1",
+      "pointers": {
+        "dst": "/o/r/6",
+        "src": "/o/r/L"
+      }
+    },
+    "/o/r/L": {
+      "name": "Child1",
+      "type": "State",
+      "position": {
+        "x": 208,
+        "y": 283
+      },
+      "Timer Period": 0.1
+    },
+    "/o/r/O": {
+      "name": "Choice Pseudostate",
+      "type": "Choice Pseudostate",
+      "position": {
+        "x": 329,
+        "y": 280
+      }
+    },
+    "/o/r/P": {
+      "name": "Child3",
+      "type": "State",
+      "position": {
+        "x": 405,
+        "y": 278
+      },
+      "Timer Period": 0.1
+    },
+    "/o/r/Z": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/o/r/7",
+        "src": "/o/r/O"
+      }
+    },
+    "/o/r/q": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 178,
+        "y": 287
+      }
+    },
+    "/o/r/r": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/o/r/L",
+        "src": "/o/r/q"
+      }
+    },
+    "/o/r/x": {
+      "name": "Deep History Pseudostate",
+      "type": "Deep History Pseudostate",
+      "position": {
+        "x": 437,
+        "y": 280
+      }
+    },
+    "/o/r/y": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Guard": "cycle",
+      "pointers": {
+        "dst": "/o/r/L",
+        "src": "/o/r/O"
+      }
+    },
+    "/o/x": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT4",
+      "pointers": {
+        "dst": "/o/S",
+        "src": "/o/q"
+      }
+    },
+    "/o/y": {
+      "name": "State2",
+      "type": "State",
+      "position": {
+        "x": 555,
+        "y": 298
+      },
+      "Timer Period": 0.1
+    },
+    "/o/z": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "EVENT2",
+      "pointers": {
+        "dst": "/o/K",
+        "src": "/o/y"
+      }
+    }
+  }
+}
