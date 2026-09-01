@@ -112,7 +112,10 @@ define([
                         '(see src/common/viz/ModelBackend.js)');
       }
       this._backend = backendFactory(getNodes);
-      this._host = hostServices || HostServices.none();
+      // fail at wiring time, not at the first right-click
+      this._host = hostServices
+        ? HostServices.assertImplements(hostServices, 'host services')
+        : HostServices.none();
       this._initialize();
 
       this._logger.debug("ctor finished");
@@ -2298,6 +2301,13 @@ define([
 
     HFSMVizWidget.prototype.destroy = function () {
       this._detachClientEventListeners();
+      // the host registered handlers on our element; leaving them
+      // attached would keep this widget alive and double up if
+      // another is built over the same DOM
+      if (this._undoDroppable) {
+        this._undoDroppable();
+        this._undoDroppable = null;
+      }
       this.clearNodes();
       this.shutdown();
     };

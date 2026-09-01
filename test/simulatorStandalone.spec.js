@@ -19,13 +19,6 @@ var path = require('path');
 
 var repoRoot = path.resolve(__dirname, '..');
 
-function firstExisting(candidates, what) {
-  for (var i = 0; i < candidates.length; i++) {
-    if (fs.existsSync(candidates[i] + '.js')) return candidates[i];
-  }
-  throw new Error('cannot find ' + what + '; run npm install');
-}
-
 function standaloneContext(name) {
   var requirejs = require('requirejs');
   return requirejs.config({
@@ -36,25 +29,14 @@ function standaloneContext(name) {
       // the HFSM modules, exactly as any host maps them
       hfsm: path.join(repoRoot, 'src/common'),
 
-      // third-party runtime deps -- vendorable, not WebGME
-      q: firstExisting([path.join(repoRoot, 'node_modules/q/q')], 'q'),
-      'bower/mustache.js/mustache.min': firstExisting([
-        path.join(repoRoot, 'bower_components/mustache.js/mustache.min'),
-        path.join(repoRoot, 'node_modules/mustache/mustache.min'),
-      ], 'mustache'),
-      'bower/highlightjs/highlight.pack.min': firstExisting([
-        path.join(repoRoot, 'bower_components/highlightjs/highlight.pack.min'),
-      ], 'highlight.js'),
-      underscore: firstExisting([
-        path.join(repoRoot, 'node_modules/underscore/underscore-umd'),
-        path.join(repoRoot, 'node_modules/underscore/underscore'),
-      ], 'underscore'),
-      'bower/handlebars/handlebars.min': firstExisting([
-        path.join(repoRoot, 'bower_components/handlebars/handlebars.min'),
-        path.join(repoRoot, 'node_modules/handlebars/dist/handlebars.min'),
-      ], 'handlebars'),
+      // Third-party runtime deps, stubbed: see test/stubs/lib.js.
+      // They are vendorable by definition, so whether they happen to
+      // be installed says nothing about the question being asked.
+      q: 'test/stubs/q',
+      'bower/mustache.js/mustache.min': 'test/stubs/mustache',
+      'bower/highlightjs/highlight.pack.min': 'test/stubs/highlight',
 
-      // NOTE: deliberately absent -- js/*, decorators/*, WebGMEGlobal
+      // NOTE: deliberately absent -- js/*, client/*, WebGMEGlobal
     },
     map: {
       '*': {
@@ -173,7 +155,9 @@ describe('simulator outside WebGME', function() {
     ];
     // `decorators/` is this repo's own (src/decorators), so a css!
     // include of it is not a WebGME dependency
-    var webgmeOnly = /'(js\/[^']*|client\/[^']*)'|\bWebGMEGlobal\b/;
+    // both quote styles: this file uses single quotes, the widget
+    // uses double, and a scan that only saw one would be no scan
+    var webgmeOnly = /['"](js\/[^'"]*|client\/[^'"]*)['"]|\bWebGMEGlobal\b/;
     files.forEach(function(file) {
       var text = fs.readFileSync(path.join(repoRoot, file), 'utf8');
       var hit = text.match(webgmeOnly);
