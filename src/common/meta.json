@@ -44,7 +44,8 @@
         "documentation": {
           "type": "string",
           "multiline": true,
-          "multilineType": "markdown"
+          "multilineType": "markdown",
+          "default": ""
         },
         "name": {
           "type": "string"
@@ -104,17 +105,21 @@
         "Action": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "Event": {
           "type": "string",
-          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "default": ""
         },
         "Guard": {
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "name": {
           "type": "string"
@@ -153,18 +158,21 @@
         "Default": {
           "type": "string",
           "description": "The default value for the field",
-          "isPassword": false
+          "isPassword": false,
+          "default": ""
         },
         "Description": {
           "type": "string",
           "description": "The description for the field (will be the comment / docstring for it)",
           "multiline": true,
-          "isPassword": false
+          "isPassword": false,
+          "default": ""
         },
         "Type": {
           "type": "string",
           "description": "The type of the field, e.g. `int`, `std::string`, `std::vector<std::uint8_t>`, etc.",
-          "isPassword": false
+          "isPassword": false,
+          "default": "int"
         },
         "name": {
           "type": "string"
@@ -220,17 +228,21 @@
         "Action": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "Event": {
           "type": "string",
-          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "default": ""
         },
         "Guard": {
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "name": {
           "type": "string"
@@ -273,22 +285,26 @@
         "Declarations": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Definitions": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Includes": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Initialization": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "name": {
           "type": "string"
@@ -346,17 +362,21 @@
         "Action": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "Event": {
           "type": "string",
-          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "default": ""
         },
         "Guard": {
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "name": {
           "type": "string"
@@ -427,43 +447,52 @@
         "Declarations": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Definitions": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Entry": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Exit": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Includes": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Initialization": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Tick": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Timer Period": {
-          "type": "float"
+          "type": "float",
+          "default": 0
         },
         "isComplete": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "name": {
           "type": "string"
@@ -521,22 +550,26 @@
         "Declarations": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Definitions": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Includes": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Initialization": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "name": {
           "type": "string"
@@ -594,22 +627,26 @@
         "Declarations": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Definitions": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Includes": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Initialization": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "name": {
           "type": "string"
@@ -663,17 +700,21 @@
         "Action": {
           "type": "string",
           "multiline": true,
-          "multilineType": "cpp"
+          "multilineType": "cpp",
+          "default": ""
         },
         "Enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "Event": {
           "type": "string",
-          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          "regexp": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "default": ""
         },
         "Guard": {
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "name": {
           "type": "string"

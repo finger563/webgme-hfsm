@@ -70,6 +70,19 @@ function expectModelError(fixtureName, mutate, errRegex) {
   }, 'expected error matching ' + errRegex);
 }
 
+// metamodel violations are rejected by resolveModel, before the
+// checker ever runs, so they need their own expectation helper
+function expectResolveError(fixtureName, mutate, errRegex) {
+  var model = loadFixture(fixtureName);
+  mutate(model.objects);
+  assert.throws(function() {
+    mods.resolveModel.resolve(model);
+  }, function(err) {
+    var msg = typeof err === 'string' ? err : String(err && err.message || err);
+    return errRegex.test(msg);
+  }, 'expected error matching ' + errRegex);
+}
+
 describe('hfsm generator', function() {
 
   before(function() {
@@ -204,12 +217,12 @@ describe('hfsm generator', function() {
       }, /must be a path string/);
     });
 
-    it('rejects Fields whose parent is not an Event', function() {
-      expectModelError('payloads', function(objects) {
-        objects['/p/m/Idle/f1'] = {
-          name: 'strayField', type: 'Field', Type: 'int',
-        };
-      }, /children of Event definitions/);
+    it('rejects an Initial targeting a state outside the composite', function() {
+      // type-legal (a State IS a valid transition target), so only
+      // the semantic rule can catch it
+      expectModelError('features', function(objects) {
+        objects['/p/m/A/ti'].pointers.dst = '/p/m/B';
+      }, /must be within the parent/i);
     });
 
     it('rejects similarly-named events differing only by case', function() {
@@ -485,13 +498,7 @@ describe('hfsm generator', function() {
       assert.strictEqual(model.objects['/p/m/lt'].type, 'External Transition');
     });
 
-    it('rejects an Initial targeting the composite\'s parent', function() {
-      // the old symmetric relationship check accepted the parent as
-      // "within" the composite
-      expectModelError('features', function(objects) {
-        objects['/p/m/A/ti'].pointers.dst = '/p/m';
-      }, /must be within the parent/i);
-    });
+
 
     it('drops disabled transitions', function() {
       var model = loadFixture('basic');
@@ -499,6 +506,63 @@ describe('hfsm generator', function() {
       mods.resolveModel.resolve(model);
       mods.processor.processModel(model);
       assert.strictEqual(model.objects['/p/m/tStop'], undefined);
+    });
+  });
+
+  // The metamodel (src/common/meta.json) is generated from the
+  // WebGME meta, so these are the same containment and endpoint
+  // rules the editor enforces. Before it existed the standalone
+  // pipeline happily generated code from any of these.
+  describe('metamodel enforcement', function() {
+
+    it('rejects a State Machine nested inside a State', function() {
+      // used to be generated as a whole second top-level machine
+      expectResolveError('basic', function(objects) {
+        objects['/p/m/Idle/nested'] = { name: 'Sneaky', type: 'State Machine' };
+      }, /'State Machine' inside a 'State'.*metamodel does not allow/);
+    });
+
+    it('rejects an Event parented by a State', function() {
+      // used to reach the generated event enum
+      expectResolveError('basic', function(objects) {
+        objects['/p/m/Idle/ev'] = { name: 'STRAY', type: 'Event' };
+      }, /'Event' inside a 'State'.*metamodel does not allow/);
+    });
+
+    it('rejects a Field outside an Event', function() {
+      expectResolveError('payloads', function(objects) {
+        objects['/p/m/Idle/f1'] = { name: 'strayField', type: 'Field', Type: 'int' };
+      }, /'Field' inside a 'State'.*metamodel does not allow/);
+    });
+
+    it('rejects a transition pointing at the machine itself', function() {
+      expectResolveError('features', function(objects) {
+        objects['/p/m/A/ti'].pointers.dst = '/p/m';
+      }, /'dst' points at a 'State Machine'.*metamodel does not allow/);
+    });
+
+    it('accepts every endpoint the metamodel allows', function() {
+      // a Pseudostate is a legal transition source, a State a legal
+      // target: the enforcement must not be blanket-rejecting
+      var model = loadFixture('features');
+      mods.resolveModel.resolve(model);
+      var initial = model.objects['/p/m/ti'];
+      assert.strictEqual(model.objects[initial.pointers.src].type, 'Initial');
+      assert.strictEqual(model.objects[initial.pointers.dst].type, 'State');
+    });
+
+    it('allows Events under a State Machine and Fields under an Event', function() {
+      var model = loadFixture('payloads');
+      mods.resolveModel.resolve(model);
+      var events = Object.keys(model.objects).filter(function(p) {
+        return model.objects[p].type === 'Event';
+      });
+      assert.ok(events.length > 0, 'fixture should define Events');
+      events.forEach(function(p) {
+        var parent = model.objects[model.objects[p].parentPath];
+        assert.ok(['State Machine', 'Library'].indexOf(parent.type) > -1,
+                  p + ' should hang off the machine');
+      });
     });
   });
 

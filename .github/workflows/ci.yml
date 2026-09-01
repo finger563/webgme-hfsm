@@ -24,7 +24,7 @@ jobs:
           requirejs requirejs-text handlebars underscore mocha
 
       - name: Run generator unit + golden tests
-        run: ./node_modules/.bin/mocha test/generator.spec.js test/declParser.spec.js test/modelBackend.spec.js
+        run: ./node_modules/.bin/mocha test/generator.spec.js test/declParser.spec.js test/modelBackend.spec.js test/localBackend.spec.js
 
       - name: Compile and trace-check golden generated code
         run: ./scripts/run_generated_tests.sh

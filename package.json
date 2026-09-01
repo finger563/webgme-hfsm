@@ -5,7 +5,7 @@
   },
   "scripts": {
     "start": "node app.js",
-    "test": "node ./node_modules/mocha/bin/mocha test/generator.spec.js test/declParser.spec.js test/modelBackend.spec.js",
+    "test": "node ./node_modules/mocha/bin/mocha test/generator.spec.js test/declParser.spec.js test/modelBackend.spec.js test/localBackend.spec.js",
     "test:generated": "./scripts/run_generated_tests.sh",
     "postinstall": "bower install",
     "build:web": "./scripts/build-web.sh",

@@ -320,17 +320,11 @@ define([], function() {
                        "(reserved for the payload alias).");
           }
         }
-        else if (obj.type == 'Field') {
-          // field NAMES / TYPES are validated through the parent
-          // Event's Field_list above; here ensure that parent really
-          // is an Event -- otherwise the Field is in no Field_list
-          // and would silently skip validation entirely
-          var fieldParent = model.objects[obj.parentPath];
-          if (!fieldParent || fieldParent.type !== 'Event') {
-            self.error(obj, "Fields must be children of Event definitions" +
-              (fieldParent ? " (parent is a " + fieldParent.type + ")" : "") + "!");
-          }
-        }
+        // NOTE: a Field's parent having to be an Event used to be
+        // checked here. It is containment, so it now comes from the
+        // metamodel and resolveModel rejects it before this runs.
+        // Field NAMES / TYPES are still validated above, through the
+        // parent Event's Field_list.
         else if (obj.type == 'Initial') {
           // checks:
           // * no incoming transitions,
