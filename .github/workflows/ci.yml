@@ -227,6 +227,49 @@ jobs:
           name: hfsm-playground
           path: dist/web
 
+  meta-sync:
+    name: Committed metamodel matches the WebGME meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # src/common/meta.json is generated from the WebGME metamodel by
+      # hand (npm run gen:meta) and committed, so the CLI, the
+      # playground and any non-WebGME backend can read the same rules
+      # the editor enforces. It must not be edited directly or left
+      # behind when the metamodel changes.
+      - name: meta.json is in sync with src/meta/meta.webgmex
+        run: npm run check:meta
+
+      # the metamodel is duplicated in the seeds (that copy is what
+      # actually governs a project at runtime -- config only points at
+      # src/seeds). If a seed is re-exported from a changed metamodel
+      # without updating src/meta, the editor and the standalone
+      # tooling would silently disagree.
+      - name: Seeds carry the same metamodel
+        run: |
+          reference=$(node scripts/gen-meta.js --stdout |
+                      grep -v '"source"' | sha256sum | cut -d' ' -f1)
+          status=0
+          for seed in src/seeds/*.webgmex; do
+            actual=$(node scripts/gen-meta.js --source "$seed" --stdout |
+                     grep -v '"source"' | sha256sum | cut -d' ' -f1)
+            if [ "$actual" = "$reference" ]; then
+              echo "ok   $seed"
+            else
+              echo "DIFF $seed defines a different metamodel than src/meta"
+              node scripts/gen-meta.js --source "$seed" --stdout > /tmp/seed-meta.json
+              node scripts/gen-meta.js --stdout > /tmp/ref-meta.json
+              diff -u /tmp/ref-meta.json /tmp/seed-meta.json || true
+              status=1
+            fi
+          done
+          exit $status
+
   regen-simple:
     name: Simple sample regenerates from its model (no drift)
     runs-on: ubuntu-latest

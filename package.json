@@ -10,7 +10,9 @@
     "postinstall": "bower install",
     "build:web": "./scripts/build-web.sh",
     "web": "./scripts/build-web.sh && python3 -m http.server -d dist/web 8080",
-    "verify:web": "node scripts/verify-web-build.js"
+    "verify:web": "node scripts/verify-web-build.js",
+    "gen:meta": "node scripts/gen-meta.js",
+    "check:meta": "node scripts/gen-meta.js --check"
   },
   "version": "1.6.0",
   "repository": {
