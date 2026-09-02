@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:hfsm="https://github.com/finger563/webgme-hfsm" version="1.0" name="Simple" initial="S_2f_9_2f_Y">
+  <state id="S_2f_9_2f_Y" hfsm:name="State 1" hfsm:timer-period="0.1">
+    <transition event="INPUTEVENT" cond="buttonPressed &amp;&amp; data.button_id == 12" target="S_2f_9_2f_v"/>
+    <transition event="Test" cond="data.val.size()" target="S_2f_9_2f_v"/>
+  </state>
+  <state id="S_2f_9_2f_v" hfsm:name="State 2">
+    <initial>
+      <transition target="S_2f_9_2f_v_2f_C"/>
+    </initial>
+    <state id="S_2f_9_2f_v_2f_C" hfsm:name="State" hfsm:timer-period="0.1">
+    </state>
+  </state>
+</scxml>

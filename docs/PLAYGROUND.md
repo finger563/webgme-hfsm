@@ -123,6 +123,13 @@ generation still works.
   there is nowhere to save to. That is the trade for needing no
   infrastructure. Download the model (or copy it out of the editor)
   to keep it.
+
+  A refresh does not cost you your work, though: the model text, the
+  namespace and the test-bench setting are kept in `sessionStorage`
+  and restored when the page comes back. That is scoped to the TAB, so
+  two tabs hold two different drafts rather than overwriting each
+  other, and it goes away when the tab does — it is crash protection,
+  not storage.
 - **No undo.** WebGME's undo is a property of its commit history,
   which is exactly the infrastructure this does without. Reload to
   get back to the model you loaded.
@@ -165,6 +172,13 @@ actually used, so an empty box is never ambiguous.
 
 ## Model format
 
-Same format the CLI takes — see [CLI.md](CLI.md). The bundled
-examples are the test fixtures themselves (`test/fixtures/*.json`),
-so the playground can only demo models that CI already covers.
+Same format the CLI takes — see [CLI.md](CLI.md).
+
+The bundled examples are the project's own machines
+(`examples/Simple.json`, `Medium`, `Complex` — hand-laid-out and
+exported from WebGME, so they draw the way they do in the editor) plus
+the test fixtures themselves (`test/fixtures/*.json`, each built to
+show off one feature). Every one of them is generated from and
+compared against committed goldens by the test suite, and
+`verify-web-build.js` refuses to publish an example that has none — so
+the playground can only demo models that CI already covers.

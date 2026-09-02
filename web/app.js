@@ -87,11 +87,82 @@
   var modelEditor = null;  // the editable model view
   var viewerEditor = null; // the read-only output view
 
+  // The project's own machines first -- they are hand-laid-out, so
+  // they draw the way they do in WebGME rather than being arranged
+  // automatically -- then the smaller ones each built to show off one
+  // feature. Every one of them is generated from and compared against
+  // committed goldens by CI (see scripts/build-web.sh).
   var EXAMPLES = [
+    { label: 'Simple (two states, an event with a payload)',
+      file: 'examples/Simple.json' },
+    { label: 'Medium (nesting, history, choices)',
+      file: 'examples/Medium.json' },
+    { label: 'Complex (11 states, 34 transitions, end states)',
+      file: 'examples/Complex.json' },
     { label: 'Basic (two states, one event)', file: 'examples/basic.json' },
     { label: 'Features (hierarchy, history, choices)', file: 'examples/features.json' },
     { label: 'Payloads (typed event data)', file: 'examples/payloads.json' },
   ];
+
+  /* ------------- surviving a refresh, one tab at a time ------------ */
+
+  /**
+   * The model text is the work: nothing is saved anywhere, so a
+   * mistyped Cmd-R used to lose it.
+   *
+   * sessionStorage rather than localStorage, deliberately. It is
+   * scoped to the TAB, so two tabs with two different machines keep
+   * two different drafts instead of overwriting each other -- which
+   * is the way this actually gets used, one model per tab. It also
+   * goes away when the tab does, which is the right lifetime for
+   * something the user never asked to save: this is crash
+   * protection, not storage. Downloading is still how you keep a
+   * model.
+   */
+  var DRAFT_KEY = 'hfsm-playground:draft';
+  var SAVE_DELAY = 400;
+  var draftTimer = null;
+
+  function rememberDraft() {
+    // debounced: this runs on every keystroke
+    if (draftTimer) clearTimeout(draftTimer);
+    draftTimer = setTimeout(function () {
+      draftTimer = null;
+      var text = getModelText();
+      try {
+        if (!text.trim()) sessionStorage.removeItem(DRAFT_KEY);
+        else sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+          text: text,
+          namespace: el('namespaceInput').value,
+          testBench: el('testBenchInput').checked,
+        }));
+      } catch (e) {
+        // private browsing, a full quota, storage disabled -- none of
+        // which should cost anyone their editing session
+      }
+    }, SAVE_DELAY);
+  }
+
+  /** @return true if a draft was restored */
+  function restoreDraft() {
+    var saved = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
+    } catch (e) {
+      saved = null;   // corrupt or unreadable; start clean
+    }
+    if (!saved || typeof saved.text !== 'string' || !saved.text.trim()) {
+      return false;
+    }
+    setModelText(saved.text);
+    if (typeof saved.namespace === 'string') {
+      el('namespaceInput').value = saved.namespace;
+    }
+    if (typeof saved.testBench === 'boolean') {
+      el('testBenchInput').checked = saved.testBench;
+    }
+    return true;
+  }
 
   // the textarea remains the fallback when CodeMirror is unavailable,
   // so every read/write of the model goes through these two
@@ -105,6 +176,7 @@
     } else {
       el('modelInput').value = text;
     }
+    rememberDraft();
   }
 
   /** CodeMirror mode for a generated file, by extension. */
@@ -758,6 +830,12 @@
     });
     loadExampleList();
     wireDragAndDrop();
+
+    // typing into the plain textarea, when CodeMirror never loaded
+    el('modelInput').addEventListener('input', rememberDraft);
+    // the namespace and the test-bench toggle are part of the draft
+    el('namespaceInput').addEventListener('input', rememberDraft);
+    el('testBenchInput').addEventListener('change', rememberDraft);
   }
 
   /**
@@ -777,6 +855,7 @@
       viewportMargin: 30,
     });
     modelEditor.setSize('100%', '100%');
+    modelEditor.on('change', rememberDraft);
 
     viewerEditor = CodeMirror(el('viewer'), {
       value: '',
@@ -794,6 +873,12 @@
 
   setStatus('loading generator…');
   wire();
+
+  // Bring back whatever this tab was working on. Before the generator
+  // has loaded, so the text is on screen immediately -- and quietly,
+  // because from the user's side nothing happened: they refreshed and
+  // their model is still there.
+  var restored = restoreDraft();
 
   requirejs([CM_ID].concat(CM_MODES), function (cm) {
     try {
@@ -820,7 +905,10 @@
       exporters: exporters,
       MetaTemplates: MetaTemplates,
     };
-    setStatus('ready');
+    // say it here rather than at restore time: 'ready' lands after
+    // the generator loads and would overwrite anything said earlier,
+    // leaving the user with no sign their work came back
+    setStatus(restored ? 'ready \u00b7 restored this tab\u2019s model' : 'ready');
   }, function (err) {
     showDiagnostics(['Failed to load the generator modules: ' + err.message,
                      'If you opened this file directly, serve it over http instead ' +

@@ -20,6 +20,12 @@ var amdLoader = require('../bin/amd-loader');
 
 var FIXTURE_DIR = path.join(__dirname, 'fixtures');
 var GOLDEN_DIR = path.join(__dirname, 'goldens');
+// The showcase models the playground offers, hand-laid-out and
+// exported from WebGME. They are generated from and compared against
+// goldens exactly as the fixtures are: the playground refuses to
+// bundle an example nothing verifies, and an example that has drifted
+// from the generator is worse than no example.
+var EXAMPLE_DIR = path.join(__dirname, '..', 'examples');
 var NAMESPACE = 'state_machine';
 
 // files whose content is run-dependent and not golden-compared
@@ -27,10 +33,26 @@ var IGNORED_ARTIFACTS = ['hfsm_metadata.json'];
 
 var mods = {}; // filled in before()
 
+/** where a model of this name lives -- a fixture, or a shipped example */
+function modelPath(name) {
+  var asFixture = path.join(FIXTURE_DIR, name + '.json');
+  return fs.existsSync(asFixture) ? asFixture
+    : path.join(EXAMPLE_DIR, name + '.json');
+}
+
 function loadFixture(name) {
   // deep copy so each test gets a fresh model
-  return JSON.parse(
-    fs.readFileSync(path.join(FIXTURE_DIR, name + '.json'), 'utf8'));
+  return JSON.parse(fs.readFileSync(modelPath(name), 'utf8'));
+}
+
+/** every model the goldens cover: the fixtures and the examples */
+function generatedModelNames() {
+  function jsonIn(dir) {
+    return fs.readdirSync(dir)
+      .filter(function(f) { return f.slice(-5) === '.json'; })
+      .map(function(f) { return f.slice(0, -5); });
+  }
+  return jsonIn(FIXTURE_DIR).concat(jsonIn(EXAMPLE_DIR)).sort();
 }
 
 function processFixture(name) {
@@ -901,12 +923,8 @@ describe('hfsm generator', function() {
   });
 
   describe('generation goldens', function() {
-    var fixtures = fs.readdirSync(FIXTURE_DIR)
-        .filter(function(f) { return f.slice(-5) === '.json'; })
-        .map(function(f) { return f.slice(0, -5); });
-
-    fixtures.forEach(function(name) {
-      it('matches goldens for fixture: ' + name, function() {
+    generatedModelNames().forEach(function(name) {
+      it('matches goldens for: ' + name, function() {
         var artifacts = generateArtifacts(name);
         var goldenDir = path.join(GOLDEN_DIR, name);
 
