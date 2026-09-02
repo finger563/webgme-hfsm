@@ -54,7 +54,7 @@ function must(file) {
  'src/plugins/SoftwareGenerator/templates/uml/Templates.js',
  'src/plugins/SoftwareGenerator/templates/uml/static/magic_enum.hpp',
  // the visualizer and the contracts it runs on
- 'viz.js',
+ 'viz.js', 'host.js', 'palette.js',
  'src/common/viz/ModelBackend.js', 'src/common/viz/HostServices.js',
  'src/common/viz/LocalBackend.js', 'src/common/viz/describe.js',
  'src/visualizers/widgets/HFSMViz/HFSMVizWidget.js',

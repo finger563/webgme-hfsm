@@ -29,7 +29,8 @@ echo "building HFSM Playground -> $OUT"
 
 # 1. the page itself
 cp "$REPO_ROOT/web/index.html" "$REPO_ROOT/web/app.js" \
-   "$REPO_ROOT/web/app.css" "$REPO_ROOT/web/viz.js" "$OUT/"
+   "$REPO_ROOT/web/app.css" "$REPO_ROOT/web/viz.js" \
+   "$REPO_ROOT/web/host.js" "$REPO_ROOT/web/palette.js" "$OUT/"
 say "page"
 
 # 2. the generator: copied verbatim, never edited for the browser

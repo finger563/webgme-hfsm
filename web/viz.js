@@ -4,13 +4,15 @@
  *
  * There is no WebGME here: no client, no territories, no server. The
  * widget takes its model through a ModelBackend and its UI services
- * through HostServices, so all this has to supply is a LocalBackend
- * over the parsed JSON and a host that offers nothing (the playground
- * is read-only for now -- editing is the next step).
+ * through HostServices, so all this supplies is a LocalBackend over
+ * the parsed JSON and a host built out of plain DOM.
  *
  * The node feed mirrors what the WebGME control does: build a
  * descriptor per object and hand each to the widget, which sorts out
- * the ordering itself through its own dependency tracking.
+ * the ordering itself through its own dependency tracking. Where the
+ * control is told exactly what changed by a territory, here the
+ * difference is worked out after each committed transaction -- see
+ * `sync`.
  */
 define([
   'jquery',
@@ -22,16 +24,17 @@ define([
   'cytoscape-panzoom',
   'hfsm/resolveModel',
   'hfsm/viz/LocalBackend',
-  'hfsm/viz/HostServices',
   'hfsm/viz/describe',
   'hfsm/exportModel',
   'widgets/HFSMViz/HFSMVizWidget',
+  './host',
+  './palette',
   // the dialogs are bootstrap modals; nothing imports it, so it is
   // listed here to guarantee it is on the page before one opens
   'bootstrap',
 ], function ($, _, cytoscape, coseBilkent, edgehandles, contextMenus, panzoom,
-             resolveModel, LocalBackend, HostServices, describe, exportModel,
-             HFSMVizWidget) {
+             resolveModel, LocalBackend, describe, exportModel,
+             HFSMVizWidget, PlaygroundHost, palette) {
   'use strict';
 
   // Cytoscape's extensions are UMD bundles that EXPORT a register
@@ -67,11 +70,26 @@ define([
   var widget = null;
   var backend = null;
   var model = null;
+  var host = null;
+  var removePalette = null;
+  // what the widget was last told about each object, so a change can
+  // be turned into the add / update / remove calls it expects
+  var shown = {};
+  var onModelEdited = null;
 
   function destroy() {
+    if (removePalette) {
+      try { removePalette(); } catch (e) { console.error(e); }
+      removePalette = null;
+    }
+    if (host) {
+      try { host.destroy(); } catch (e) { console.error(e); }
+      host = null;
+    }
     if (widget) {
       try { widget.destroy(); } catch (e) { console.error(e); }
     }
+    shown = {};
     // cleared whatever happened above, and whether or not a widget
     // was ever built: `mount` sets the backend before the widget, so
     // a constructor that throws part-way would otherwise leave this
@@ -79,6 +97,56 @@ define([
     widget = null;
     backend = null;
     model = null;
+  }
+
+  /**
+   * Bring the graph in line with the model.
+   *
+   * WebGME's control is told exactly which nodes loaded, changed or
+   * went away, by the territory it opened. A LocalBackend transaction
+   * only reports THAT something committed, so the difference is
+   * worked out here by comparing each object's descriptor against
+   * what the widget was last given. At the size of a state machine
+   * that costs nothing, and it means both hosts drive the widget
+   * through the same three calls rather than editing needing a
+   * second update path of its own.
+   *
+   * @return how many drawable objects have no position, which is what
+   *         decides whether a freshly loaded model gets laid out
+   */
+  function sync(opts) {
+    if (!widget || !backend) return 0;
+    var quiet = !!(opts && opts.quiet);
+    var unpositioned = 0;
+    var present = {};
+
+    Object.keys(model.objects).sort().forEach(function (path) {
+      var desc = describe.finish(backend.getNode(path));
+      if (!desc) return;
+      present[path] = true;
+      // an edge is drawn from its endpoints, so only the boxes need a
+      // position of their own
+      if (!desc.isConnection && !model.objects[path].position) {
+        unpositioned++;
+      }
+      var current = JSON.stringify(desc);
+      if (!(path in shown)) {
+        shown[path] = current;
+        widget.addNode(desc);
+      } else if (shown[path] !== current) {
+        shown[path] = current;
+        widget.updateNode(desc);
+      }
+    });
+
+    Object.keys(shown).forEach(function (path) {
+      if (present[path]) return;
+      delete shown[path];
+      widget.removeNode(path);
+    });
+
+    if (!quiet && onModelEdited) onModelEdited();
+    return unpositioned;
   }
 
   /**
@@ -97,11 +165,23 @@ define([
     model = JSON.parse(JSON.stringify(rawModel));
     resolveModel.resolve(model);
 
-    backend = LocalBackend(model);
+    host = PlaygroundHost();
+    // the backend reports every committed transaction; that is the
+    // only notice the graph gets that the model has been edited
+    backend = LocalBackend(model, sync);
+
+    // The palette sits above the diagram, and the widget gets a
+    // container of its own: it draws into an absolutely positioned
+    // element filling whatever it is given, so it cannot share a box
+    // with anything else.
+    var root = $(container).empty();
+    removePalette = palette.build(root, host);
+    var widgetHost = $('<div class="viz-host"></div>').appendTo(root);
+
     widget = new HFSMVizWidget(
-      makeLogger('HFSMViz'), $(container), null,
+      makeLogger('HFSMViz'), widgetHost, null,
       function () { return backend; },
-      HostServices.none()
+      host
     );
 
     // A state machine reads as a flow from its initial state, so
@@ -128,17 +208,7 @@ define([
 
     // Feed the graph. Order does not matter: the widget defers any
     // node whose parent or endpoints have not arrived yet.
-    var unpositioned = 0;
-    Object.keys(model.objects).sort().forEach(function (path) {
-      var desc = describe.finish(backend.getNode(path));
-      if (!desc) return;
-      widget.addNode(desc);
-      // an edge is drawn from its endpoints, so only the boxes need a
-      // position of their own
-      if (!desc.isConnection && !model.objects[path].position) {
-        unpositioned++;
-      }
-    });
+    var unpositioned = sync({ quiet: true });
 
     // A model authored by hand -- or exported by the CLI -- carries no
     // layout, so every node would sit at (0, 0) in a heap. WebGME
@@ -188,21 +258,38 @@ define([
     // automatically, and that arrangement is just as much "how the
     // diagram looks" as a drag is -- saving only the drags would
     // leave the next load to arrange it all over again, differently.
+    //
+    // Serialized from a COPY, and through the widget's own
+    // conversion. This used to write `node.position()` -- cytoscape's
+    // CENTRE -- straight into the mounted model, which means the
+    // TOP-LEFT and is the model the widget is running on. So every
+    // save moved every node by half its own size, and the page saves
+    // after each edit: the model then disagreed with the graph by
+    // that much, and the NEXT drag saw the difference and
+    // "corrected" it. The first drag looked right and the second
+    // shifted the whole diagram.
+    var out = JSON.parse(JSON.stringify(model));
     widget._cy.nodes().forEach(function (node) {
-      var object = model.objects[node.id()];
+      var object = out.objects[node.id()];
       if (!object) return;
-      var p = node.position();
+      var p = widget.cyPosition(node);   // top-left, as the model means it
       if (typeof p.x === 'number' && typeof p.y === 'number') {
         object.position = { x: p.x, y: p.y };
       }
     });
 
-    return exportModel.toJSON(model, {});
+    return exportModel.toJSON(out, {});
   }
 
   return {
     mount: mount,
     destroy: destroy,
+    /**
+     * Called after every committed edit, so the page can write the
+     * model back into the editor. The diagram is an editor now, and
+     * the text beside it has to say the same thing.
+     */
+    onModelEdited: function (fn) { onModelEdited = fn; },
     resize: resize,
     currentModelJSON: currentModelJSON,
     /** the mounted widget, for the page to resize / refresh */
