@@ -184,9 +184,14 @@ mkdir -p "$OUT/assets/DecoratorSVG/svgs"
 cp "$REPO_ROOT"/src/svgs/*.svg "$OUT/assets/DecoratorSVG/svgs/"
 say "decorator svgs ($(ls "$OUT/assets/DecoratorSVG/svgs" | wc -l | tr -d ' '))"
 
-# 4. example models -- the same fixtures the test suite generates from,
-#    so the playground can never demo something CI does not cover
+# 4. example models -- the test fixtures AND the project's own showcase
+#    machines (Simple / Medium / Complex, hand-laid-out and exported
+#    from WebGME). Both sets are generated from and compared against
+#    committed goldens by the test suite, and verify-web-build refuses
+#    to publish an example that has none: the playground can never
+#    demo something CI does not cover.
 cp "$REPO_ROOT"/test/fixtures/*.json "$OUT/examples/"
+cp "$REPO_ROOT"/examples/*.json "$OUT/examples/"
 say "examples ($(ls "$OUT/examples" | wc -l | tr -d ' ') models)"
 
 echo "done. serve with:  python3 -m http.server -d $OUT 8080"

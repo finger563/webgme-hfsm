@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:hfsm="https://github.com/finger563/webgme-hfsm" version="1.0" name="Medium" initial="S_2f_o_2f_r">
+  <state id="S_2f_o_2f_K" hfsm:name="State3" hfsm:timer-period="0.1">
+    <transition event="EVENT3" target="S_2f_o_2f_q"/>
+  </state>
+  <state id="S_2f_o_2f_q" hfsm:name="State4" hfsm:timer-period="0.1">
+    <transition event="EVENT4" target="S_2f_o_2f_S"/>
+  </state>
+  <state id="S_2f_o_2f_r" hfsm:name="State1">
+    <initial>
+      <transition target="S_2f_o_2f_r_2f_L"/>
+    </initial>
+    <transition event="EVENT1" target="S_2f_o_2f_y"/>
+    <transition target="S_2f_o_2f_X"/>
+    <state id="S_2f_o_2f_r_2f_6" hfsm:name="Child2">
+      <initial>
+        <transition target="S_2f_o_2f_r_2f_6_2f_w"/>
+      </initial>
+      <transition event="EVENT2" target="S_2f_o_2f_r_2f_P"/>
+      <state id="S_2f_o_2f_r_2f_6_2f_7" hfsm:name="Grand2" hfsm:timer-period="0.1">
+        <transition event="EVENT3" target="S_2f_o_2f_r_2f_6_2f_w"/>
+      </state>
+      <state id="S_2f_o_2f_r_2f_6_2f_w" hfsm:name="Grand" hfsm:timer-period="0.1">
+        <transition event="EVENT3" target="S_2f_o_2f_r_2f_6_2f_7"/>
+      </state>
+    </state>
+    <state id="S_2f_o_2f_r_2f_L" hfsm:name="Child1" hfsm:timer-period="0.1">
+      <transition event="EVENT1" target="S_2f_o_2f_r_2f_6"/>
+    </state>
+    <state id="S_2f_o_2f_r_2f_P" hfsm:name="Child3" hfsm:timer-period="0.1">
+      <transition event="EVENT3" target="S_2f_o_2f_r_2f_O"/>
+    </state>
+    <state id="S_2f_o_2f_r_2f_O" hfsm:pseudostate="choice">
+      <transition cond="cycle" target="S_2f_o_2f_r_2f_L"/>
+      <transition target="S_2f_o_2f_r_2f_7"/>
+    </state>
+    <history id="S_2f_o_2f_r_2f_A" type="shallow">
+      <transition target="S_2f_o_2f_r_2f_L"/>
+    </history>
+    <history id="S_2f_o_2f_r_2f_x" type="deep">
+      <transition target="S_2f_o_2f_r_2f_L"/>
+    </history>
+    <final id="S_2f_o_2f_r_2f_7"/>
+  </state>
+  <state id="S_2f_o_2f_y" hfsm:name="State2" hfsm:timer-period="0.1">
+    <transition event="EVENT2" target="S_2f_o_2f_K"/>
+  </state>
+  <state id="S_2f_o_2f_S" hfsm:pseudostate="choice">
+    <transition cond="goToShallowHistory" target="S_2f_o_2f_r_2f_A"/>
+    <transition cond="reInitialize" target="S_2f_o_2f_r"/>
+    <transition cond="goToDeepHistory" target="S_2f_o_2f_r_2f_x"/>
+    <transition target="S_2f_o_2f_X"/>
+  </state>
+  <final id="S_2f_o_2f_X"/>
+</scxml>

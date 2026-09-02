@@ -87,11 +87,138 @@
   var modelEditor = null;  // the editable model view
   var viewerEditor = null; // the read-only output view
 
+  // The project's own machines first -- they are hand-laid-out, so
+  // they draw the way they do in WebGME rather than being arranged
+  // automatically -- then the smaller ones each built to show off one
+  // feature. Every one of them is generated from and compared against
+  // committed goldens by CI (see scripts/build-web.sh).
   var EXAMPLES = [
+    { label: 'Simple (two states, an event with a payload)',
+      file: 'examples/Simple.json' },
+    { label: 'Medium (nesting, history, choices)',
+      file: 'examples/Medium.json' },
+    { label: 'Complex (11 states, 34 transitions, end states)',
+      file: 'examples/Complex.json' },
     { label: 'Basic (two states, one event)', file: 'examples/basic.json' },
     { label: 'Features (hierarchy, history, choices)', file: 'examples/features.json' },
     { label: 'Payloads (typed event data)', file: 'examples/payloads.json' },
   ];
+
+  /* ------------------------ how it is laid out ---------------------- */
+
+  /**
+   * Where the panes are split, and whether the model text is
+   * collapsed.
+   *
+   * localStorage, unlike the model draft next door, and for the
+   * opposite reason: this is a PREFERENCE, not work. Someone who
+   * likes a narrow editor and a wide diagram wants that in the next
+   * tab and tomorrow, not just until this tab closes -- whereas one
+   * tab must never overwrite what another is editing. So: layout
+   * across the browser, model per tab.
+   */
+  var LAYOUT_KEY = 'hfsm-playground:layout';
+  var layout = {};
+
+  function readLayout() {
+    try {
+      layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}') || {};
+    } catch (e) {
+      layout = {};   // unreadable or corrupt: the defaults are fine
+    }
+    return layout;
+  }
+
+  function rememberLayout(changes) {
+    Object.keys(changes || {}).forEach(function (k) { layout[k] = changes[k]; });
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+    } catch (e) {
+      // storage off or full; the layout is still applied, just not kept
+    }
+  }
+
+  /* ------------- surviving a refresh, one tab at a time ------------ */
+
+  /**
+   * The model text is the work: nothing is saved anywhere, so a
+   * mistyped Cmd-R used to lose it.
+   *
+   * sessionStorage rather than localStorage, deliberately. It is
+   * scoped to the TAB, so two tabs with two different machines keep
+   * two different drafts instead of overwriting each other -- which
+   * is the way this actually gets used, one model per tab. It also
+   * goes away when the tab does, which is the right lifetime for
+   * something the user never asked to save: this is crash
+   * protection, not storage. Downloading is still how you keep a
+   * model.
+   */
+  var DRAFT_KEY = 'hfsm-playground:draft';
+  var SAVE_DELAY = 400;
+  var draftTimer = null;
+  var restoredDraft = null;   // what this tab came back to, if anything
+
+  function writeDraft() {
+    draftTimer = null;
+    var text = getModelText();
+    try {
+      if (!text.trim()) sessionStorage.removeItem(DRAFT_KEY);
+      else sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+        text: text,
+        namespace: el('namespaceInput').value,
+        testBench: el('testBenchInput').checked,
+        // which half of the output was showing, so a refresh puts you
+        // back where you were rather than on the Code tab
+        tab: vizShown ? 'diagram' : 'code',
+      }));
+    } catch (e) {
+      // private browsing, a full quota, storage disabled -- none of
+      // which should cost anyone their editing session
+    }
+  }
+
+  function rememberDraft() {
+    // debounced: this runs on every keystroke
+    if (draftTimer) clearTimeout(draftTimer);
+    draftTimer = setTimeout(writeDraft, SAVE_DELAY);
+  }
+
+  /**
+   * Write the pending draft NOW.
+   *
+   * Without this the debounce is a hole exactly where it hurts:
+   * type, hit Cmd-R within the delay, and the timer dies with the
+   * page having saved nothing -- which looks precisely like the
+   * feature not working.
+   */
+  function flushDraft() {
+    if (draftTimer) {
+      clearTimeout(draftTimer);
+      writeDraft();
+    }
+  }
+
+  /** @return true if a draft was restored */
+  function restoreDraft() {
+    var saved = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
+    } catch (e) {
+      saved = null;   // corrupt or unreadable; start clean
+    }
+    if (!saved || typeof saved.text !== 'string' || !saved.text.trim()) {
+      return false;
+    }
+    restoredDraft = saved;
+    setModelText(saved.text);
+    if (typeof saved.namespace === 'string') {
+      el('namespaceInput').value = saved.namespace;
+    }
+    if (typeof saved.testBench === 'boolean') {
+      el('testBenchInput').checked = saved.testBench;
+    }
+    return true;
+  }
 
   // the textarea remains the fallback when CodeMirror is unavailable,
   // so every read/write of the model goes through these two
@@ -105,6 +232,7 @@
     } else {
       el('modelInput').value = text;
     }
+    rememberDraft();
   }
 
   /** CodeMirror mode for a generated file, by extension. */
@@ -476,6 +604,11 @@
     el('viewDiagram').hidden = !diagram;
     el('saveLayoutBtn').hidden = !diagram;
     vizShown = diagram;
+    // which tab you were on is part of the draft, and switching tabs
+    // is the one way of changing it that no other handler notices --
+    // without this, a refresh came back to the tab you were on when
+    // you last TYPED, not the one you were looking at
+    rememberDraft();
     if (diagram) refreshDiagram();
   }
 
@@ -555,8 +688,14 @@
     requirejs(['viz'], function (viz) {
       vizModule = viz;
       viz.onModelEdited(diagramEdited);
+      viz.onSplitChanged(function () {
+        rememberLayout({ diagramSplits: viz.splitSizes() });
+      });
       try {
         viz.mount(el('viewDiagram'), model);
+        // the widget builds its panes on mount, so its splits can
+        // only be put back once they exist
+        if (layout.diagramSplits) viz.setSplitSizes(layout.diagramSplits);
         vizModelText = raw;
         if (!quiet) {
           showDiagnostics([]);
@@ -588,7 +727,7 @@
   // than in width, or the control would be inert in exactly the
   // layout where space is tightest.
   function wireSplitter() {
-    var layout = document.querySelector('.layout');
+    var layoutEl = document.querySelector('.layout');
     var splitter = el('paneSplitter');
     var collapseBtn = el('collapseModelBtn');
     var stacked = window.matchMedia('(max-width: 860px)');
@@ -597,7 +736,7 @@
     // narrower/shorter than this and nothing in the pane is readable
     function minSize() { return stacked.matches ? 120 : 180; }
     function totalSize() {
-      return stacked.matches ? layout.clientHeight : layout.clientWidth;
+      return stacked.matches ? layoutEl.clientHeight : layoutEl.clientWidth;
     }
     function paneSize() {
       var box = document.querySelector('.pane-input').getBoundingClientRect();
@@ -605,16 +744,25 @@
     }
 
     function setSize(px) {
-      layout.style.setProperty(
+      layoutEl.style.setProperty(
         stacked.matches ? '--model-height' : '--model-width', px + 'px');
     }
 
+    // the two layouts have their own sizes: the width of a column and
+    // the height of a stacked pane are not the same measurement
+    function rememberSize() {
+      if (lastSize === null) return;
+      rememberLayout(stacked.matches ? { modelHeight: lastSize }
+                                     : { modelWidth: lastSize });
+    }
+
     function collapsed() {
-      return layout.classList.contains('is-collapsed');
+      return layoutEl.classList.contains('is-collapsed');
     }
 
     function setCollapsed(yes) {
-      layout.classList.toggle('is-collapsed', yes);
+      rememberLayout({ collapsed: !!yes });
+      layoutEl.classList.toggle('is-collapsed', yes);
       collapseBtn.setAttribute('aria-expanded', String(!yes));
       collapseBtn.innerHTML = (yes ? '&#9654;' : '&#9664;') + ' Model';
       collapseBtn.title = yes
@@ -643,7 +791,7 @@
     }
 
     function onDrag(event) {
-      var box = layout.getBoundingClientRect();
+      var box = layoutEl.getBoundingClientRect();
       var along = stacked.matches
         ? event.clientY - box.top
         : event.clientX - box.left;
@@ -655,6 +803,8 @@
       splitter.classList.remove('is-dragging');
       document.removeEventListener('mousemove', onDrag);
       document.removeEventListener('mouseup', stopDrag);
+      // once, at the end -- not on every mousemove
+      rememberSize();
       // resize once at the end: cytoscape re-measuring on every
       // mousemove makes the drag stutter
       resizeDiagram();
@@ -691,8 +841,17 @@
       } else return;
       event.preventDefault();
       setSize(lastSize);
+      rememberSize();
       resizeDiagram();
     });
+
+    // put back what this browser was last left with
+    var savedSize = stacked.matches ? layout.modelHeight : layout.modelWidth;
+    if (typeof savedSize === 'number' && savedSize > 0) {
+      lastSize = savedSize;
+      setSize(savedSize);
+    }
+    if (layout.collapsed) setCollapsed(true);
   }
 
   // the diagram draws on a canvas sized to its container, so a layout
@@ -758,6 +917,20 @@
     });
     loadExampleList();
     wireDragAndDrop();
+
+    // Last chance to save. `pagehide` fires for a reload, a
+    // navigation and a tab close alike, and unlike `beforeunload` it
+    // does not risk a "leave site?" prompt.
+    window.addEventListener('pagehide', flushDraft);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') flushDraft();
+    });
+
+    // typing into the plain textarea, when CodeMirror never loaded
+    el('modelInput').addEventListener('input', rememberDraft);
+    // the namespace and the test-bench toggle are part of the draft
+    el('namespaceInput').addEventListener('input', rememberDraft);
+    el('testBenchInput').addEventListener('change', rememberDraft);
   }
 
   /**
@@ -777,6 +950,7 @@
       viewportMargin: 30,
     });
     modelEditor.setSize('100%', '100%');
+    modelEditor.on('change', rememberDraft);
 
     viewerEditor = CodeMirror(el('viewer'), {
       value: '',
@@ -793,7 +967,14 @@
   }
 
   setStatus('loading generator…');
+  readLayout();     // before anything that lays itself out
   wire();
+
+  // Bring back whatever this tab was working on. Before the generator
+  // has loaded, so the text is on screen immediately -- and quietly,
+  // because from the user's side nothing happened: they refreshed and
+  // their model is still there.
+  restoreDraft();
 
   requirejs([CM_ID].concat(CM_MODES), function (cm) {
     try {
@@ -821,6 +1002,18 @@
       MetaTemplates: MetaTemplates,
     };
     setStatus('ready');
+
+    // Put the tab back the way it was, not just the text in it.
+    //
+    // Restoring the model alone left the output empty and the diagram
+    // blank until you pressed Generate -- the work was there but the
+    // session was not, which reads as the model not being loaded at
+    // all. Generating takes well under a second for these, and it is
+    // what had already happened before the refresh.
+    if (restoredDraft) {
+      generate();
+      if (restoredDraft.tab === 'diagram') showTab('diagram');
+    }
   }, function (err) {
     showDiagnostics(['Failed to load the generator modules: ' + err.message,
                      'If you opened this file directly, serve it over http instead ' +

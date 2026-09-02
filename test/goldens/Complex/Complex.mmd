@@ -1,0 +1,58 @@
+stateDiagram-v2
+state "State3" as S_2f_c_2f_T {
+  state "ChildState2" as S_2f_c_2f_T_2f_0
+  state "ChildState" as S_2f_c_2f_T_2f_W
+  state "ChildState3" as S_2f_c_2f_T_2f_w
+  state "H" as S_2f_c_2f_T_2f_A
+  state "H*" as S_2f_c_2f_T_2f_o
+  [*] --> S_2f_c_2f_T_2f_W
+}
+state "State 1" as S_2f_c_2f_Y
+S_2f_c_2f_Y : EVENT2 [someNumber > someValue] (internal)
+S_2f_c_2f_Y : EVENT1 [someNumber < someValue] (internal)
+state "State 2" as S_2f_c_2f_v {
+  state "ChildState" as S_2f_c_2f_v_2f_K
+  state "ChildState2" as S_2f_c_2f_v_2f_e
+  state "ChildState3" as S_2f_c_2f_v_2f_z {
+    state "Grand" as S_2f_c_2f_v_2f_z_2f_6
+    state "Grand2" as S_2f_c_2f_v_2f_z_2f_c
+    state S_2f_c_2f_v_2f_z_2f_n <<choice>>
+    [*] --> S_2f_c_2f_v_2f_z_2f_6
+  }
+  state S_2f_c_2f_v_2f_U <<choice>>
+  state "H" as S_2f_c_2f_v_2f_G
+  state "H*" as S_2f_c_2f_v_2f_E
+  [*] --> S_2f_c_2f_v_2f_K
+}
+state S_2f_c_2f_X <<choice>>
+[*] --> S_2f_c_2f_Y
+S_2f_c_2f_T --> [*]
+S_2f_c_2f_T --> S_2f_c_2f_v_2f_G : EVENT3
+S_2f_c_2f_v --> S_2f_c_2f_T : EVENT2
+S_2f_c_2f_v --> [*]
+S_2f_c_2f_Y --> S_2f_c_2f_X : EVENT4 [someTest]
+S_2f_c_2f_T --> S_2f_c_2f_Y : ENDEVENT
+S_2f_c_2f_v --> S_2f_c_2f_T_2f_o : EVENT4
+S_2f_c_2f_T_2f_W --> S_2f_c_2f_T_2f_0 : EVENT1
+S_2f_c_2f_T_2f_0 --> [*] : ENDEVENT
+S_2f_c_2f_T_2f_0 --> S_2f_c_2f_T_2f_w : EVENT2
+S_2f_c_2f_T_2f_w --> S_2f_c_2f_T_2f_W : EVENT3
+S_2f_c_2f_X --> S_2f_c_2f_T_2f_A :  [goToHistory]
+S_2f_c_2f_X --> S_2f_c_2f_v :  [nextState]
+S_2f_c_2f_X --> S_2f_c_2f_T
+S_2f_c_2f_v --> S_2f_c_2f_T_2f_A : EVENT3
+S_2f_c_2f_v_2f_U --> S_2f_c_2f_v_2f_z
+S_2f_c_2f_v_2f_z --> S_2f_c_2f_v_2f_U
+S_2f_c_2f_v_2f_z --> S_2f_c_2f_v_2f_K : EVENT3 [someGuard]
+S_2f_c_2f_v_2f_K --> S_2f_c_2f_v_2f_e : EVENT1
+S_2f_c_2f_v_2f_e --> S_2f_c_2f_v_2f_z : EVENT2
+S_2f_c_2f_v_2f_U --> [*] :  [killedState]
+S_2f_c_2f_v_2f_z_2f_c --> [*] : ENDEVENT
+S_2f_c_2f_v_2f_z_2f_n --> S_2f_c_2f_v_2f_z_2f_c
+S_2f_c_2f_v_2f_z_2f_c --> S_2f_c_2f_v_2f_z_2f_n : EVENT2
+S_2f_c_2f_v_2f_z_2f_c --> S_2f_c_2f_v_2f_z_2f_6 : EVENT1
+S_2f_c_2f_v_2f_z_2f_n --> S_2f_c_2f_X :  [goToChoice]
+S_2f_c_2f_v_2f_z_2f_n --> [*] :  [goToEnd]
+S_2f_c_2f_v_2f_z_2f_6 --> S_2f_c_2f_v_2f_z_2f_c : EVENT1
+S_2f_c_2f_T --> S_2f_c_2f_v_2f_E : EVENT4
+S_2f_c_2f_T --> S_2f_c_2f_v : EVENT2

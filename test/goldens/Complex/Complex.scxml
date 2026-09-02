@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:hfsm="https://github.com/finger563/webgme-hfsm" version="1.0" name="Complex" initial="S_2f_c_2f_Y">
+  <state id="S_2f_c_2f_T" hfsm:name="State3">
+    <initial>
+      <transition target="S_2f_c_2f_T_2f_W"/>
+    </initial>
+    <transition event="EVENT3" target="S_2f_c_2f_v_2f_G"/>
+    <transition event="ENDEVENT" target="S_2f_c_2f_Y"/>
+    <transition event="EVENT4" target="S_2f_c_2f_v_2f_E"/>
+    <transition event="EVENT2" target="S_2f_c_2f_v"/>
+    <transition target="S_2f_c_2f_G"/>
+    <state id="S_2f_c_2f_T_2f_0" hfsm:name="ChildState2" hfsm:timer-period="0.1">
+      <transition event="ENDEVENT" target="S_2f_c_2f_T_2f_z"/>
+      <transition event="EVENT2" target="S_2f_c_2f_T_2f_w"/>
+    </state>
+    <state id="S_2f_c_2f_T_2f_W" hfsm:name="ChildState" hfsm:timer-period="0.1">
+      <transition event="EVENT1" target="S_2f_c_2f_T_2f_0"/>
+    </state>
+    <state id="S_2f_c_2f_T_2f_w" hfsm:name="ChildState3" hfsm:timer-period="0.1">
+      <transition event="EVENT3" target="S_2f_c_2f_T_2f_W"/>
+    </state>
+    <history id="S_2f_c_2f_T_2f_A" type="shallow">
+      <transition target="S_2f_c_2f_T_2f_W"/>
+    </history>
+    <history id="S_2f_c_2f_T_2f_o" type="deep">
+      <transition target="S_2f_c_2f_T_2f_W"/>
+    </history>
+    <final id="S_2f_c_2f_T_2f_z"/>
+  </state>
+  <state id="S_2f_c_2f_Y" hfsm:name="State 1" hfsm:tick="printf(&quot;SerialTask::State 1::tick()\n&quot;);" hfsm:timer-period="0.1">
+    <onentry><script>printf(&quot;SerialTask :: initializing State 1\n&quot;);</script></onentry>
+    <onexit><script>printf(&quot;Exiting State 1\n&quot;);</script></onexit>
+    <transition event="EVENT2" cond="someNumber &gt; someValue"/>
+    <transition event="EVENT1" cond="someNumber &lt; someValue">
+      <script>int testVal = 32;&#10;for (int i=0; i&lt;testVal; i++) {&#10;    printf(&quot;Action iterating: %d\n&quot;, i);&#10;}</script>
+    </transition>
+    <transition event="EVENT4" cond="someTest" target="S_2f_c_2f_X"/>
+  </state>
+  <state id="S_2f_c_2f_v" hfsm:name="State 2">
+    <initial>
+      <transition target="S_2f_c_2f_v_2f_K"/>
+    </initial>
+    <transition event="EVENT2" target="S_2f_c_2f_T"/>
+    <transition event="EVENT4" target="S_2f_c_2f_T_2f_o"/>
+    <transition event="EVENT3" target="S_2f_c_2f_T_2f_A"/>
+    <transition target="S_2f_c_2f_G"/>
+    <state id="S_2f_c_2f_v_2f_K" hfsm:name="ChildState" hfsm:timer-period="0.1">
+      <transition event="EVENT1" target="S_2f_c_2f_v_2f_e"/>
+    </state>
+    <state id="S_2f_c_2f_v_2f_e" hfsm:name="ChildState2" hfsm:timer-period="0.1">
+      <transition event="EVENT2" target="S_2f_c_2f_v_2f_z"/>
+    </state>
+    <state id="S_2f_c_2f_v_2f_z" hfsm:name="ChildState3">
+      <initial>
+        <transition target="S_2f_c_2f_v_2f_z_2f_6"/>
+      </initial>
+      <transition event="EVENT3" cond="someGuard" target="S_2f_c_2f_v_2f_K"/>
+      <transition target="S_2f_c_2f_v_2f_U"/>
+      <state id="S_2f_c_2f_v_2f_z_2f_6" hfsm:name="Grand" hfsm:timer-period="0.1">
+        <transition event="EVENT1" target="S_2f_c_2f_v_2f_z_2f_c"/>
+      </state>
+      <state id="S_2f_c_2f_v_2f_z_2f_c" hfsm:name="Grand2" hfsm:timer-period="0.1">
+        <transition event="ENDEVENT" target="S_2f_c_2f_v_2f_z_2f_0"/>
+        <transition event="EVENT2" target="S_2f_c_2f_v_2f_z_2f_n"/>
+        <transition event="EVENT1" target="S_2f_c_2f_v_2f_z_2f_6"/>
+      </state>
+      <state id="S_2f_c_2f_v_2f_z_2f_n" hfsm:pseudostate="choice">
+        <transition cond="goToChoice" target="S_2f_c_2f_X"/>
+        <transition cond="goToEnd" target="S_2f_c_2f_v_2f_z_2f_0"/>
+        <transition target="S_2f_c_2f_v_2f_z_2f_c"/>
+      </state>
+      <final id="S_2f_c_2f_v_2f_z_2f_0"/>
+    </state>
+    <state id="S_2f_c_2f_v_2f_U" hfsm:pseudostate="choice">
+      <transition cond="killedState" target="S_2f_c_2f_v_2f_w"/>
+      <transition target="S_2f_c_2f_v_2f_z"/>
+    </state>
+    <history id="S_2f_c_2f_v_2f_G" type="shallow">
+      <transition target="S_2f_c_2f_v_2f_K"/>
+    </history>
+    <history id="S_2f_c_2f_v_2f_E" type="deep">
+      <transition target="S_2f_c_2f_v_2f_K"/>
+    </history>
+    <final id="S_2f_c_2f_v_2f_w"/>
+  </state>
+  <state id="S_2f_c_2f_X" hfsm:pseudostate="choice">
+    <transition cond="goToHistory" target="S_2f_c_2f_T_2f_A"/>
+    <transition cond="nextState" target="S_2f_c_2f_v"/>
+    <transition target="S_2f_c_2f_T"/>
+  </state>
+  <final id="S_2f_c_2f_G"/>
+</scxml>

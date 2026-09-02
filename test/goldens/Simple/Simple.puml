@@ -1,0 +1,14 @@
+@startuml
+title Simple
+
+state "State 1" as S_2f_9_2f_Y
+state "State 2" as S_2f_9_2f_v {
+  state "State" as S_2f_9_2f_v_2f_C
+  [*] --> S_2f_9_2f_v_2f_C
+}
+[*] --> S_2f_9_2f_Y
+
+S_2f_9_2f_Y --> S_2f_9_2f_v : INPUTEVENT [buttonPressed && data.button_id == 12]
+S_2f_9_2f_Y --> S_2f_9_2f_v : Test [data.val.size()]
+
+@enduml

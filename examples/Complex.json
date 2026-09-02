@@ -273,7 +273,7 @@
         "x": 583,
         "y": 221
       },
-      "Entry": "int a = 2;\nprintf(\"SerialTask :: initializing State 1\\n\");",
+      "Entry": "printf(\"SerialTask :: initializing State 1\\n\");",
       "Exit": "printf(\"Exiting State 1\\n\");",
       "Tick": "printf(\"SerialTask::State 1::tick()\\n\");",
       "Timer Period": 0.1

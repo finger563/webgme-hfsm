@@ -76,6 +76,7 @@ define([
   // be turned into the add / update / remove calls it expects
   var shown = {};
   var onModelEdited = null;
+  var onSplitChanged = null;
 
   function destroy() {
     if (removePalette) {
@@ -183,6 +184,9 @@ define([
       function () { return backend; },
       host
     );
+    widget.onSplitChanged(function () {
+      if (onSplitChanged) onSplitChanged();
+    });
 
     // A state machine reads as a flow from its initial state, so
     // breadthfirst suits it. The toolbar offers every other layout the
@@ -284,6 +288,21 @@ define([
   return {
     mount: mount,
     destroy: destroy,
+
+    /**
+     * Where the diagram's two draggable splits sit, and how to put
+     * them back -- the page remembers them, the widget just reports
+     * them. Null before anything is mounted.
+     */
+    splitSizes: function () {
+      return widget ? widget.getSplitSizes() : null;
+    },
+    setSplitSizes: function (sizes) {
+      if (widget) widget.setSplitSizes(sizes);
+    },
+    /** called when the user finishes dragging either of them */
+    onSplitChanged: function (fn) { onSplitChanged = fn; },
+
     /**
      * Called after every committed edit, so the page can write the
      * model back into the editor. The diagram is an editor now, and

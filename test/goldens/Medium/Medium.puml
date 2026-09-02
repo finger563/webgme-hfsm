@@ -1,0 +1,38 @@
+@startuml
+title Medium
+
+state "State3" as S_2f_o_2f_K
+state "State4" as S_2f_o_2f_q
+state "State1" as S_2f_o_2f_r {
+  state "Child2" as S_2f_o_2f_r_2f_6 {
+    state "Grand2" as S_2f_o_2f_r_2f_6_2f_7
+    state "Grand" as S_2f_o_2f_r_2f_6_2f_w
+    [*] --> S_2f_o_2f_r_2f_6_2f_w
+  }
+  state "Child1" as S_2f_o_2f_r_2f_L
+  state "Child3" as S_2f_o_2f_r_2f_P
+  state S_2f_o_2f_r_2f_O <<choice>>
+  [*] --> S_2f_o_2f_r_2f_L
+}
+state "State2" as S_2f_o_2f_y
+state S_2f_o_2f_S <<choice>>
+[*] --> S_2f_o_2f_r
+
+S_2f_o_2f_S --> S_2f_o_2f_r[H] :  [goToShallowHistory]
+S_2f_o_2f_S --> S_2f_o_2f_r :  [reInitialize]
+S_2f_o_2f_r --> S_2f_o_2f_y : EVENT1
+S_2f_o_2f_S --> S_2f_o_2f_r[H*] :  [goToDeepHistory]
+S_2f_o_2f_r --> [*]
+S_2f_o_2f_S --> [*]
+S_2f_o_2f_K --> S_2f_o_2f_q : EVENT3
+S_2f_o_2f_r_2f_6 --> S_2f_o_2f_r_2f_P : EVENT2
+S_2f_o_2f_r_2f_P --> S_2f_o_2f_r_2f_O : EVENT3
+S_2f_o_2f_r_2f_6_2f_7 --> S_2f_o_2f_r_2f_6_2f_w : EVENT3
+S_2f_o_2f_r_2f_6_2f_w --> S_2f_o_2f_r_2f_6_2f_7 : EVENT3
+S_2f_o_2f_r_2f_L --> S_2f_o_2f_r_2f_6 : EVENT1
+S_2f_o_2f_r_2f_O --> [*]
+S_2f_o_2f_r_2f_O --> S_2f_o_2f_r_2f_L :  [cycle]
+S_2f_o_2f_q --> S_2f_o_2f_S : EVENT4
+S_2f_o_2f_y --> S_2f_o_2f_K : EVENT2
+
+@enduml

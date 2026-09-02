@@ -167,6 +167,7 @@ define(['q',
              e.preventDefault();
            });
            self._el.mouseup(function() {
+             if (self.isDragging && self._splitChanged) self._splitChanged();
              self.isDragging = false;
            }).mousemove(function(e) {
              if (self.isDragging) {
@@ -191,11 +192,37 @@ define(['q',
                var topPercent = Math.max(10, (topHeight / maxHeight) * 100);
                var bottomPercent = Math.max(10, 100 - topPercent - handlePercent);
                topPercent = 100 - bottomPercent - handlePercent;
-               self._top.css('height', topPercent + '%');
-               self._bottom.css('height', bottomPercent + '%');
-               self._handle.css('height', handlePercent + '%');
+               self.setSplit( topPercent );
              }
            });
+         };
+
+         /* * * * * *   Where the panels are split    * * * * * * * */
+
+         // the handle between them; the two panels share what is left
+         var SPLIT_HANDLE_PERCENT = 0.5;
+
+         /** how much of the panel the top half has, as a percentage */
+         Simulator.prototype.getSplit = function() {
+           var self = this;
+           var css = self._top && self._top[0] && self._top[0].style.height;
+           var percent = parseFloat(css);
+           return isNaN(percent) ? null : percent;
+         };
+
+         /**
+          * Put the split back. Exposed so a host can remember where
+          * the user left it -- the widget has no idea where it is
+          * running or what it may persist to.
+          */
+         Simulator.prototype.setSplit = function( topPercent ) {
+           var self = this;
+           if (!self._top || !self._top.length) return;
+           var top = Math.max(10, Math.min(90, topPercent));
+           var bottom = 100 - top - SPLIT_HANDLE_PERCENT;
+           self._top.css('height', top + '%');
+           self._bottom.css('height', bottom + '%');
+           self._handle.css('height', SPLIT_HANDLE_PERCENT + '%');
          };
 
          Simulator.prototype.log = function( msg ) {
@@ -823,6 +850,11 @@ define(['q',
            } else {
              self._stateChangedCallback( null );
            }
+         };
+
+         /** called when the user finishes dragging the split */
+         Simulator.prototype.onSplitChanged = function( fn ) {
+           this._splitChanged = fn;
          };
 
          Simulator.prototype.onStateChanged = function(stateChangedCallback) {
