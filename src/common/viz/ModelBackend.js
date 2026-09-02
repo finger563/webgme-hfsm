@@ -61,6 +61,22 @@
  * with -- a form must SHOW it, or every field the user leaves alone
  * gets written back as empty over the default.
  *
+ * getNodeSchema(id)
+ * -----------------
+ * The same shape, for the type a node ALREADY has:
+ *
+ *   { name, typeId, isConnection,
+ *     attributes: [{ name, type, defaultValue }] }
+ *
+ * `getChildTypeSchemas` cannot answer this. It is scoped to a parent
+ * and filtered by cardinality, so the schema of the one Initial a
+ * state is allowed has already been excluded from its parent's list
+ * by the time that Initial exists. Editing an existing node needs to
+ * know what attributes it has -- and their declared types -- without
+ * asking whether another one could be created.
+ *
+ * Returns null for an id the store does not know.
+ *
  * getAttribute(id, name) reads one attribute off a node -- the escape
  * hatch for the few callers that need a value the descriptors do not
  * carry (e.g. comparing a form field against what a node already has
@@ -98,8 +114,8 @@ define([], function () {
   var REQUIRED = [
     // reads
     'getNode', 'getChildren', 'getNodeInfo', 'getValidChildTypes',
-    'getValidConnectionTypes', 'getChildTypeSchemas', 'getAttribute',
-    'isReadOnly',
+    'getValidConnectionTypes', 'getChildTypeSchemas', 'getNodeSchema',
+    'getAttribute', 'isReadOnly',
     // mutations
     'transact', 'createChild', 'createInstances', 'setAttribute',
     'setPointer', 'setPosition', 'deleteNodes', 'moveNodes', 'copyNodes',

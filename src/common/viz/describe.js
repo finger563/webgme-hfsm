@@ -25,6 +25,29 @@ define(['../metaRules'], function (metaRules) {
   // library at the top of it
   var CONTAINER_TYPES = ['State', 'State Machine', 'Library'];
 
+  /**
+   * Attributes that hold C++ rather than a value.
+   *
+   * The metamodel calls all of them 'string', because to the model
+   * they are; but a one-line input for an Entry block is the reason
+   * editing a machine through a property grid is miserable. This is
+   * exactly the set the generator emits as a code block, each behind
+   * a `//::::<path>::::<attribute>::::` marker -- so it is also the
+   * set whose text can be located in the generated file.
+   */
+  var CODE_ATTRIBUTES = [
+    'Action', 'Declarations', 'Definitions', 'Entry', 'Exit', 'Guard',
+    'Includes', 'Initialization', 'Tick',
+  ];
+
+  /**
+   * Attributes that must be a C++ identifier, so the generator can
+   * name something after them. Checked as they are typed, rather than
+   * left to fail at generation -- or, for an event name, to reach the
+   * simulator, which says so with a modal.
+   */
+  var IDENTIFIER_ATTRIBUTES = ['name', 'Event'];
+
   function isTransition(desc) {
     return desc.isConnection || desc.type === 'Internal Transition';
   }
@@ -32,6 +55,46 @@ define(['../metaRules'], function (metaRules) {
   return {
     ROOT_TYPES: ROOT_TYPES,
     NON_GRAPH_TYPES: NON_GRAPH_TYPES,
+    CODE_ATTRIBUTES: CODE_ATTRIBUTES,
+    IDENTIFIER_ATTRIBUTES: IDENTIFIER_ATTRIBUTES,
+
+    /**
+     * Which input an attribute wants, from its declared type and its
+     * name. One answer for every form -- the create dialog and the
+     * inspector have to agree, or the same attribute is a textarea in
+     * one and a one-line input in the other.
+     *
+     * @param attr  { name, type } from a schema
+     * @return 'checkbox' | 'number' | 'code' | 'text'
+     */
+    fieldKind: function (attr) {
+      if (!attr) return 'text';
+      if (attr.type === 'boolean') return 'checkbox';
+      if (attr.type === 'float' || attr.type === 'integer') return 'number';
+      if (CODE_ATTRIBUTES.indexOf(attr.name) > -1) return 'code';
+      return 'text';
+    },
+
+    /**
+     * The order to show attributes in: what the machine DOES first,
+     * then its name, then the rest. A property grid sorted
+     * alphabetically buries Entry under Declarations and Definitions.
+     */
+    fieldOrder: function (attributes) {
+      var rank = function (a) {
+        if (a.name === 'name') return 0;
+        if (a.name === 'Event') return 1;
+        if (a.name === 'Guard') return 2;
+        if (a.name === 'Action') return 3;
+        if (['Entry', 'Exit', 'Tick'].indexOf(a.name) > -1) return 4;
+        if (CODE_ATTRIBUTES.indexOf(a.name) > -1) return 6;
+        return 5;
+      };
+      return (attributes || []).slice().sort(function (a, b) {
+        var d = rank(a) - rank(b);
+        return d !== 0 ? d : (a.name < b.name ? -1 : 1);
+      });
+    },
 
     /**
      * The types a palette may offer for dropping onto the diagram.

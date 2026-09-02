@@ -1,0 +1,88 @@
+/* The attribute inspector -- see Inspector.js for why it is not a
+   property grid. */
+
+.hfsm-inspector {
+    font-size: 12px;
+    padding: 4px 6px 8px;
+}
+
+.inspector-empty {
+    color: #57606a;
+    font-style: italic;
+    padding: 6px 2px;
+}
+
+.inspector-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 2px 0 6px;
+    border-bottom: 1px solid #d0d7de;
+    margin-bottom: 6px;
+}
+.inspector-type { font-weight: 600; }
+.inspector-id {
+    color: #57606a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inspector-row {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 6px;
+    align-items: start;
+    margin-bottom: 5px;
+}
+.inspector-label {
+    color: #57606a;
+    text-align: right;
+    padding-top: 3px;
+    margin: 0;
+    font-weight: normal;
+    overflow-wrap: anywhere;
+}
+.inspector-control { min-width: 0; }
+
+.inspector-input {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 12px;
+    padding: 2px 5px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #fff;
+}
+.inspector-input:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, .15);
+}
+.inspector-row.kind-checkbox .inspector-input { width: auto; }
+
+/* code is shown as code -- a one-line box for an Entry block is the
+   single worst thing about editing this model in a property grid */
+textarea.inspector-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    resize: vertical;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.inspector-error {
+    color: #cf222e;
+    font-size: 11px;
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+}
+.inspector-row.is-invalid .inspector-input { border-color: #cf222e; }
+
+/* an accepted value with something worth knowing about it -- a name
+   with a space is fine, but it is not what the generator emits */
+.inspector-error.is-note { color: #57606a; }

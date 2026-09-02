@@ -175,6 +175,97 @@ describe('playground editing', function () {
     });
   });
 
+  describe('how an attribute is shown', function () {
+
+    function attrs(type) {
+      var declared = mods.metaRules.types[type].attributes;
+      return Object.keys(declared).map(function (name) {
+        return { name: name, type: declared[name].type };
+      });
+    }
+
+    it('shows C++ as code, not as a one-line box', function () {
+      // the single worst thing about editing this model in a property
+      // grid: an Entry block in an <input>
+      mods.describe.CODE_ATTRIBUTES.forEach(function (name) {
+        assert.strictEqual(mods.describe.fieldKind({ name: name, type: 'string' }),
+                           'code', name + ' holds C++');
+      });
+    });
+
+    it('picks an input from the declared type', function () {
+      assert.strictEqual(mods.describe.fieldKind({ name: 'isComplete', type: 'boolean' }),
+                         'checkbox');
+      assert.strictEqual(mods.describe.fieldKind({ name: 'Timer Period', type: 'float' }),
+                         'number');
+      assert.strictEqual(mods.describe.fieldKind({ name: 'name', type: 'string' }),
+                         'text');
+      assert.strictEqual(mods.describe.fieldKind(null), 'text');
+    });
+
+    it('puts what the machine DOES before its bookkeeping', function () {
+      // alphabetical order buries Entry under Declarations and
+      // Definitions, which is how the property grid reads today
+      var order = mods.describe.fieldOrder(attrs('State'))
+          .map(function (a) { return a.name; });
+      assert.deepStrictEqual(order.slice(0, 4),
+                             ['name', 'Entry', 'Exit', 'Tick']);
+      assert.ok(order.indexOf('Entry') < order.indexOf('Declarations'));
+      assert.ok(order.indexOf('Entry') < order.indexOf('Includes'));
+    });
+
+    it('puts a transition in the order it reads: Event, Guard, Action',
+       function () {
+         var order = mods.describe.fieldOrder(attrs('External Transition'))
+             .map(function (a) { return a.name; });
+         assert.deepStrictEqual(order,
+           ['name', 'Event', 'Guard', 'Action', 'Enabled']);
+       });
+
+    it('orders every declared attribute exactly once', function () {
+      Object.keys(mods.metaRules.types).forEach(function (type) {
+        var declared = attrs(type);
+        var ordered = mods.describe.fieldOrder(declared);
+        assert.strictEqual(ordered.length, declared.length, type);
+        assert.deepStrictEqual(
+          ordered.map(function (a) { return a.name; }).sort(),
+          declared.map(function (a) { return a.name; }).sort(), type);
+      });
+      assert.deepStrictEqual(mods.describe.fieldOrder(undefined), []);
+    });
+
+    it('accepts a name the generator would accept, not a stricter one',
+       function () {
+         // Every existing model names states like "State 1".
+         // `checkName` sanitizes spaces and hyphens to underscores
+         // BEFORE checking, so that is a perfectly good name -- and a
+         // form that refused it would make the models we ship
+         // uneditable. `checkEvent` does not sanitize, so an event
+         // name really must already be an identifier.
+         var ok = function (n) {
+           return mods.checkModel.isValidString(mods.checkModel.sanitizeString(n));
+         };
+         assert.strictEqual(ok('State 1'), true, 'names may contain spaces');
+         assert.strictEqual(ok('Wait-For-Ack'), true, 'and hyphens');
+         assert.strictEqual(ok('2fast'), false, 'but not lead with a digit');
+         assert.strictEqual(ok('class'), false, 'nor be a C++ keyword');
+
+         assert.strictEqual(mods.checkModel.isValidString('INPUT EVENT'), false,
+                            'an Event is checked WITHOUT sanitizing');
+         assert.strictEqual(mods.checkModel.sanitizeString('State 1'), 'State_1',
+                            'and this is what the generated name becomes');
+       });
+
+    it('names the attributes that must be C++ identifiers', function () {
+      // an Event that is not one reaches the simulator, which says so
+      // with a modal; a name that is not one reaches the generator
+      assert.deepStrictEqual(mods.describe.IDENTIFIER_ATTRIBUTES,
+                             ['name', 'Event']);
+      assert.strictEqual(mods.checkModel.isValidString('has a space'), false);
+      assert.strictEqual(mods.checkModel.isValidString('ARM'), true);
+    });
+  });
+
   describe('the host', function () {
     it('satisfies the whole HostServices contract', function () {
       // the factory asserts this itself, so a missing method throws

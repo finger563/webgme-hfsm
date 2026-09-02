@@ -42,16 +42,39 @@ the templates, or the page itself.
 - **Draw** it: the **Diagram** tab renders the machine as a UML state
   chart and runs the simulator against it — fire events, watch the
   active state move, step through guards and choice pseudostates.
-- **Edit** it: drag a part from the palette into a state, or use
-  **Add child...** from a state's context menu to fill in its
-  attributes as you create it; draw a transition between two states
-  with the handle on the source; move things around; edit a
-  Documentation block; delete a node and the transitions that hung
-  off it. Every committed change is written back into the model text
-  beside the diagram, so the two never disagree; press **Generate**
-  when you want the code to catch up.
+- **Edit** it: drag a part from the palette into a state, draw a
+  transition between two states with the handle on the source, move
+  things around, delete a node and the transitions that hung off it.
+  Selecting anything shows its attributes in the panel beside the
+  diagram, where they can be changed: a state's name, its Entry / Exit
+  / Tick, its timer period; a transition's Event, Guard and Action.
+  Every committed change is written back into the model text beside
+  the diagram, so the two never disagree; press **Generate** when you
+  want the code to catch up.
 - **Take it away**: view any file, copy it, download one, or download
   all of them.
+
+### Editing attributes
+
+The panel under the diagram shows whatever is selected — a state, a
+transition, a pseudostate — and lets its attributes be edited in
+place. It is deliberately not a property grid:
+
+- fields are ordered by what the machine **does** (name, Event, Guard,
+  Action, Entry/Exit/Tick) with the rarely-touched declarations last,
+  rather than alphabetically;
+- C++ attributes are rendered as code in a growing textarea, not in a
+  one-line input;
+- a `name` or an `Event` that is not a C++ identifier is refused as it
+  is typed, with the reason, instead of failing later in the generator
+  — or, for an event name, reaching the simulator, which reports it
+  with a modal;
+- each committed field is one transaction, so it is one undo in a host
+  that has undo.
+
+What may be edited comes from the metamodel through
+`ModelBackend.getNodeSchema`, so the form cannot drift from what the
+model actually allows.
 
 ### The same visualizer, not a second one
 
@@ -93,13 +116,12 @@ generation still works.
 - **No undo.** WebGME's undo is a property of its commit history,
   which is exactly the infrastructure this does without. Reload to
   get back to the model you loaded.
-- **No editing an existing node's attributes** from the diagram. They
-  are set when the node is created (**Add child...**), and Documentation
-  has its own editor; after that, change them in the model text. In
-  WebGME this is the Property Editor's job, which is part of its
-  application rather than of the visualizer — so it is the next thing
-  the playground needs, not something that came across with the
-  widget.
+- **No pop-out code editor yet.** Code attributes are edited in the
+  panel, in a textarea that grows with its contents. Anything longer
+  than a few lines wants a real editor with highlighting, and wants to
+  be shown in the context the generator will place it in — which the
+  `//::::<path>::::<attribute>::::` markers in the generated files
+  make locatable. That is the next thing.
 
 ## Why it cannot drift from the CLI
 

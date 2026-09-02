@@ -88,30 +88,51 @@ define([
 
   // what a "create a child here" form needs: the creatable types
   // under `parentId` and, for each, its attributes
+  /** everything a form needs about one meta node */
+  function schemaOfMeta(client, metaId) {
+    var meta = client.getNode(metaId);
+    if (!meta || meta.isAbstract()) return null;
+    return {
+      name: meta.getAttribute('name'),
+      typeId: metaId,
+      isConnection: meta.isConnection(),
+      attributes: meta.getAttributeNames().sort().map(function (attr) {
+        var attrMeta = meta.getAttributeMeta(attr) || {};
+        return {
+          name: attr,
+          type: attrMeta.type,
+          // the meta node's own value IS the default an instance
+          // starts with (getAttributeMeta carries the type, not a
+          // default)
+          defaultValue: meta.getAttribute(attr),
+        };
+      }),
+    };
+  }
+
+  /**
+   * What THIS node's type declares. Asked of the node's own meta
+   * type, so -- unlike getChildTypeSchemas -- it is not filtered by
+   * what the parent could still contain: whether another Initial
+   * could be created says nothing about editing the one that is
+   * already there.
+   */
+  WebGMEBackend.prototype.getNodeSchema = function (id) {
+    var client = this._client;
+    var node = client.getNode(id);
+    if (!node) return null;
+    return schemaOfMeta(client, node.getMetaTypeId());
+  };
+
   WebGMEBackend.prototype.getChildTypeSchemas = function (parentId) {
     var client = this._client;
     var node = client.getNode(parentId);
     if (!node) return [];
     var valid = node.getValidChildrenTypesDetailed();
     return Object.keys(valid).map(function (metaId) {
-      var meta = client.getNode(metaId);
-      if (!meta || !valid[metaId] || meta.isAbstract()) return null;
-      return {
-        name: meta.getAttribute('name'),
-        typeId: metaId,
-        isConnection: meta.isConnection(),
-        attributes: meta.getAttributeNames().sort().map(function (attr) {
-          var attrMeta = meta.getAttributeMeta(attr) || {};
-          return {
-            name: attr,
-            type: attrMeta.type,
-            // the meta node's own value IS the default an instance
-            // starts with (getAttributeMeta carries the type, not a
-            // default)
-            defaultValue: meta.getAttribute(attr),
-          };
-        }),
-      };
+      // `valid[metaId]` false means one is allowed but no MORE of
+      // them; a create form must not offer it
+      return valid[metaId] ? schemaOfMeta(client, metaId) : null;
     }).filter(Boolean);
   };
 

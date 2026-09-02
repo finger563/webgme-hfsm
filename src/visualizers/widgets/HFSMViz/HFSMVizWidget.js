@@ -1137,12 +1137,20 @@ define([
     HFSMVizWidget.prototype.highlightNode = function(node) {
       var self = this;
       self._simulator.hideStateInfo();
+      // the inspector takes ANY node -- a transition has an Event and
+      // a Guard to edit, and the UML preview below has nothing to say
+      // about one
+      self._simulator.showInspector( node.id() );
       self._simulator.displayStateInfo( node.id() );
     };
 
     HFSMVizWidget.prototype.highlightNodes = function(nodes) {
       var self = this;
       self._simulator.hideStateInfo();
+      // one at a time: editing a field would otherwise have to mean
+      // writing it to every selected node, which is not what the
+      // single visible value would be saying
+      self._simulator.showInspector( null );
     };
 
     HFSMVizWidget.prototype.clear = function() {
