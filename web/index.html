@@ -67,6 +67,10 @@
       <div class="controls">
         <button id="saveLayoutBtn" type="button" hidden
                 title="Write the positions you dragged back into the model text">Save layout</button>
+        <button id="compareBtn" type="button" hidden
+                title="Show what changed between this model and another one">Compare&hellip;</button>
+        <input id="compareFile" type="file" accept=".json,application/json" hidden
+               aria-hidden="true" tabindex="-1"/>
         <span id="status" class="status" role="status" aria-live="polite"></span>
         <button id="downloadAllBtn" type="button" disabled>Download all</button>
       </div>

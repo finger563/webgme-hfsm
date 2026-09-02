@@ -170,6 +170,7 @@
         // which half of the output was showing, so a refresh puts you
         // back where you were rather than on the Code tab
         tab: vizShown ? 'diagram' : 'code',
+        loaded: loadedText,
       }));
     } catch (e) {
       // private browsing, a full quota, storage disabled -- none of
@@ -210,6 +211,9 @@
       return false;
     }
     restoredDraft = saved;
+    // what it was loaded from, if the draft remembered -- otherwise
+    // the draft itself is the best starting point there is
+    loadedText = typeof saved.loaded === 'string' ? saved.loaded : saved.text;
     setModelText(saved.text);
     if (typeof saved.namespace === 'string') {
       el('namespaceInput').value = saved.namespace;
@@ -224,6 +228,18 @@
   // so every read/write of the model goes through these two
   function getModelText() {
     return modelEditor ? modelEditor.getValue() : el('modelInput').value;
+  }
+
+  /**
+   * Put a model in the editor and remember it as the starting point.
+   *
+   * Distinct from setModelText, which is also how the DIAGRAM writes
+   * its edits back: those are the changes, not the thing they are
+   * changes to.
+   */
+  function loadModelText(text) {
+    loadedText = text;
+    setModelText(text);
   }
 
   function setModelText(text) {
@@ -533,6 +549,303 @@
     refreshDiagram({ keepStatus: true });
   }
 
+  /* ------------------ comparing two machines ---------------------- */
+
+  /**
+   * Comparing is a MODE, not a view of the model text.
+   *
+   * What is drawn while it is on is a union of two machines, and it
+   * belongs to neither of them: an edit made to it could not be saved
+   * back to either side without picking one, and picking silently is
+   * worse than not offering. So the diagram goes read-only, Save
+   * layout goes away, and leaving the mode redraws from the text.
+   */
+  function startComparison(label, otherText) {
+    var current = getModelText().trim();
+    if (!current) {
+      showDiagnostics(['Nothing to compare: load a model first.'], 'error');
+      return;
+    }
+    var mine, theirs;
+    try {
+      mine = JSON.parse(current);
+    } catch (e) {
+      showDiagnostics(['The model in the editor is not valid JSON: ' + e.message],
+                      'error');
+      return;
+    }
+    try {
+      theirs = JSON.parse(otherText);
+    } catch (e) {
+      showDiagnostics(['That file is not valid JSON: ' + e.message], 'error');
+      return;
+    }
+
+    showTab('diagram');
+    // claimed before the load, so a draw already in flight stands
+    // down rather than mounting over the comparison
+    var token = ++drawToken;
+    requirejs(['viz'], function (viz) {
+      vizModule = viz;
+      if (token !== drawToken) return;
+      var result;
+      try {
+        // OTHER first, MINE second: the comparison reads "what has
+        // happened to the other model to make it into this one", so
+        // the machine on screen is the one in the editor
+        result = viz.compare(el('viewDiagram'), theirs, mine);
+      } catch (err) {
+        showDiagnostics(['Could not compare: ' +
+                         (typeof err === 'string' ? err : (err && err.message) || String(err))],
+                        'error');
+        setStatus('comparison failed', 'error');
+        return;
+      }
+      comparison = { label: label, result: result };
+      vizModelText = null;      // what is drawn is not the model text
+      el('saveLayoutBtn').hidden = true;
+      renderComparison();
+    });
+  }
+
+  function endComparison() {
+    if (!comparison) return;
+    comparison = null;
+    var panel = el('diffPanel');
+    if (panel) panel.remove();
+    el('saveLayoutBtn').hidden = !vizShown;
+    // back to an ordinary diagram of the model text
+    if (vizModule) vizModule.destroy();
+    vizModelText = null;
+    refreshDiagram();
+    setStatus('ready');
+  }
+
+  /** what to call an object in a list of changes */
+  function labelFor(entry) {
+    var name = entry.name || entry.path;
+    if (entry.type && entry.type.indexOf('Transition') > -1) {
+      var event = null;
+      (entry.changes || []).forEach(function (c) {
+        if (c.attribute === 'Event') event = c.after || c.before;
+      });
+      // a transition is known by its event, the way the diagram
+      // labels it -- its name is the default nobody changes
+      return event ? entry.type + ' ' + event : entry.type;
+    }
+    return name;
+  }
+
+  function describeChange(change) {
+    function short(v) {
+      if (v === undefined || v === '') return '(empty)';
+      v = String(v).replace(/\s+/g, ' ');
+      return v.length > 42 ? v.slice(0, 41) + '\u2026' : v;
+    }
+    return change.attribute + ': ' + short(change.before) +
+      ' \u2192 ' + short(change.after);
+  }
+
+  /**
+   * The list beside the diagram.
+   *
+   * The colours say WHERE something changed; this says WHAT. Neither
+   * is much use alone: a state outlined in amber does not tell you
+   * its guard now reads false, and a list of paths does not tell
+   * you where in the machine they are. Clicking an entry moves the
+   * diagram to it, which is the join between the two.
+   */
+  function renderComparison() {
+    if (!comparison) return;
+    var result = comparison.result;
+    var summary = result.summary;
+
+    var panel = el('diffPanel');
+    if (panel) panel.remove();
+    panel = document.createElement('aside');
+    panel.id = 'diffPanel';
+    panel.className = 'diff-panel';
+    panel.setAttribute('aria-label', 'What changed');
+
+    var head = document.createElement('div');
+    head.className = 'diff-head';
+    var title = document.createElement('div');
+    title.className = 'diff-title';
+    title.textContent = 'Compared with ' + comparison.label;
+    // the label is often longer than the panel; the ellipsis should
+    // not be the only place the name exists
+    title.title = 'Compared with ' + comparison.label;
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'diff-close';
+    close.textContent = 'Stop comparing';
+    close.addEventListener('click', endComparison);
+    head.appendChild(title);
+    head.appendChild(close);
+
+    var counts = document.createElement('div');
+    counts.className = 'diff-counts';
+    [['added', summary.added], ['removed', summary.removed],
+     ['changed', summary.changed]].forEach(function (pair) {
+       if (!pair[1]) return;
+       var tag = document.createElement('span');
+       tag.className = 'diff-count is-' + pair[0];
+       tag.textContent = pair[1] + ' ' + pair[0];
+       counts.appendChild(tag);
+     });
+    if (summary.moved) {
+      var moved = document.createElement('span');
+      moved.className = 'diff-count is-moved';
+      // said, but not coloured: moving a state changes nothing about
+      // what the machine does
+      moved.textContent = summary.moved + ' moved';
+      counts.appendChild(moved);
+    }
+    if (!counts.childNodes.length) {
+      counts.textContent = 'These two machines are identical.';
+    }
+
+    var list = document.createElement('ul');
+    list.className = 'diff-list';
+    result.entries.forEach(function (entry) {
+      if (entry.status === 'same' && !entry.moved) return;
+      if (entry.status === 'same') return;   // moved only: not a change
+      var item = document.createElement('li');
+      item.className = 'diff-item is-' + entry.status;
+
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'diff-item-head';
+      button.addEventListener('click', function () {
+        // unionPath, not path: a removed object was re-homed under
+        // whatever its parent became
+        if (!vizModule.reveal(entry.unionPath || entry.path)) {
+          // an Event or a Field: real, listed, and not drawn
+          setStatus(labelFor(entry) + ' is not shown on the diagram', 'warn');
+        }
+      });
+      var badge = document.createElement('span');
+      badge.className = 'diff-badge';
+      badge.textContent = entry.status === 'added' ? '+'
+        : (entry.status === 'removed' ? '\u2212' : '~');
+      var text = document.createElement('span');
+      text.className = 'diff-what';
+      text.textContent = labelFor(entry);
+      var kind = document.createElement('span');
+      kind.className = 'diff-kind';
+      kind.textContent = entry.type;
+      button.appendChild(badge);
+      button.appendChild(text);
+      button.appendChild(kind);
+      item.appendChild(button);
+
+      if (entry.changes && entry.changes.length) {
+        var details = document.createElement('ul');
+        details.className = 'diff-details';
+        entry.changes.forEach(function (change) {
+          var line = document.createElement('li');
+          line.textContent = describeChange(change);
+          details.appendChild(line);
+        });
+        item.appendChild(details);
+      }
+      list.appendChild(item);
+    });
+
+    panel.appendChild(head);
+    panel.appendChild(counts);
+    panel.appendChild(list);
+
+    if (result.dropped && result.dropped.length) {
+      var note = document.createElement('div');
+      note.className = 'diff-note';
+      // said out loud rather than silently omitted: the diagram is
+      // not the whole comparison in this case
+      note.textContent = result.dropped.length + ' removed transition' +
+        (result.dropped.length === 1 ? '' : 's') +
+        ' could not be drawn (an endpoint is in neither model).';
+      panel.appendChild(note);
+    }
+
+    el('viewDiagram').appendChild(panel);
+    // after it is in the document, so its width is a real number
+    window.requestAnimationFrame(function () {
+      if (comparison && vizModule && vizModule.fitClearOf) {
+        vizModule.fitClearOf({ right: panel.offsetWidth + 16 });
+      }
+    });
+    setStatus(mods && mods.diffModel
+              ? mods.diffModel.describeSummary(summary)
+              : 'comparing', summary.added || summary.removed || summary.changed
+              ? 'warn' : 'ok');
+  }
+
+  /** the picker behind the Compare button */
+  function offerComparison() {
+    var items = {};
+    if (loadedText && loadedText.trim() !== getModelText().trim()) {
+      items.loaded = 'the version you loaded';
+    }
+    EXAMPLES.forEach(function (ex) {
+      if (!ex.file) return;
+      items['ex:' + ex.file] = ex.label;
+    });
+    items.file = 'a file\u2026';
+
+    var menu = el('compareMenu');
+    if (menu) { menu.remove(); return; }   // a second click closes it
+    menu = document.createElement('div');
+    menu.id = 'compareMenu';
+    menu.className = 'compare-menu';
+    menu.setAttribute('role', 'menu');
+    Object.keys(items).forEach(function (key) {
+      var option = document.createElement('button');
+      option.type = 'button';
+      option.setAttribute('role', 'menuitem');
+      option.textContent = items[key];
+      option.addEventListener('click', function () {
+        menu.remove();
+        chooseComparison(key, items[key]);
+      });
+      menu.appendChild(option);
+    });
+    document.body.appendChild(menu);
+    var box = el('compareBtn').getBoundingClientRect();
+    menu.style.top = (box.bottom + window.pageYOffset + 2) + 'px';
+    menu.style.left = Math.max(4, box.right + window.pageXOffset -
+                               menu.offsetWidth) + 'px';
+    menu.querySelector('button').focus();
+
+    function away(event) {
+      if (menu.contains(event.target) || event.target === el('compareBtn')) return;
+      menu.remove();
+      document.removeEventListener('mousedown', away);
+    }
+    document.addEventListener('mousedown', away);
+  }
+
+  function chooseComparison(key, label) {
+    if (key === 'loaded') {
+      startComparison(label, loadedText);
+      return;
+    }
+    if (key === 'file') {
+      el('compareFile').click();
+      return;
+    }
+    var file = key.slice(3);
+    setStatus('loading ' + label + '\u2026');
+    fetch(file).then(function (r) {
+      if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+      return r.text();
+    }).then(function (text) {
+      startComparison(label, text);
+    }).catch(function (err) {
+      showDiagnostics(['Could not load ' + label + ': ' + err.message], 'error');
+      setStatus('load failed', 'error');
+    });
+  }
+
   function loadExampleList() {
     var sel = el('exampleSelect');
     EXAMPLES.forEach(function (ex) {
@@ -549,7 +862,7 @@
         if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
         return r.text();
       }).then(function (text) {
-        setModelText(text);
+        loadModelText(text);
         setStatus('example loaded');
         generate();
       }).catch(function (e) {
@@ -562,7 +875,7 @@
   function readFile(file) {
     var reader = new FileReader();
     reader.onload = function () {
-      setModelText(String(reader.result));
+      loadModelText(String(reader.result));
       setStatus('loaded ' + file.name);
       generate();
     };
@@ -604,6 +917,21 @@
   var vizShown = false;
   // generated files produced before the visualizer existed
   var pendingGenerated = null;
+  // the comparison currently on screen, or null
+  var comparison = null;
+  // Which draw is the current one.
+  //
+  // Both drawing the model and starting a comparison load the
+  // visualizer asynchronously and then mount into the same container.
+  // Pressing Compare while the diagram was still drawing ran both,
+  // and the second mount tore down what the first was still building
+  // -- which wedged the page. Whoever asked last wins; anyone whose
+  // token is stale drops out at the callback.
+  var drawToken = 0;
+  // The model text as it was LOADED, before any editing -- the other
+  // side of the most useful comparison there is: what have I changed?
+  // Kept in the draft too, so a refresh does not lose the answer.
+  var loadedText = null;
   var vizModelText = null;   // what the diagram was last built from
 
   function showTab(which) {
@@ -614,7 +942,8 @@
     el('tabDiagram').setAttribute('aria-selected', String(diagram));
     el('viewCode').hidden = diagram;
     el('viewDiagram').hidden = !diagram;
-    el('saveLayoutBtn').hidden = !diagram;
+    el('saveLayoutBtn').hidden = !diagram || !!comparison;
+    el('compareBtn').hidden = !diagram;
     vizShown = diagram;
     // which tab you were on is part of the draft, and switching tabs
     // is the one way of changing it that no other handler notices --
@@ -674,6 +1003,10 @@
    */
   function refreshDiagram(opts) {
     if (!vizShown) return;
+    // a comparison owns the diagram until it is dismissed; redrawing
+    // the model text over it would leave the panel describing a
+    // picture that is no longer there
+    if (comparison) return;
     var quiet = !!(opts && opts.keepStatus);
     var raw = getModelText().trim();
     if (!raw) {
@@ -697,8 +1030,10 @@
     }
 
     if (!quiet) setStatus('drawing...');
+    var token = ++drawToken;
     requirejs(['viz'], function (viz) {
       vizModule = viz;
+      if (token !== drawToken) return;   // something else is drawing now
       // generate() can run before the visualizer has ever loaded --
       // it does, on a restored draft -- so the files it produced are
       // held until there is something to give them to
@@ -911,6 +1246,22 @@
   function wire() {
     el('saveLayoutBtn').addEventListener('click', saveLayout);
     wireSplitter();
+    el('compareBtn').addEventListener('click', offerComparison);
+    el('compareFile').addEventListener('change', function (event) {
+      var file = event.target.files && event.target.files[0];
+      // cleared either way, so choosing the same file twice still fires
+      event.target.value = '';
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        startComparison(file.name, String(reader.result));
+      };
+      reader.onerror = function () {
+        showDiagnostics(['Could not read ' + file.name], 'error');
+      };
+      reader.readAsText(file);
+    });
+
     window.addEventListener('resize', resizeDiagram);
     el('tabCode').addEventListener('click', function () { showTab('code'); });
     el('tabDiagram').addEventListener('click', function () { showTab('diagram'); });
@@ -1011,13 +1362,16 @@
     'hfsm/processor',
     'hfsm/checkModel',
     'hfsm/exporters',
+    'hfsm/diffModel',
     'templates/MetaTemplates',
-  ], function (resolveModel, processor, checkModel, exporters, MetaTemplates) {
+  ], function (resolveModel, processor, checkModel, exporters, diffModel,
+               MetaTemplates) {
     mods = {
       resolveModel: resolveModel,
       processor: processor,
       checkModel: checkModel,
       exporters: exporters,
+      diffModel: diffModel,
       MetaTemplates: MetaTemplates,
     };
     setStatus('ready');

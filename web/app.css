@@ -181,6 +181,9 @@ body {
 }
 .pane-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #57606a; }
 .controls { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+/* a flex item ignores [hidden], which is display:none from the UA
+   sheet and therefore lower priority than the rule above */
+.controls [hidden] { display: none; }
 
 button, select, .filebtn {
     font: inherit;
@@ -521,3 +524,170 @@ select:focus-visible,
     border-color: #1f883d;
     color: #fff;
 }
+
+/* ------------------- comparing two machines ---------------------
+
+   The diagram says WHERE something changed; this says WHAT. It sits
+   over the graph rather than beside it because the graph is the thing
+   being read -- a panel that stole a third of the width would make
+   every comparison of a large machine start with a zoom-out.
+*/
+
+.diff-panel {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 30;
+    width: min(340px, 42%);
+    max-height: calc(100% - 16px);
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, .97);
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(66, 74, 83, .22);
+    font-size: 12px;
+}
+
+.diff-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #d0d7de;
+}
+.diff-title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.diff-close {
+    margin-left: auto;
+    flex: none;
+    font: inherit;
+    font-size: 11px;
+    padding: 3px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #f6f8fa;
+    cursor: pointer;
+}
+.diff-close:hover { background: #eaeef2; }
+
+.diff-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eaeef2;
+    color: #57606a;
+}
+/* the same three colours the diagram uses, so the count and the
+   outline are obviously the same statement */
+.diff-count {
+    padding: 1px 7px;
+    border-radius: 999px;
+    border: 1px solid;
+    font-size: 11px;
+}
+.diff-count.is-added { color: #1a7f37; border-color: #1a7f37; }
+.diff-count.is-removed { color: #cf222e; border-color: #cf222e; }
+.diff-count.is-changed { color: #9a6700; border-color: #bf8700; }
+/* deliberately grey: a moved state is not a changed state */
+.diff-count.is-moved { color: #57606a; border-color: #d0d7de; }
+
+.diff-list {
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    overflow: auto;
+    flex: 1 1 auto;
+}
+.diff-item { border-left: 3px solid transparent; }
+.diff-item.is-added { border-left-color: #1a7f37; }
+.diff-item.is-removed { border-left-color: #cf222e; }
+.diff-item.is-changed { border-left-color: #bf8700; }
+
+.diff-item-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    width: 100%;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.diff-item-head:hover { background: #f6f8fa; }
+/* a shape as well as a colour, so the three are still distinct to
+   someone who cannot tell red from green */
+.diff-badge {
+    flex: none;
+    width: 1em;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.is-added .diff-badge { color: #1a7f37; }
+.is-removed .diff-badge { color: #cf222e; }
+.is-changed .diff-badge { color: #9a6700; }
+.diff-what {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.diff-kind {
+    margin-left: auto;
+    flex: none;
+    color: #8c959f;
+    font-size: 10px;
+}
+
+.diff-details {
+    margin: 0 0 4px 0;
+    padding: 0 10px 0 28px;
+    list-style: none;
+    color: #57606a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+}
+.diff-details li {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diff-note {
+    padding: 6px 10px;
+    border-top: 1px solid #eaeef2;
+    color: #9a6700;
+    font-size: 11px;
+}
+
+/* what to compare against */
+.compare-menu {
+    position: absolute;
+    z-index: 60;
+    min-width: 200px;
+    padding: 4px 0;
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(66, 74, 83, .22);
+}
+.compare-menu button {
+    display: block;
+    width: 100%;
+    padding: 5px 12px;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.compare-menu button:hover,
+.compare-menu button:focus { background: #f6f8fa; outline: none; }

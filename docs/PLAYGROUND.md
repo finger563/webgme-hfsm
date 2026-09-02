@@ -166,6 +166,67 @@ answer loses the frame and nothing else — including a host whose
 generation just failed, which is caught rather than allowed to stop
 the editor opening.
 
+## Comparing two machines
+
+**Compare…** on the Diagram tab puts a second model beside the one in
+the editor and shows what changed: added in green, removed in red and
+dashed, changed in amber, with a list beside the diagram saying what
+each change actually was.
+
+You can compare against **the version you loaded** — the most useful
+one, because it answers *what have I changed?* — against any built-in
+example, or against a file.
+
+### Why not a text diff
+
+The models are JSON, so `diff` works and is close to useless on
+them: it reports the order keys came out in, the coordinates of every
+node you dragged, and one added state as a dozen unrelated lines.
+`src/common/diffModel.js` compares the **portable form** of each
+model — the same canonicalisation the CLI writes to a file — so it
+inherits the exporter's answers about which keys are real attributes,
+which values are defaults not worth writing down, and what a pointer
+is, instead of deciding any of that a second time.
+
+Three rules do most of the work:
+
+- **Position is not a change.** Dragging a state does not change what
+  the machine does. Layout differences are counted separately, as
+  *moved*, and never as changes — otherwise the one guard that really
+  changed is buried under forty moved nodes.
+- **Objects are matched by identity, then by structure.** By path
+  first, so two versions of the same project match exactly and a
+  rename is a rename rather than an add and a remove. Then by
+  (type, name) under a parent that already matched, so two models
+  built separately from the same design — sharing no ids at all —
+  still compare sensibly. A transition is matched by **what it
+  connects**, not by its name: they are all called "External
+  Transition" until someone renames one, and nobody does.
+- **An ambiguous match is not made.** Two states with the same name
+  under the same parent are left as an add and a remove rather than
+  paired by a coin toss, because a wrong pairing reads as a change
+  that never happened.
+
+### What is drawn
+
+A **union** of the two: the newer machine, with whatever the older one
+had and it does not put back where it used to be. "Where it used to
+be" has to be said in the new model's terms — containment in this
+format *is* the path — so a removed object is re-homed under whatever
+its nearest surviving ancestor became, and its pointers are rewritten
+to match. A test resolves the union for every pair of examples, both
+ways round, because a union that does not resolve is not a diagram, it
+is an exception.
+
+The comparison is **read-only**: what is on screen belongs to neither
+model, so an edit could not be saved back to either without silently
+picking one. The palette goes away and Save layout is hidden while it
+is on.
+
+A removed transition whose endpoint is in neither model cannot be
+drawn at all. It is dropped — and said, in the panel, rather than
+quietly left out.
+
 ## What it does not do
 
 - **No persistence or collaboration.** Nothing leaves the browser;

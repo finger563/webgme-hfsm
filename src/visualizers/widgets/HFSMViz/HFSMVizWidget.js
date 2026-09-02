@@ -1162,6 +1162,90 @@ define([
      * remembering them itself. The playground keeps them per browser;
      * WebGME has never offered to.
      */
+    /* * * * * * * *  comparing two machines  * * * * * * * * */
+
+    // one class per status, so a stylesheet decides what each looks
+    // like and this decides nothing
+    var DIFF_CLASSES = 'diff-added diff-removed diff-changed';
+
+    /**
+     * Mark elements as added, removed or changed.
+     *
+     * A DECORATION, not a model: the diagram is drawn from a union of
+     * the two machines like any other model, and this only says which
+     * parts of it came from where. Keeping it out of the model is
+     * what stops every other part of the widget -- the simulator, the
+     * inspector, the exporter -- from having to know that a diff
+     * exists.
+     *
+     * @param status  { '<path>': 'added' | 'removed' | 'changed' },
+     *                or null to go back to an ordinary diagram
+     */
+    HFSMVizWidget.prototype.setDiff = function( status ) {
+      var self = this;
+      self._diffStatus = status || null;
+      if (!self._cy) return;
+
+      self._cy.batch(function () {
+        self._cy.elements().removeClass( DIFF_CLASSES );
+        if (!self._diffStatus) return;
+        Object.keys(self._diffStatus).forEach(function (path) {
+          var what = self._diffStatus[path];
+          if (!what || what === 'same') return;
+          // an object the diagram does not draw -- an Event, a Field
+          // -- has no element to mark, and that is not an error: it
+          // still shows up in the change list beside the diagram
+          self._cy.getElementById( path ).addClass( 'diff-' + what );
+        });
+      });
+    };
+
+    /**
+     * Fit the graph, then shove it clear of something covering the
+     * canvas.
+     *
+     * cytoscape fits to the whole container and has no idea a panel
+     * is floating over part of it, so a comparison would put the
+     * added state -- the thing you opened the comparison to look at
+     * -- underneath the list naming it. Panning by half the covered
+     * width centres the graph in what is actually visible.
+     *
+     * @param cover  { right } in pixels
+     */
+    HFSMVizWidget.prototype.fitClearOf = function( cover ) {
+      var self = this;
+      if (!self._cy) return;
+      self._cy.fit(self._cy.elements(), 30);
+      var right = (cover && cover.right) || 0;
+      if (right) self._cy.panBy({ x: -right / 2, y: 0 });
+    };
+
+    /** whether a diff is currently being shown */
+    HFSMVizWidget.prototype.hasDiff = function() {
+      return !!this._diffStatus;
+    };
+
+    /**
+     * Bring one object to the middle of the view and select it, so a
+     * list of changes can be clicked through.
+     *
+     * @return false when the diagram does not draw that object -- an
+     *         Event or a Field, which a change list still lists
+     */
+    HFSMVizWidget.prototype.reveal = function( path ) {
+      var self = this;
+      if (!self._cy) return false;
+      var el = self._cy.getElementById( path );
+      if (!el || !el.length) return false;
+      self._cy.animate({ center: { eles: el } }, { duration: 200 });
+      self._cy.$(':selected').unselect();
+      el.select();
+      // the widget listens for this to move the inspector on, and a
+      // programmatic select() does not raise it
+      el.emit('select');
+      return true;
+    };
+
     HFSMVizWidget.prototype.getSplitSizes = function() {
       var self = this;
       var left = parseFloat(self._left && self._left[0] && self._left[0].style.width);
