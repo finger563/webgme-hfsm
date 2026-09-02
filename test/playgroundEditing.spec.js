@@ -200,6 +200,19 @@ describe('playground editing', function () {
       });
     });
 
+    it('shows prose as prose, and does not pretend it is C++', function () {
+      // `documentation` is markdown someone writes paragraphs in: a
+      // one-line input for it is the property-grid problem this panel
+      // exists to avoid, and highlighting it as C++ would be a lie
+      assert.strictEqual(
+        mods.describe.fieldKind({ name: 'documentation', type: 'string' }),
+        'prose');
+      mods.describe.PROSE_ATTRIBUTES.forEach(function (name) {
+        assert.ok(mods.describe.CODE_ATTRIBUTES.indexOf(name) === -1,
+                  name + ' is prose, not code');
+      });
+    });
+
     it('picks an input from the declared type', function () {
       assert.strictEqual(mods.describe.fieldKind({ name: 'isComplete', type: 'boolean' }),
                          'checkbox');
@@ -358,6 +371,23 @@ describe('playground editing', function () {
                            'and what is stored must satisfy the checker');
         assert.strictEqual(stored, 'GO');
       });
+    });
+
+    it('asks the checker about a transition Event too', function () {
+      // the same seam as names: restating the rule here is how the
+      // editor and the generator come to disagree
+      var reject = function (type, attr, value) {
+        return mods.Inspector.prototype._reject({ name: attr }, value, type);
+      };
+      assert.ok(reject('External Transition', 'Event', 'has a space'));
+      assert.strictEqual(reject('External Transition', 'Event', 'GO'), null);
+      assert.strictEqual(reject('External Transition', 'Event', ''), null,
+                         'no trigger is a real thing to be');
+      assert.strictEqual(
+        reject('External Transition', 'Event', 'has a space'),
+        mods.checkModel.identifierProblem('External Transition', 'Event',
+                                          'has a space'),
+        'and says exactly what the checker says');
     });
 
     it('applies the name rule the CHECKER applies, per type', function () {

@@ -41,6 +41,16 @@ define(['../metaRules'], function (metaRules) {
   ];
 
   /**
+   * Attributes that hold long-form TEXT rather than a value or code.
+   *
+   * `documentation` is markdown a person writes paragraphs in. It is
+   * not C++, so highlighting it as C++ would be a lie, and it is not
+   * a value, so a one-line input for it is the property-grid problem
+   * this panel exists to avoid.
+   */
+  var PROSE_ATTRIBUTES = ['documentation'];
+
+  /**
    * Attributes that must be a C++ identifier, so the generator can
    * name something after them. Checked as they are typed, rather than
    * left to fail at generation -- or, for an event name, to reach the
@@ -71,6 +81,7 @@ define(['../metaRules'], function (metaRules) {
     ROOT_TYPES: ROOT_TYPES,
     NON_GRAPH_TYPES: NON_GRAPH_TYPES,
     CODE_ATTRIBUTES: CODE_ATTRIBUTES,
+    PROSE_ATTRIBUTES: PROSE_ATTRIBUTES,
     IDENTIFIER_ATTRIBUTES: IDENTIFIER_ATTRIBUTES,
 
     /**
@@ -80,13 +91,14 @@ define(['../metaRules'], function (metaRules) {
      * one and a one-line input in the other.
      *
      * @param attr  { name, type } from a schema
-     * @return 'checkbox' | 'number' | 'code' | 'text'
+     * @return 'checkbox' | 'number' | 'code' | 'prose' | 'text'
      */
     fieldKind: function (attr) {
       if (!attr) return 'text';
       if (attr.type === 'boolean') return 'checkbox';
       if (attr.type === 'float' || attr.type === 'integer') return 'number';
       if (CODE_ATTRIBUTES.indexOf(attr.name) > -1) return 'code';
+      if (PROSE_ATTRIBUTES.indexOf(attr.name) > -1) return 'prose';
       return 'text';
     },
 

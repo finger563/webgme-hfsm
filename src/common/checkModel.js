@@ -76,6 +76,27 @@ define([], function() {
      * checker refuses. Two implementations of this would disagree,
      * and the one in the editor would be the one nobody tested.
      */
+    /**
+     * Why `value` is not usable as this attribute on a node of this
+     * type, or null. The editor's single entry point into these
+     * rules, so it can refuse exactly what the checker refuses.
+     */
+    identifierProblem: function(type, attribute, value) {
+      var self = this;
+      if (attribute === 'Event') {
+        // a transition's trigger is emitted verbatim, like an Event
+        // definition's name (checkEvent)
+        var raw = String(value == null ? '' : value);
+        if (!raw) return null;          // no trigger is a real thing to be
+        return self.isValidString(raw) ? null : 'Not a usable C++ name.';
+      }
+      if (attribute === 'name') {
+        if (!String(value == null ? '' : value)) return 'A name is required.';
+        return self.nameProblem(type, value);
+      }
+      return null;
+    },
+
     nameProblem: function(type, name) {
       var self = this;
       var raw = String(name == null ? '' : name);

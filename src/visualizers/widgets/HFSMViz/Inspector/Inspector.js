@@ -196,6 +196,11 @@ define(['hfsm/viz/describe',
       input = $('<input type="checkbox"/>').prop('checked', !!value);
     } else if (kind === 'number') {
       input = $('<input type="number" step="any"/>').val(value);
+    } else if (kind === 'prose') {
+      // markdown, not C++: a textarea that grows, and no pop-out to a
+      // code editor that would highlight it wrongly
+      input = $('<textarea class="inspector-prose" rows="3"></textarea>').val(value);
+      input.on('input', function () { grow(input); });
     } else if (kind === 'code') {
       // CodeMirror takes this over once it has loaded; until then, and
       // if it fails to, the textarea edits the attribute perfectly well
@@ -243,6 +248,7 @@ define(['hfsm/viz/describe',
     // transaction per character would flood a host's undo stack, and
     // in the playground rewrite the model text under the cursor.
     input.on('change', commit);
+    if (kind === 'prose') input.on('blur', commit);
     if (kind === 'text' || kind === 'code') {
       input.on('blur', commit);
       input.on('keydown', function (event) {
@@ -297,11 +303,20 @@ define(['hfsm/viz/describe',
    * as it builds -- and only for the form that is still showing when
    * the editor finishes loading, since it is fetched on first use.
    */
+  /** size a prose field to its content, up to something sensible */
+  function grow(input) {
+    var el = input[0];
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight + 2, 220) + 'px';
+  }
+
   Inspector.prototype._highlight = function () {
     var self = this;
     var forId = self._id;
     Object.keys(self._fields).forEach(function (name) {
       var field = self._fields[name];
+      if (field.kind === 'prose') { grow(field.input); return; }
       if (field.kind !== 'code' || field.cm) return;
       CodeEditor.inline(field.input[0], {
         onCommit: field.commit,
@@ -354,8 +369,8 @@ define(['hfsm/viz/describe',
    */
   /**
    * The value as it will be stored. Only identifiers are touched:
-   * code and documentation keep every character, including the
-   * trailing newline someone meant to leave.
+   * code and prose keep every character, including the trailing
+   * newline someone meant to leave.
    */
   Inspector.prototype._normalize = function (attr, value) {
     if (describe.IDENTIFIER_ATTRIBUTES.indexOf(attr.name) === -1) return value;
@@ -363,25 +378,24 @@ define(['hfsm/viz/describe',
     return value.trim();
   };
 
+  /**
+   * Why this value cannot be stored, or nothing.
+   *
+   * Every rule comes from `checkModel`, which owns them: a name is
+   * sanitized first unless it is an Event's or a Field's, an End
+   * State may be called "End State", a transition's Event is
+   * verbatim. Restating any of that here is how an editor ends up
+   * refusing what the generator accepts, and accepting what it
+   * refuses -- and the editor's copy is the one nobody generates
+   * from.
+   *
+   * Only identifiers are checked at all. Code is not: it is C++, this
+   * is not a compiler, and refusing what it cannot parse would be
+   * worse than useless.
+   */
   Inspector.prototype._reject = function (attr, value, type) {
     if (describe.IDENTIFIER_ATTRIBUTES.indexOf(attr.name) === -1) return null;
-    var text = String(value == null ? '' : value);
-    // an empty Event means "no trigger", which is a real thing to be;
-    // an empty name is not
-    if (!text) {
-      return attr.name === 'name' ? 'A name is required.' : null;
-    }
-
-    if (attr.name === 'Event') {
-      // a transition's trigger: emitted verbatim, never sanitized
-      return checkModel.isValidString(text) ? null : 'Not a usable C++ name.';
-    }
-    // `name` is not one rule: an Event or a Field name is checked
-    // raw, an End State may be called "End State", everything else is
-    // sanitized first. checkModel owns that -- asking it is what
-    // stops the editor refusing what the generator accepts, and
-    // accepting what it refuses.
-    return checkModel.nameProblem(type, text);
+    return checkModel.identifierProblem(type, attr.name, value);
   };
 
   /**

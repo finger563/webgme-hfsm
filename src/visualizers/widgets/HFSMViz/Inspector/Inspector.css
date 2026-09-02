@@ -75,6 +75,17 @@ textarea.inspector-code {
     overflow-x: auto;
 }
 
+/* markdown, not code: proportional, wrapping, growing with what is
+   written */
+textarea.inspector-prose {
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.45;
+    resize: vertical;
+    white-space: pre-wrap;
+    min-height: 44px;
+}
+
 /* CodeMirror, once it has taken the textarea over. Its height comes
    from CodeEditor.inline via setSize, in pixels: this panel scrolls,
    and an editor sized by its content measures against a width that
