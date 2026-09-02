@@ -1,0 +1,16 @@
+Simple:/9 HFSM Initialization
+TRANSITION::ACTION for /9/m
+ENTRY::State_1::/9/Y
+SPAWN: INPUTEVENT { button_id=12, press_time_ms=100 }
+HANDLED INPUTEVENT { button_id=12, press_time_ms=100 }: false
+TICK::State_1::/9/Y
+SPAWN: Test { val=<?> }
+HANDLED Test { val=<?> }: false
+TICK::State_1::/9/Y
+EXIT::State_1::/9/Y
+Simple:/9 HFSM Initialization
+TRANSITION::ACTION for /9/m
+ENTRY::State_1::/9/Y
+SPAWN: INPUTEVENT { button_id=12, press_time_ms=100 }
+HANDLED INPUTEVENT { button_id=12, press_time_ms=100 }: false
+EXIT::State_1::/9/Y

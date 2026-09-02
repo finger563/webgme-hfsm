@@ -1,0 +1,98 @@
+Complex:/c HFSM Initialization
+TRANSITION::ACTION for /c/m
+ENTRY::State_1::/c/Y
+SerialTask :: initializing State 1
+SPAWN: EVENT1 { last_time=0 }
+GUARD [ someNumber < someValue ] for INTERNAL TRANSITION:/c/Y/t evaluated to TRUE
+Action iterating: 0
+Action iterating: 1
+Action iterating: 2
+Action iterating: 3
+Action iterating: 4
+Action iterating: 5
+Action iterating: 6
+Action iterating: 7
+Action iterating: 8
+Action iterating: 9
+Action iterating: 10
+Action iterating: 11
+Action iterating: 12
+Action iterating: 13
+Action iterating: 14
+Action iterating: 15
+Action iterating: 16
+Action iterating: 17
+Action iterating: 18
+Action iterating: 19
+Action iterating: 20
+Action iterating: 21
+Action iterating: 22
+Action iterating: 23
+Action iterating: 24
+Action iterating: 25
+Action iterating: 26
+Action iterating: 27
+Action iterating: 28
+Action iterating: 29
+Action iterating: 30
+Action iterating: 31
+HANDLED EVENT1 { last_time=0 }: true
+SPAWN: EVENT2
+HANDLED EVENT2: false
+SPAWN: EVENT4
+GUARD [ someTest ] for EXTERNAL TRANSITION:/c/I evaluated to TRUE
+NO GUARD on EXTERNAL TRANSITION:/c/r
+EXIT::State_1::/c/Y
+Exiting State 1
+TRANSITION::ACTION for /c/I
+TRANSITION::ACTION for /c/r
+ENTRY::State3::/c/T
+STATE TRANSITION: State_1->State3
+TRANSITION::ACTION for /c/T/I
+ENTRY::State3::ChildState::/c/T/W
+HANDLED EVENT4: true
+SPAWN: EVENT1 { last_time=0 }
+NO GUARD on EXTERNAL TRANSITION:/c/T/L
+EXIT::State3::ChildState::/c/T/W
+TRANSITION::ACTION for /c/T/L
+ENTRY::State3::ChildState2::/c/T/0
+STATE TRANSITION: State3::ChildState->State3::ChildState2
+HANDLED EVENT1 { last_time=0 }: true
+SPAWN: EVENT2
+NO GUARD on EXTERNAL TRANSITION:/c/T/j
+EXIT::State3::ChildState2::/c/T/0
+TRANSITION::ACTION for /c/T/j
+ENTRY::State3::ChildState3::/c/T/w
+STATE TRANSITION: State3::ChildState2->State3::ChildState3
+HANDLED EVENT2: true
+SPAWN: EVENT3
+NO GUARD on EXTERNAL TRANSITION:/c/T/p
+EXIT::State3::ChildState3::/c/T/w
+TRANSITION::ACTION for /c/T/p
+ENTRY::State3::ChildState::/c/T/W
+STATE TRANSITION: State3::ChildState3->State3::ChildState
+HANDLED EVENT3: true
+TICK::State3::/c/T
+TICK::State3::ChildState::/c/T/W
+SPAWN: EVENT4
+NO GUARD on EXTERNAL TRANSITION:/c/w
+EXIT::State3::ChildState::/c/T/W
+EXIT::State3::/c/T
+TRANSITION::ACTION for /c/w
+ENTRY::State_2::/c/v
+STATE TRANSITION: State3->State_2::Deep_History_Pseudostate
+TRANSITION::ACTION for /c/v/u
+ENTRY::State_2::ChildState::/c/v/K
+HANDLED EVENT4: true
+SPAWN: ENDEVENT
+HANDLED ENDEVENT: false
+TICK::State_2::/c/v
+TICK::State_2::ChildState::/c/v/K
+EXIT::State_2::ChildState::/c/v/K
+EXIT::State_2::/c/v
+Complex:/c HFSM Initialization
+TRANSITION::ACTION for /c/m
+ENTRY::State_1::/c/Y
+SerialTask :: initializing State 1
+EXIT::State_1::/c/Y
+Exiting State 1

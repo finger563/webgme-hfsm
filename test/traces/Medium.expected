@@ -1,0 +1,94 @@
+Medium:/o HFSM Initialization
+TRANSITION::ACTION for /o/E
+ENTRY::State1::/o/r
+TRANSITION::ACTION for /o/r/r
+ENTRY::State1::Child1::/o/r/L
+SPAWN: EVENT1
+NO GUARD on EXTERNAL TRANSITION:/o/r/G
+EXIT::State1::Child1::/o/r/L
+TRANSITION::ACTION for /o/r/G
+ENTRY::State1::Child2::/o/r/6
+STATE TRANSITION: State1::Child1->State1::Child2
+TRANSITION::ACTION for /o/r/6/a
+ENTRY::State1::Child2::Grand::/o/r/6/w
+HANDLED EVENT1: true
+SPAWN: EVENT3
+NO GUARD on EXTERNAL TRANSITION:/o/r/6/y
+EXIT::State1::Child2::Grand::/o/r/6/w
+TRANSITION::ACTION for /o/r/6/y
+ENTRY::State1::Child2::Grand2::/o/r/6/7
+STATE TRANSITION: State1::Child2::Grand->State1::Child2::Grand2
+HANDLED EVENT3: true
+SPAWN: EVENT2
+NO GUARD on EXTERNAL TRANSITION:/o/r/0
+EXIT::State1::Child2::Grand2::/o/r/6/7
+EXIT::State1::Child2::/o/r/6
+TRANSITION::ACTION for /o/r/0
+ENTRY::State1::Child3::/o/r/P
+STATE TRANSITION: State1::Child2->State1::Child3
+HANDLED EVENT2: true
+SPAWN: EVENT3
+NO GUARD on EXTERNAL TRANSITION:/o/r/4
+GUARD [ cycle ] for EXTERNAL TRANSITION:/o/r/y evaluated to TRUE
+EXIT::State1::Child3::/o/r/P
+TRANSITION::ACTION for /o/r/4
+TRANSITION::ACTION for /o/r/y
+ENTRY::State1::Child1::/o/r/L
+STATE TRANSITION: State1::Child3->State1::Child1
+HANDLED EVENT3: true
+SPAWN: EVENT1
+NO GUARD on EXTERNAL TRANSITION:/o/r/G
+EXIT::State1::Child1::/o/r/L
+TRANSITION::ACTION for /o/r/G
+ENTRY::State1::Child2::/o/r/6
+STATE TRANSITION: State1::Child1->State1::Child2
+TRANSITION::ACTION for /o/r/6/a
+ENTRY::State1::Child2::Grand::/o/r/6/w
+HANDLED EVENT1: true
+SPAWN: EVENT1
+NO GUARD on EXTERNAL TRANSITION:/o/M
+EXIT::State1::Child2::Grand::/o/r/6/w
+EXIT::State1::Child2::/o/r/6
+EXIT::State1::/o/r
+TRANSITION::ACTION for /o/M
+ENTRY::State2::/o/y
+STATE TRANSITION: State1->State2
+HANDLED EVENT1: true
+SPAWN: EVENT2
+NO GUARD on EXTERNAL TRANSITION:/o/z
+EXIT::State2::/o/y
+TRANSITION::ACTION for /o/z
+ENTRY::State3::/o/K
+STATE TRANSITION: State2->State3
+HANDLED EVENT2: true
+SPAWN: EVENT3
+NO GUARD on EXTERNAL TRANSITION:/o/g
+EXIT::State3::/o/K
+TRANSITION::ACTION for /o/g
+ENTRY::State4::/o/q
+STATE TRANSITION: State3->State4
+HANDLED EVENT3: true
+SPAWN: EVENT4
+NO GUARD on EXTERNAL TRANSITION:/o/x
+GUARD [ goToDeepHistory ] for EXTERNAL TRANSITION:/o/P evaluated to TRUE
+EXIT::State4::/o/q
+TRANSITION::ACTION for /o/x
+TRANSITION::ACTION for /o/P
+ENTRY::State1::/o/r
+STATE TRANSITION: State4->State1::Deep_History_Pseudostate
+ENTRY::State1::Child2::/o/r/6
+ENTRY::State1::Child2::Grand::/o/r/6/w
+HANDLED EVENT4: true
+TICK::State1::/o/r
+TICK::State1::Child2::/o/r/6
+TICK::State1::Child2::Grand::/o/r/6/w
+EXIT::State1::Child2::Grand::/o/r/6/w
+EXIT::State1::Child2::/o/r/6
+EXIT::State1::/o/r
+Medium:/o HFSM Initialization
+TRANSITION::ACTION for /o/E
+ENTRY::State1::/o/r
+TRANSITION::ACTION for /o/r/r
+ENTRY::State1::Child1::/o/r/L
+EXIT::State1::Child1::/o/r/L
+EXIT::State1::/o/r
