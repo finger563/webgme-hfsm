@@ -104,6 +104,40 @@
     { label: 'Payloads (typed event data)', file: 'examples/payloads.json' },
   ];
 
+  /* ------------------------ how it is laid out ---------------------- */
+
+  /**
+   * Where the panes are split, and whether the model text is
+   * collapsed.
+   *
+   * localStorage, unlike the model draft next door, and for the
+   * opposite reason: this is a PREFERENCE, not work. Someone who
+   * likes a narrow editor and a wide diagram wants that in the next
+   * tab and tomorrow, not just until this tab closes -- whereas one
+   * tab must never overwrite what another is editing. So: layout
+   * across the browser, model per tab.
+   */
+  var LAYOUT_KEY = 'hfsm-playground:layout';
+  var layout = {};
+
+  function readLayout() {
+    try {
+      layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}') || {};
+    } catch (e) {
+      layout = {};   // unreadable or corrupt: the defaults are fine
+    }
+    return layout;
+  }
+
+  function rememberLayout(changes) {
+    Object.keys(changes || {}).forEach(function (k) { layout[k] = changes[k]; });
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+    } catch (e) {
+      // storage off or full; the layout is still applied, just not kept
+    }
+  }
+
   /* ------------- surviving a refresh, one tab at a time ------------ */
 
   /**
@@ -570,6 +604,11 @@
     el('viewDiagram').hidden = !diagram;
     el('saveLayoutBtn').hidden = !diagram;
     vizShown = diagram;
+    // which tab you were on is part of the draft, and switching tabs
+    // is the one way of changing it that no other handler notices --
+    // without this, a refresh came back to the tab you were on when
+    // you last TYPED, not the one you were looking at
+    rememberDraft();
     if (diagram) refreshDiagram();
   }
 
@@ -649,8 +688,14 @@
     requirejs(['viz'], function (viz) {
       vizModule = viz;
       viz.onModelEdited(diagramEdited);
+      viz.onSplitChanged(function () {
+        rememberLayout({ diagramSplits: viz.splitSizes() });
+      });
       try {
         viz.mount(el('viewDiagram'), model);
+        // the widget builds its panes on mount, so its splits can
+        // only be put back once they exist
+        if (layout.diagramSplits) viz.setSplitSizes(layout.diagramSplits);
         vizModelText = raw;
         if (!quiet) {
           showDiagnostics([]);
@@ -682,7 +727,7 @@
   // than in width, or the control would be inert in exactly the
   // layout where space is tightest.
   function wireSplitter() {
-    var layout = document.querySelector('.layout');
+    var layoutEl = document.querySelector('.layout');
     var splitter = el('paneSplitter');
     var collapseBtn = el('collapseModelBtn');
     var stacked = window.matchMedia('(max-width: 860px)');
@@ -691,7 +736,7 @@
     // narrower/shorter than this and nothing in the pane is readable
     function minSize() { return stacked.matches ? 120 : 180; }
     function totalSize() {
-      return stacked.matches ? layout.clientHeight : layout.clientWidth;
+      return stacked.matches ? layoutEl.clientHeight : layoutEl.clientWidth;
     }
     function paneSize() {
       var box = document.querySelector('.pane-input').getBoundingClientRect();
@@ -699,16 +744,25 @@
     }
 
     function setSize(px) {
-      layout.style.setProperty(
+      layoutEl.style.setProperty(
         stacked.matches ? '--model-height' : '--model-width', px + 'px');
     }
 
+    // the two layouts have their own sizes: the width of a column and
+    // the height of a stacked pane are not the same measurement
+    function rememberSize() {
+      if (lastSize === null) return;
+      rememberLayout(stacked.matches ? { modelHeight: lastSize }
+                                     : { modelWidth: lastSize });
+    }
+
     function collapsed() {
-      return layout.classList.contains('is-collapsed');
+      return layoutEl.classList.contains('is-collapsed');
     }
 
     function setCollapsed(yes) {
-      layout.classList.toggle('is-collapsed', yes);
+      rememberLayout({ collapsed: !!yes });
+      layoutEl.classList.toggle('is-collapsed', yes);
       collapseBtn.setAttribute('aria-expanded', String(!yes));
       collapseBtn.innerHTML = (yes ? '&#9654;' : '&#9664;') + ' Model';
       collapseBtn.title = yes
@@ -737,7 +791,7 @@
     }
 
     function onDrag(event) {
-      var box = layout.getBoundingClientRect();
+      var box = layoutEl.getBoundingClientRect();
       var along = stacked.matches
         ? event.clientY - box.top
         : event.clientX - box.left;
@@ -749,6 +803,8 @@
       splitter.classList.remove('is-dragging');
       document.removeEventListener('mousemove', onDrag);
       document.removeEventListener('mouseup', stopDrag);
+      // once, at the end -- not on every mousemove
+      rememberSize();
       // resize once at the end: cytoscape re-measuring on every
       // mousemove makes the drag stutter
       resizeDiagram();
@@ -785,8 +841,17 @@
       } else return;
       event.preventDefault();
       setSize(lastSize);
+      rememberSize();
       resizeDiagram();
     });
+
+    // put back what this browser was last left with
+    var savedSize = stacked.matches ? layout.modelHeight : layout.modelWidth;
+    if (typeof savedSize === 'number' && savedSize > 0) {
+      lastSize = savedSize;
+      setSize(savedSize);
+    }
+    if (layout.collapsed) setCollapsed(true);
   }
 
   // the diagram draws on a canvas sized to its container, so a layout
@@ -902,6 +967,7 @@
   }
 
   setStatus('loading generator…');
+  readLayout();     // before anything that lays itself out
   wire();
 
   // Bring back whatever this tab was working on. Before the generator

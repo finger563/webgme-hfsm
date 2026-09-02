@@ -131,11 +131,21 @@ generation still works.
   to keep it.
 
   A refresh does not cost you your work, though: the model text, the
-  namespace and the test-bench setting are kept in `sessionStorage`
-  and restored when the page comes back. That is scoped to the TAB, so
-  two tabs hold two different drafts rather than overwriting each
-  other, and it goes away when the tab does — it is crash protection,
-  not storage.
+  namespace, the test-bench setting and which tab you were on are kept
+  in `sessionStorage` and restored when the page comes back. That is
+  scoped to the TAB, so two tabs hold two different drafts rather than
+  overwriting each other, and it goes away when the tab does — it is
+  crash protection, not storage.
+
+  Where the panes are split — the model/output separator and whether
+  the model text is collapsed, plus the two separators inside the
+  diagram — is kept in `localStorage` instead. The two are stored
+  differently on purpose: a draft is WORK, and one tab must never
+  overwrite what another is editing, whereas a layout is a
+  PREFERENCE, and someone who likes a narrow editor and a wide diagram
+  wants that in the next tab and tomorrow. So: model per tab, layout
+  across the browser. Both fail quietly — with storage unavailable the
+  page simply opens with its defaults.
 - **No undo.** WebGME's undo is a property of its commit history,
   which is exactly the infrastructure this does without. Reload to
   get back to the model you loaded.

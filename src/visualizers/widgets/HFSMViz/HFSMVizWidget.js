@@ -197,6 +197,11 @@ define([
       this._simulator.onAnimateElement( this.animateElement.bind(this) );
       this._simulator.onShowTransitions( this.showTransitions.bind(this) );
       this._simulator.setLogDisplay( this._right.find("#simulator-logs").first() );
+      // A new Simulator is built for every model loaded, so anything
+      // the host registered on the last one has to be put back --
+      // otherwise the split stops being remembered after the first
+      // load, which is the only load a quick test does.
+      if (this._splitChanged) this._simulator.onSplitChanged( this._splitChanged );
     };
 
     HFSMVizWidget.prototype._stateActiveSelectionChanged = function(model, activeSelection, opts) {
@@ -440,8 +445,10 @@ define([
         e.preventDefault();
       });
       this._container.mouseup(function() {
+        var wasDragging = self.isDragging;
         self.isDragging = false;
         self._cy.resize();
+        if (wasDragging && self._splitChanged) self._splitChanged();
       }).mousemove(function(e) {
         if (self.isDragging) {
           var selector = $(self._el).find(self._containerTag);
@@ -454,8 +461,7 @@ define([
           var leftPercent = Math.max(minPanelWidth, (leftWidth / maxWidth) * 100);
           var rightPercent = Math.max(minPanelWidth, 100 - leftPercent - handlePercent);
           leftPercent = 100 - rightPercent - handlePercent;
-          self._left.css("width", leftPercent + "%");
-          self._right.css("width", rightPercent + "%");
+          self.setSplitSizes({ left: leftPercent });
         }
       });
 
@@ -1138,6 +1144,52 @@ define([
             self.reLayout();
           });
       });
+    };
+
+    /* * * * * * * *  Where the panels are split  * * * * * * * */
+
+    // the handle between the simulator and the graph
+    var SPLIT_HANDLE_PERCENT = 0.5;
+
+    /**
+     * Where the two draggable splits currently sit, as percentages:
+     * `left` is the simulator's share of the width, `simulatorTop`
+     * the event controls' share of the simulator's height.
+     *
+     * The widget has no idea where it is running or what it may
+     * persist to, so it reports and accepts these rather than
+     * remembering them itself. The playground keeps them per browser;
+     * WebGME has never offered to.
+     */
+    HFSMVizWidget.prototype.getSplitSizes = function() {
+      var self = this;
+      var left = parseFloat(self._left && self._left[0] && self._left[0].style.width);
+      return {
+        left: isNaN(left) ? null : left,
+        simulatorTop: self._simulator ? self._simulator.getSplit() : null,
+      };
+    };
+
+    HFSMVizWidget.prototype.setSplitSizes = function( sizes ) {
+      var self = this;
+      if (!sizes) return;
+      if (typeof sizes.left === 'number' && !isNaN(sizes.left)) {
+        var left = Math.max(minPanelWidth, Math.min(90, sizes.left));
+        self._left.css("width", left + "%");
+        self._right.css("width", (100 - left - SPLIT_HANDLE_PERCENT) + "%");
+      }
+      if (typeof sizes.simulatorTop === 'number' && !isNaN(sizes.simulatorTop) &&
+          self._simulator) {
+        self._simulator.setSplit(sizes.simulatorTop);
+      }
+      if (self._cy) self._cy.resize();
+    };
+
+    /** called when the user finishes dragging either split */
+    HFSMVizWidget.prototype.onSplitChanged = function( fn ) {
+      var self = this;
+      self._splitChanged = fn;
+      if (self._simulator) self._simulator.onSplitChanged( fn );
     };
 
     HFSMVizWidget.prototype.highlightNode = function(node) {
