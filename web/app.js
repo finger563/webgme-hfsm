@@ -25,6 +25,33 @@
       'text': 'vendor/text',
       'hfsm': 'src/common',
       'templates': 'src/plugins/SoftwareGenerator/templates',
+
+      // the visualizer, copied in verbatim, names its dependencies
+      // the way it does inside WebGME -- so they are mapped, not
+      // rewritten. See scripts/build-web.sh.
+      'widgets': 'src/visualizers/widgets',
+      'decorators': 'src/decorators',
+      'bower': 'vendor/bower',
+      'q': 'vendor/q',
+      'css': 'vendor/css.min',
+      'jquery': 'vendor/jquery.min',
+      'bootstrap': 'vendor/bootstrap.min',
+      'cytoscape-edgehandles': 'vendor/bower/cytoscape-edgehandles/cytoscape-edgehandles',
+      'cytoscape-context-menus': 'vendor/bower/cytoscape-context-menus/cytoscape-context-menus',
+      'cytoscape-panzoom': 'vendor/bower/cytoscape-panzoom/cytoscape-panzoom',
+    },
+    // cytoscape's plugins register themselves on the library, so it
+    // has to be there before they run
+    shim: {
+      // bootstrap is a jQuery plugin: it needs jQuery on the page
+      // before it runs, and exports nothing of its own
+      'bootstrap': { deps: ['jquery'] },
+      'cytoscape-edgehandles': { deps: ['bower/cytoscape/dist/cytoscape.min'] },
+      'cytoscape-context-menus': { deps: ['bower/cytoscape/dist/cytoscape.min'] },
+      'cytoscape-panzoom': { deps: ['bower/cytoscape/dist/cytoscape.min'] },
+      'bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent': {
+        deps: ['bower/cytoscape/dist/cytoscape.min'],
+      },
     },
     // The default is 7s, which the generator can exceed on a slow
     // link or a single-threaded static server: it pulls every
@@ -350,6 +377,13 @@
       return extensionOf(n) === 'hpp';
     })[0] || Object.keys(artifacts).sort()[0];
     if (first) showFile(first);
+
+    // Loading an example or a file generates, so this is also how a
+    // newly loaded model reaches an already-open Diagram tab. It is
+    // deliberately NOT hooked to typing: redrawing takes the layout
+    // with it, and doing that on every keystroke would throw away
+    // work nobody asked to discard.
+    refreshDiagram({ keepStatus: true });
   }
 
   function loadExampleList() {
@@ -414,7 +448,251 @@
     });
   }
 
+  /* ---------------------- the Diagram tab ---------------------- */
+
+  // loaded on first use: the visualizer pulls in cytoscape and its
+  // plugins, which is a lot to fetch for someone who only wants the
+  // generated code
+  var vizModule = null;
+  var vizShown = false;
+  var vizModelText = null;   // what the diagram was last built from
+
+  function showTab(which) {
+    var diagram = which === 'diagram';
+    el('tabCode').classList.toggle('is-active', !diagram);
+    el('tabDiagram').classList.toggle('is-active', diagram);
+    el('tabCode').setAttribute('aria-selected', String(!diagram));
+    el('tabDiagram').setAttribute('aria-selected', String(diagram));
+    el('viewCode').hidden = diagram;
+    el('viewDiagram').hidden = !diagram;
+    el('saveLayoutBtn').hidden = !diagram;
+    vizShown = diagram;
+    if (diagram) refreshDiagram();
+  }
+
+  // Take the diagram down. A machine left on screen next to an error
+  // message reads as though the error were about what is drawn, and
+  // it leaves `Save layout` pointing at a model the text no longer
+  // contains.
+  function clearDiagram() {
+    if (vizModule) vizModule.destroy();
+    vizModelText = null;
+  }
+
+  /**
+   * @param opts.keepStatus  leave the status line and the diagnostics
+   *   alone when the drawing succeeds -- generate() has just written
+   *   a more useful summary there ("12 files . 2 warnings"), and the
+   *   redraw is a side effect of what it did, not the thing asked for
+   */
+  function refreshDiagram(opts) {
+    if (!vizShown) return;
+    var quiet = !!(opts && opts.keepStatus);
+    var raw = getModelText().trim();
+    if (!raw) {
+      clearDiagram();
+      showDiagnostics(['Nothing to draw: paste or load a model first.'], 'error');
+      setStatus('nothing to draw', 'error');
+      return;
+    }
+    if (raw === vizModelText && vizModule && vizModule.current()) {
+      return;   // already showing this model
+    }
+
+    var model;
+    try {
+      model = JSON.parse(raw);
+    } catch (e) {
+      clearDiagram();
+      showDiagnostics(['The model is not valid JSON: ' + e.message], 'error');
+      setStatus('parse error', 'error');
+      return;
+    }
+
+    if (!quiet) setStatus('drawing...');
+    requirejs(['viz'], function (viz) {
+      vizModule = viz;
+      try {
+        viz.mount(el('viewDiagram'), model);
+        vizModelText = raw;
+        if (!quiet) {
+          showDiagnostics([]);
+          setStatus('ready');
+        }
+      } catch (e) {
+        // the diagram resolves the model exactly as the generator
+        // does, so an ill-typed model fails here the same way
+        viz.destroy();
+        vizModelText = null;
+        showDiagnostics([String(e.message || e)], 'error');
+        setStatus('model rejected');
+      }
+    }, function (err) {
+      showDiagnostics(['Could not load the visualizer: ' + err.message], 'error');
+      setStatus('error');
+    });
+  }
+
+  /* ------------------- resizing the two panes ------------------- */
+
+  // Reading a model and reading its diagram want opposite amounts of
+  // room, so where the split sits is the user's call. The size lives
+  // in a CSS variable; dragging and collapsing both just set it.
+  //
+  // The split turns on its side on a narrow screen -- the panes stack,
+  // and the same bar then moves the boundary up and down. Everything
+  // here therefore works in "size along the splitter's axis" rather
+  // than in width, or the control would be inert in exactly the
+  // layout where space is tightest.
+  function wireSplitter() {
+    var layout = document.querySelector('.layout');
+    var splitter = el('paneSplitter');
+    var collapseBtn = el('collapseModelBtn');
+    var stacked = window.matchMedia('(max-width: 860px)');
+    var lastSize = null;        // what to restore when un-collapsing
+
+    // narrower/shorter than this and nothing in the pane is readable
+    function minSize() { return stacked.matches ? 120 : 180; }
+    function totalSize() {
+      return stacked.matches ? layout.clientHeight : layout.clientWidth;
+    }
+    function paneSize() {
+      var box = document.querySelector('.pane-input').getBoundingClientRect();
+      return stacked.matches ? box.height : box.width;
+    }
+
+    function setSize(px) {
+      layout.style.setProperty(
+        stacked.matches ? '--model-height' : '--model-width', px + 'px');
+    }
+
+    function collapsed() {
+      return layout.classList.contains('is-collapsed');
+    }
+
+    function setCollapsed(yes) {
+      layout.classList.toggle('is-collapsed', yes);
+      collapseBtn.setAttribute('aria-expanded', String(!yes));
+      collapseBtn.innerHTML = (yes ? '&#9654;' : '&#9664;') + ' Model';
+      collapseBtn.title = yes
+        ? 'Show the model text'
+        : 'Hide the model text (the diagram keeps the whole width)';
+      if (!yes && lastSize) setSize(lastSize);
+      // the graph sizes itself from its container, so it has to be
+      // told the container changed
+      resizeDiagram();
+    }
+
+    // A separator BETWEEN left and right panes is itself vertical; one
+    // between stacked panes is horizontal. Screen readers announce the
+    // arrow keys from this, so it has to follow the layout.
+    function syncOrientation() {
+      splitter.setAttribute('aria-orientation',
+                            stacked.matches ? 'horizontal' : 'vertical');
+      // measured along the other axis, so it means nothing now
+      lastSize = null;
+    }
+    syncOrientation();
+    if (stacked.addEventListener) {
+      stacked.addEventListener('change', syncOrientation);
+    } else if (stacked.addListener) {
+      stacked.addListener(syncOrientation);   // Safari < 14
+    }
+
+    function onDrag(event) {
+      var box = layout.getBoundingClientRect();
+      var along = stacked.matches
+        ? event.clientY - box.top
+        : event.clientX - box.left;
+      lastSize = Math.max(minSize(), Math.min(along, totalSize() - minSize()));
+      setSize(lastSize);
+    }
+
+    function stopDrag() {
+      splitter.classList.remove('is-dragging');
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup', stopDrag);
+      // resize once at the end: cytoscape re-measuring on every
+      // mousemove makes the drag stutter
+      resizeDiagram();
+    }
+
+    splitter.addEventListener('mousedown', function (event) {
+      if (collapsed()) return;
+      event.preventDefault();
+      splitter.classList.add('is-dragging');
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup', stopDrag);
+    });
+
+    splitter.addEventListener('dblclick', function () { setCollapsed(!collapsed()); });
+    collapseBtn.addEventListener('click', function () { setCollapsed(!collapsed()); });
+
+    // keyboard: a splitter nobody can reach without a mouse is not a
+    // control, it is a decoration. Both arrow pairs are accepted in
+    // both layouts -- the one that matches the orientation is the
+    // obvious choice, and the other is no worse than doing nothing.
+    var SMALLER = { ArrowLeft: true, ArrowUp: true };
+    var BIGGER = { ArrowRight: true, ArrowDown: true };
+    splitter.addEventListener('keydown', function (event) {
+      var step = event.shiftKey ? 64 : 16;
+      var current = lastSize || paneSize();
+      if (SMALLER[event.key]) {
+        lastSize = Math.max(minSize(), current - step);
+      } else if (BIGGER[event.key]) {
+        lastSize = Math.min(totalSize() - minSize(), current + step);
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setCollapsed(!collapsed());
+        return;
+      } else return;
+      event.preventDefault();
+      setSize(lastSize);
+      resizeDiagram();
+    });
+  }
+
+  // the diagram draws on a canvas sized to its container, so a layout
+  // change has to be handed to it explicitly
+  function resizeDiagram() {
+    if (vizModule && vizModule.resize) vizModule.resize();
+  }
+
+  // Dragging a state writes its new position straight into the
+  // model the diagram is running on. This is how that gets back into
+  // the text -- explicitly, because rewriting the editor under the
+  // user on every drag would fight whatever they are typing.
+  function saveLayout() {
+    if (!vizModule || !vizModule.current()) {
+      showDiagnostics(['Nothing to save: the diagram is not showing a model.'],
+                      'error');
+      return;
+    }
+    // The model text sits beside the diagram, so it can have moved on
+    // since the diagram was drawn -- and what gets written back is the
+    // machine the diagram is running, not the one in the editor.
+    // Saving anyway would silently throw away whatever was typed.
+    if (getModelText().trim() !== vizModelText) {
+      showDiagnostics(['The model text has changed since the diagram was ' +
+                       'drawn, and saving would overwrite it. Press Generate ' +
+                       'to redraw from the current text first.'], 'error');
+      setStatus('layout not saved', 'error');
+      return;
+    }
+    var text = vizModule.currentModelJSON();
+    if (!text) return;
+    setModelText(text);
+    vizModelText = text.trim();   // the diagram already matches it
+    showDiagnostics([]);
+    setStatus('layout saved to the model');
+  }
+
   function wire() {
+    el('saveLayoutBtn').addEventListener('click', saveLayout);
+    wireSplitter();
+    window.addEventListener('resize', resizeDiagram);
+    el('tabCode').addEventListener('click', function () { showTab('code'); });
+    el('tabDiagram').addEventListener('click', function () { showTab('diagram'); });
     el('generateBtn').addEventListener('click', generate);
     el('fileInput').addEventListener('change', function (e) {
       var f = e.target.files && e.target.files[0];

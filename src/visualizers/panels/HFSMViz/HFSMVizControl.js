@@ -7,11 +7,13 @@
 define([
     'js/Constants',
     'js/Utils/GMEConcepts',
-    'js/NodePropertyNames'
+    'js/NodePropertyNames',
+    'hfsm/viz/describe'
 ], function (
     CONSTANTS,
     GMEConcepts,
-    nodePropertyNames
+    nodePropertyNames,
+    describe
 ) {
 
     'use strict';
@@ -110,25 +112,15 @@ define([
 		node.getAttributeNames().map(function(a) {
 		    objDescriptor[a] = node.getAttribute(a);
 		});
-		objDescriptor.LABEL = objDescriptor.name;
-		// add the node pointers if it's a connection
+		// endpoints first: the label rules below depend on
+		// knowing this is a connection
 		if (objDescriptor.isConnection) {
 		    objDescriptor.src = node.getPointer('src').to;
 		    objDescriptor.dst = node.getPointer('dst').to;
-		    objDescriptor.LABEL = objDescriptor.Event;
-		    if (objDescriptor.Guard) {
-			objDescriptor.LABEL += ' [' + objDescriptor.Guard + ']';
-		    }
 		}
-		else if (objDescriptor.type == 'Internal Transition') {
-		    objDescriptor.LABEL = objDescriptor.Event;
-		    if (objDescriptor.Guard) {
-			objDescriptor.LABEL += ' [' + objDescriptor.Guard + ']';
-		    }
-		}
-		// make sure the root level has no parentId
-		if (rootTypes.indexOf(objDescriptor.type) > -1)
-		    objDescriptor.parentId = null;
+		// labels and the root's missing parent are display rules,
+		// shared with the playground so the two graphs read alike
+		describe.finish(objDescriptor);
 	    }
         }
 

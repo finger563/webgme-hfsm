@@ -15,6 +15,7 @@ define([
   './templates/MetaTemplates',
   'webgme-to-json/webgme-to-json',
   'hfsm/processor',
+  'hfsm/exportModel',
   'q'
 ], function (
   PluginConfig,
@@ -23,6 +24,7 @@ define([
   MetaTemplates,
   webgmeToJson,
   processor,
+  exportModel,
   Q) {
   'use strict';
 
@@ -126,6 +128,24 @@ define([
 
     webgmeToJson.loadModel(self.core, self.rootNode, projectNode, true, true)
       .then(function (projectModel) {
+        // webgme-to-json reports attributes and pointers but not the
+        // REGISTRY, which is where WebGME keeps the layout. Without
+        // this the exported model has no positions, and the diagram
+        // has to be re-arranged by hand every time it is opened
+        // anywhere else. loadModel was asked to keep the nodes, so
+        // the registry is right here.
+        Object.keys(projectModel.objects || {}).forEach(function (path) {
+          var obj = projectModel.objects[path];
+          if (!obj || !obj.node) return;
+          var position = self.core.getRegistry(obj.node, 'position');
+          if (position &&
+              typeof position.x === 'number' && typeof position.y === 'number') {
+            obj.position = { x: position.x, y: position.y };
+          }
+        });
+        return projectModel;
+      })
+      .then(function (projectModel) {
         // make convenience members and extra data; pass through the
         // commit hash / branch name provided by PluginBase so the
         // generated metadata records where the code came from.
@@ -184,6 +204,12 @@ define([
         pluginVersion: self.getVersion()
       }, null, 2);
     }
+
+    // The model itself, in the portable form the CLI and the
+    // playground read -- layout included. This is what makes a model
+    // laid out here open the same way anywhere else.
+    artifacts[self.projectRoot.sanitizedName + '_model.json'] =
+      exportModel.toJSON(self.projectModel, { namespace: self.namespace });
 
     var hfsmArtifacts = MetaTemplates.renderHFSM( self.projectModel, self.namespace, objToFilePrefixFn );
     artifacts = Object.assign(artifacts, hfsmArtifacts);

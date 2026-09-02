@@ -53,7 +53,51 @@ function must(file) {
  'src/plugins/SoftwareGenerator/templates/MetaTemplates.js',
  'src/plugins/SoftwareGenerator/templates/uml/Templates.js',
  'src/plugins/SoftwareGenerator/templates/uml/static/magic_enum.hpp',
+ // the visualizer and the contracts it runs on
+ 'viz.js',
+ 'src/common/viz/ModelBackend.js', 'src/common/viz/HostServices.js',
+ 'src/common/viz/LocalBackend.js', 'src/common/viz/describe.js',
+ 'src/visualizers/widgets/HFSMViz/HFSMVizWidget.js',
+ 'src/visualizers/widgets/HFSMViz/Simulator/Simulator.js',
+ 'src/decorators/UMLStateMachineDecorator/DiagramDesigner/UMLStateMachineDecorator.DiagramDesignerWidget.css',
+ 'vendor/jquery.min.js', 'vendor/bootstrap.min.js', 'vendor/css.min.js',
+ 'vendor/q.js',
+ 'vendor/bower/cytoscape/dist/cytoscape.min.js',
+ 'vendor/bower/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js',
+ 'vendor/bower/cytoscape-edgehandles/cytoscape-edgehandles.js',
+ 'vendor/bower/cytoscape-context-menus/cytoscape-context-menus.js',
+ 'vendor/bower/cytoscape-panzoom/cytoscape-panzoom.js',
+ 'vendor/bower/mustache.js/mustache.min.js',
 ].forEach(must);
+
+// The WebGME adapters must NOT ship: nothing here can load them, and
+// their absence is what makes "the playground contains no WebGME"
+// checkable rather than merely intended.
+['src/visualizers/widgets/HFSMViz/WebGMEBackend.js',
+ 'src/visualizers/widgets/HFSMViz/WebGMEHost.js',
+].forEach(function (rel) {
+  if (fs.existsSync(path.join(dist, rel))) {
+    fail(rel + ' was shipped; it is WebGME-only and nothing can load it here');
+  }
+});
+
+// ... and nothing that DID ship may reach for a WebGME module
+walkFiles(path.join(dist, 'src'), function (file) {
+  if (file.slice(-3) !== '.js') return;
+  var text = fs.readFileSync(file, 'utf8');
+  var hit = text.match(/['"](js\/[^'"]*|client\/[^'"]*)['"]|\bWebGMEGlobal\b/);
+  if (hit) {
+    fail(path.relative(dist, file) + ' references WebGME-only ' + hit[0]);
+  }
+});
+
+function walkFiles(dir, fn) {
+  fs.readdirSync(dir).forEach(function (entry) {
+    var full = path.join(dir, entry);
+    if (fs.statSync(full).isDirectory()) walkFiles(full, fn);
+    else fn(full);
+  });
+}
 
 // ---- 2. self-contained -------------------------------------------
 var html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
@@ -122,14 +166,62 @@ function firstExisting(candidates) {
   }
 });
 
-// ---- 3. the copied generator matches the source -------------------
-fs.readdirSync(path.join(repoRoot, 'src', 'common'))
-  .filter(function (f) { return f.slice(-3) === '.js'; })
-  .forEach(function (f) {
-    var a = fs.readFileSync(path.join(repoRoot, 'src', 'common', f), 'utf8');
-    var b = fs.readFileSync(path.join(dist, 'src', 'common', f), 'utf8');
-    if (a !== b) fail('src/common/' + f + ' differs from the build copy');
+// ---- 3. every copied source matches the original ------------------
+// The playground must run the SAME code as WebGME and the CLI, so
+// nothing may be edited on its way into the build -- and nothing may
+// go MISSING either. The widget loads its markup through `text!` and
+// its styles through `css!`, so a lost .html or .css breaks the
+// Diagram tab exactly as a lost .js would, and a check that skipped
+// them (or that treated "not copied" as "fine") would pass over it.
+//
+// Hence: compare the whole copied tree, and name the only two files
+// allowed to be absent.
+var NOT_SHIPPED = [
+  // WebGME-only adapters; their absence is asserted above
+  'src/visualizers/widgets/HFSMViz/WebGMEBackend.js',
+  'src/visualizers/widgets/HFSMViz/WebGMEHost.js',
+];
+
+function relPath(full) {
+  return path.relative(repoRoot, full).split(path.sep).join('/');
+}
+
+/** every file under `dir`, recursively, compared byte for byte */
+function verifyCopiedTree(dir) {
+  walkFiles(path.join(repoRoot, dir), function (source) {
+    verifyCopied(source);
   });
+}
+
+/** just the .js directly in `dir` -- what build-web.sh copies there */
+function verifyCopiedModules(dir) {
+  fs.readdirSync(path.join(repoRoot, dir))
+    .filter(function (f) { return f.slice(-3) === '.js'; })
+    .forEach(function (f) {
+      verifyCopied(path.join(repoRoot, dir, f));
+    });
+}
+
+function verifyCopied(source) {
+  var rel = relPath(source);
+  if (NOT_SHIPPED.indexOf(rel) > -1) return;
+  var shipped = path.join(dist, rel);
+  if (!fs.existsSync(shipped)) {
+    fail(rel + ' was not copied into the build -- the playground ' +
+         'cannot load what is not there');
+  }
+  if (fs.readFileSync(source).compare(fs.readFileSync(shipped)) !== 0) {
+    fail(rel + ' differs from the build copy');
+  }
+}
+
+// the generator: build-web.sh copies the .js in these two directories
+// (src/common also holds meta.json, a build input the page never
+// loads, and a Templates/ tree the playground does not use)
+verifyCopiedModules('src/common');
+verifyCopiedModules('src/common/viz');
+// the visualizer: copied wholesale, so compared wholesale
+verifyCopiedTree('src/visualizers/widgets/HFSMViz');
 
 // ---- 4. same output as the CLI / goldens --------------------------
 var requirejs = require('requirejs');

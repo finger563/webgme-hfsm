@@ -12,7 +12,14 @@
  *     parentPath: '/root',
  *     attributes: { ... },          // optional; flattened onto the object
  *     pointers:   { src: '/x', dst: '/y' },   // transitions only
+ *     position:   { x: 120, y: 40 },          // optional; see below
  *   }
+ *
+ * POSITION is part of the format, not an editor detail. Laying a
+ * machine out by hand is real work, and a model that does not carry
+ * it loses that layout every time it leaves the editor -- and draws
+ * differently in the editor and in the playground. Models without
+ * positions still load; the viewer arranges them automatically.
  *
  * The resolver:
  *   - flattens `attributes` onto the object (like webgme-to-json does)
@@ -133,6 +140,18 @@ define(['./metaRules'], function(metaRules) {
         });
         if (!obj.pointers) {
           obj.pointers = {};
+        }
+        // a malformed position would otherwise reach the diagram as
+        // NaN, which cytoscape renders as a node in an arbitrary spot
+        // rather than an error anyone can act on
+        if (obj.position !== undefined) {
+          var pos = obj.position;
+          if (!pos || typeof pos !== 'object' ||
+              typeof pos.x !== 'number' || !isFinite(pos.x) ||
+              typeof pos.y !== 'number' || !isFinite(pos.y)) {
+            throw "ERROR: " + path + " has an invalid position; expected " +
+              "{ x: <number>, y: <number> }.";
+          }
         }
         var idx = obj.path.lastIndexOf('/');
         var lexicalParent = idx > 0 ? obj.path.substring(0, idx) : '';

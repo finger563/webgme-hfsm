@@ -62,10 +62,29 @@ parent paths derived from paths). See `test/fixtures/*.json` and
     "/p/m/i":    { "name": "Initial", "type": "Initial" },
     "/p/m/ti":   { "name": "init", "type": "External Transition",
                    "pointers": { "src": "/p/m/i", "dst": "/p/m/S1" } },
-    "/p/m/S1":   { "name": "S1", "type": "State", "Timer Period": 0.1 }
+    "/p/m/S1":   { "name": "S1", "type": "State", "Timer Period": 0.1,
+                   "position": { "x": 240, "y": 120 } }
   }
 }
 ```
+
+### Layout
+
+`position` (`{ x, y }`, in pixels) is part of the format, not an
+editor detail. Arranging a state chart so that it reads well is real
+work, and a model that does not carry the arrangement loses it every
+time it leaves the editor -- and then draws differently in WebGME and
+in the playground.
+
+The `SoftwareGenerator` plugin writes `<Machine>_model.json` alongside
+the generated code, carrying the layout as the editor left it. Feed
+that file to the CLI or drop it into the playground and the diagram
+comes out the same as it looks in WebGME.
+
+Models without positions still load: the playground arranges them
+automatically, and the CLI ignores the field entirely (no generated
+output depends on it). A malformed `position` is rejected rather than
+reaching the diagram as a `NaN` coordinate.
 
 `Library` roots generate code and interop exports exactly like
 `State Machine` roots, but no test bench (a library is not an

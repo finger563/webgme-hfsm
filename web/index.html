@@ -4,6 +4,8 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>HFSM Playground</title>
+<link rel="stylesheet" href="vendor/bootstrap.min.css"/>
+<link rel="stylesheet" href="vendor/font-awesome/css/font-awesome.min.css"/>
 <link rel="stylesheet" href="vendor/codemirror/lib/codemirror.css"/>
 <link rel="stylesheet" href="app.css"/>
 </head>
@@ -44,16 +46,35 @@
     </div>
   </section>
 
+  <div id="paneSplitter" class="splitter" role="separator"
+       aria-orientation="vertical" tabindex="0"
+       aria-label="Resize the model pane" title="Drag to resize, double-click to collapse"></div>
+
   <section class="pane pane-output">
     <div class="pane-head">
       <h2>Output</h2>
+      <!-- lives here, not in the model pane's own header: a button
+           that disappears along with what it hides leaves no way back -->
+      <button id="collapseModelBtn" class="iconbtn" type="button"
+              aria-expanded="true"
+              title="Hide the model text (the diagram keeps the whole width)">&#9664; Model</button>
+      <div class="tabs" role="tablist" aria-label="Output view">
+        <button id="tabCode" class="tab is-active" type="button"
+                role="tab" aria-selected="true" aria-controls="viewCode">Code</button>
+        <button id="tabDiagram" class="tab" type="button"
+                role="tab" aria-selected="false" aria-controls="viewDiagram">Diagram</button>
+      </div>
       <div class="controls">
+        <button id="saveLayoutBtn" type="button" hidden
+                title="Write the positions you dragged back into the model text">Save layout</button>
         <span id="status" class="status" role="status" aria-live="polite"></span>
         <button id="downloadAllBtn" type="button" disabled>Download all</button>
       </div>
     </div>
     <div id="diagnostics" class="diagnostics" hidden></div>
-    <div class="results">
+    <div id="viewDiagram" class="viewdiagram" role="tabpanel"
+         aria-labelledby="tabDiagram" hidden></div>
+    <div id="viewCode" class="results" role="tabpanel" aria-labelledby="tabCode">
       <ul id="fileList" class="filelist" aria-label="Generated files"></ul>
       <div class="viewer">
         <div class="viewer-head">
@@ -71,6 +92,12 @@
 
 <div id="dropOverlay" class="dropoverlay" hidden>Drop a model .json</div>
 
+<!-- jQuery and bootstrap load through requirejs, not as plain
+     scripts: the visualizer's bundled typeahead asks for a 'jquery'
+     MODULE, and a jQuery loaded before require.js never registers
+     one. Loaded this way it still sets the globals the widget uses.
+     bootstrap.min.css comes BEFORE app.css so the playground's own
+     styling wins. -->
 <script src="vendor/require.js"></script>
 <script src="app.js"></script>
 </body>

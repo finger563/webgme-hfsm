@@ -1,0 +1,153 @@
+{
+  "root": "/9",
+  "namespace": "espp::state_machine",
+  "objects": {
+    "/9": {
+      "name": "Simple",
+      "type": "State Machine",
+      "position": {
+        "x": 453,
+        "y": 93
+      },
+      "Declarations": "bool buttonPressed{false};",
+      "Includes": "#include <vector>"
+    },
+    "/9/9": {
+      "name": "INPUTEVENT",
+      "type": "Event",
+      "position": {
+        "x": 212,
+        "y": 169
+      }
+    },
+    "/9/9/N": {
+      "name": "button_id",
+      "type": "Field",
+      "position": {
+        "x": 282,
+        "y": 148
+      },
+      "Default": "12"
+    },
+    "/9/9/O": {
+      "name": "press_time_ms",
+      "type": "Field",
+      "position": {
+        "x": 281,
+        "y": 205
+      },
+      "Default": "100"
+    },
+    "/9/A": {
+      "name": "Test",
+      "type": "Event",
+      "position": {
+        "x": 100,
+        "y": 100
+      }
+    },
+    "/9/A/k": {
+      "name": "val",
+      "type": "Field",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Type": "std::vector<int>"
+    },
+    "/9/Y": {
+      "name": "State 1",
+      "type": "State",
+      "position": {
+        "x": 139,
+        "y": 331
+      },
+      "Timer Period": 0.1
+    },
+    "/9/Z": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 94,
+        "y": 336
+      }
+    },
+    "/9/k": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 367,
+        "y": 299
+      },
+      "Event": "INPUTEVENT",
+      "Guard": "buttonPressed && data.button_id == 12",
+      "pointers": {
+        "dst": "/9/v",
+        "src": "/9/Y"
+      }
+    },
+    "/9/m": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 367,
+        "y": 299
+      },
+      "pointers": {
+        "dst": "/9/Y",
+        "src": "/9/Z"
+      }
+    },
+    "/9/v": {
+      "name": "State 2",
+      "type": "State",
+      "position": {
+        "x": 284,
+        "y": 330
+      }
+    },
+    "/9/v/C": {
+      "name": "State",
+      "type": "State",
+      "position": {
+        "x": 305,
+        "y": 335
+      },
+      "Timer Period": 0.1
+    },
+    "/9/v/H": {
+      "name": "Initial",
+      "type": "Initial",
+      "position": {
+        "x": 272,
+        "y": 340
+      }
+    },
+    "/9/v/S": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "pointers": {
+        "dst": "/9/v/C",
+        "src": "/9/v/H"
+      }
+    },
+    "/9/w": {
+      "name": "External Transition",
+      "type": "External Transition",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "Event": "Test",
+      "Guard": "data.val.size()",
+      "pointers": {
+        "dst": "/9/v",
+        "src": "/9/Y"
+      }
+    }
+  }
+}
