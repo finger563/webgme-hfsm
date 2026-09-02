@@ -214,6 +214,85 @@ textarea.inspector-prose {
     color: #fff;
 }
 
+/* ---- the generated code around a snippet ------------------------
+
+   The point of the frame is that the snippet is written where it will
+   run: the function signature and the `auto &x = _root->x` aliases
+   above it are the answer to "what can I write here". So the frame
+   is styled to read as CONTEXT rather than as content -- same
+   monospace and line height, so the code lines up, but dimmed and on
+   a shaded ground so there is no doubt about which part is editable.
+*/
+
+.code-modal.has-context .code-modal-body {
+    display: flex;
+    flex-direction: column;
+    background: #f6f8fa;
+}
+.code-context {
+    margin: 0;
+    padding: 6px 12px;
+    flex: 0 1 auto;
+    overflow: auto;
+    color: #6e7781;
+    background: #f6f8fa;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+    /* selectable -- copying the signature to check a type is a
+       reasonable thing to want; just not editable */
+    border: 0;
+}
+.code-context.is-before {
+    border-bottom: 1px dashed #d0d7de;
+    /* the lines nearest the snippet matter most, so a long frame
+       scrolls to its BOTTOM rather than its top */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    max-height: 45%;
+}
+.code-context.is-after {
+    border-top: 1px dashed #d0d7de;
+    max-height: 30%;
+}
+/* the editor keeps a usable minimum however much frame there is */
+.code-modal.has-context .code-modal-edit {
+    flex: 1 1 auto;
+    min-height: 120px;
+    position: relative;
+    background: #fff;
+}
+.code-modal.has-context .code-modal-edit .CodeMirror {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+}
+
+/* where the snippet lands, and how to walk between the places it
+   lands in */
+.code-modal-where {
+    margin-left: auto;
+    color: #57606a;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.code-modal-step {
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+    padding: 2px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+}
+.code-modal-step:hover { background: #eaeef2; }
+
 /* prose in the pop-out reads as prose: wrapped, and not in a
    monospace column the width of the screen */
 .code-modal.is-prose .CodeMirror {

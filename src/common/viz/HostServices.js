@@ -40,14 +40,53 @@
  * so the widget never sees the host's own drag payload format. The
  * ids are the host's model ids, which is what makes them meaningful
  * to the ModelBackend the widget is paired with.
+ *
+ * GENERATED CODE (optional)
+ * -------------------------
+ * `generatedFiles()` returns `{ '<name>': '<text>' }` for whatever
+ * the host last generated, or null.
+ *
+ * The code editor uses it to show a snippet inside the function it
+ * will be compiled into -- see `codeContext`. It is OPTIONAL because
+ * where generated code comes from is genuinely a property of the
+ * host: the playground generates in the page and has the files
+ * sitting there, while in WebGME the plugin runs on the server and
+ * the visualizer has never seen its output. A host that returns null
+ * loses the frame and nothing else.
  */
 define([], function () {
   'use strict';
 
   var REQUIRED = ['contextMenu', 'editDocument', 'makeDroppable'];
 
+  // Not in REQUIRED on purpose: a host that cannot answer these is
+  // not a broken host, and failing at wiring time over one would
+  // stop the widget loading somewhere it otherwise works.
+  var OPTIONAL = ['generatedFiles'];
+
   return {
     REQUIRED: REQUIRED,
+    OPTIONAL: OPTIONAL,
+
+    /**
+     * Ask a host for something optional, without every call site
+     * having to check whether it is there.
+     *
+     * @return what the service returned, or `fallback` when the host
+     *         does not implement it or the call throws -- a host
+     *         failing to produce generated code must not take the
+     *         editor down with it
+     */
+    ask: function (services, method, args, fallback) {
+      if (!services || typeof services[method] !== 'function') return fallback;
+      try {
+        var answer = services[method].apply(services, args || []);
+        return answer === undefined || answer === null ? fallback : answer;
+      } catch (e) {
+        console.error('HostServices.' + method + ' failed: ', e);
+        return fallback;
+      }
+    },
 
     /**
      * Throw unless `services` implements the whole contract, so a
@@ -76,6 +115,7 @@ define([], function () {
         contextMenu: function () {},
         editDocument: function () {},
         makeDroppable: function () { return undefined; },
+        generatedFiles: function () { return null; },
       };
     },
   };

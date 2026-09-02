@@ -123,6 +123,49 @@ plain text. Highlighting is strictly optional: if the editor library
 fails to load, the page falls back to a plain textarea and `<pre>` and
 generation still works.
 
+### A snippet, inside the function it ends up in
+
+Popping a code attribute out to the big editor shows it **framed by
+the generated code around it**: the function signature, the
+`[[maybe_unused]] auto &x = _root->x;` aliases that say exactly which
+of the machine's variables are in scope, and the brace that closes it
+— greyed out, above and below the part you are editing.
+
+That question — *what can I write here?* — previously had no answer
+inside the tool. People generated the code and read it, which meant
+leaving the editor.
+
+It costs no new machinery. The generator already marks every snippet
+it emits:
+
+    //::::<path>::::<attribute>::::
+
+so `src/common/viz/codeContext.js` finds the marker and takes the
+lines around it. No C++ is parsed and nothing knows about the
+templates; a test asserts the marker it looks for is the one
+`StateTempl.cpp` still emits, so the two cannot drift apart quietly.
+
+A snippet can land in **several** places — a transition's Action is
+compiled into every site that can take that transition, six of them
+for one transition in the Complex example — so the header says
+`1 of 6 places this is generated into` and ‹ › step between them.
+Being told that is worth more than any one of the six.
+
+Two rules keep the frame honest. It never contains another snippet:
+someone else's Exit block greyed out inside your Entry frame would
+read as scaffolding that cannot be changed, when it is editable
+somewhere else. And it is measured against the text in the **editor**,
+not in the model, so it stays put around the lines being written.
+
+The frame comes from the host, through the optional
+`generatedFiles()` service, because where generated code comes from
+is genuinely host-specific: the playground generates in the page and
+has the files to hand, while in WebGME the plugin runs on the server
+and the visualizer has never seen its output. A host that cannot
+answer loses the frame and nothing else — including a host whose
+generation just failed, which is caught rather than allowed to stop
+the editor opening.
+
 ## What it does not do
 
 - **No persistence or collaboration.** Nothing leaves the browser;
@@ -149,10 +192,9 @@ generation still works.
 - **No undo.** WebGME's undo is a property of its commit history,
   which is exactly the infrastructure this does without. Reload to
   get back to the model you loaded.
-- **The code editor does not yet show its surroundings.** A snippet is
-  edited on its own, not inside the function the generator will put it
-  in. The `//::::<path>::::<attribute>::::` markers in the generated
-  files make that locatable, so it is the next thing.
+- **No undo in the code editor beyond CodeMirror's own.** Ctrl-Z
+  inside a snippet works; there is no undo for the edit once it is
+  saved. See the note about undo above.
 
 ## Why it cannot drift from the CLI
 

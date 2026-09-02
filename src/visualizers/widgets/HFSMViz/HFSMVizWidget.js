@@ -192,7 +192,8 @@ define([
       }
       // SIMULATOR
       this._simulator = new Simulator();
-      this._simulator.initialize( this._left, this.nodes, this._backend );
+      this._simulator.initialize( this._left, this.nodes, this._backend,
+                                  this._host );
       this._simulator.onStateChanged( this.showActiveState.bind(this) );
       this._simulator.onAnimateElement( this.animateElement.bind(this) );
       this._simulator.onShowTransitions( this.showTransitions.bind(this) );

@@ -91,10 +91,17 @@ define(['q',
           *                                    JSON model in the browser.
           * @return {void}
           */
-         Simulator.prototype.initialize = function ( container, nodes, backend ) {
+         /**
+          * @param host  HostServices, passed through to the inspector
+          *              -- the code editor asks it for the generated
+          *              files it frames a snippet with. Optional: a
+          *              caller with no host simply gets no frame.
+          */
+         Simulator.prototype.initialize = function ( container, nodes, backend, host ) {
            var self = this;
 
            self._backend = backend;
+           self._host = host || null;
 
            container.append( SimulatorHtml );
            self._container = container;
@@ -151,7 +158,7 @@ define(['q',
            // above the UML preview of it
            self._inspector = new Inspector();
            self._inspector.initialize(
-             self._el.find('#nodeInspector').first(), backend);
+             self._el.find('#nodeInspector').first(), backend, self._host);
 
            // Active state information
            self._activeState = null;

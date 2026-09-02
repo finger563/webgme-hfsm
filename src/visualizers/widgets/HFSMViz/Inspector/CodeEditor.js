@@ -146,17 +146,29 @@ define(['require'], function (require) {
     /**
      * The same code, full size, in a modal.
      *
-     * @param opts  { title, subtitle, value, readOnly, prose, onSave }
+     * @param opts  { title, subtitle, value, readOnly, prose, sites,
+     *                onSave }
      *   `prose` for markdown rather than C++: wrapped, unnumbered and
      *   unhighlighted, because paragraphs want the width and
      *   colouring prose as code would be a lie. The room is the point
      *   either way, which is why documentation gets this too.
+     *
+     *   `sites` is what `codeContext.sites` found: the places this
+     *   snippet is generated into. Each is shown as the lines above
+     *   and below, greyed and unselectable-looking, with the editor
+     *   between them -- so the code is written where it will run,
+     *   next to the aliases that say what is in scope. More than one
+     *   site is not a problem to hide: a transition's action really
+     *   is compiled into every place that transition can be taken,
+     *   and stepping through them is the only way to see that.
      * @return a function that closes it
      */
     open: function (opts) {
       opts = opts || {};
       ensureStylesheet();
       var CodeMirror = null;
+      var sites = (opts.sites || []).slice();
+      var siteIndex = 0;
       var overlay = $('<div class="code-modal-overlay"></div>');
       // a dialog announces itself by its heading; without the link a
       // screen reader reaches an unnamed one
@@ -170,6 +182,39 @@ define(['require'], function (require) {
         $('<span class="code-modal-subtitle"></span>').text(opts.subtitle || ''));
       var body = $('<div class="code-modal-body"></div>');
       var area = $('<textarea></textarea>').val(opts.value || '');
+
+      // The frame. `aria-hidden`: it is the same code the editor
+      // already contains the point of, and a screen reader reading
+      // two dozen lines of generated aliases before reaching the
+      // editable field would bury it.
+      var before = $('<pre class="code-context is-before"></pre>')
+          .attr('aria-hidden', 'true');
+      var after = $('<pre class="code-context is-after"></pre>')
+          .attr('aria-hidden', 'true');
+      var where = $('<span class="code-modal-where"></span>');
+      var prev = $('<button type="button" class="code-modal-step">\u2039</button>')
+          .attr('title', 'The previous place this is generated into');
+      var next = $('<button type="button" class="code-modal-step">\u203a</button>')
+          .attr('title', 'The next place this is generated into');
+
+      function showSite() {
+        var site = sites[siteIndex];
+        if (!site) return;
+        before.text(site.before);
+        after.text(site.after);
+        where.text(site.file + ':' + site.line +
+                   (sites.length > 1
+                    ? '   \u00b7   ' + (siteIndex + 1) + ' of ' + sites.length +
+                      ' places this is generated into'
+                    : ''));
+      }
+
+      function step(by) {
+        siteIndex = (siteIndex + by + sites.length) % sites.length;
+        showSite();
+      }
+      prev.on('click', function () { step(-1); });
+      next.on('click', function () { step(1); });
       // read-only from the start: CodeMirror arrives asynchronously
       // and may not arrive at all, and until it does this textarea is
       // the editor -- editable, it would let a read-only model be
@@ -230,7 +275,17 @@ define(['require'], function (require) {
         if (event.target === overlay[0]) close();
       });
 
-      box.append(head, body.append(area), buttons.append(hint, cancel, save));
+      if (sites.length) {
+        box.addClass('has-context');
+        head.append(where);
+        if (sites.length > 1) head.append(prev, next);
+        body.append(before, $('<div class="code-modal-edit"></div>').append(area),
+                    after);
+        showSite();
+      } else {
+        body.append(area);
+      }
+      box.append(head, body, buttons.append(hint, cancel, save));
       overlay.append(box);
       $(document.body).append(overlay);
       $(document).on('keydown', onKey);
@@ -254,6 +309,9 @@ define(['require'], function (require) {
         }));
         cm.setSize('100%', '100%');
         cm.focus();
+        // the frame's height depends on the editor's, so it can only
+        // settle once CodeMirror has laid itself out
+        if (sites.length) box.addClass('is-framed');
       }).catch(function (e) {
         // a textarea still edits the attribute
         console.error('Could not load the code editor: ', e);
