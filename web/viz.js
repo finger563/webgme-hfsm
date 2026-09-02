@@ -258,16 +258,27 @@ define([
     // automatically, and that arrangement is just as much "how the
     // diagram looks" as a drag is -- saving only the drags would
     // leave the next load to arrange it all over again, differently.
+    //
+    // Serialized from a COPY, and through the widget's own
+    // conversion. This used to write `node.position()` -- cytoscape's
+    // CENTRE -- straight into the mounted model, which means the
+    // TOP-LEFT and is the model the widget is running on. So every
+    // save moved every node by half its own size, and the page saves
+    // after each edit: the model then disagreed with the graph by
+    // that much, and the NEXT drag saw the difference and
+    // "corrected" it. The first drag looked right and the second
+    // shifted the whole diagram.
+    var out = JSON.parse(JSON.stringify(model));
     widget._cy.nodes().forEach(function (node) {
-      var object = model.objects[node.id()];
+      var object = out.objects[node.id()];
       if (!object) return;
-      var p = node.position();
+      var p = widget.cyPosition(node);   // top-left, as the model means it
       if (typeof p.x === 'number' && typeof p.y === 'number') {
         object.position = { x: p.x, y: p.y };
       }
     });
 
-    return exportModel.toJSON(model, {});
+    return exportModel.toJSON(out, {});
   }
 
   return {
