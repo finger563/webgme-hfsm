@@ -89,15 +89,27 @@ define(['./ModelBackend', '../metaRules'], function (ModelBackend, metaRules) {
 
   LocalBackend.prototype.getNodeInfo = function (id) {
     var obj = this._objects()[id];
-    if (!obj) return null;
-    return {
-      id: id,
-      name: obj.name,
-      type: obj.type,
-      // a local store has no separate type identity: the name IS the
-      // type, and getValidChildTypes maps onto the same token
-      typeId: obj.type,
-    };
+    if (obj) {
+      return {
+        id: id,
+        name: obj.name,
+        type: obj.type,
+        // a local store has no separate type identity: the name IS the
+        // type, and getValidChildTypes maps onto the same token
+        typeId: obj.type,
+      };
+    }
+    // Not an object in the model, so it may be a PALETTE entry, which
+    // names a type rather than an instance. WebGME answers this from
+    // the meta node, which has an id of its own; here the type name is
+    // the whole identity. The widget deliberately asks the backend
+    // instead of resolving types itself (`_createNode`,
+    // `_canCreateChild`), which is what lets a host with a palette of
+    // its own work without knowing the metamodel.
+    if (TYPES[id] && !TYPES[id].isAbstract) {
+      return { id: id, name: id, type: id, typeId: id };
+    }
+    return null;
   };
 
   // how many children of each type `parentId` already has

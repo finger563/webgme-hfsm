@@ -402,3 +402,122 @@ select:focus-visible,
     overflow: hidden;
 }
 .viewdiagram[hidden] { display: none; }
+
+/* ---- editing: palette, menu, drag ghost ------------------------ */
+
+/* The diagram view is a palette strip above the widget. The widget
+   draws into an absolutely positioned element that fills its
+   container, so it gets a container to itself rather than sharing
+   one with the strip. */
+.viewdiagram { display: flex; flex-direction: column; }
+.viz-host { flex: 1 1 auto; position: relative; min-height: 0; }
+
+.viz-palette {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.viz-palette-label { font-size: 11px; color: #57606a; margin-right: 4px; }
+.viz-part {
+    font: inherit;
+    font-size: 11px;
+    line-height: 1;
+    padding: 4px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 12px;
+    background: #fff;
+    cursor: grab;
+    /* the drag is ours, so the browser's own must not also start */
+    user-select: none;
+    -webkit-user-select: none;
+}
+.viz-part:hover { border-color: #0969da; color: #0969da; }
+.viz-part:active { cursor: grabbing; }
+
+/* Follows the pointer during a drag. `pointer-events: none` is not
+   cosmetic: with the ghost under the cursor, cytoscape's container
+   would stop receiving mousemove and the widget would never learn
+   which state the part is over. */
+.pg-drag-ghost {
+    position: absolute;
+    z-index: 10000;
+    pointer-events: none;
+    font-size: 11px;
+    padding: 3px 7px;
+    border: 1px solid #0969da;
+    border-radius: 12px;
+    background: #ddf4ff;
+    color: #0969da;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+}
+
+.pg-menu {
+    position: absolute;
+    z-index: 10001;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    min-width: 160px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(140, 149, 159, .2);
+    font-size: 12px;
+}
+.pg-menu li { padding: 5px 12px; cursor: pointer; }
+.pg-menu li:hover, .pg-menu li:focus { background: #0969da; color: #fff; outline: none; }
+
+/* The documentation editor. WebGME opens a rich-text dialog here;
+   the attribute is text either way. */
+.pg-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(27, 31, 36, .5);
+}
+.pg-dialog {
+    width: min(720px, 90vw);
+    background: #fff;
+    border-radius: 6px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(66, 74, 83, .32);
+}
+.pg-dialog h3 { margin: 0 0 8px; font-size: 14px; }
+.pg-doc {
+    width: 100%;
+    height: 40vh;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 8px;
+    resize: vertical;
+}
+.pg-dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+.pg-dialog-buttons button {
+    font: inherit;
+    font-size: 12px;
+    padding: 5px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #f6f8fa;
+    cursor: pointer;
+}
+.pg-dialog-buttons button.primary {
+    background: #1f883d;
+    border-color: #1f883d;
+    color: #fff;
+}

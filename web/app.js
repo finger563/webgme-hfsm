@@ -470,6 +470,22 @@
     if (diagram) refreshDiagram();
   }
 
+  // The diagram is an editor too: dropping a part in, drawing a
+  // transition, renaming a state -- all of it changes the model the
+  // graph is running on. The text beside it has to say the same
+  // thing, so it is rewritten after every committed change rather
+  // than waiting to be asked. Generation is NOT re-run: it is the
+  // slow half, and the user says when.
+  function diagramEdited() {
+    if (!vizModule || !vizModule.current()) return;
+    var text = vizModule.currentModelJSON();
+    if (!text) return;
+    setModelText(text);
+    vizModelText = text.trim();   // the diagram already matches it
+    showDiagnostics([]);
+    setStatus('model edited \u00b7 press Generate', 'warn');
+  }
+
   // Take the diagram down. A machine left on screen next to an error
   // message reads as though the error were about what is drawn, and
   // it leaves `Save layout` pointing at a model the text no longer
@@ -512,6 +528,7 @@
     if (!quiet) setStatus('drawing...');
     requirejs(['viz'], function (viz) {
       vizModule = viz;
+      viz.onModelEdited(diagramEdited);
       try {
         viz.mount(el('viewDiagram'), model);
         vizModelText = raw;

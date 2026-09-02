@@ -123,25 +123,30 @@ define([
       this._logger.debug("ctor finished");
     };
 
+    /**
+     * The inverse of `_getContainerPosFromEvent`: a position measured
+     * inside this widget, expressed as a page coordinate.
+     *
+     * This had the same WebGME-only reckoning that one did -- adding
+     * the offsets of `.panel-base-wh` and `.ui-layout-pane-center`.
+     * Those selectors match nothing in another host, so `.position()`
+     * returned undefined and reading `.left` threw. Its one caller is
+     * the menu that asks which kind of transition to draw, and it is
+     * called from inside an edgehandles callback, so the throw was
+     * swallowed: releasing a transition onto a state simply did
+     * nothing at all outside WebGME.
+     */
     HFSMVizWidget.prototype._relativeToWindowPos = function( relativePos ) {
       var self = this;
-
-      var windowPos = {
-        x: relativePos.x,
-        y: relativePos.y
+      var node = self._container && self._container[0];
+      if (!node) {
+        return { x: relativePos.x, y: relativePos.y };
+      }
+      var rect = node.getBoundingClientRect();
+      return {
+        x: relativePos.x + rect.left + window.pageXOffset,
+        y: relativePos.y + rect.top + window.pageYOffset,
       };
-
-      var splitPos = $(self._container).parents(".panel-base-wh").parent().position();
-      var centerPanelPos = $(".ui-layout-pane-center").position();
-      // X OFFSET
-      windowPos.x += splitPos.left;
-      windowPos.x += centerPanelPos.left;
-
-      // Y OFFSET
-      windowPos.y += splitPos.top;
-      windowPos.y += centerPanelPos.top;
-
-      return windowPos;
     };
 
     /**
@@ -2104,11 +2109,17 @@ define([
         out: function (/*event, dragInfo*/) {
           self._isDropping = false;
           self._dropInfo = null;
+          // nothing is being dropped any more, so the "you can drop
+          // here" highlight is stale. It used to be left for the next
+          // hover event to clear, which never comes if the pointer
+          // stops moving -- the state stayed lit until you nudged it.
+          self.clearDropStatus();
         },
         drop: function (event, dragInfo) {
           self.handleDrop(event, dragInfo);
           self._isDropping = false;
           self._dropInfo = null;
+          self.clearDropStatus();
         }
       });
     };
