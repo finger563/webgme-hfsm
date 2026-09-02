@@ -166,7 +166,12 @@ define(['hfsm/viz/describe',
     var value = valueOf(node, attr);
 
     var row = $('<div class="inspector-row"></div>').addClass('kind-' + kind);
-    var label = $('<label class="inspector-label"></label>').text(attr.name);
+    // `for`/`id`, so a screen reader reads the field by its attribute
+    // and clicking the label puts the caret in it
+    var fieldId = 'insp-' + String(id).replace(/\W/g, '-') + '-' +
+        attr.name.replace(/\W/g, '-');
+    var label = $('<label class="inspector-label"></label>')
+        .text(attr.name).attr('for', fieldId);
     var input;
 
     if (kind === 'checkbox') {
@@ -181,7 +186,7 @@ define(['hfsm/viz/describe',
     } else {
       input = $('<input type="text"/>').val(value);
     }
-    input.addClass('inspector-input');
+    input.addClass('inspector-input').attr('id', fieldId);
     if (readOnly) input.prop('disabled', true);
 
     var error = $('<div class="inspector-error"></div>').hide();
@@ -189,7 +194,17 @@ define(['hfsm/viz/describe',
     self._fields[attr.name] = field;
 
     function commit() {
-      var next = readValue(field);
+      // What is validated must be what is STORED. Validating a
+      // trimmed copy and writing the original let " GO " through as a
+      // valid `GO`, and `checkModel.checkEvent` -- which does not
+      // trim -- then rejected the model the inspector exists to keep
+      // valid. For an identifier the surrounding space was never
+      // meant, so the trimmed value is what gets written.
+      var next = self._normalize(attr, readValue(field));
+      if (next !== readValue(field) && field.kind !== 'checkbox') {
+        if (field.cm) field.cm.setValue(String(next));
+        else field.input.val(next);
+      }
       var problem = self._reject(attr, next);
       if (problem) {
         error.text(problem).show().removeClass('is-note');
@@ -316,9 +331,20 @@ define(['hfsm/viz/describe',
    * is not a compiler, and refusing what it cannot parse would be
    * worse than useless.
    */
+  /**
+   * The value as it will be stored. Only identifiers are touched:
+   * code and documentation keep every character, including the
+   * trailing newline someone meant to leave.
+   */
+  Inspector.prototype._normalize = function (attr, value) {
+    if (describe.IDENTIFIER_ATTRIBUTES.indexOf(attr.name) === -1) return value;
+    if (typeof value !== 'string') return value;
+    return value.trim();
+  };
+
   Inspector.prototype._reject = function (attr, value) {
     if (describe.IDENTIFIER_ATTRIBUTES.indexOf(attr.name) === -1) return null;
-    var text = String(value == null ? '' : value).trim();
+    var text = String(value == null ? '' : value);
     // an empty Event means "no trigger", which is a real thing to be;
     // an empty name is not
     if (!text) {
@@ -341,7 +367,7 @@ define(['hfsm/viz/describe',
    */
   Inspector.prototype._note = function (attr, value) {
     if (attr.name !== 'name') return null;
-    var text = String(value == null ? '' : value).trim();
+    var text = String(value == null ? '' : value);
     var asGenerated = checkModel.sanitizeString(text);
     return asGenerated === text ? null : 'Generated as ' + asGenerated;
   };

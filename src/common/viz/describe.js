@@ -130,7 +130,13 @@ define(['../metaRules'], function (metaRules) {
       };
       return (attributes || []).slice().sort(function (a, b) {
         var d = rank(a) - rank(b);
-        return d !== 0 ? d : (a.name < b.name ? -1 : 1);
+        if (d !== 0) return d;
+        // 0 for equal names, as Array.sort's contract requires -- two
+        // attributes of a type cannot share a name, but a comparator
+        // that never says "equal" is the kind of thing that sorts
+        // differently in a different engine
+        if (a.name === b.name) return 0;
+        return a.name < b.name ? -1 : 1;
       });
     },
 

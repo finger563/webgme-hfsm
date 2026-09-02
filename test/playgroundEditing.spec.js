@@ -34,6 +34,9 @@ function playgroundContext(name) {
       host: 'web/host',
       palette: 'web/palette',
     },
+    map: {
+      '*': { css: 'test/stubs/css' },
+    },
   });
 }
 
@@ -56,6 +59,9 @@ describe('playground editing', function () {
       'palette', 'host',
       'hfsm/metaRules', 'hfsm/viz/LocalBackend', 'hfsm/resolveModel',
       'hfsm/viz/describe', 'hfsm/checkModel',
+      // by its real path, not an alias: the module's own relative
+      // dependency (./CodeEditor) resolves against its id
+      'src/visualizers/widgets/HFSMViz/Inspector/Inspector',
     ]).then(function (loaded) {
       mods.palette = loaded[0];
       mods.PlaygroundHost = loaded[1];
@@ -64,6 +70,7 @@ describe('playground editing', function () {
       mods.resolveModel = loaded[4];
       mods.describe = loaded[5];
       mods.checkModel = loaded[6];
+      mods.Inspector = loaded[7];
     });
   });
 
@@ -222,6 +229,15 @@ describe('playground editing', function () {
            ['name', 'Event', 'Guard', 'Action', 'Enabled']);
        });
 
+    it('is a comparator that can say "equal"', function () {
+      // Array.sort's contract: a comparator that never returns 0 can
+      // order differently in a different engine
+      var same = { name: 'Entry', type: 'string' };
+      assert.deepStrictEqual(
+        mods.describe.fieldOrder([same, same]).map(function (a) { return a.name; }),
+        ['Entry', 'Entry']);
+    });
+
     it('orders every declared attribute exactly once', function () {
       Object.keys(mods.metaRules.types).forEach(function (type) {
         var declared = attrs(type);
@@ -315,6 +331,61 @@ describe('playground editing', function () {
                              ['name', 'Event']);
       assert.strictEqual(mods.checkModel.isValidString('has a space'), false);
       assert.strictEqual(mods.checkModel.isValidString('ARM'), true);
+    });
+  });
+
+  describe('what the inspector will store', function () {
+
+    // _normalize and _reject are pure: what they decide has to hold
+    // whatever the DOM around them is doing
+    function normalize(attr, value) {
+      return mods.Inspector.prototype._normalize({ name: attr }, value);
+    }
+    function reject(attr, value) {
+      return mods.Inspector.prototype._reject({ name: attr }, value);
+    }
+
+    it('validates exactly the value it will write', function () {
+      // The bug this pins: validating a TRIMMED copy and writing the
+      // original accepted " GO " as a valid `GO`, and
+      // checkModel.checkEvent -- which does not trim -- then rejected
+      // the model the inspector exists to keep valid.
+      [' GO ', 'GO\t', '\n GO'].forEach(function (typed) {
+        var stored = normalize('Event', typed);
+        assert.strictEqual(reject('Event', stored), null,
+                           JSON.stringify(typed) + ' should be accepted');
+        assert.strictEqual(mods.checkModel.isValidString(stored), true,
+                           'and what is stored must satisfy the checker');
+        assert.strictEqual(stored, 'GO');
+      });
+    });
+
+    it('trims a name too, and reports it as the checker would', function () {
+      var stored = normalize('name', '  State 1  ');
+      assert.strictEqual(stored, 'State 1');
+      assert.strictEqual(reject('name', stored), null);
+      assert.strictEqual(
+        mods.checkModel.isValidString(mods.checkModel.sanitizeString(stored)), true);
+    });
+
+    it('leaves code exactly as it was typed', function () {
+      // a trailing newline in an Entry block is the author's business
+      var code = '  printf("hi\\n");\n\n';
+      assert.strictEqual(normalize('Entry', code), code);
+      assert.strictEqual(normalize('Guard', ' x > 1 '), ' x > 1 ');
+      assert.strictEqual(reject('Entry', code), null, 'and is never rejected');
+    });
+
+    it('still refuses what the generator could not use', function () {
+      assert.ok(reject('Event', normalize('Event', 'has a space')));
+      assert.ok(reject('name', normalize('name', '   ')), 'a blank name');
+      assert.strictEqual(reject('Event', normalize('Event', '   ')), null,
+                         'but a blank Event just means no trigger');
+    });
+
+    it('normalizes only strings', function () {
+      assert.strictEqual(normalize('name', 42), 42);
+      assert.strictEqual(normalize('name', undefined), undefined);
     });
   });
 

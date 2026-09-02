@@ -157,11 +157,17 @@ define(['require'], function (require) {
         $('<span class="code-modal-subtitle"></span>').text(opts.subtitle || ''));
       var body = $('<div class="code-modal-body"></div>');
       var area = $('<textarea></textarea>').val(opts.value || '');
+      // read-only from the start: CodeMirror arrives asynchronously
+      // and may not arrive at all, and until it does this textarea is
+      // the editor -- editable, it would let a read-only model be
+      // changed and saved
+      if (opts.readOnly) area.prop('readonly', true);
       var buttons = $('<div class="code-modal-buttons"></div>');
       var hint = $('<span class="code-modal-hint"></span>')
           .text('Ctrl/Cmd+Enter saves, Esc cancels');
       var cancel = $('<button type="button">Cancel</button>');
       var save = $('<button type="button" class="primary">Save</button>');
+      if (opts.readOnly) save.prop('disabled', true);
 
       var opener = document.activeElement;
       var cm = null;
@@ -176,12 +182,26 @@ define(['require'], function (require) {
         close();
         if (opts.onSave) opts.onSave(value);
       }
+      /**
+       * Everything Tab can reach inside the dialog, in order.
+       *
+       * The EDITOR has to be in this list, not just the buttons.
+       * CodeMirror replaces the textarea with its own hidden input,
+       * so the set changes once it loads -- and a trap that only knew
+       * about buttons let Shift+Tab out of the first one and into the
+       * page behind the backdrop.
+       */
+      function focusables() {
+        return box.find('textarea, button, [tabindex]').filter(function () {
+          return !this.disabled && this.offsetParent !== null;
+        });
+      }
       function onKey(event) {
         if (event.key === 'Escape') { close(); return; }
         if (event.key !== 'Tab') return;
         // `aria-modal` has to be true of the behaviour, not just the
         // attribute: keep Tab inside
-        var items = box.find('button').filter(function () { return !this.disabled; });
+        var items = focusables();
         if (!items.length) return;
         var first = items.get(0), last = items.get(items.length - 1);
         var active = document.activeElement;

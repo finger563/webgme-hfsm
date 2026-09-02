@@ -1146,10 +1146,17 @@ define([
 
     HFSMVizWidget.prototype.highlightNodes = function(nodes) {
       var self = this;
+      // ONE node is a selection like any other. WebGME's own selection
+      // always arrives here, plural, even when it is a single node --
+      // so treating this path as "many" left a node picked in the tree
+      // browser with no inspector at all.
+      var only = nodes && nodes.length === 1 ? nodes[0] : null;
+      if (only)
+        return self.highlightNode( only );
+
+      // More than one has no single set of values to show, and editing
+      // a field would have to mean writing it to all of them.
       self._simulator.hideStateInfo();
-      // one at a time: editing a field would otherwise have to mean
-      // writing it to every selected node, which is not what the
-      // single visible value would be saying
       self._simulator.showInspector( null );
     };
 
@@ -1157,6 +1164,10 @@ define([
       var self = this;
       self._cy.$(":selected").unselect();
       self._simulator.hideStateInfo();
+      // nothing is selected any more, so nothing should still be
+      // sitting there editable -- this is also the deselect path,
+      // through unselectNodes()
+      self._simulator.showInspector( null );
     };
 
     /* * * * * * * * Transition Selection  * * * * * * * */
