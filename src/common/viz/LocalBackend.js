@@ -88,6 +88,14 @@ define(['./ModelBackend', '../metaRules'], function (ModelBackend, metaRules) {
   };
 
   LocalBackend.prototype.getNodeInfo = function (id) {
+    // An id is a string. Anything else is a caller's mistake, and
+    // answering it anyway is how a node once ended up with an ARRAY
+    // for its type: `objects[['State']]` and `TYPES[['State']]` both
+    // coerce to the string and find something, and `['State'] ==
+    // 'State'` then passes every check downstream. Cytoscape's
+    // stylesheet, which compares exactly, was the only thing that
+    // noticed.
+    if (typeof id !== 'string') return null;
     var obj = this._objects()[id];
     if (obj) {
       return {

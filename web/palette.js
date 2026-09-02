@@ -13,20 +13,13 @@
  * `backend.getNodeInfo`, which answers for type names as well as for
  * objects. Nothing here needs to know how a node gets created.
  */
-define(['jquery', 'hfsm/metaRules'], function ($, metaRules) {
+define(['jquery', 'hfsm/viz/describe'], function ($, describe) {
   'use strict';
 
-  /**
-   * Everything the metamodel can instantiate, minus the connections:
-   * a transition is DRAWN between two states with the edge handle,
-   * not dropped onto one, and offering it here would only produce
-   * drops the widget has to refuse.
-   */
-  function creatableTypes() {
-    return metaRules.concreteTypes().filter(function (name) {
-      return !metaRules.isConnection(name);
-    });
-  }
+  // What may be offered is a display rule, not a palette rule: it is
+  // the same question as "does the diagram draw this", which both
+  // hosts have to agree on. `describe` owns it.
+  var creatableTypes = describe.creatableTypes;
 
   /**
    * @param container  where to build it

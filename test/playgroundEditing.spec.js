@@ -55,24 +55,34 @@ describe('playground editing', function () {
     return load('playground-editing', [
       'palette', 'host',
       'hfsm/metaRules', 'hfsm/viz/LocalBackend', 'hfsm/resolveModel',
+      'hfsm/viz/describe', 'hfsm/checkModel',
     ]).then(function (loaded) {
       mods.palette = loaded[0];
       mods.PlaygroundHost = loaded[1];
       mods.metaRules = loaded[2];
       mods.LocalBackend = loaded[3];
       mods.resolveModel = loaded[4];
+      mods.describe = loaded[5];
+      mods.checkModel = loaded[6];
     });
   });
 
   describe('the palette', function () {
 
-    it('offers every type the metamodel can instantiate', function () {
-      var offered = mods.palette.creatableTypes();
-      mods.metaRules.concreteTypes().forEach(function (type) {
-        if (mods.metaRules.isConnection(type)) return;
-        assert.ok(offered.indexOf(type) > -1,
-                  type + ' can be created but is not in the palette');
-      });
+    it('offers exactly what can be drawn inside a state', function () {
+      // Anything else is a part that can be picked up and dropped and
+      // then is not there -- see describe.creatableTypes for why each
+      // kind of exclusion matters.
+      assert.deepStrictEqual(mods.palette.creatableTypes(), [
+        'Choice Pseudostate',
+        'Deep History Pseudostate',
+        'Documentation',
+        'End State',
+        'Initial',
+        'Internal Transition',
+        'Shallow History Pseudostate',
+        'State',
+      ]);
     });
 
     it('offers nothing abstract', function () {
@@ -92,6 +102,76 @@ describe('playground editing', function () {
       assert.ok(offered.indexOf('Local Transition') === -1);
       assert.ok(offered.indexOf('Internal Transition') > -1,
                 'an internal transition IS a child, not a connection');
+    });
+
+    it('leaves out what the graph does not draw', function () {
+      // An Event or a Field belongs to the simulator's panels, not to
+      // the canvas: dropped on the diagram it simply vanishes. Worse,
+      // a new Event is named "Event", which is a reserved name -- the
+      // simulator then warns about it with a MODAL, on every refresh,
+      // and the page cannot be used until it is dismissed.
+      var offered = mods.palette.creatableTypes();
+      mods.describe.NON_GRAPH_TYPES.forEach(function (type) {
+        assert.ok(offered.indexOf(type) === -1,
+                  type + ' is not drawn and must not be offered');
+      });
+      assert.strictEqual(mods.checkModel.isValidString('Event'), false,
+                         'the reason Event is dangerous: the default ' +
+                         'name a new one gets is reserved');
+    });
+
+    it('leaves out what has nowhere to land', function () {
+      // The diagram draws INTO a state, a machine or a library. A
+      // Language nests only inside another Language, and a machine or
+      // a library is the thing being drawn rather than something to
+      // drop into it.
+      var offered = mods.palette.creatableTypes();
+      ['Language', 'Library', 'State Machine'].forEach(function (type) {
+        assert.ok(offered.indexOf(type) === -1,
+                  type + ' cannot be a child of anything drawable');
+      });
+    });
+
+    it('offers only what a state or a machine will actually accept',
+       function () {
+         // the drop is validated against the metamodel, so anything
+         // offered that no container allows is a guaranteed refusal
+         var containers = ['State', 'State Machine', 'Library'];
+         mods.palette.creatableTypes().forEach(function (type) {
+           var fits = containers.some(function (c) {
+             return !!mods.metaRules.childRules(c)[type];
+           });
+           assert.ok(fits, type + ' is offered but nothing can contain it');
+         });
+       });
+  });
+
+  describe('what the diagram draws', function () {
+
+    it('drops the Project wrapper an export puts around the model',
+       function () {
+         // it is a container for the file, not part of the machine:
+         // WebGME never feeds it, because the visualizer opens on the
+         // machine itself, so drawing it is a stray empty box beside
+         // the diagram
+         assert.strictEqual(
+           mods.describe.finish({ id: '/p', name: 'FixtureProject',
+                                  type: 'Project' }),
+           null);
+       });
+
+    it('keeps everything the metamodel does describe', function () {
+      Object.keys(mods.metaRules.types).forEach(function (type) {
+        var desc = mods.describe.finish({ id: '/x', name: 'n', type: type });
+        assert.ok(desc, type + ' is in the metamodel and must be kept');
+      });
+    });
+
+    it('still gives a machine no parent to nest inside', function () {
+      var desc = mods.describe.finish({ id: '/p/m', name: 'M',
+                                        type: 'State Machine',
+                                        parentId: '/p' });
+      assert.strictEqual(desc.parentId, null);
     });
   });
 
@@ -159,6 +239,20 @@ describe('playground editing', function () {
       var backend = machine();
       assert.strictEqual(backend.getNodeInfo('/p/m/A').type, 'State');
       assert.strictEqual(backend.getNodeInfo('/p/m/A').id, '/p/m/A');
+    });
+
+    it('refuses an id that is not a string', function () {
+      // The drag carries a LIST of items, and handing the whole list
+      // over as one id used to "work": every lookup coerced it to a
+      // string and every `==` comparison passed, so the node was
+      // created with an array for its type and drew with the wrong
+      // shape. Answering only for strings makes that a refusal
+      // instead of a wrong answer.
+      var backend = machine();
+      [['State'], ['/p/m/A'], null, undefined, 42, {}].forEach(function (bad) {
+        assert.strictEqual(backend.getNodeInfo(bad), null,
+                           JSON.stringify(bad) + ' is not an id');
+      });
     });
 
     it('refuses a name that is not a concrete type', function () {

@@ -10,6 +10,7 @@ define([
   "text!./HFSM.html",
   "./Dialog/Dialog",
   "hfsm/viz/HostServices",
+  "hfsm/viz/describe",
   "hfsm/viz/layoutInput",
   "./Simulator/Simulator",
   "./Simulator/Choice",
@@ -36,6 +37,7 @@ define([
     HFSMHtml,
     Dialog,
     HostServices,
+    describe,
     layoutInput,
     Simulator,
     Choice,
@@ -67,10 +69,15 @@ define([
     cytoscape.use( cyPanZoom, $ );
     cytoscape.use( coseBilkent );
 
-    var rootTypes = ["State Machine","Library"];
-    // types tracked for the simulator (event payload definitions) but
-    // never rendered in the state machine graph
-    var nonGraphTypes = ["Event", "Field"];
+    // Both lists live in `describe`, which is where the other rules
+    // about what the graph draws already are -- the palette needs the
+    // same answers, and three copies of them would eventually
+    // disagree.
+    var rootTypes = describe.ROOT_TYPES;
+    var nonGraphTypes = describe.NON_GRAPH_TYPES;
+
+    // how far apart to place parts dropped in the same gesture
+    var DROP_STAGGER = 20;
 
     var HFSMVizWidget,
         WIDGET_CLASS = "h-f-s-m-viz";
@@ -1234,6 +1241,34 @@ define([
       return gmePos;
     };
 
+    /**
+     * Whether a position out of the model should be written back onto
+     * a node that is already on the graph.
+     *
+     * Two reasons it should not, both of which made dragging one
+     * state disturb its neighbours -- and worse every time, since
+     * each drag saved the disturbed positions and fed them back in:
+     *
+     * A COMPOUND PARENT has no position of its own. Cytoscape derives
+     * it from the children, and setting it moves the entire subtree
+     * by the difference. Dragging a child changes its parent's
+     * derived position, that gets saved, and putting it back shifts
+     * every sibling.
+     *
+     * A position that MATCHES where the node already is means the
+     * model is only telling us what we did. Comparing against the
+     * previous descriptor instead is not the same question, and it
+     * is not free to answer wrongly: the value is converted through
+     * the node's current width and height, which change as a
+     * container's contents move.
+     */
+    HFSMVizWidget.prototype.shouldApplyPosition = function(cyNode, desc) {
+      var self = this;
+      if (!desc.position || cyNode.isParent())
+        return false;
+      return self.needToUpdatePosition(self.cyPosition(cyNode), desc.position);
+    };
+
     HFSMVizWidget.prototype.needToUpdatePosition = function(pos1, pos2) {
       var dx = Math.abs(pos1.x - pos2.x);
       var dy = Math.abs(pos1.y - pos2.y);
@@ -1602,11 +1637,10 @@ define([
             cyNode.data( this.getDescData(desc) );
             // update position from model
             if (!_.isEqual(oldDesc.position, desc.position)) {
-              //console.log(`${desc.name}: (old, new)`);
-              //console.log(oldDesc.position);
-              //console.log(desc.position);
               if (rootTypes.indexOf(desc.type) == -1) {
-                self.cyPosition(cyNode, self.gmePosToCyPos(desc));
+                if (self.shouldApplyPosition(cyNode, desc)) {
+                  self.cyPosition(cyNode, self.gmePosToCyPos(desc));
+                }
                 delete this._unsavedNodePositions[desc.id];
               }
             }
@@ -1850,36 +1884,58 @@ define([
       return canCreate;
     };
 
-    HFSMVizWidget.prototype._createNode = function( baseId, parentId, childPosition ) {
+    /**
+     * Create one child per dragged item.
+     *
+     * A drag carries a LIST -- that is what `dragInfo.items` is --
+     * and this used to hand the whole array to the backend as though
+     * it were a single id. Nothing complained: JavaScript compares
+     * `["State"] == "State"` as true, so every type check downstream
+     * passed and the node was created with an ARRAY for its type.
+     * Cytoscape's stylesheet matches data exactly, so
+     * `node[NodeType = "Choice Pseudostate"]` did not match it and
+     * every dropped part fell back to the default shape -- a state
+     * looked right by luck, a pseudostate looked like a state.
+     */
+    HFSMVizWidget.prototype._createNode = function( baseIds, parentId, childPosition ) {
       var self = this;
+      var items = _.isArray(baseIds) ? baseIds : (baseIds ? [baseIds] : []);
+      if (!items.length)
+        return;
 
-      if (baseId) {
-        var selector = gmeIdToCySelector(parentId),
-            cyNode = self._cy.$(selector);
-        self.forceShowChildren( cyNode.id() );
-        var pos = self.screenPosToCyPos( childPosition );
+      var selector = gmeIdToCySelector(parentId),
+          cyNode = self._cy.$(selector);
+      self.forceShowChildren( cyNode.id() );
+      var pos = self.screenPosToCyPos( childPosition );
 
-        // captured inside the body so the completion callback sees
-        // it even if a backend settles synchronously
-        var newChildPath = null;
-        self._backend.transact("Creating new child", function () {
-          // baseId here is a palette entry: ask the backend what it
-          // is, so the widget never resolves meta types itself
+      // captured inside the body so the completion callback sees
+      // them even if a backend settles synchronously
+      var newChildPaths = [];
+      self._backend.transact("Creating new child", function () {
+        items.forEach(function (baseId, index) {
+          // a palette entry: ask the backend what it is, so the
+          // widget never resolves meta types itself
           var info = self._backend.getNodeInfo(baseId);
-          newChildPath = self._backend.createChild(parentId, info && info.type,
-                                                   { position: pos });
-          return newChildPath;
-        }, function (err) {
-          // don't select a node the store rejected
-          if (err) {
-            console.error("Could not create child: ", err);
+          if (!info || !info.type)
             return;
-          }
-          if (newChildPath) {
-            self._backend.setActiveSelection([newChildPath], self);
-          }
+          // dropped together, so stagger them rather than stacking
+          // every one on the same point
+          var at = { x: pos.x + index * DROP_STAGGER,
+                     y: pos.y + index * DROP_STAGGER };
+          newChildPaths.push(
+            self._backend.createChild(parentId, info.type, { position: at }));
         });
-      }
+        return newChildPaths;
+      }, function (err) {
+        // don't select nodes the store rejected
+        if (err) {
+          console.error("Could not create child: ", err);
+          return;
+        }
+        if (newChildPaths.length) {
+          self._backend.setActiveSelection(newChildPaths, self);
+        }
+      });
     };
 
     HFSMVizWidget.prototype._instanceNodes = function( nodeIds, parentId, childPosition ) {

@@ -112,9 +112,19 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     if (overflowX > 0) menu.css('left', Math.max(0, parseFloat(menu.css('left')) - overflowX - 4));
     if (overflowY > 0) menu.css('top', Math.max(0, parseFloat(menu.css('top')) - overflowY - 4));
 
-    // dismissed by clicking away or by Escape, like any other menu
+    // Dismissed by clicking AWAY, or by Escape.
+    //
+    // "Away" has to be checked: this listens on mousedown, which
+    // happens BEFORE the item's own click. Without the containment
+    // test, pressing the mouse over an item tore the menu down and
+    // the click then landed on nothing -- so choosing which kind of
+    // transition to draw appeared to do nothing at all.
     var dismiss = function (event) {
       if (event.type === 'keydown' && event.key !== 'Escape') return;
+      if (event.type === 'mousedown' && self._menu &&
+          self._menu.contains(event.target)) {
+        return;
+      }
       self.closeMenu();
       $(document).off('mousedown', dismiss).off('keydown', dismiss);
     };
