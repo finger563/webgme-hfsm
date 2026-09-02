@@ -256,6 +256,58 @@ describe('playground editing', function () {
                             'and this is what the generated name becomes');
        });
 
+    it('does not offer to name a transition', function () {
+      // A transition's name is bookkeeping: the generator never emits
+      // it, and the diagram labels a transition `EVENT [guard]`, so
+      // nothing shows it. A field that looks like it matters and
+      // changes nothing is worse than no field.
+      ['External Transition', 'Local Transition', 'Internal Transition']
+        .forEach(function (type) {
+          var schema = {
+            name: type,
+            isConnection: mods.metaRules.isConnection(type),
+            attributes: attrs(type),
+          };
+          var shown = mods.describe.editableAttributes(schema)
+              .map(function (a) { return a.name; });
+          assert.ok(shown.indexOf('name') === -1,
+                    type + ' should not offer a name');
+          assert.deepStrictEqual(shown, ['Event', 'Guard', 'Action', 'Enabled'],
+                                 type + ': what is left is what it does');
+        });
+    });
+
+    it('keeps the name on everything the diagram labels by it', function () {
+      Object.keys(mods.metaRules.types).forEach(function (type) {
+        if (mods.metaRules.isAbstract(type)) return;
+        var schema = {
+          name: type,
+          isConnection: mods.metaRules.isConnection(type),
+          attributes: attrs(type),
+        };
+        if (mods.describe.labelledByEvent(schema)) return;   // transitions
+        var shown = mods.describe.editableAttributes(schema)
+            .map(function (a) { return a.name; });
+        assert.ok(shown.indexOf('name') > -1, type + ' should keep its name');
+      });
+    });
+
+    it('agrees with the label the diagram draws', function () {
+      // one rule, so the field list and the label cannot disagree
+      // about what a transition is
+      var edge = mods.describe.finish({ id: '/t', name: 'anything',
+                                        type: 'External Transition',
+                                        isConnection: true, Event: 'GO',
+                                        Guard: 'x > 1' });
+      assert.strictEqual(edge.LABEL, 'GO [x > 1]', 'labelled by its event');
+      var internal = mods.describe.finish({ id: '/i', name: 'anything',
+                                            type: 'Internal Transition',
+                                            Event: 'TICK' });
+      assert.strictEqual(internal.LABEL, 'TICK');
+      var state = mods.describe.finish({ id: '/s', name: 'Idle', type: 'State' });
+      assert.strictEqual(state.LABEL, 'Idle', 'a state is labelled by its name');
+    });
+
     it('names the attributes that must be C++ identifiers', function () {
       // an Event that is not one reaches the simulator, which says so
       // with a modal; a name that is not one reaches the generator

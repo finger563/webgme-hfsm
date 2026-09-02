@@ -48,8 +48,23 @@ define(['../metaRules'], function (metaRules) {
    */
   var IDENTIFIER_ATTRIBUTES = ['name', 'Event'];
 
+  /**
+   * Whether the diagram labels this by its EVENT rather than by its
+   * name -- which is what a transition is, connection or not: an
+   * Internal Transition is a child rather than an edge, and still
+   * reads `EVENT [guard]`.
+   *
+   * @param what  a descriptor ({type, isConnection}) or a schema
+   *              ({name, isConnection})
+   */
+  function labelledByEvent(what) {
+    if (!what) return false;
+    return !!what.isConnection ||
+      what.type === 'Internal Transition' || what.name === 'Internal Transition';
+  }
+
   function isTransition(desc) {
-    return desc.isConnection || desc.type === 'Internal Transition';
+    return labelledByEvent(desc);
   }
 
   return {
@@ -73,6 +88,29 @@ define(['../metaRules'], function (metaRules) {
       if (attr.type === 'float' || attr.type === 'integer') return 'number';
       if (CODE_ATTRIBUTES.indexOf(attr.name) > -1) return 'code';
       return 'text';
+    },
+
+    labelledByEvent: labelledByEvent,
+
+    /**
+     * The attributes worth putting in front of someone editing a node
+     * of this type, in the order to show them.
+     *
+     * A transition's `name` is left out. It is bookkeeping: the
+     * generator never emits it -- rename every transition in a model
+     * and the generated code is byte for byte the same -- and the
+     * diagram labels a transition `EVENT [guard]`, so nothing shows
+     * it either. A field that looks like it matters and changes
+     * nothing is worse than no field.
+     *
+     * @param schema  from getNodeSchema / getChildTypeSchemas
+     */
+    editableAttributes: function (schema) {
+      var attributes = (schema && schema.attributes) || [];
+      if (labelledByEvent(schema)) {
+        attributes = attributes.filter(function (a) { return a.name !== 'name'; });
+      }
+      return this.fieldOrder(attributes);
     },
 
     /**

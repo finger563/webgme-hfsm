@@ -145,7 +145,7 @@ define(['hfsm/viz/describe',
         $('<span class="inspector-id"></span>').text(id)));
 
     var fields = $('<div class="inspector-fields"></div>');
-    describe.fieldOrder(schema.attributes).forEach(function (attr) {
+    describe.editableAttributes(schema).forEach(function (attr) {
       fields.append(self._renderField(id, attr, node, readOnly));
     });
     self._el.append(fields);
