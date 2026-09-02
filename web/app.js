@@ -122,25 +122,46 @@
   var DRAFT_KEY = 'hfsm-playground:draft';
   var SAVE_DELAY = 400;
   var draftTimer = null;
+  var restoredDraft = null;   // what this tab came back to, if anything
+
+  function writeDraft() {
+    draftTimer = null;
+    var text = getModelText();
+    try {
+      if (!text.trim()) sessionStorage.removeItem(DRAFT_KEY);
+      else sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+        text: text,
+        namespace: el('namespaceInput').value,
+        testBench: el('testBenchInput').checked,
+        // which half of the output was showing, so a refresh puts you
+        // back where you were rather than on the Code tab
+        tab: vizShown ? 'diagram' : 'code',
+      }));
+    } catch (e) {
+      // private browsing, a full quota, storage disabled -- none of
+      // which should cost anyone their editing session
+    }
+  }
 
   function rememberDraft() {
     // debounced: this runs on every keystroke
     if (draftTimer) clearTimeout(draftTimer);
-    draftTimer = setTimeout(function () {
-      draftTimer = null;
-      var text = getModelText();
-      try {
-        if (!text.trim()) sessionStorage.removeItem(DRAFT_KEY);
-        else sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
-          text: text,
-          namespace: el('namespaceInput').value,
-          testBench: el('testBenchInput').checked,
-        }));
-      } catch (e) {
-        // private browsing, a full quota, storage disabled -- none of
-        // which should cost anyone their editing session
-      }
-    }, SAVE_DELAY);
+    draftTimer = setTimeout(writeDraft, SAVE_DELAY);
+  }
+
+  /**
+   * Write the pending draft NOW.
+   *
+   * Without this the debounce is a hole exactly where it hurts:
+   * type, hit Cmd-R within the delay, and the timer dies with the
+   * page having saved nothing -- which looks precisely like the
+   * feature not working.
+   */
+  function flushDraft() {
+    if (draftTimer) {
+      clearTimeout(draftTimer);
+      writeDraft();
+    }
   }
 
   /** @return true if a draft was restored */
@@ -154,6 +175,7 @@
     if (!saved || typeof saved.text !== 'string' || !saved.text.trim()) {
       return false;
     }
+    restoredDraft = saved;
     setModelText(saved.text);
     if (typeof saved.namespace === 'string') {
       el('namespaceInput').value = saved.namespace;
@@ -831,6 +853,14 @@
     loadExampleList();
     wireDragAndDrop();
 
+    // Last chance to save. `pagehide` fires for a reload, a
+    // navigation and a tab close alike, and unlike `beforeunload` it
+    // does not risk a "leave site?" prompt.
+    window.addEventListener('pagehide', flushDraft);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') flushDraft();
+    });
+
     // typing into the plain textarea, when CodeMirror never loaded
     el('modelInput').addEventListener('input', rememberDraft);
     // the namespace and the test-bench toggle are part of the draft
@@ -878,7 +908,7 @@
   // has loaded, so the text is on screen immediately -- and quietly,
   // because from the user's side nothing happened: they refreshed and
   // their model is still there.
-  var restored = restoreDraft();
+  restoreDraft();
 
   requirejs([CM_ID].concat(CM_MODES), function (cm) {
     try {
@@ -905,10 +935,19 @@
       exporters: exporters,
       MetaTemplates: MetaTemplates,
     };
-    // say it here rather than at restore time: 'ready' lands after
-    // the generator loads and would overwrite anything said earlier,
-    // leaving the user with no sign their work came back
-    setStatus(restored ? 'ready \u00b7 restored this tab\u2019s model' : 'ready');
+    setStatus('ready');
+
+    // Put the tab back the way it was, not just the text in it.
+    //
+    // Restoring the model alone left the output empty and the diagram
+    // blank until you pressed Generate -- the work was there but the
+    // session was not, which reads as the model not being loaded at
+    // all. Generating takes well under a second for these, and it is
+    // what had already happened before the refresh.
+    if (restoredDraft) {
+      generate();
+      if (restoredDraft.tab === 'diagram') showTab('diagram');
+    }
   }, function (err) {
     showDiagnostics(['Failed to load the generator modules: ' + err.message,
                      'If you opened this file directly, serve it over http instead ' +

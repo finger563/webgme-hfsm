@@ -9,7 +9,7 @@
     "test:generated": "./scripts/run_generated_tests.sh",
     "postinstall": "bower install",
     "build:web": "./scripts/build-web.sh",
-    "web": "./scripts/build-web.sh && python3 -m http.server -d dist/web 8080",
+    "web": "./scripts/build-web.sh && ./scripts/serve-web.py dist/web 8080",
     "verify:web": "node scripts/verify-web-build.js",
     "gen:meta": "node scripts/gen-meta.js",
     "check:meta": "node scripts/gen-meta.js --check"

@@ -19,8 +19,14 @@ or, to build and serve separately:
 
 ```bash
 npm run build:web                          # -> dist/web
-python3 -m http.server -d dist/web 8080
+./scripts/serve-web.py dist/web 8080
 ```
+
+`serve-web.py` is `http.server` with caching turned off. Plain
+`python3 -m http.server` sends no cache headers, so a browser keeps
+serving the module it fetched before your last build and the page
+stops changing when the code does — which looks like a bug in the
+page, not in the server.
 
 It must be served over http(s): the template loader uses XHR, so
 opening `index.html` from the filesystem will not work.
