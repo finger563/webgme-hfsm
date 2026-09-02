@@ -6,3 +6,37 @@ h3 {
 .dialog-error {
     margin: 8px 16px 0 16px;
 }
+
+/* code and prose are created the way they are edited: with room.
+   `describe.fieldKind` decides which is which, so this form and the
+   inspector cannot disagree about it. */
+textarea.dialog-code {
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    resize: vertical;
+    white-space: pre;
+    overflow-x: auto;
+}
+textarea.dialog-prose {
+    width: 100%;
+    font-size: 12px;
+    line-height: 1.45;
+    resize: vertical;
+    white-space: pre-wrap;
+}
+
+/* why a value was refused, beside the field it was refused in */
+.dialog-field-error {
+    display: none;
+    color: #cf222e;
+    font-size: 11px;
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+}
+.form-group.has-error .dialog-field-error { display: block; }
+.form-group.has-error input,
+.form-group.has-error textarea {
+    border-color: #cf222e;
+}
