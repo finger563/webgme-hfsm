@@ -74,6 +74,17 @@ define(['hfsm/viz/describe',
               this._el[0].contains(document.activeElement));
   };
 
+  /** enable or disable every control in one place */
+  Inspector.prototype._setReadOnly = function (readOnly) {
+    var self = this;
+    Object.keys(self._fields).forEach(function (name) {
+      var field = self._fields[name];
+      field.input.prop('disabled', !!readOnly);
+      if (field.cm) field.cm.setOption('readOnly', !!readOnly);
+      if (field.expandBtn) field.expandBtn.prop('disabled', !!readOnly);
+    });
+  };
+
   /** detach the editors before the elements holding them go */
   Inspector.prototype._release = function () {
     var self = this;
@@ -103,6 +114,13 @@ define(['hfsm/viz/describe',
     if (!self._id) return;
     var node = self._backend.getNode(self._id);
     if (!node) return self.clear();
+
+    // Read-only is a property of the BRANCH, and that changes under a
+    // selection that does not: going to a read-only branch used to
+    // leave the form editable, and coming back from one used to leave
+    // it disabled, because it was only ever read when the form was
+    // built.
+    self._setReadOnly(self._backend.isReadOnly());
 
     Object.keys(self._fields).forEach(function (name) {
       var field = self._fields[name];
@@ -146,7 +164,7 @@ define(['hfsm/viz/describe',
 
     var fields = $('<div class="inspector-fields"></div>');
     describe.editableAttributes(schema).forEach(function (attr) {
-      fields.append(self._renderField(id, attr, node, readOnly));
+      fields.append(self._renderField(id, attr, node, readOnly, schema.name));
     });
     self._el.append(fields);
     self._highlight();
@@ -160,7 +178,7 @@ define(['hfsm/viz/describe',
     return value;
   }
 
-  Inspector.prototype._renderField = function (id, attr, node, readOnly) {
+  Inspector.prototype._renderField = function (id, attr, node, readOnly, type) {
     var self = this;
     var kind = describe.fieldKind(attr);
     var value = valueOf(node, attr);
@@ -190,7 +208,8 @@ define(['hfsm/viz/describe',
     if (readOnly) input.prop('disabled', true);
 
     var error = $('<div class="inspector-error"></div>').hide();
-    var field = { input: input, kind: kind, attr: attr, row: row, cm: null };
+    var field = { input: input, kind: kind, attr: attr, row: row, cm: null,
+                  type: type };
     self._fields[attr.name] = field;
 
     function commit() {
@@ -205,14 +224,14 @@ define(['hfsm/viz/describe',
         if (field.cm) field.cm.setValue(String(next));
         else field.input.val(next);
       }
-      var problem = self._reject(attr, next);
+      var problem = self._reject(attr, next, type);
       if (problem) {
         error.text(problem).show().removeClass('is-note');
         row.addClass('is-invalid');
         return;
       }
       row.removeClass('is-invalid');
-      var note = self._note(attr, next);
+      var note = self._note(attr, next, type);
       if (note) error.text(note).addClass('is-note').show();
       else error.hide();
       self._write(id, attr, next);
@@ -251,8 +270,10 @@ define(['hfsm/viz/describe',
                      'aria-label="Edit ' + attr.name + ' in a larger editor">' +
                      '\u2921</button>');
       expand.on('click', function () { self._expand(id, attr); });
+      if (readOnly) expand.prop('disabled', true);
       control.append(expand);
       field.expand = function () { self._expand(id, attr); };
+      field.expandBtn = expand;
     }
 
     return row.append(label, control);
@@ -342,7 +363,7 @@ define(['hfsm/viz/describe',
     return value.trim();
   };
 
-  Inspector.prototype._reject = function (attr, value) {
+  Inspector.prototype._reject = function (attr, value, type) {
     if (describe.IDENTIFIER_ATTRIBUTES.indexOf(attr.name) === -1) return null;
     var text = String(value == null ? '' : value);
     // an empty Event means "no trigger", which is a real thing to be;
@@ -351,13 +372,16 @@ define(['hfsm/viz/describe',
       return attr.name === 'name' ? 'A name is required.' : null;
     }
 
-    var asGenerated = attr.name === 'name' ? checkModel.sanitizeString(text) : text;
-    if (!checkModel.isValidString(asGenerated)) {
-      // short on purpose: the panel is narrow, and a paragraph here
-      // wraps to eight lines and pushes the rest of the form off
-      return 'Not a usable C++ name.';
+    if (attr.name === 'Event') {
+      // a transition's trigger: emitted verbatim, never sanitized
+      return checkModel.isValidString(text) ? null : 'Not a usable C++ name.';
     }
-    return null;
+    // `name` is not one rule: an Event or a Field name is checked
+    // raw, an End State may be called "End State", everything else is
+    // sanitized first. checkModel owns that -- asking it is what
+    // stops the editor refusing what the generator accepts, and
+    // accepting what it refuses.
+    return checkModel.nameProblem(type, text);
   };
 
   /**
@@ -365,8 +389,10 @@ define(['hfsm/viz/describe',
    * space in it is fine, but it is not what appears in the generated
    * code, and nothing else in the tool ever mentions that.
    */
-  Inspector.prototype._note = function (attr, value) {
-    if (attr.name !== 'name') return null;
+  Inspector.prototype._note = function (attr, value, type) {
+    // only where the name IS sanitized: an Event or a Field name is
+    // emitted exactly as typed, so there is nothing to report
+    if (attr.name !== 'name' || type === 'Event' || type === 'Field') return null;
     var text = String(value == null ? '' : value);
     var asGenerated = checkModel.sanitizeString(text);
     return asGenerated === text ? null : 'Generated as ' + asGenerated;

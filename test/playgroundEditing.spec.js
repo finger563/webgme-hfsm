@@ -360,6 +360,45 @@ describe('playground editing', function () {
       });
     });
 
+    it('applies the name rule the CHECKER applies, per type', function () {
+      // Three different rules hide behind "name", and getting them
+      // wrong is invisible until a model is generated:
+      //
+      //  - an Event or Field name is emitted VERBATIM, so
+      //    'BUTTON-PRESS' must be refused rather than quietly become
+      //    BUTTON_PRESS;
+      //  - 'End_State' is a reserved generated name, so every other
+      //    type is refused it -- and the End State itself is not;
+      //  - everything else is sanitized first, so 'State 1' is fine.
+      function reject(type, name) {
+        return mods.Inspector.prototype._reject({ name: 'name' }, name, type);
+      }
+      assert.ok(reject('Event', 'BUTTON-PRESS'), 'an Event name is raw');
+      assert.strictEqual(reject('Event', 'BUTTON_PRESS'), null);
+      assert.ok(reject('Field', 'val-1'), 'a Field name is raw too');
+      assert.strictEqual(reject('Field', 'val_1'), null);
+
+      assert.strictEqual(reject('End State', 'End State'), null,
+                         'the conventional End State name is allowed');
+      assert.ok(reject('State', 'End State'),
+                'but nothing else may generate End_State');
+
+      assert.strictEqual(reject('State', 'State 1'), null, 'sanitized');
+      assert.ok(reject('State', '2fast'));
+      assert.ok(reject('State', 'class'), 'nor a C++ keyword');
+    });
+
+    it('says nothing about sanitizing where nothing is sanitized',
+       function () {
+         var note = function (type, name) {
+           return mods.Inspector.prototype._note({ name: 'name' }, name, type);
+         };
+         assert.strictEqual(note('State', 'State 1'), 'Generated as State_1');
+         assert.strictEqual(note('Event', 'GO'), null);
+         assert.strictEqual(note('Field', 'val'), null,
+                            'a Field name is emitted as typed');
+       });
+
     it('trims a name too, and reports it as the checker would', function () {
       var stored = normalize('name', '  State 1  ');
       assert.strictEqual(stored, 'State 1');

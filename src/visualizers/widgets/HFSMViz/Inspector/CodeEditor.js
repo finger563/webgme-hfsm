@@ -37,6 +37,9 @@ define(['require'], function (require) {
    * sessions never open. Loading it on demand does neither, and the
    * first open costs one fetch of an already-vendored file.
    */
+  // so two dialogs never share a title id
+  var dialogCount = 0;
+
   var pending = null;
   function editor() {
     if (!pending) {
@@ -151,9 +154,14 @@ define(['require'], function (require) {
       ensureStylesheet();
       var CodeMirror = null;
       var overlay = $('<div class="code-modal-overlay"></div>');
-      var box = $('<div class="code-modal" role="dialog" aria-modal="true"></div>');
+      // a dialog announces itself by its heading; without the link a
+      // screen reader reaches an unnamed one
+      var titleId = 'code-modal-title-' + (++dialogCount);
+      var box = $('<div class="code-modal" role="dialog" aria-modal="true"></div>')
+          .attr('aria-labelledby', titleId);
       var head = $('<div class="code-modal-head"></div>').append(
-        $('<span class="code-modal-title"></span>').text(opts.title || 'Code'),
+        $('<span class="code-modal-title"></span>')
+          .attr('id', titleId).text(opts.title || 'Code'),
         $('<span class="code-modal-subtitle"></span>').text(opts.subtitle || ''));
       var body = $('<div class="code-modal-body"></div>');
       var area = $('<textarea></textarea>').val(opts.value || '');
