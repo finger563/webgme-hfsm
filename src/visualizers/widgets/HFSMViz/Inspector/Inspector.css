@@ -1,0 +1,223 @@
+/* The attribute inspector -- see Inspector.js for why it is not a
+   property grid. */
+
+.hfsm-inspector {
+    font-size: 12px;
+    padding: 4px 6px 8px;
+}
+
+.inspector-empty {
+    color: #57606a;
+    font-style: italic;
+    padding: 6px 2px;
+}
+
+.inspector-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 2px 0 6px;
+    border-bottom: 1px solid #d0d7de;
+    margin-bottom: 6px;
+}
+.inspector-type { font-weight: 600; }
+.inspector-id {
+    color: #57606a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inspector-row {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 6px;
+    align-items: start;
+    margin-bottom: 5px;
+}
+.inspector-label {
+    color: #57606a;
+    text-align: right;
+    padding-top: 3px;
+    margin: 0;
+    font-weight: normal;
+    overflow-wrap: anywhere;
+}
+.inspector-control { min-width: 0; }
+
+.inspector-input {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 12px;
+    padding: 2px 5px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #fff;
+}
+.inspector-input:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, .15);
+}
+.inspector-row.kind-checkbox .inspector-input { width: auto; }
+
+/* code is shown as code -- a one-line box for an Entry block is the
+   single worst thing about editing this model in a property grid */
+textarea.inspector-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    resize: vertical;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+/* markdown, not code: proportional, wrapping, growing with what is
+   written */
+textarea.inspector-prose {
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.45;
+    resize: vertical;
+    white-space: pre-wrap;
+    min-height: 44px;
+}
+
+/* CodeMirror, once it has taken the textarea over. Its height comes
+   from CodeEditor.inline via setSize, in pixels: this panel scrolls,
+   and an editor sized by its content measures against a width that
+   depends on whether the panel's scrollbar is showing. */
+.inspector-control .CodeMirror.inspector-cm {
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    background: #fff;
+}
+.inspector-control .CodeMirror.inspector-cm.CodeMirror-focused {
+    border-color: #0969da;
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, .15);
+}
+.inspector-row.is-invalid .CodeMirror.inspector-cm { border-color: #cf222e; }
+
+/* the way out to a bigger editor */
+.inspector-expand {
+    float: right;
+    margin-top: 2px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #57606a;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.inspector-expand:hover {
+    color: #0969da;
+    border-color: #d0d7de;
+    background: #f6f8fa;
+}
+
+.inspector-error {
+    color: #cf222e;
+    font-size: 11px;
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+}
+.inspector-row.is-invalid .inspector-input { border-color: #cf222e; }
+
+/* an accepted value with something worth knowing about it -- a name
+   with a space is fine, but it is not what the generator emits */
+.inspector-error.is-note { color: #57606a; }
+
+/* ---- the pop-out code editor ----------------------------------- */
+
+.code-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(27, 31, 36, .5);
+}
+.code-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(980px, 92vw);
+    height: min(680px, 88vh);
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(66, 74, 83, .4);
+    overflow: hidden;
+}
+.code-modal-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.code-modal-title { font-weight: 600; font-size: 14px; }
+.code-modal-subtitle {
+    color: #57606a;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* the editor takes whatever is left, rather than the modal growing to
+   fit the code -- a long Entry block should scroll, not push the
+   buttons off the bottom of the screen */
+.code-modal-body { flex: 1 1 auto; min-height: 0; position: relative; }
+.code-modal-body .CodeMirror {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.code-modal-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.code-modal-hint {
+    margin-right: auto;
+    color: #57606a;
+    font-size: 11px;
+}
+.code-modal-buttons button {
+    font: inherit;
+    font-size: 12px;
+    padding: 5px 14px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+}
+.code-modal-buttons button.primary {
+    background: #1f883d;
+    border-color: #1f883d;
+    color: #fff;
+}
+
+/* prose in the pop-out reads as prose: wrapped, and not in a
+   monospace column the width of the screen */
+.code-modal.is-prose .CodeMirror {
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+}

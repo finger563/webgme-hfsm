@@ -36,6 +36,10 @@
       'css': 'vendor/css.min',
       'jquery': 'vendor/jquery.min',
       'bootstrap': 'vendor/bootstrap.min',
+      // the widget edits code attributes in CodeMirror; this is the
+      // same copy the page itself uses, under the id the widget asks
+      // for (WebGME maps it too -- see config/config.default.js)
+      'codemirror': 'vendor/codemirror',
       'cytoscape-edgehandles': 'vendor/bower/cytoscape-edgehandles/cytoscape-edgehandles',
       'cytoscape-context-menus': 'vendor/bower/cytoscape-context-menus/cytoscape-context-menus',
       'cytoscape-panzoom': 'vendor/bower/cytoscape-panzoom/cytoscape-panzoom',
@@ -62,12 +66,17 @@
     waitSeconds: 60,
   });
 
-  var CM_ID = 'vendor/codemirror/lib/codemirror';
+  // The SAME ids the widget's code editor asks for. An anonymous AMD
+  // module can only be claimed by one id: naming these files by path
+  // here and by `codemirror/...` there fetched them once and then left
+  // the widget's request pending forever, because the define() had
+  // already been consumed.
+  var CM_ID = 'codemirror/lib/codemirror';
   var CM_MODES = [
-    'vendor/codemirror/mode/javascript/javascript', // JSON
-    'vendor/codemirror/mode/clike/clike',           // C++
-    'vendor/codemirror/mode/xml/xml',               // SCXML
-    'vendor/codemirror/mode/shell/shell',           // Makefile (close enough)
+    'codemirror/mode/javascript/javascript', // JSON
+    'codemirror/mode/clike/clike',           // C++
+    'codemirror/mode/xml/xml',               // SCXML
+    'codemirror/mode/shell/shell',           // Makefile (close enough)
   ];
 
   var el = function (id) { return document.getElementById(id); };

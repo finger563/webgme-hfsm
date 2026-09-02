@@ -17,6 +17,11 @@ config.requirejsPaths['bower'] = "./bower_components/";
 config.requirejsPaths['cytoscape-edgehandles'] = "./bower_components/cytoscape-edgehandles/cytoscape-edgehandles";
 config.requirejsPaths['cytoscape-context-menus'] = "./bower_components/cytoscape-context-menus/cytoscape-context-menus";
 config.requirejsPaths['cytoscape-panzoom'] = "./bower_components/cytoscape-panzoom/cytoscape-panzoom";
+// The visualizer edits code attributes in CodeMirror. Taken from npm
+// rather than bower so both hosts run the SAME version: the
+// playground vendors this very directory (scripts/build-web.sh) and
+// maps the same id onto it.
+config.requirejsPaths['codemirror'] = "./node_modules/codemirror";
 
 // Merging config
 config.storage.autoMerge.enable = true;

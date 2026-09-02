@@ -104,6 +104,60 @@ describe('LocalBackend', function() {
         backend.getValidConnectionTypes(ids.event, ids.state, '/p/m'), []);
     });
 
+    it('describes an existing node by its own type', function() {
+      var backend = LocalBackend(emptyModel());
+      var id;
+      backend.transact('add', function() {
+        id = backend.createChild('/p/m', 'State');
+      });
+      var schema = backend.getNodeSchema(id);
+      assert.strictEqual(schema.name, 'State');
+      assert.strictEqual(schema.isConnection, false);
+      var byName = {};
+      schema.attributes.forEach(function(a) { byName[a.name] = a; });
+      assert.strictEqual(byName.Entry.type, 'string');
+      assert.strictEqual(byName['Timer Period'].type, 'float');
+      assert.strictEqual(byName.isComplete.defaultValue, true);
+    });
+
+    it('describes a node whose type is already at its maximum', function() {
+      // The reason getChildTypeSchemas cannot answer this: it is
+      // scoped to a parent and filtered by cardinality, so by the
+      // time the one allowed Initial exists, its schema has been
+      // filtered out of its parent's list. Editing what is there is
+      // a different question from creating another.
+      var backend = LocalBackend(emptyModel());
+      var id;
+      backend.transact('add', function() {
+        id = backend.createChild('/p/m', 'Initial');
+      });
+      assert.ok(!backend.getValidChildTypes('/p/m').Initial,
+                'a second Initial should not be offered');
+      assert.ok(!backend.getChildTypeSchemas('/p/m').some(function(s) {
+        return s.name === 'Initial';
+      }), 'and so it is absent from the create-form schemas');
+
+      var schema = backend.getNodeSchema(id);
+      assert.ok(schema, 'but the node that exists still has a schema');
+      assert.strictEqual(schema.name, 'Initial');
+      assert.ok(schema.attributes.some(function(a) { return a.name === 'name'; }));
+    });
+
+    it('reports a connection as one, and has no schema for a stranger',
+       function() {
+         var backend = LocalBackend(emptyModel());
+         var id;
+         backend.transact('add', function() {
+           var a = backend.createChild('/p/m', 'State');
+           var b = backend.createChild('/p/m', 'State');
+           id = backend.createChild('/p/m', 'External Transition');
+           backend.setPointer(id, 'src', a);
+           backend.setPointer(id, 'dst', b);
+         });
+         assert.strictEqual(backend.getNodeSchema(id).isConnection, true);
+         assert.strictEqual(backend.getNodeSchema('/p/m/nope'), null);
+       });
+
     it('describes a type well enough to build a form for it', function() {
       var backend = LocalBackend(emptyModel());
       var schemas = backend.getChildTypeSchemas('/p/m');

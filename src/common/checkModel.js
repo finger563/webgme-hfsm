@@ -58,6 +58,65 @@ define([], function() {
       var varDeclExp = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
       return varDeclExp.test(str) && this.reservedNames.indexOf(str) === -1;
     },
+    /**
+     * Why `name` is not usable on a node of this type, or null.
+     *
+     * The rule differs by type, and every difference is deliberate:
+     *
+     *  - most names are SANITIZED first, so "State 1" is fine and is
+     *    emitted as State_1;
+     *  - an Event or a Field name is emitted and matched VERBATIM, so
+     *    'BUTTON-PRESS' has to be rejected rather than quietly
+     *    becoming BUTTON_PRESS;
+     *  - 'End_State' is reserved so that nothing else collides with
+     *    the generated class, which means the End State itself is the
+     *    one object allowed to be called it.
+     *
+     * Exported because the editor has to refuse exactly what the
+     * checker refuses. Two implementations of this would disagree,
+     * and the one in the editor would be the one nobody tested.
+     */
+    /**
+     * Why `value` is not usable as this attribute on a node of this
+     * type, or null. The editor's single entry point into these
+     * rules, so it can refuse exactly what the checker refuses.
+     */
+    identifierProblem: function(type, attribute, value) {
+      var self = this;
+      if (attribute === 'Event') {
+        // a transition's trigger is emitted verbatim, like an Event
+        // definition's name (checkEvent)
+        var raw = String(value == null ? '' : value);
+        if (!raw) return null;          // no trigger is a real thing to be
+        return self.isValidString(raw) ? null : 'Not a usable C++ name.';
+      }
+      if (attribute === 'name') {
+        if (!String(value == null ? '' : value)) return 'A name is required.';
+        return self.nameProblem(type, value);
+      }
+      return null;
+    },
+
+    nameProblem: function(type, name) {
+      var self = this;
+      var raw = String(name == null ? '' : name);
+      if (type === 'Event' || type === 'Field') {
+        return self.isValidString(raw) ? null :
+          type + ' names must be valid C++ identifiers (alphanumeric ' +
+          '+ underscore, starting with a letter).';
+      }
+      var sanitized = self.sanitizeString(raw);
+      if (type === 'End State' && sanitized === 'End_State') {
+        return null;   // the conventional default name
+      }
+      if (!self.isValidString(sanitized)) {
+        return type === 'End State'
+          ? 'End State names must be valid C++ identifiers.'
+          : 'Not a usable C++ name.';
+      }
+      return null;
+    },
+
     checkName: function(obj) {
       var self = this;
       var sName = self.sanitizeString(obj.name);

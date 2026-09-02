@@ -6,6 +6,7 @@ define(['q',
         'underscore',
         './Choice',
         './FormDialog',
+        '../Inspector/Inspector',
         'hfsm/declParser',
         'hfsm/checkModel',
         'bower/mustache.js/mustache.min',
@@ -18,6 +19,7 @@ define(['q',
                 _,
                 Choice,
                 FormDialog,
+                Inspector,
                 declParser,
                 checkModel,
                 mustache,
@@ -144,6 +146,12 @@ define(['q',
 
            // STATE INFO DISPLAY
            self._stateInfo = self._el.find('#stateInfo').first();
+
+           // ATTRIBUTE INSPECTOR -- the selected node's own fields,
+           // above the UML preview of it
+           self._inspector = new Inspector();
+           self._inspector.initialize(
+             self._el.find('#nodeInspector').first(), backend);
 
            // Active state information
            self._activeState = null;
@@ -802,6 +810,10 @@ define(['q',
 
          Simulator.prototype.update = function() {
            var self = this;
+           // the shown node may have just changed underneath us --
+           // refresh() leaves it alone while it has the focus, which
+           // is exactly when the change was the user's own typing
+           if (self._inspector) self._inspector.refresh();
            self.updateEventButtons();
            self.updateVariablesPanel();
            self.updateEventDefsPanel();
@@ -1707,6 +1719,19 @@ define(['q',
                  .on('click', self.onClickStateInfo.bind(self) );
              }
            }
+         };
+
+         /**
+          * Show a node's own attributes for editing. Separate from
+          * displayStateInfo, which walks UP the parent chain to draw
+          * the containing states -- there is one selection, and it is
+          * the node that was clicked.
+          */
+         Simulator.prototype.showInspector = function( gmeId ) {
+           var self = this;
+           if (!self._inspector) return;
+           if (gmeId) self._inspector.show( gmeId );
+           else self._inspector.clear();
          };
 
          Simulator.prototype.hideStateInfo = function( ) {

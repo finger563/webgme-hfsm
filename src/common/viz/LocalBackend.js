@@ -172,26 +172,40 @@ define(['./ModelBackend', '../metaRules'], function (ModelBackend, metaRules) {
     });
   };
 
+  /** the schema of one type, whatever the caller wants it for */
+  function schemaOf(name) {
+    var type = TYPES[name];
+    if (!type) return null;
+    return {
+      name: name,
+      typeId: name,
+      isConnection: !!type.isConnection,
+      attributes: Object.keys(type.attributes).sort().map(function (attr) {
+        return {
+          name: attr,
+          type: type.attributes[attr].type,
+          defaultValue: type.attributes[attr].default,
+        };
+      }),
+    };
+  }
+
+  /**
+   * What THIS node's type declares -- deliberately not filtered by
+   * cardinality, which is a question about creating another one and
+   * has nothing to do with editing the one that exists.
+   */
+  LocalBackend.prototype.getNodeSchema = function (id) {
+    var obj = this._objects()[id];
+    return obj ? schemaOf(obj.type) : null;
+  };
+
   // same cardinality filtering as getValidChildTypes: a form must
   // not offer to create what cannot be created
   LocalBackend.prototype.getChildTypeSchemas = function (parentId) {
     var parent = this._objects()[parentId];
     if (!parent) return [];
-    return Object.keys(this.getValidChildTypes(parentId)).sort().map(function (name) {
-      var type = TYPES[name];
-      return {
-        name: name,
-        typeId: name,
-        isConnection: !!type.isConnection,
-        attributes: Object.keys(type.attributes).sort().map(function (attr) {
-          return {
-            name: attr,
-            type: type.attributes[attr].type,
-            defaultValue: type.attributes[attr].default,
-          };
-        }),
-      };
-    });
+    return Object.keys(this.getValidChildTypes(parentId)).sort().map(schemaOf);
   };
 
   LocalBackend.prototype.getAttribute = function (id, name) {

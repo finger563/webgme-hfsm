@@ -230,6 +230,9 @@ define([
       if (self._cy) {
         self._cy.autoungrabify(self._readOnly);
       }
+      // the panel is showing editable fields for whatever is selected;
+      // whether they may be edited has just changed
+      self._simulator.update();
     };
 
     HFSMVizWidget.prototype._branchStatusChanged = function(args) {
@@ -242,6 +245,9 @@ define([
         self._unsavedNodePositions = {};
         self.branchChanged = true;
       }
+      // same reason as _branchChanged: read-only may have flipped
+      // under a selection that did not
+      self._simulator.update();
     };
 
     HFSMVizWidget.prototype._initialize = function () {
@@ -1137,18 +1143,46 @@ define([
     HFSMVizWidget.prototype.highlightNode = function(node) {
       var self = this;
       self._simulator.hideStateInfo();
+      // The inspector takes ANY node -- a transition has an Event and
+      // a Guard to edit, and the UML preview below has nothing to say
+      // about one.
+      //
+      // WHAT it shows comes from the SELECTION, not from this node.
+      // This runs once per cytoscape `select`, so ctrl-clicking a
+      // second element used to leave the first still sitting there
+      // editable while the diagram showed two selected -- one node's
+      // fields, captioned by a selection it was no longer alone in.
+      var selected = self._cy.$(':selected');
+      var only = selected.length ? (selected.length === 1 ? selected[0] : null)
+                                 : node;   // highlighted without selecting
+      self._simulator.showInspector( only ? only.id() : null );
       self._simulator.displayStateInfo( node.id() );
     };
 
     HFSMVizWidget.prototype.highlightNodes = function(nodes) {
       var self = this;
+      // ONE node is a selection like any other. WebGME's own selection
+      // always arrives here, plural, even when it is a single node --
+      // so treating this path as "many" left a node picked in the tree
+      // browser with no inspector at all.
+      var only = nodes && nodes.length === 1 ? nodes[0] : null;
+      if (only)
+        return self.highlightNode( only );
+
+      // More than one has no single set of values to show, and editing
+      // a field would have to mean writing it to all of them.
       self._simulator.hideStateInfo();
+      self._simulator.showInspector( null );
     };
 
     HFSMVizWidget.prototype.clear = function() {
       var self = this;
       self._cy.$(":selected").unselect();
       self._simulator.hideStateInfo();
+      // nothing is selected any more, so nothing should still be
+      // sitting there editable -- this is also the deselect path,
+      // through unselectNodes()
+      self._simulator.showInspector( null );
     };
 
     /* * * * * * * * Transition Selection  * * * * * * * */

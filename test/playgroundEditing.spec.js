@@ -34,6 +34,9 @@ function playgroundContext(name) {
       host: 'web/host',
       palette: 'web/palette',
     },
+    map: {
+      '*': { css: 'test/stubs/css' },
+    },
   });
 }
 
@@ -56,6 +59,9 @@ describe('playground editing', function () {
       'palette', 'host',
       'hfsm/metaRules', 'hfsm/viz/LocalBackend', 'hfsm/resolveModel',
       'hfsm/viz/describe', 'hfsm/checkModel',
+      // by its real path, not an alias: the module's own relative
+      // dependency (./CodeEditor) resolves against its id
+      'src/visualizers/widgets/HFSMViz/Inspector/Inspector',
     ]).then(function (loaded) {
       mods.palette = loaded[0];
       mods.PlaygroundHost = loaded[1];
@@ -64,6 +70,7 @@ describe('playground editing', function () {
       mods.resolveModel = loaded[4];
       mods.describe = loaded[5];
       mods.checkModel = loaded[6];
+      mods.Inspector = loaded[7];
     });
   });
 
@@ -172,6 +179,296 @@ describe('playground editing', function () {
                                         type: 'State Machine',
                                         parentId: '/p' });
       assert.strictEqual(desc.parentId, null);
+    });
+  });
+
+  describe('how an attribute is shown', function () {
+
+    function attrs(type) {
+      var declared = mods.metaRules.types[type].attributes;
+      return Object.keys(declared).map(function (name) {
+        return { name: name, type: declared[name].type };
+      });
+    }
+
+    it('shows C++ as code, not as a one-line box', function () {
+      // the single worst thing about editing this model in a property
+      // grid: an Entry block in an <input>
+      mods.describe.CODE_ATTRIBUTES.forEach(function (name) {
+        assert.strictEqual(mods.describe.fieldKind({ name: name, type: 'string' }),
+                           'code', name + ' holds C++');
+      });
+    });
+
+    it('shows prose as prose, and does not pretend it is C++', function () {
+      // `documentation` is markdown someone writes paragraphs in: a
+      // one-line input for it is the property-grid problem this panel
+      // exists to avoid, and highlighting it as C++ would be a lie
+      assert.strictEqual(
+        mods.describe.fieldKind({ name: 'documentation', type: 'string' }),
+        'prose');
+      mods.describe.PROSE_ATTRIBUTES.forEach(function (name) {
+        assert.ok(mods.describe.CODE_ATTRIBUTES.indexOf(name) === -1,
+                  name + ' is prose, not code');
+      });
+    });
+
+    it('gives everything long the same way out to a bigger editor',
+       function () {
+         // the pop-out is about ROOM, which prose needs as much as
+         // code does -- it just should not be numbered and
+         // highlighted as if it were C++
+         var expandable = mods.describe.CODE_ATTRIBUTES
+             .concat(mods.describe.PROSE_ATTRIBUTES);
+         expandable.forEach(function (name) {
+           var kind = mods.describe.fieldKind({ name: name, type: 'string' });
+           assert.ok(kind === 'code' || kind === 'prose',
+                     name + ' should be a long-form field');
+         });
+       });
+
+    it('picks an input from the declared type', function () {
+      assert.strictEqual(mods.describe.fieldKind({ name: 'isComplete', type: 'boolean' }),
+                         'checkbox');
+      assert.strictEqual(mods.describe.fieldKind({ name: 'Timer Period', type: 'float' }),
+                         'number');
+      assert.strictEqual(mods.describe.fieldKind({ name: 'name', type: 'string' }),
+                         'text');
+      assert.strictEqual(mods.describe.fieldKind(null), 'text');
+    });
+
+    it('puts what the machine DOES before its bookkeeping', function () {
+      // alphabetical order buries Entry under Declarations and
+      // Definitions, which is how the property grid reads today
+      var order = mods.describe.fieldOrder(attrs('State'))
+          .map(function (a) { return a.name; });
+      assert.deepStrictEqual(order.slice(0, 4),
+                             ['name', 'Entry', 'Exit', 'Tick']);
+      assert.ok(order.indexOf('Entry') < order.indexOf('Declarations'));
+      assert.ok(order.indexOf('Entry') < order.indexOf('Includes'));
+    });
+
+    it('puts a transition in the order it reads: Event, Guard, Action',
+       function () {
+         var order = mods.describe.fieldOrder(attrs('External Transition'))
+             .map(function (a) { return a.name; });
+         assert.deepStrictEqual(order,
+           ['name', 'Event', 'Guard', 'Action', 'Enabled']);
+       });
+
+    it('is a comparator that can say "equal"', function () {
+      // Array.sort's contract: a comparator that never returns 0 can
+      // order differently in a different engine
+      var same = { name: 'Entry', type: 'string' };
+      assert.deepStrictEqual(
+        mods.describe.fieldOrder([same, same]).map(function (a) { return a.name; }),
+        ['Entry', 'Entry']);
+    });
+
+    it('orders every declared attribute exactly once', function () {
+      Object.keys(mods.metaRules.types).forEach(function (type) {
+        var declared = attrs(type);
+        var ordered = mods.describe.fieldOrder(declared);
+        assert.strictEqual(ordered.length, declared.length, type);
+        assert.deepStrictEqual(
+          ordered.map(function (a) { return a.name; }).sort(),
+          declared.map(function (a) { return a.name; }).sort(), type);
+      });
+      assert.deepStrictEqual(mods.describe.fieldOrder(undefined), []);
+    });
+
+    it('accepts a name the generator would accept, not a stricter one',
+       function () {
+         // Every existing model names states like "State 1".
+         // `checkName` sanitizes spaces and hyphens to underscores
+         // BEFORE checking, so that is a perfectly good name -- and a
+         // form that refused it would make the models we ship
+         // uneditable. `checkEvent` does not sanitize, so an event
+         // name really must already be an identifier.
+         var ok = function (n) {
+           return mods.checkModel.isValidString(mods.checkModel.sanitizeString(n));
+         };
+         assert.strictEqual(ok('State 1'), true, 'names may contain spaces');
+         assert.strictEqual(ok('Wait-For-Ack'), true, 'and hyphens');
+         assert.strictEqual(ok('2fast'), false, 'but not lead with a digit');
+         assert.strictEqual(ok('class'), false, 'nor be a C++ keyword');
+
+         assert.strictEqual(mods.checkModel.isValidString('INPUT EVENT'), false,
+                            'an Event is checked WITHOUT sanitizing');
+         assert.strictEqual(mods.checkModel.sanitizeString('State 1'), 'State_1',
+                            'and this is what the generated name becomes');
+       });
+
+    it('does not offer to name a transition', function () {
+      // A transition's name is bookkeeping: the generator never emits
+      // it, and the diagram labels a transition `EVENT [guard]`, so
+      // nothing shows it. A field that looks like it matters and
+      // changes nothing is worse than no field.
+      ['External Transition', 'Local Transition', 'Internal Transition']
+        .forEach(function (type) {
+          var schema = {
+            name: type,
+            isConnection: mods.metaRules.isConnection(type),
+            attributes: attrs(type),
+          };
+          var shown = mods.describe.editableAttributes(schema)
+              .map(function (a) { return a.name; });
+          assert.ok(shown.indexOf('name') === -1,
+                    type + ' should not offer a name');
+          assert.deepStrictEqual(shown, ['Event', 'Guard', 'Action', 'Enabled'],
+                                 type + ': what is left is what it does');
+        });
+    });
+
+    it('keeps the name on everything the diagram labels by it', function () {
+      Object.keys(mods.metaRules.types).forEach(function (type) {
+        if (mods.metaRules.isAbstract(type)) return;
+        var schema = {
+          name: type,
+          isConnection: mods.metaRules.isConnection(type),
+          attributes: attrs(type),
+        };
+        if (mods.describe.labelledByEvent(schema)) return;   // transitions
+        var shown = mods.describe.editableAttributes(schema)
+            .map(function (a) { return a.name; });
+        assert.ok(shown.indexOf('name') > -1, type + ' should keep its name');
+      });
+    });
+
+    it('agrees with the label the diagram draws', function () {
+      // one rule, so the field list and the label cannot disagree
+      // about what a transition is
+      var edge = mods.describe.finish({ id: '/t', name: 'anything',
+                                        type: 'External Transition',
+                                        isConnection: true, Event: 'GO',
+                                        Guard: 'x > 1' });
+      assert.strictEqual(edge.LABEL, 'GO [x > 1]', 'labelled by its event');
+      var internal = mods.describe.finish({ id: '/i', name: 'anything',
+                                            type: 'Internal Transition',
+                                            Event: 'TICK' });
+      assert.strictEqual(internal.LABEL, 'TICK');
+      var state = mods.describe.finish({ id: '/s', name: 'Idle', type: 'State' });
+      assert.strictEqual(state.LABEL, 'Idle', 'a state is labelled by its name');
+    });
+
+    it('names the attributes that must be C++ identifiers', function () {
+      // an Event that is not one reaches the simulator, which says so
+      // with a modal; a name that is not one reaches the generator
+      assert.deepStrictEqual(mods.describe.IDENTIFIER_ATTRIBUTES,
+                             ['name', 'Event']);
+      assert.strictEqual(mods.checkModel.isValidString('has a space'), false);
+      assert.strictEqual(mods.checkModel.isValidString('ARM'), true);
+    });
+  });
+
+  describe('what the inspector will store', function () {
+
+    // _normalize and _reject are pure: what they decide has to hold
+    // whatever the DOM around them is doing
+    function normalize(attr, value) {
+      return mods.Inspector.prototype._normalize({ name: attr }, value);
+    }
+    function reject(attr, value) {
+      return mods.Inspector.prototype._reject({ name: attr }, value);
+    }
+
+    it('validates exactly the value it will write', function () {
+      // The bug this pins: validating a TRIMMED copy and writing the
+      // original accepted " GO " as a valid `GO`, and
+      // checkModel.checkEvent -- which does not trim -- then rejected
+      // the model the inspector exists to keep valid.
+      [' GO ', 'GO\t', '\n GO'].forEach(function (typed) {
+        var stored = normalize('Event', typed);
+        assert.strictEqual(reject('Event', stored), null,
+                           JSON.stringify(typed) + ' should be accepted');
+        assert.strictEqual(mods.checkModel.isValidString(stored), true,
+                           'and what is stored must satisfy the checker');
+        assert.strictEqual(stored, 'GO');
+      });
+    });
+
+    it('asks the checker about a transition Event too', function () {
+      // the same seam as names: restating the rule here is how the
+      // editor and the generator come to disagree
+      var reject = function (type, attr, value) {
+        return mods.Inspector.prototype._reject({ name: attr }, value, type);
+      };
+      assert.ok(reject('External Transition', 'Event', 'has a space'));
+      assert.strictEqual(reject('External Transition', 'Event', 'GO'), null);
+      assert.strictEqual(reject('External Transition', 'Event', ''), null,
+                         'no trigger is a real thing to be');
+      assert.strictEqual(
+        reject('External Transition', 'Event', 'has a space'),
+        mods.checkModel.identifierProblem('External Transition', 'Event',
+                                          'has a space'),
+        'and says exactly what the checker says');
+    });
+
+    it('applies the name rule the CHECKER applies, per type', function () {
+      // Three different rules hide behind "name", and getting them
+      // wrong is invisible until a model is generated:
+      //
+      //  - an Event or Field name is emitted VERBATIM, so
+      //    'BUTTON-PRESS' must be refused rather than quietly become
+      //    BUTTON_PRESS;
+      //  - 'End_State' is a reserved generated name, so every other
+      //    type is refused it -- and the End State itself is not;
+      //  - everything else is sanitized first, so 'State 1' is fine.
+      function reject(type, name) {
+        return mods.Inspector.prototype._reject({ name: 'name' }, name, type);
+      }
+      assert.ok(reject('Event', 'BUTTON-PRESS'), 'an Event name is raw');
+      assert.strictEqual(reject('Event', 'BUTTON_PRESS'), null);
+      assert.ok(reject('Field', 'val-1'), 'a Field name is raw too');
+      assert.strictEqual(reject('Field', 'val_1'), null);
+
+      assert.strictEqual(reject('End State', 'End State'), null,
+                         'the conventional End State name is allowed');
+      assert.ok(reject('State', 'End State'),
+                'but nothing else may generate End_State');
+
+      assert.strictEqual(reject('State', 'State 1'), null, 'sanitized');
+      assert.ok(reject('State', '2fast'));
+      assert.ok(reject('State', 'class'), 'nor a C++ keyword');
+    });
+
+    it('says nothing about sanitizing where nothing is sanitized',
+       function () {
+         var note = function (type, name) {
+           return mods.Inspector.prototype._note({ name: 'name' }, name, type);
+         };
+         assert.strictEqual(note('State', 'State 1'), 'Generated as State_1');
+         assert.strictEqual(note('Event', 'GO'), null);
+         assert.strictEqual(note('Field', 'val'), null,
+                            'a Field name is emitted as typed');
+       });
+
+    it('trims a name too, and reports it as the checker would', function () {
+      var stored = normalize('name', '  State 1  ');
+      assert.strictEqual(stored, 'State 1');
+      assert.strictEqual(reject('name', stored), null);
+      assert.strictEqual(
+        mods.checkModel.isValidString(mods.checkModel.sanitizeString(stored)), true);
+    });
+
+    it('leaves code exactly as it was typed', function () {
+      // a trailing newline in an Entry block is the author's business
+      var code = '  printf("hi\\n");\n\n';
+      assert.strictEqual(normalize('Entry', code), code);
+      assert.strictEqual(normalize('Guard', ' x > 1 '), ' x > 1 ');
+      assert.strictEqual(reject('Entry', code), null, 'and is never rejected');
+    });
+
+    it('still refuses what the generator could not use', function () {
+      assert.ok(reject('Event', normalize('Event', 'has a space')));
+      assert.ok(reject('name', normalize('name', '   ')), 'a blank name');
+      assert.strictEqual(reject('Event', normalize('Event', '   ')), null,
+                         'but a blank Event just means no trigger');
+    });
+
+    it('normalizes only strings', function () {
+      assert.strictEqual(normalize('name', 42), 42);
+      assert.strictEqual(normalize('name', undefined), undefined);
     });
   });
 

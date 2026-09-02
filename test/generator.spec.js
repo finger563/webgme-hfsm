@@ -83,6 +83,8 @@ function expectResolveError(fixtureName, mutate, errRegex) {
   }, 'expected error matching ' + errRegex);
 }
 
+
+
 describe('hfsm generator', function() {
 
   before(function() {
@@ -930,6 +932,52 @@ describe('hfsm generator', function() {
           var expected = fs.readFileSync(path.join(goldenDir, fname), 'utf8');
           assert.strictEqual(artifacts[fname], expected,
                              'generated ' + fname + ' differs from golden');
+        });
+      });
+    });
+  });
+
+  describe('checkModel.nameProblem', function() {
+    // The editor refuses names through this so that it refuses exactly
+    // what the checker refuses. These assertions are the contract
+    // between them.
+
+    it('sanitizes most names before judging them', function() {
+      assert.strictEqual(mods.checkModel.nameProblem('State', 'State 1'), null);
+      assert.strictEqual(mods.checkModel.nameProblem('State', 'Wait-For-Ack'), null);
+      assert.ok(mods.checkModel.nameProblem('State', '2fast'));
+      assert.ok(mods.checkModel.nameProblem('State', 'class'));
+    });
+
+    it('judges an Event or Field name exactly as typed', function() {
+      // emitted verbatim, so sanitizing here would accept a name the
+      // generator cannot use
+      assert.ok(mods.checkModel.nameProblem('Event', 'BUTTON-PRESS'));
+      assert.strictEqual(mods.checkModel.nameProblem('Event', 'BUTTON_PRESS'), null);
+      assert.ok(mods.checkModel.nameProblem('Field', 'val 1'));
+      assert.strictEqual(mods.checkModel.nameProblem('Field', 'val_1'), null);
+    });
+
+    it('lets an End State be called End State, and nothing else be',
+       function() {
+         assert.strictEqual(mods.checkModel.nameProblem('End State', 'End State'), null);
+         assert.strictEqual(mods.checkModel.nameProblem('End State', 'End_State'), null);
+         assert.ok(mods.checkModel.nameProblem('State', 'End State'),
+                   'a State may not generate the reserved End_State');
+         assert.ok(mods.checkModel.nameProblem('End State', 'class'));
+       });
+
+    it('agrees with the checks the checker actually runs', function() {
+      // every name in every fixture passes, or the fixtures would not
+      // generate
+      ['basic', 'features', 'payloads'].forEach(function(name) {
+        var model = processFixture(name);
+        Object.keys(model.objects).forEach(function(p) {
+          var obj = model.objects[p];
+          if (!obj.name || obj.type === 'Project') return;
+          assert.strictEqual(mods.checkModel.nameProblem(obj.type, obj.name), null,
+                             name + ' ' + p + ' (' + obj.type + ') named "' +
+                             obj.name + '" should be accepted');
         });
       });
     });

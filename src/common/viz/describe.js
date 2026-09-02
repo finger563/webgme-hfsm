@@ -25,13 +25,132 @@ define(['../metaRules'], function (metaRules) {
   // library at the top of it
   var CONTAINER_TYPES = ['State', 'State Machine', 'Library'];
 
+  /**
+   * Attributes that hold C++ rather than a value.
+   *
+   * The metamodel calls all of them 'string', because to the model
+   * they are; but a one-line input for an Entry block is the reason
+   * editing a machine through a property grid is miserable. This is
+   * exactly the set the generator emits as a code block, each behind
+   * a `//::::<path>::::<attribute>::::` marker -- so it is also the
+   * set whose text can be located in the generated file.
+   */
+  var CODE_ATTRIBUTES = [
+    'Action', 'Declarations', 'Definitions', 'Entry', 'Exit', 'Guard',
+    'Includes', 'Initialization', 'Tick',
+  ];
+
+  /**
+   * Attributes that hold long-form TEXT rather than a value or code.
+   *
+   * `documentation` is markdown a person writes paragraphs in. It is
+   * not C++, so highlighting it as C++ would be a lie, and it is not
+   * a value, so a one-line input for it is the property-grid problem
+   * this panel exists to avoid.
+   */
+  var PROSE_ATTRIBUTES = ['documentation'];
+
+  /**
+   * Attributes that must be a C++ identifier, so the generator can
+   * name something after them. Checked as they are typed, rather than
+   * left to fail at generation -- or, for an event name, to reach the
+   * simulator, which says so with a modal.
+   */
+  var IDENTIFIER_ATTRIBUTES = ['name', 'Event'];
+
+  /**
+   * Whether the diagram labels this by its EVENT rather than by its
+   * name -- which is what a transition is, connection or not: an
+   * Internal Transition is a child rather than an edge, and still
+   * reads `EVENT [guard]`.
+   *
+   * @param what  a descriptor ({type, isConnection}) or a schema
+   *              ({name, isConnection})
+   */
+  function labelledByEvent(what) {
+    if (!what) return false;
+    return !!what.isConnection ||
+      what.type === 'Internal Transition' || what.name === 'Internal Transition';
+  }
+
   function isTransition(desc) {
-    return desc.isConnection || desc.type === 'Internal Transition';
+    return labelledByEvent(desc);
   }
 
   return {
     ROOT_TYPES: ROOT_TYPES,
     NON_GRAPH_TYPES: NON_GRAPH_TYPES,
+    CODE_ATTRIBUTES: CODE_ATTRIBUTES,
+    PROSE_ATTRIBUTES: PROSE_ATTRIBUTES,
+    IDENTIFIER_ATTRIBUTES: IDENTIFIER_ATTRIBUTES,
+
+    /**
+     * Which input an attribute wants, from its declared type and its
+     * name. One answer for every form -- the create dialog and the
+     * inspector have to agree, or the same attribute is a textarea in
+     * one and a one-line input in the other.
+     *
+     * @param attr  { name, type } from a schema
+     * @return 'checkbox' | 'number' | 'code' | 'prose' | 'text'
+     */
+    fieldKind: function (attr) {
+      if (!attr) return 'text';
+      if (attr.type === 'boolean') return 'checkbox';
+      if (attr.type === 'float' || attr.type === 'integer') return 'number';
+      if (CODE_ATTRIBUTES.indexOf(attr.name) > -1) return 'code';
+      if (PROSE_ATTRIBUTES.indexOf(attr.name) > -1) return 'prose';
+      return 'text';
+    },
+
+    labelledByEvent: labelledByEvent,
+
+    /**
+     * The attributes worth putting in front of someone editing a node
+     * of this type, in the order to show them.
+     *
+     * A transition's `name` is left out. It is bookkeeping: the
+     * generator never emits it -- rename every transition in a model
+     * and the generated code is byte for byte the same -- and the
+     * diagram labels a transition `EVENT [guard]`, so nothing shows
+     * it either. A field that looks like it matters and changes
+     * nothing is worse than no field.
+     *
+     * @param schema  from getNodeSchema / getChildTypeSchemas
+     */
+    editableAttributes: function (schema) {
+      var attributes = (schema && schema.attributes) || [];
+      if (labelledByEvent(schema)) {
+        attributes = attributes.filter(function (a) { return a.name !== 'name'; });
+      }
+      return this.fieldOrder(attributes);
+    },
+
+    /**
+     * The order to show attributes in: what the machine DOES first,
+     * then its name, then the rest. A property grid sorted
+     * alphabetically buries Entry under Declarations and Definitions.
+     */
+    fieldOrder: function (attributes) {
+      var rank = function (a) {
+        if (a.name === 'name') return 0;
+        if (a.name === 'Event') return 1;
+        if (a.name === 'Guard') return 2;
+        if (a.name === 'Action') return 3;
+        if (['Entry', 'Exit', 'Tick'].indexOf(a.name) > -1) return 4;
+        if (CODE_ATTRIBUTES.indexOf(a.name) > -1) return 6;
+        return 5;
+      };
+      return (attributes || []).slice().sort(function (a, b) {
+        var d = rank(a) - rank(b);
+        if (d !== 0) return d;
+        // 0 for equal names, as Array.sort's contract requires -- two
+        // attributes of a type cannot share a name, but a comparator
+        // that never says "equal" is the kind of thing that sorts
+        // differently in a different engine
+        if (a.name === b.name) return 0;
+        return a.name < b.name ? -1 : 1;
+      });
+    },
 
     /**
      * The types a palette may offer for dropping onto the diagram.
