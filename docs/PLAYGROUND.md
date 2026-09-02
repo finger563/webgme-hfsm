@@ -66,7 +66,10 @@ place. It is deliberately not a property grid:
 - C++ attributes are edited in CodeMirror, with highlighting, and the
   ⤡ button opens the same text full-size in a modal — with line
   numbers, and Ctrl/Cmd+Enter to save — because a 250px column is not
-  where anyone wants to write a state's Entry block;
+  where anyone wants to write a state's Entry block. Documentation
+  gets the same button: it is prose rather than C++, so it is wrapped
+  and unhighlighted instead of numbered, but the need for room is the
+  same;
 - a `name` or an `Event` that is not a C++ identifier is refused as it
   is typed, with the reason, instead of failing later in the generator
   — or, for an event name, reaching the simulator, which reports it

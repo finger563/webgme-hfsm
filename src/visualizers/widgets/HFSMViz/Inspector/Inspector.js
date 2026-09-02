@@ -248,7 +248,17 @@ define(['hfsm/viz/describe',
     // transaction per character would flood a host's undo stack, and
     // in the playground rewrite the model text under the cursor.
     input.on('change', commit);
-    if (kind === 'prose') input.on('blur', commit);
+    if (kind === 'prose') {
+      input.on('blur', commit);
+      input.on('keydown', function (event) {
+        // Enter is a newline in prose; the modifier opens the big one
+        if (event.key === 'Enter' && event.shiftKey &&
+            (event.ctrlKey || event.metaKey)) {
+          event.preventDefault();
+          self._expand(id, attr);
+        }
+      });
+    }
     if (kind === 'text' || kind === 'code') {
       input.on('blur', commit);
       input.on('keydown', function (event) {
@@ -268,9 +278,9 @@ define(['hfsm/viz/describe',
     }
 
     var control = $('<div class="inspector-control"></div>').append(input, error);
-    if (kind === 'code') {
+    if (kind === 'code' || kind === 'prose') {
       // 250px of column is not where anyone wants to write a state's
-      // Entry block
+      // Entry block -- nor a page of documentation
       var expand = $('<button type="button" class="inspector-expand" ' +
                      'title="Edit in a larger editor (Shift+Ctrl/Cmd+Enter)" ' +
                      'aria-label="Edit ' + attr.name + ' in a larger editor">' +
@@ -345,9 +355,11 @@ define(['hfsm/viz/describe',
       subtitle: (node && node.name ? node.name + '  ' : '') + id,
       value: readValue(field),
       readOnly: self._backend.isReadOnly(),
+      prose: field.kind === 'prose',
       onSave: function (value) {
         if (field.cm) field.cm.setValue(value);
         else field.input.val(value);
+        if (field.kind === 'prose') grow(field.input);
         field.commit();
       },
     });

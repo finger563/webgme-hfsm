@@ -146,7 +146,11 @@ define(['require'], function (require) {
     /**
      * The same code, full size, in a modal.
      *
-     * @param opts  { title, subtitle, value, readOnly, onSave }
+     * @param opts  { title, subtitle, value, readOnly, prose, onSave }
+     *   `prose` for markdown rather than C++: wrapped, unnumbered and
+     *   unhighlighted, because paragraphs want the width and
+     *   colouring prose as code would be a lie. The room is the point
+     *   either way, which is why documentation gets this too.
      * @return a function that closes it
      */
     open: function (opts) {
@@ -158,7 +162,8 @@ define(['require'], function (require) {
       // screen reader reaches an unnamed one
       var titleId = 'code-modal-title-' + (++dialogCount);
       var box = $('<div class="code-modal" role="dialog" aria-modal="true"></div>')
-          .attr('aria-labelledby', titleId);
+          .attr('aria-labelledby', titleId)
+          .addClass(opts.prose ? 'is-prose' : 'is-code');
       var head = $('<div class="code-modal-head"></div>').append(
         $('<span class="code-modal-title"></span>')
           .attr('id', titleId).text(opts.title || 'Code'),
@@ -237,7 +242,9 @@ define(['require'], function (require) {
         CodeMirror = CM;
         if (!document.contains(area[0])) return;   // already closed
         cm = CodeMirror.fromTextArea(area[0], extend(COMMON, {
-          lineNumbers: true,
+          mode: opts.prose ? null : MODE,
+          lineNumbers: !opts.prose,
+          lineWrapping: !!opts.prose,
           readOnly: !!opts.readOnly,
           autofocus: true,
           extraKeys: {

@@ -213,3 +213,11 @@ textarea.inspector-prose {
     border-color: #1f883d;
     color: #fff;
 }
+
+/* prose in the pop-out reads as prose: wrapped, and not in a
+   monospace column the width of the screen */
+.code-modal.is-prose .CodeMirror {
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+}

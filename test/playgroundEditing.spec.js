@@ -213,6 +213,20 @@ describe('playground editing', function () {
       });
     });
 
+    it('gives everything long the same way out to a bigger editor',
+       function () {
+         // the pop-out is about ROOM, which prose needs as much as
+         // code does -- it just should not be numbered and
+         // highlighted as if it were C++
+         var expandable = mods.describe.CODE_ATTRIBUTES
+             .concat(mods.describe.PROSE_ATTRIBUTES);
+         expandable.forEach(function (name) {
+           var kind = mods.describe.fieldKind({ name: name, type: 'string' });
+           assert.ok(kind === 'code' || kind === 'prose',
+                     name + ' should be a long-form field');
+         });
+       });
+
     it('picks an input from the declared type', function () {
       assert.strictEqual(mods.describe.fieldKind({ name: 'isComplete', type: 'boolean' }),
                          'checkbox');
