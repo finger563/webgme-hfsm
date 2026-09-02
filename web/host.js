@@ -33,15 +33,22 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     this._targets = [];      // { el, handlers }
     this._drag = null;
     this._menu = null;
+    // Everything a menu or a dialog puts OUTSIDE its own element --
+    // document handlers, pending timers -- so tearing the host down
+    // can reach it. Removing the element is not enough: the handlers
+    // outlive it, and after a remount they act on a widget and a
+    // backend that are gone.
+    this._closeMenu = null;
+    this._closeDialog = null;
   }
 
   /* ----------------------- context menu ----------------------- */
 
   PlaygroundHost.prototype.closeMenu = function () {
-    if (this._menu) {
-      $(this._menu).remove();
-      this._menu = null;
-    }
+    var close = this._closeMenu;
+    this._closeMenu = null;
+    this._menu = null;
+    if (close) close();
   };
 
   /**
@@ -126,12 +133,17 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
         return;
       }
       self.closeMenu();
-      $(document).off('mousedown', dismiss).off('keydown', dismiss);
     };
     // next tick: the click that opened this must not also close it
-    setTimeout(function () {
+    var armed = setTimeout(function () {
       $(document).on('mousedown', dismiss).on('keydown', dismiss);
     }, 0);
+
+    self._closeMenu = function () {
+      clearTimeout(armed);   // may not have been armed yet
+      $(document).off('mousedown', dismiss).off('keydown', dismiss);
+      menu.remove();
+    };
 
     // Somewhere to start from. Without this the keyboard has no way
     // into a menu that was opened by a right-click, since the focus
@@ -148,6 +160,9 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
    * widget only cares that it gets the new value back.
    */
   PlaygroundHost.prototype.editDocument = function (text, onSave) {
+    var self = this;
+    self.closeDialog();          // never two at once
+
     var overlay = $('<div class="pg-overlay"></div>');
     var box = $('<div class="pg-dialog" role="dialog" aria-modal="true" ' +
                 'aria-label="Edit documentation"></div>');
@@ -157,12 +172,46 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     var cancel = $('<button type="button">Cancel</button>');
     var save = $('<button type="button" class="primary">Save</button>');
 
+    // whatever had the focus before, to give it back on close
+    var opener = document.activeElement;
+
     function close() {
-      overlay.remove();
-      $(document).off('keydown', onKey);
+      self.closeDialog();
+    }
+
+    /**
+     * Keep Tab inside the dialog.
+     *
+     * `aria-modal="true"` promises that nothing behind the overlay
+     * can be reached; without this, Tab walks straight out of it and
+     * into the page underneath, where the controls are still
+     * operable and invisible behind the backdrop.
+     */
+    function focusables() {
+      return box.find('textarea, button').filter(function () {
+        return !this.disabled;
+      });
     }
     function onKey(event) {
-      if (event.key === 'Escape') close();
+      if (event.key === 'Escape') {
+        close();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      var items = focusables();
+      if (!items.length) return;
+      var first = items.get(0), last = items.get(items.length - 1);
+      // wrap at each end rather than letting the browser leave
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (!box[0].contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     cancel.on('click', close);
@@ -182,6 +231,23 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     $(document.body).append(overlay);
     $(document).on('keydown', onKey);
     area.focus();
+
+    self._closeDialog = function () {
+      $(document).off('keydown', onKey);
+      overlay.remove();
+      // put the focus back where it came from, or it lands on
+      // <body> and the keyboard has lost its place in the page
+      if (opener && opener.focus && document.contains(opener)) {
+        opener.focus();
+      }
+    };
+  };
+
+  /** close the documentation editor if one is open */
+  PlaygroundHost.prototype.closeDialog = function () {
+    var close = this._closeDialog;
+    this._closeDialog = null;
+    if (close) close();
   };
 
   /* ------------------------ drag and drop ---------------------- */
@@ -273,10 +339,15 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     });
   };
 
-  /** tear down anything still on screen */
+  /**
+   * Tear down anything still on screen, and everything it attached
+   * elsewhere. A host outlives neither its widget nor its backend, so
+   * a handler left on `document` would fire into a torn-down one.
+   */
   PlaygroundHost.prototype.destroy = function () {
     this._endDrag();
     this.closeMenu();
+    this.closeDialog();
     this._targets = [];
   };
 

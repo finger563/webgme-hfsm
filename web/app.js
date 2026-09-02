@@ -478,6 +478,23 @@
   // slow half, and the user says when.
   function diagramEdited() {
     if (!vizModule || !vizModule.current()) return;
+
+    // The editor and the diagram are both live, so the text can have
+    // moved on since the diagram was drawn from it. Writing the
+    // diagram's model over it would silently throw the typing away --
+    // the same conflict `saveLayout` refuses, and it has to be
+    // refused here too, where it arrives without anyone asking for
+    // it. Typing wins: it is the harder of the two to do again.
+    if (getModelText().trim() !== vizModelText) {
+      showDiagnostics(['The diagram changed, but the model text has been ' +
+                       'edited since the diagram was drawn, so the text was ' +
+                       'left alone. Press Generate to redraw the diagram from ' +
+                       'the text -- which discards the change just made to ' +
+                       'the diagram.'], 'warn');
+      setStatus('diagram and text disagree', 'warn');
+      return;
+    }
+
     var text = vizModule.currentModelJSON();
     if (!text) return;
     setModelText(text);
