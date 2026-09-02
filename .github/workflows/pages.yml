@@ -11,15 +11,23 @@ on:
       - 'web/**'
       - 'src/common/**'
       - 'src/plugins/SoftwareGenerator/templates/**'
+      # the playground ships the visualizer itself, so a change to the
+      # widget, its stylesheets or the decorator SVGs belongs in the
+      # deployed page too
+      - 'src/visualizers/widgets/HFSMViz/**'
+      - 'src/decorators/UMLStateMachineDecorator/**'
+      - 'src/svgs/**'
       - 'test/fixtures/**'
       - 'scripts/build-web.sh'
       # the verifier gates publication, so a fix to it must be able to
       # rerun a failed deploy
       - 'scripts/verify-web-build.js'
       # dependency versions decide which CodeMirror / RequireJS /
-      # handlebars / underscore actually get vendored
+      # handlebars / underscore actually get vendored, and bower.json
+      # pins the cytoscape family the diagram is drawn with
       - 'package.json'
       - 'package-lock.json'
+      - 'bower.json'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -47,6 +55,21 @@ jobs:
         run: >
           npm install --no-save --no-package-lock --ignore-scripts
           requirejs requirejs-text handlebars underscore
+
+      # The playground ships the visualizer, so it needs the same
+      # front-end libraries WebGME serves -- at the SAME versions,
+      # which is the point of vendoring them rather than picking
+      # replacements. bower.json pins the cytoscape family; the rest
+      # (jquery, bootstrap, require-css, font-awesome, q) come from
+      # webgme's own dependencies, exactly as they do at runtime.
+      #
+      # This is the same pair of steps ci.yml's web-playground job
+      # runs. Without them the build stops at cytoscape, which is how
+      # this workflow broke the moment the diagram was added.
+      - name: Install the visualizer's front-end libraries
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts webgme bower
+          ./node_modules/.bin/bower install --allow-root
 
       - name: Build the playground
         run: ./scripts/build-web.sh

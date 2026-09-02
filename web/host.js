@@ -55,14 +55,44 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     self.closeMenu();
 
     var menu = $('<ul class="pg-menu" role="menu"></ul>');
+
+    function choose(key, event) {
+      if (event) event.stopPropagation();
+      self.closeMenu();
+      if (onSelect) onSelect(key);
+    }
+
+    // Arrow keys move between items and wrap, which is what `role
+    //="menu"` tells a screen reader to expect. Without it the items
+    // are reachable by Tab, which walks straight out of the menu and
+    // on through the page behind it.
+    function moveFocus(from, delta) {
+      var items = menu.children();
+      var at = items.index(from);
+      var next = items.get((at + delta + items.length) % items.length);
+      if (next) next.focus();
+    }
+
     Object.keys(items || {}).forEach(function (key) {
       var item = items[key] || {};
       $('<li role="menuitem" tabindex="0"></li>')
         .text(item.name === undefined ? key : item.name)
-        .on('click', function (event) {
-          event.stopPropagation();
-          self.closeMenu();
-          if (onSelect) onSelect(key);
+        .on('click', function (event) { choose(key, event); })
+        // An item that can be focused but not activated from the
+        // keyboard is a trap: it takes the focus and then does
+        // nothing with it.
+        .on('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ' ||
+              event.key === 'Spacebar') {          // Spacebar: older Edge
+            event.preventDefault();                // or Space scrolls the page
+            choose(key, event);
+          } else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            moveFocus(this, 1);
+          } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            moveFocus(this, -1);
+          }
         })
         .appendTo(menu);
     });
@@ -92,6 +122,12 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     setTimeout(function () {
       $(document).on('mousedown', dismiss).on('keydown', dismiss);
     }, 0);
+
+    // Somewhere to start from. Without this the keyboard has no way
+    // into a menu that was opened by a right-click, since the focus
+    // is still wherever it was.
+    var first = menu.children().get(0);
+    if (first) first.focus();
   };
 
   /* -------------------- documentation editor ------------------- */
