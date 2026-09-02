@@ -75,6 +75,43 @@ textarea.inspector-code {
     overflow-x: auto;
 }
 
+/* CodeMirror, once it has taken the textarea over. Its height comes
+   from CodeEditor.inline via setSize, in pixels: this panel scrolls,
+   and an editor sized by its content measures against a width that
+   depends on whether the panel's scrollbar is showing. */
+.inspector-control .CodeMirror.inspector-cm {
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    background: #fff;
+}
+.inspector-control .CodeMirror.inspector-cm.CodeMirror-focused {
+    border-color: #0969da;
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, .15);
+}
+.inspector-row.is-invalid .CodeMirror.inspector-cm { border-color: #cf222e; }
+
+/* the way out to a bigger editor */
+.inspector-expand {
+    float: right;
+    margin-top: 2px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #57606a;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.inspector-expand:hover {
+    color: #0969da;
+    border-color: #d0d7de;
+    background: #f6f8fa;
+}
+
 .inspector-error {
     color: #cf222e;
     font-size: 11px;
@@ -86,3 +123,82 @@ textarea.inspector-code {
 /* an accepted value with something worth knowing about it -- a name
    with a space is fine, but it is not what the generator emits */
 .inspector-error.is-note { color: #57606a; }
+
+/* ---- the pop-out code editor ----------------------------------- */
+
+.code-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(27, 31, 36, .5);
+}
+.code-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(980px, 92vw);
+    height: min(680px, 88vh);
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(66, 74, 83, .4);
+    overflow: hidden;
+}
+.code-modal-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.code-modal-title { font-weight: 600; font-size: 14px; }
+.code-modal-subtitle {
+    color: #57606a;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* the editor takes whatever is left, rather than the modal growing to
+   fit the code -- a long Entry block should scroll, not push the
+   buttons off the bottom of the screen */
+.code-modal-body { flex: 1 1 auto; min-height: 0; position: relative; }
+.code-modal-body .CodeMirror {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.code-modal-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid #d0d7de;
+    background: #f6f8fa;
+}
+.code-modal-hint {
+    margin-right: auto;
+    color: #57606a;
+    font-size: 11px;
+}
+.code-modal-buttons button {
+    font: inherit;
+    font-size: 12px;
+    padding: 5px 14px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+}
+.code-modal-buttons button.primary {
+    background: #1f883d;
+    border-color: #1f883d;
+    color: #fff;
+}

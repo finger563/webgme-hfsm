@@ -34,8 +34,9 @@
  */
 define(['hfsm/viz/describe',
         'hfsm/checkModel',
+        './CodeEditor',
         'css!./Inspector.css'],
-       function (describe, checkModel) {
+       function (describe, checkModel, CodeEditor) {
   'use strict';
 
   function Inspector() {
@@ -59,7 +60,7 @@ define(['hfsm/viz/describe',
 
   Inspector.prototype.clear = function () {
     this._id = null;
-    this._fields = {};
+    this._release();
     if (this._el) {
       this._el.empty().append(
         $('<div class="inspector-empty"></div>')
@@ -71,6 +72,16 @@ define(['hfsm/viz/describe',
   Inspector.prototype.hasFocus = function () {
     return !!(this._el && this._el.length &&
               this._el[0].contains(document.activeElement));
+  };
+
+  /** detach the editors before the elements holding them go */
+  Inspector.prototype._release = function () {
+    var self = this;
+    Object.keys(self._fields).forEach(function (name) {
+      var cm = self._fields[name].cm;
+      if (cm) { try { cm.toTextArea(); } catch (e) { /* already gone */ } }
+    });
+    self._fields = {};
   };
 
   /**
@@ -95,10 +106,15 @@ define(['hfsm/viz/describe',
 
     Object.keys(self._fields).forEach(function (name) {
       var field = self._fields[name];
+      var v = valueOf(node, field.attr);
+      if (field.cm) {
+        if (field.cm.hasFocus()) return;
+        if (field.cm.getValue() !== String(v)) field.cm.setValue(String(v));
+        return;
+      }
       if (field.input[0] === document.activeElement) return;
-      var value = valueOf(node, field.attr);
-      if (field.kind === 'checkbox') field.input.prop('checked', !!value);
-      else if (field.input.val() !== String(value)) field.input.val(value);
+      if (field.kind === 'checkbox') field.input.prop('checked', !!v);
+      else if (field.input.val() !== String(v)) field.input.val(v);
     });
   };
 
@@ -119,7 +135,7 @@ define(['hfsm/viz/describe',
     }
 
     self._id = id;
-    self._fields = {};
+    self._release();
     self._el.empty();
 
     var readOnly = backend.isReadOnly();
@@ -133,7 +149,7 @@ define(['hfsm/viz/describe',
       fields.append(self._renderField(id, attr, node, readOnly));
     });
     self._el.append(fields);
-    self._grow();
+    self._highlight();
   };
 
   /** the value a node currently has for `attr`, or its default */
@@ -158,9 +174,10 @@ define(['hfsm/viz/describe',
     } else if (kind === 'number') {
       input = $('<input type="number" step="any"/>').val(value);
     } else if (kind === 'code') {
+      // CodeMirror takes this over once it has loaded; until then, and
+      // if it fails to, the textarea edits the attribute perfectly well
       input = $('<textarea class="inspector-code" spellcheck="false" ' +
-                'rows="2"></textarea>').val(value);
-      input.on('input', function () { fit(input); });
+                'rows="3"></textarea>').val(value);
     } else {
       input = $('<input type="text"/>').val(value);
     }
@@ -168,10 +185,11 @@ define(['hfsm/viz/describe',
     if (readOnly) input.prop('disabled', true);
 
     var error = $('<div class="inspector-error"></div>').hide();
-    self._fields[attr.name] = { input: input, kind: kind, attr: attr, row: row };
+    var field = { input: input, kind: kind, attr: attr, row: row, cm: null };
+    self._fields[attr.name] = field;
 
     function commit() {
-      var next = readValue(input, kind);
+      var next = readValue(field);
       var problem = self._reject(attr, next);
       if (problem) {
         error.text(problem).show().removeClass('is-note');
@@ -185,49 +203,102 @@ define(['hfsm/viz/describe',
       self._write(id, attr, next);
     }
 
+    field.commit = commit;
+
     // Commit when the field is done, not on every keystroke: a
     // transaction per character would flood a host's undo stack, and
     // in the playground rewrite the model text under the cursor.
     input.on('change', commit);
-    if (kind === 'code' || kind === 'text') {
+    if (kind === 'text' || kind === 'code') {
       input.on('blur', commit);
-      // Enter commits a one-line field; a code block needs it for
-      // newlines, so there it is Ctrl/Cmd+Enter
       input.on('keydown', function (event) {
         if (event.key !== 'Enter') return;
-        if (kind === 'text' || event.ctrlKey || event.metaKey) {
+        // Enter commits a one-line field; in code it is a newline, so
+        // there it is Ctrl/Cmd+Enter -- and Shift+Ctrl/Cmd+Enter opens
+        // the big editor
+        if (kind === 'text') {
           event.preventDefault();
           commit();
+        } else if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          if (event.shiftKey) self._expand(id, attr);
+          else commit();
         }
       });
     }
 
-    return row.append(label, $('<div class="inspector-control"></div>')
-                      .append(input, error));
+    var control = $('<div class="inspector-control"></div>').append(input, error);
+    if (kind === 'code') {
+      // 250px of column is not where anyone wants to write a state's
+      // Entry block
+      var expand = $('<button type="button" class="inspector-expand" ' +
+                     'title="Edit in a larger editor (Shift+Ctrl/Cmd+Enter)" ' +
+                     'aria-label="Edit ' + attr.name + ' in a larger editor">' +
+                     '\u2921</button>');
+      expand.on('click', function () { self._expand(id, attr); });
+      control.append(expand);
+      field.expand = function () { self._expand(id, attr); };
+    }
+
+    return row.append(label, control);
   };
 
-  function readValue(input, kind) {
-    if (kind === 'checkbox') return input.is(':checked');
-    if (kind === 'number') {
-      var n = parseFloat(input.val());
+  function readValue(field) {
+    if (field.kind === 'checkbox') return field.input.is(':checked');
+    if (field.kind === 'number') {
+      var n = parseFloat(field.input.val());
       return isNaN(n) ? 0 : n;
     }
-    return input.val();
+    // once CodeMirror has taken the textarea over, it holds the text
+    if (field.cm) return field.cm.getValue();
+    return field.input.val();
   }
 
-  /** grow a code field to its content, up to something sensible */
-  function fit(input) {
-    var el = input[0];
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight + 2, 260) + 'px';
-  }
-
-  /** size every code field once the form is in the document */
-  Inspector.prototype._grow = function () {
+  /**
+   * Hand every code field to CodeMirror.
+   *
+   * Only once the form is in the document -- `fromTextArea` measures
+   * as it builds -- and only for the form that is still showing when
+   * the editor finishes loading, since it is fetched on first use.
+   */
+  Inspector.prototype._highlight = function () {
     var self = this;
+    var forId = self._id;
     Object.keys(self._fields).forEach(function (name) {
-      if (self._fields[name].kind === 'code') fit(self._fields[name].input);
+      var field = self._fields[name];
+      if (field.kind !== 'code' || field.cm) return;
+      CodeEditor.inline(field.input[0], {
+        onCommit: field.commit,
+        onExpand: field.expand,
+        onReady: function (cm) {
+          if (self._id !== forId) { cm.toTextArea(); return; }  // moved on
+          field.cm = cm;
+          if (self._backend.isReadOnly()) cm.setOption('readOnly', true);
+        },
+      });
+    });
+  };
+
+  /**
+   * The same attribute, in an editor with room to work in. What is
+   * saved goes back through the same commit path as the inline field,
+   * so there is one place that validates and writes.
+   */
+  Inspector.prototype._expand = function (id, attr) {
+    var self = this;
+    var field = self._fields[attr.name];
+    if (!field) return;
+    var node = self._backend.getNode(id);
+    CodeEditor.open({
+      title: attr.name,
+      subtitle: (node && node.name ? node.name + '  ' : '') + id,
+      value: readValue(field),
+      readOnly: self._backend.isReadOnly(),
+      onSave: function (value) {
+        if (field.cm) field.cm.setValue(value);
+        else field.input.val(value);
+        field.commit();
+      },
     });
   };
 

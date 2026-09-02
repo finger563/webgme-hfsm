@@ -63,8 +63,10 @@ place. It is deliberately not a property grid:
 - fields are ordered by what the machine **does** (name, Event, Guard,
   Action, Entry/Exit/Tick) with the rarely-touched declarations last,
   rather than alphabetically;
-- C++ attributes are rendered as code in a growing textarea, not in a
-  one-line input;
+- C++ attributes are edited in CodeMirror, with highlighting, and the
+  ⤡ button opens the same text full-size in a modal — with line
+  numbers, and Ctrl/Cmd+Enter to save — because a 250px column is not
+  where anyone wants to write a state's Entry block;
 - a `name` or an `Event` that is not a C++ identifier is refused as it
   is typed, with the reason, instead of failing later in the generator
   — or, for an event name, reaching the simulator, which reports it
@@ -75,6 +77,11 @@ place. It is deliberately not a property grid:
 What may be edited comes from the metamodel through
 `ModelBackend.getNodeSchema`, so the form cannot drift from what the
 model actually allows.
+
+CodeMirror is fetched the first time a code field is shown, not when
+the visualizer loads: it is the editor WebGME already bundles and
+webgme-codeeditor is built on, so both hosts map the id `codemirror`
+onto the same copy and neither pays for it until it is used.
 
 ### The same visualizer, not a second one
 
@@ -116,12 +123,10 @@ generation still works.
 - **No undo.** WebGME's undo is a property of its commit history,
   which is exactly the infrastructure this does without. Reload to
   get back to the model you loaded.
-- **No pop-out code editor yet.** Code attributes are edited in the
-  panel, in a textarea that grows with its contents. Anything longer
-  than a few lines wants a real editor with highlighting, and wants to
-  be shown in the context the generator will place it in — which the
-  `//::::<path>::::<attribute>::::` markers in the generated files
-  make locatable. That is the next thing.
+- **The code editor does not yet show its surroundings.** A snippet is
+  edited on its own, not inside the function the generator will put it
+  in. The `//::::<path>::::<attribute>::::` markers in the generated
+  files make that locatable, so it is the next thing.
 
 ## Why it cannot drift from the CLI
 
