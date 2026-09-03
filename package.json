@@ -15,7 +15,7 @@
     "gen:meta": "node scripts/gen-meta.js",
     "check:meta": "node scripts/gen-meta.js --check"
   },
-  "version": "1.6.0",
+  "version": "1.7.0",
   "repository": {
     "type": "git",
     "url": "http://github.com/finger563/webgme-hfsm.git"
