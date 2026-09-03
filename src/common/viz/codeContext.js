@@ -15,8 +15,28 @@
  *   //::::<path>::::<attribute>::::
  *
  * so the surrounding lines are locatable in the output without
- * parsing C++ or knowing anything about the templates. That is all
- * this does: find the marker, hand back the lines above and below.
+ * parsing C++ or knowing anything about the templates.
+ *
+ * MEASURED AGAINST WHAT WAS GENERATED, NOT WHAT IS BEING TYPED
+ * -----------------------------------------------------------
+ * The files are from the last generation, so the snippet inside them
+ * is the value the model had THEN. An earlier version of this used
+ * the editor's current text to work out how many lines the snippet
+ * occupied, which slid the frame the moment anyone typed: shorten a
+ * four-line action to one and three orphaned lines appeared in the
+ * frame below it; lengthen it and the frame skipped the brace that
+ * closed the function. So the host hands over the model it generated
+ * from along with the files, and every measurement comes from there.
+ *
+ * A SNIPPET IS NOT ALWAYS A RUN OF WHOLE LINES
+ * --------------------------------------------
+ * A Guard is emitted INSIDE a line -- `else if ( <guard> ) {` -- so
+ * counting lines after the marker is wrong for it in a way that is
+ * invisible until you look. Rather than special-case the templates,
+ * the value is LOCATED in the text: the frame ends where the value
+ * starts and resumes where it ends, part-way through a line if that
+ * is where it sits. A guard then reads exactly as it is compiled,
+ * `else if (` above and `) {` below.
  *
  * A SNIPPET CAN LAND IN SEVERAL PLACES
  * ------------------------------------
@@ -30,10 +50,12 @@
  * WHAT THE FRAME MAY NOT CONTAIN
  * ------------------------------
  * Another snippet. The frame is read-only context, and showing one
- * person's Exit block greyed out inside another's Entry frame would
- * read as generated scaffolding that cannot be changed -- when in
- * fact it is editable, somewhere else. So the frame stops at the
- * neighbouring markers, however few lines that leaves.
+ * person's Guard greyed out inside another's Action frame would read
+ * as generated scaffolding that cannot be changed -- when in fact it
+ * is editable, somewhere else. Stopping at the neighbouring MARKER is
+ * not enough: the marker is followed by the neighbour's snippet, so
+ * the frame started with someone else's code. The neighbour is
+ * located the same way, and the frame starts after it.
  */
 define([], function () {
   'use strict';
@@ -65,48 +87,120 @@ define([], function () {
     return '//' + MARKER + path + MARKER + attribute + MARKER;
   }
 
+  /**
+   * The path and attribute a marker line names, or null.
+   * Used to find out what a NEIGHBOURING snippet is, so its extent
+   * can be measured and kept out of the frame.
+   */
+  function parseMarker(line) {
+    var text = String(line).trim();
+    if (text.indexOf('//' + MARKER) !== 0) return null;
+    var parts = text.slice(2).split(MARKER);
+    // '', path, attribute, ''
+    if (parts.length < 4 || !parts[1] || !parts[2]) return null;
+    return { path: parts[1], attribute: parts[2] };
+  }
+
   function isMarker(line) {
-    var t = line.trim();
-    return t.indexOf('//' + MARKER) === 0 && t.lastIndexOf(MARKER) > 2;
+    return !!parseMarker(line);
+  }
+
+  /** what an attribute held when the code was generated */
+  function generatedValue(model, path, attribute) {
+    var objects = model && model.objects;
+    var object = objects && objects[path];
+    if (!object) return undefined;
+    var value = object[attribute];
+    if (value === undefined && object.attributes) {
+      value = object.attributes[attribute];
+    }
+    return value;
   }
 
   /**
-   * How many lines of output a snippet occupies.
+   * Where a snippet actually sits in the generated text.
    *
-   * The generator writes the value verbatim after the marker, so it
-   * is the value's own line count -- and one line even when the value
-   * is empty, because the template's indentation is still emitted.
+   * @param lines   the file, split
+   * @param at      index of the marker line
+   * @param value   what the attribute held when this was generated
+   * @return { endLine, startLine, startCol, endCol } -- the half-open
+   *         span the snippet occupies, with startCol/endCol saying
+   *         where within its first and last lines it begins and ends.
+   *         null when the value cannot be found where it should be,
+   *         which means this file was generated from something else.
    */
-  function snippetHeight(value) {
-    if (typeof value !== 'string' || value === '') return 1;
-    return value.split('\n').length;
+  function spanOf(lines, at, value) {
+    var first = at + 1;
+    if (first >= lines.length) return null;
+
+    // An empty snippet is the one line the template's indentation
+    // still emits, with nothing on it.
+    if (typeof value !== 'string' || value === '') {
+      return { startLine: first, startCol: 0,
+               endLine: first, endCol: lines[first].length };
+    }
+
+    var parts = value.split('\n');
+    var startCol = lines[first].indexOf(parts[0]);
+    if (startCol === -1) return null;          // not where it should be
+
+    var endLine = first + parts.length - 1;
+    if (endLine >= lines.length) return null;
+    var last = parts[parts.length - 1];
+    var endCol;
+    if (parts.length === 1) {
+      endCol = startCol + last.length;
+    } else {
+      var found = lines[endLine].indexOf(last);
+      if (found === -1) return null;
+      endCol = found + last.length;
+    }
+    return { startLine: first, startCol: startCol,
+             endLine: endLine, endCol: endCol };
+  }
+
+  /** everything from (line, col) up to the end of `to`, as text */
+  function textBetween(lines, fromLine, fromCol, toLine, toCol) {
+    if (fromLine > toLine) return '';
+    var out = [];
+    for (var i = fromLine; i <= toLine; i++) {
+      var line = lines[i];
+      var start = (i === fromLine) ? fromCol : 0;
+      var end = (i === toLine) ? toCol : line.length;
+      out.push(line.slice(start, end));
+    }
+    return out.join('\n');
   }
 
   return {
     BEFORE_LINES: BEFORE_LINES,
     AFTER_LINES: AFTER_LINES,
     markerFor: markerFor,
-    snippetHeight: snippetHeight,
+    parseMarker: parseMarker,
+    spanOf: spanOf,
 
     /**
      * Every place this snippet was generated into.
      *
-     * @param files      { '<name>': '<text>' } -- whatever the host
-     *                   last generated
+     * @param generated  { files: { '<name>': '<text>' }, model }
+     *                   -- what the host last generated, and the
+     *                   model it generated from. Both, because a
+     *                   measurement taken against the wrong model is
+     *                   worse than no frame.
      * @param path       the node's model path, as the marker spells it
      * @param attribute  'Entry', 'Guard', ...
-     * @param value      what the attribute currently holds, which is
-     *                   how many lines the snippet takes up
      * @return [ { file, line, before, after } ], `line` 1-based and
      *         pointing at the marker; empty when nothing matches --
      *         a node created since the last generation, a host with
-     *         no generated code, or an attribute the templates do not
-     *         emit
+     *         no generated code, or a file that no longer matches the
+     *         model it is paired with
      */
-    sites: function (files, path, attribute, value) {
-      if (!files || !path || !attribute) return [];
+    sites: function (generated, path, attribute) {
+      var files = generated && generated.files;
+      var model = generated && generated.model;
+      if (!files || !model || !path || !attribute) return [];
       var marker = markerFor(path, attribute);
-      var height = snippetHeight(value);
+      var value = generatedValue(model, path, attribute);
       var found = [];
 
       // sorted, so the same model always reports the same order --
@@ -119,30 +213,65 @@ define([], function () {
         lines.forEach(function (line, i) {
           if (line.trim() !== marker) return;
 
+          var span = spanOf(lines, i, value);
+          // The value is not where the marker says it should be, so
+          // this file was generated from a different model. A frame
+          // drawn from it would be fiction.
+          if (!span) return;
+
           // Walk back to whichever comes first: the line that opens
           // the enclosing function (kept -- it is the signature), a
-          // neighbouring snippet (dropped), or the budget.
+          // neighbouring snippet, or the budget.
           var from = Math.max(0, i - BEFORE_LINES);
+          var fromCol = 0;
           for (var b = i - 1; b >= from; b--) {
-            if (isMarker(lines[b])) { from = b + 1; break; }
+            var neighbour = parseMarker(lines[b]);
+            if (neighbour) {
+              // Its marker is not the boundary -- its CODE is, and
+              // that code may end part-way through a line, as a
+              // guard's does. Start after it.
+              var theirs = spanOf(lines, b,
+                                  generatedValue(model, neighbour.path,
+                                                 neighbour.attribute));
+              if (theirs) {
+                from = theirs.endLine;
+                fromCol = theirs.endCol;
+              } else {
+                from = b + 1;   // cannot measure it; keep it out whole
+                fromCol = 0;
+              }
+              break;
+            }
             if (OPENS_FUNCTION.test(lines[b])) { from = b; break; }
           }
 
           // and forward from the end of the snippet, stopping at the
           // brace that closes the function -- keeping it, dropping
           // whatever comes after
-          var snippetEnd = i + height;          // last snippet line
-          var to = Math.min(lines.length - 1, snippetEnd + AFTER_LINES);
-          for (var a = snippetEnd + 1; a <= to; a++) {
+          var to = Math.min(lines.length - 1, span.endLine + AFTER_LINES);
+          for (var a = span.endLine + 1; a <= to; a++) {
             if (isMarker(lines[a])) { to = a - 1; break; }
             if (CLOSES_FUNCTION.test(lines[a])) { to = a; break; }
           }
 
+          // The marker line itself is generator bookkeeping, so it
+          // is left out; what is kept is whatever of the snippet's
+          // own first line comes BEFORE the value -- `else if ( `
+          // for a guard, nothing at all for an entry block.
+          var head = (i - 1 >= from)
+              ? textBetween(lines, from, fromCol, i - 1, lines[i - 1].length)
+              : '';
+          var prefix = lines[span.startLine].slice(0, span.startCol);
+          var tail = (span.endLine + 1 <= to)
+              ? textBetween(lines, span.endLine + 1, 0, to, lines[to].length)
+              : '';
+          var suffix = lines[span.endLine].slice(span.endCol);
+
           found.push({
             file: name,
             line: i + 1,
-            before: lines.slice(from, i).join('\n'),
-            after: lines.slice(snippetEnd + 1, to + 1).join('\n'),
+            before: prefix.trim() ? (head ? head + '\n' + prefix : prefix) : head,
+            after: suffix.trim() ? (tail ? suffix + '\n' + tail : suffix) : tail,
           });
         });
       });

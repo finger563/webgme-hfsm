@@ -244,6 +244,15 @@ textarea.inspector-prose {
        reasonable thing to want; just not editable */
     border: 0;
 }
+/* they are focusable so they can be scrolled from the keyboard;
+   a focus ring that only shows for keyboard users keeps that from
+   flashing up on every click */
+.code-context:focus { outline: none; }
+.code-context:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: -2px;
+}
+
 .code-context.is-before {
     border-bottom: 1px dashed #d0d7de;
     /* scrolled to its bottom by showSite(), so the lines nearest the

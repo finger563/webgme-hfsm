@@ -151,17 +151,36 @@ for one transition in the Complex example — so the header says
 `1 of 6 places this is generated into` and ‹ › step between them.
 Being told that is worth more than any one of the six.
 
-Two rules keep the frame honest. It never contains another snippet:
-someone else's Exit block greyed out inside your Entry frame would
-read as scaffolding that cannot be changed, when it is editable
-somewhere else. And it is measured against the text in the **editor**,
-not in the model, so it stays put around the lines being written.
+Two rules keep the frame honest.
 
-The frame comes from the host, through the optional
-`generatedFiles()` service, because where generated code comes from
-is genuinely host-specific: the playground generates in the page and
-has the files to hand, while in WebGME the plugin runs on the server
-and the visualizer has never seen its output. A host that cannot
+**It never contains another snippet.** Someone else's Guard greyed out
+inside your Action frame would read as scaffolding that cannot be
+changed, when it is editable somewhere else. Stopping at the
+neighbouring *marker* is not enough — the marker is followed by the
+neighbour's code — so the neighbour is located the same way, and the
+frame starts after it.
+
+**It is measured against the model the code was generated from**, not
+against what is being typed. Measuring with the editor's text slid the
+frame the moment anyone edited a snippet: shorten a four-line action
+to one and three orphaned lines appeared below it; lengthen it and the
+frame skipped the brace that closed the function.
+
+A snippet is also not always a run of whole lines. A Guard is emitted
+*inside* a line — `else if ( <guard> ) {` — so the value is **located**
+in the text rather than counted in lines, and a guard is framed
+exactly as it is compiled, with `else if (` above it and `) {` below.
+If the value is not where the marker says it should be, the file was
+generated from a different model, and there is no frame at all rather
+than one drawn in the wrong place.
+
+The frame comes from the host, through the optional `generated()`
+service, which returns the files **and the model they came from** —
+both together, because files paired with the wrong model produce a
+frame that is fiction. Where generated code comes from is genuinely
+host-specific: the playground generates in the page and has both to
+hand, while in WebGME the plugin runs on the server and the visualizer
+has never seen its output. A host that cannot
 answer loses the frame and nothing else — including a host whose
 generation just failed, which is caught rather than allowed to stop
 the editor opening.

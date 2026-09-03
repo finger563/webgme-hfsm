@@ -519,13 +519,17 @@
     showDiagnostics(model.warnings || [], 'warn');
 
     // The code editor shows a snippet inside the function it is
-    // compiled into, and these are where it reads that from. Handed
-    // over on every successful generation, and only then: half a
-    // generation would frame the code with the wrong surroundings.
-    if (vizModule && vizModule.setGeneratedFiles) {
-      vizModule.setGeneratedFiles(artifacts);
+    // compiled into, and this is where it reads that from. The MODEL
+    // goes with the files: it is the only thing that says how much
+    // of the file a snippet occupies, and a frame measured against a
+    // different model is fiction. Handed over on every successful
+    // generation, and only then -- half a generation would frame the
+    // code with the wrong surroundings.
+    var generated = { files: artifacts, model: model };
+    if (vizModule && vizModule.setGenerated) {
+      vizModule.setGenerated(generated);
     } else {
-      pendingGenerated = artifacts;
+      pendingGenerated = generated;
     }
 
     var count = Object.keys(artifacts).length;
@@ -1063,7 +1067,7 @@
       // it does, on a restored draft -- so the files it produced are
       // held until there is something to give them to
       if (pendingGenerated) {
-        viz.setGeneratedFiles(pendingGenerated);
+        viz.setGenerated(pendingGenerated);
         pendingGenerated = null;
       }
       viz.onModelEdited(diagramEdited);

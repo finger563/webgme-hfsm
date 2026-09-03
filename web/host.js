@@ -40,14 +40,16 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     // backend that are gone.
     this._closeMenu = null;
     this._closeDialog = null;
-    // what the page last generated, for the code editor's frame
+    // what the page last generated -- files AND the model they came
+    // from -- for the code editor's frame
     this._generated = null;
   }
 
   /* --------------------- generated code ----------------------- */
 
   /**
-   * The files the page produced the last time Generate ran.
+   * What the page produced the last time Generate ran: the files,
+   * and the model they were generated from.
    *
    * Deliberately whatever was generated LAST, not what the model
    * currently says: the editor uses this to show a snippet in
@@ -55,13 +57,18 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
    * time someone types. A model edited since is at worst framed by
    * the previous version of the same function; a frame that vanished
    * on every keystroke would be worse.
+   *
+   * The model travels WITH the files because that is the only thing
+   * that says how much of the file the snippet occupies -- see
+   * codeContext.
    */
-  PlaygroundHost.prototype.generatedFiles = function () {
+  PlaygroundHost.prototype.generated = function () {
     return this._generated;
   };
 
-  PlaygroundHost.prototype.setGeneratedFiles = function (files) {
-    this._generated = files || null;
+  PlaygroundHost.prototype.setGenerated = function (generated) {
+    this._generated = (generated && generated.files && generated.model)
+      ? generated : null;
   };
 
   /* ----------------------- context menu ----------------------- */
