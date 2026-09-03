@@ -97,6 +97,27 @@ deep vs. shallow history, end states, restart, and tick. After an
 intentional behavior change, refresh with
 `UPDATE_TRACES=1 scripts/run_generated_tests.sh` and review the diff.
 
+Every golden has a trace, INCLUDING the three example machines the
+playground ships (`Simple`, `Medium`, `Complex`) -- they are the
+models a new user actually opens, so they are also run, not merely
+compiled. A golden with no `.input` is a failure rather than a skip:
+skipping quietly is how those three came to be generated and compiled
+for a while without anything ever executing them.
+
+Two of them earn their place by pinning behaviour that is easy to
+break silently. `Medium` leaves `State1::Child2::Grand`, wanders
+through `State2`/`State3`/`State4`, and returns through a deep history
+pseudostate -- the trace asserts it lands back in `Grand`, not in the
+default child. `Simple` is the odd one: its guards
+(`buttonPressed && ...`, and a `Test` payload whose vector is empty)
+cannot pass from the C++ test bench, which has no way to set a
+variable, so nothing ever transitions. That makes it the cleanest
+possible check of the rule in `docs/SEMANTICS.md` that a guard is
+evaluated BEFORE any exit or transition action: the trace shows
+`HANDLED ...: false` with no `EXIT` line anywhere near it. The
+machine is not broken -- in the simulator you set `buttonPressed`
+yourself and it moves.
+
 Because the simulator (JS) and the generated code (C++) implement the
 same semantics independently, `docs/SEMANTICS.md` is the contract for
 both; the trace fixtures are the executable form of that contract for

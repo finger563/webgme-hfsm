@@ -51,8 +51,13 @@ for golden in "$GOLDEN_DIR"/*/; do
 
   input="$TRACE_DIR/$name.input"
   expected="$TRACE_DIR/$name.expected"
+  # Every golden has a trace, and a new one must arrive with its own:
+  # this used to skip quietly, which is how three examples came to be
+  # compiled but never run. Write test/traces/<name>.input, then
+  # UPDATE_TRACES=1 to record what it does.
   if [ ! -f "$input" ]; then
-    echo "--- no trace input for $name; skipping runtime check"
+    echo "!!! no trace input for $name -- add test/traces/$name.input"
+    status=1
     continue
   fi
 

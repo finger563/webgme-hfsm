@@ -3,10 +3,14 @@
  */
 
 define(['bower/mustache.js/mustache.min',
+        'hfsm/viz/describe',
+        'hfsm/checkModel',
         'text!./Dialog.html',
         'text!./Type.html',
         'css!./Dialog.css'],
        function(mustache,
+                describe,
+                checkModel,
                 DialogTemplate,
                 TypeTemplate){
            'use strict';
@@ -15,10 +19,6 @@ define(['bower/mustache.js/mustache.min',
 
            var ignoreTypes = ['Documentation']
 
-           const typeMap = {
-               'boolean': 'checkbox',
-               'float': 'number'
-           };
            const valueMap = {
                'checkbox': function(el) { return el[0].checked; }
            };
@@ -26,12 +26,40 @@ define(['bower/mustache.js/mustache.min',
                return attr.replace(/ /gm, '_');
            };
 
+           // WHICH attributes, in WHAT order, shown as WHICH control:
+           // all three come from `describe`, the same answers the
+           // inspector renders from. They were decided here
+           // separately before, which is how this form went on
+           // offering a transition a `name` the generator never emits
+           // and putting an Entry block in a one-line input -- the
+           // property-grid problem the inspector exists to avoid,
+           // still present at the moment a node is created.
+           var INPUT_TYPE = { checkbox: 'checkbox', number: 'number' };
+
+           // aria-describedby ties the message to the field, and
+           // role="alert" makes it announced when it appears -- a
+           // refusal only a sighted user can find is not a refusal,
+           // it is a form that will not submit for no visible reason
            var attrForm = ['<div class="form-group" id="p{{id}}">',
-                           '<label class="col-sm-4 control-label">{{attr}}</label>',
+                           '<label class="col-sm-4 control-label" for="{{id}}">{{attr}}</label>',
                            '<div class="col-sm-8 controls">' ,
-                           '<input type="{{type}}" id="{{id}}" placeholder="">',
+                           '<input type="{{type}}" id="{{id}}" aria-describedby="e{{id}}"',
+                           ' placeholder="">',
+                           '<div class="dialog-field-error" id="e{{id}}" role="alert"></div>',
                            '</div>',
                            '</div>'].join('\n');
+
+           // code and prose get room to be what they are, rather than
+           // a one-line input
+           var attrTextForm = ['<div class="form-group" id="p{{id}}">',
+                               '<label class="col-sm-4 control-label" for="{{id}}">{{attr}}</label>',
+                               '<div class="col-sm-8 controls">' ,
+                               '<textarea id="{{id}}" class="dialog-{{kind}}" rows="3"',
+                               ' aria-describedby="e{{id}}"',
+                               ' spellcheck="{{spellcheck}}"></textarea>',
+                               '<div class="dialog-field-error" id="e{{id}}" role="alert"></div>',
+                               '</div>',
+                               '</div>'].join('\n');
 
            /**
             * Dialog Constructor
@@ -96,6 +124,17 @@ define(['bower/mustache.js/mustache.min',
                        event.preventDefault();
                        return;
                    }
+                   // A name or an Event that is not a C++ identifier
+                   // is refused HERE, rather than becoming a node the
+                   // inspector then flags: the same rule the
+                   // inspector applies, from the same place, at the
+                   // one moment where nothing has been created yet.
+                   if (!self.validateForm()) {
+                       event.stopPropagation();
+                       event.preventDefault();
+                       return;
+                   }
+
                    self._saving = true;
                    self._btnSave.prop('disabled', true);
 
@@ -218,15 +257,23 @@ define(['bower/mustache.js/mustache.min',
                // '' over its default -- a Field left alone lost its
                // 'int' Type, an untouched State its isComplete.
                self.getCurrentAttributes().map(function( a ) {
-                   if (a.defaultValue === undefined || a.defaultValue === null)
-                       return;
-                   var el = $(self._dialog).find('#' + attrToID(a.name)).first();
+                   var el = self.fieldFor( a );
                    if (!el.length)
                        return;
-                   if (el[0].type === 'checkbox') {
-                       el[0].checked = !!a.defaultValue;
-                   } else {
-                       el.val(a.defaultValue);
+                   if (a.defaultValue !== undefined && a.defaultValue !== null) {
+                       if (el[0].type === 'checkbox') {
+                           el[0].checked = !!a.defaultValue;
+                       } else {
+                           el.val(a.defaultValue);
+                       }
+                   }
+                   // a message that stays up while the user fixes the
+                   // field reads as though the fix had not worked
+                   if (describe.IDENTIFIER_ATTRIBUTES.indexOf(a.name) > -1) {
+                       el.on('input', function () {
+                           self.showFieldProblem( a, self.problem(
+                               a, self.normalize( a, el.val() ) ) );
+                       });
                    }
                });
            };
@@ -234,25 +281,107 @@ define(['bower/mustache.js/mustache.min',
            // ATTRIBUTE RELATED FUNCTIONS
 
            Dialog.prototype.getCurrentAttributes = function () {
-               var schema = this.getCurrentSchema();
-               return (schema && schema.attributes) || [];
+               return describe.editableAttributes( this.getCurrentSchema() );
            };
 
            Dialog.prototype.getForm = function ( ) {
                var self = this;
                var form = '';
                self.getCurrentAttributes().map( function(a) {
-                   form += self.renderAttributeForm( a.name, a.type );
+                   form += self.renderAttributeForm( a );
                });
                return form;
            };
            
-           Dialog.prototype.renderAttributeForm = function ( attr, type ) {
+           Dialog.prototype.renderAttributeForm = function ( a ) {
+               var kind = describe.fieldKind( a );
+               if (kind === 'code' || kind === 'prose') {
+                   return mustache.render( attrTextForm, {
+                       attr: a.name,
+                       id: attrToID(a.name),
+                       kind: kind,
+                       // C++ is not English, and a red underline under
+                       // every identifier is noise
+                       spellcheck: String(kind === 'prose')
+                   } );
+               }
                return mustache.render( attrForm, {
-                   attr: attr,
-                   id: attrToID(attr),
-                   type: (typeMap[type] || type)
+                   attr: a.name,
+                   id: attrToID(a.name),
+                   type: INPUT_TYPE[kind] || 'text'
                } );
+           };
+
+           /**
+            * What an identifier attribute is worth once the
+            * surrounding space is gone -- what gets VALIDATED has to
+            * be what gets STORED, or ' GO ' passes as `GO` and is
+            * then written untrimmed.
+            */
+           Dialog.prototype.normalize = function ( a, value ) {
+               if (describe.IDENTIFIER_ATTRIBUTES.indexOf(a.name) === -1)
+                   return value;
+               if (typeof value !== 'string')
+                   return value;
+               return value.trim();
+           };
+
+           /** the reason this value cannot be stored, or null */
+           Dialog.prototype.problem = function ( a, value ) {
+               if (describe.IDENTIFIER_ATTRIBUTES.indexOf(a.name) === -1)
+                   return null;
+               return checkModel.identifierProblem( this.getSelectedChildType(),
+                                                    a.name, value );
+           };
+
+           /**
+            * Check every field, show what is wrong beside it, and put
+            * the caret in the first one.
+            *
+            * @return true when the form may be saved
+            */
+           Dialog.prototype.validateForm = function () {
+               var self = this;
+               var first = null;
+               self.getCurrentAttributes().map(function( a ) {
+                   var el = self.fieldFor( a );
+                   if (!el || !el.length)
+                       return;
+                   var value = self.normalize( a, el.val() );
+                   // show the trimmed value, so what was checked is
+                   // what is on screen as well as what is written
+                   if (value !== el.val())
+                       el.val( value );
+                   var problem = self.problem( a, value );
+                   self.showFieldProblem( a, problem );
+                   if (problem && !first)
+                       first = el;
+               });
+               if (first) {
+                   first.focus();
+                   return false;
+               }
+               return true;
+           };
+
+           Dialog.prototype.fieldFor = function ( a ) {
+               return $(this._dialog).find('#' + attrToID(a.name)).first();
+           };
+
+           Dialog.prototype.showFieldProblem = function ( a, problem ) {
+               var self = this;
+               var el = $(self._dialog).find('#e' + attrToID(a.name)).first();
+               var group = $(self._dialog).find('#p' + attrToID(a.name)).first();
+               if (!el.length)
+                   return;
+               // .text(), never .html(): the message quotes what the
+               // user typed
+               el.text(problem || '');
+               el.toggle(!!problem);
+               group.toggleClass('has-error', !!problem);
+               // the red border says "invalid" to a sighted user and
+               // to nobody else
+               self.fieldFor(a).attr('aria-invalid', problem ? 'true' : null);
            };
 
            Dialog.prototype.getAttributesFromForm = function () {
@@ -263,7 +392,7 @@ define(['bower/mustache.js/mustache.min',
                    var el = $(self._dialog).find('#'+attrToID(a)).first();
                    var type = el.type || (el[0] && el[0].type);
                    var val = valueMap[type] ? valueMap[type](el) : el.val();
-                   attr[a] = val;
+                   attr[a] = self.normalize( schemaAttr, val );
                });
                return attr;
            };
