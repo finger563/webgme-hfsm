@@ -246,11 +246,8 @@ textarea.inspector-prose {
 }
 .code-context.is-before {
     border-bottom: 1px dashed #d0d7de;
-    /* the lines nearest the snippet matter most, so a long frame
-       scrolls to its BOTTOM rather than its top */
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    /* scrolled to its bottom by showSite(), so the lines nearest the
+       snippet are the ones on screen */
     max-height: 45%;
 }
 .code-context.is-after {

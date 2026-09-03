@@ -9,10 +9,11 @@
  * asks a different question -- does an Entry block come out as a
  * textarea -- so it needs the substitution to actually happen.
  *
- * `{{name}}` only, which is all the dialog's two templates use. No
- * sections, no partials, no HTML escaping: a template that grew to
- * need any of those would render wrongly here, and the assertion
- * about its output is what would fail.
+ * Plain `{{key}}` substitution only -- any key the view has -- which
+ * is all the dialog's two templates use. No sections, no partials,
+ * no inverted blocks, no HTML escaping: a template that grew to need
+ * any of those would render wrongly here, and the assertion about its
+ * output is what would fail.
  *
  * A separate file rather than a second id pointed at
  * test/stubs/mustache.js -- two requirejs ids sharing one stub file
