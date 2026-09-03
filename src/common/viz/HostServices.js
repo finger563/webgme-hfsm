@@ -43,16 +43,22 @@
  *
  * GENERATED CODE (optional)
  * -------------------------
- * `generatedFiles()` returns `{ '<name>': '<text>' }` for whatever
- * the host last generated, or null.
+ * `generated()` returns `{ files: { '<name>': '<text>' }, model }`
+ * for whatever the host last generated, or null.
  *
- * The code editor uses it to show a snippet inside the function it
- * will be compiled into -- see `codeContext`. It is OPTIONAL because
- * where generated code comes from is genuinely a property of the
- * host: the playground generates in the page and has the files
- * sitting there, while in WebGME the plugin runs on the server and
- * the visualizer has never seen its output. A host that returns null
- * loses the frame and nothing else.
+ * BOTH, together, on purpose. The code editor uses this to show a
+ * snippet inside the function it will be compiled into -- see
+ * `codeContext` -- and locating it means knowing what the snippet
+ * held WHEN THE CODE WAS GENERATED, not what is being typed now. A
+ * host that handed over files and left the model to be fetched
+ * separately would eventually pair one with the other's, and a frame
+ * measured against the wrong model is worse than no frame.
+ *
+ * OPTIONAL because where generated code comes from is genuinely a
+ * property of the host: the playground generates in the page and has
+ * both sitting there, while in WebGME the plugin runs on the server
+ * and the visualizer has never seen its output. A host that returns
+ * null loses the frame and nothing else.
  */
 define([], function () {
   'use strict';
@@ -62,7 +68,7 @@ define([], function () {
   // Not in REQUIRED on purpose: a host that cannot answer these is
   // not a broken host, and failing at wiring time over one would
   // stop the widget loading somewhere it otherwise works.
-  var OPTIONAL = ['generatedFiles'];
+  var OPTIONAL = ['generated'];
 
   return {
     REQUIRED: REQUIRED,
@@ -115,7 +121,7 @@ define([], function () {
         contextMenu: function () {},
         editDocument: function () {},
         makeDroppable: function () { return undefined; },
-        generatedFiles: function () { return null; },
+        generated: function () { return null; },
       };
     },
   };

@@ -168,7 +168,7 @@ define([
     resolveModel.resolve(model);
 
     host = PlaygroundHost();
-    host.setGeneratedFiles(generated);
+    host.setGenerated(generated);
     // the backend reports every committed transaction; that is the
     // only notice the graph gets that the model has been edited
     backend = LocalBackend(model, sync);
@@ -306,14 +306,17 @@ define([
     onSplitChanged: function (fn) { onSplitChanged = fn; },
 
     /**
-     * Hand over the files the page has just generated, so the code
-     * editor can show a snippet inside the function it ends up in.
-     * Kept across mounts -- the model being redrawn does not make the
-     * last generation less true than it was.
+     * Hand over what the page has just generated -- the files and
+     * the model they came from -- so the code editor can show a
+     * snippet inside the function it ends up in. Kept across mounts:
+     * the model being redrawn does not make the last generation less
+     * true than it was.
+     *
+     * @param next  { files, model }
      */
-    setGeneratedFiles: function (files) {
-      generated = files || null;
-      if (host) host.setGeneratedFiles(generated);
+    setGenerated: function (next) {
+      generated = next || null;
+      if (host) host.setGenerated(generated);
     },
 
     /**

@@ -183,14 +183,25 @@ define(['require'], function (require) {
       var body = $('<div class="code-modal-body"></div>');
       var area = $('<textarea></textarea>').val(opts.value || '');
 
-      // The frame. `aria-hidden`: it is the same code the editor
-      // already contains the point of, and a screen reader reading
-      // two dozen lines of generated aliases before reaching the
-      // editable field would bury it.
-      var before = $('<pre class="code-context is-before"></pre>')
-          .attr('aria-hidden', 'true');
-      var after = $('<pre class="code-context is-after"></pre>')
-          .attr('aria-hidden', 'true');
+      // The frame.
+      //
+      // NOT aria-hidden. It was, on the reasoning that the editor
+      // already contains the code -- which is wrong: the signature
+      // and the aliases saying what is in scope are the whole point
+      // of this feature and appear nowhere else, so hiding them from
+      // the accessibility tree hid the feature from the people it
+      // would help most.
+      //
+      // tabindex, because these scroll: a region you can only reach
+      // the bottom of with a mouse is not reachable. They join the
+      // dialog's focus order through focusables(), which already
+      // looks for [tabindex].
+      var before = $('<pre class="code-context is-before" tabindex="0"></pre>')
+          .attr('role', 'region')
+          .attr('aria-label', 'Generated code above this snippet');
+      var after = $('<pre class="code-context is-after" tabindex="0"></pre>')
+          .attr('role', 'region')
+          .attr('aria-label', 'Generated code below this snippet');
       var where = $('<span class="code-modal-where"></span>');
       // A single glyph is not a label. The title is for a mouse
       // pointer; aria-label is what anything else reads.
@@ -293,13 +304,18 @@ define(['require'], function (require) {
         if (sites.length > 1) head.append(prev, next);
         body.append(before, $('<div class="code-modal-edit"></div>').append(area),
                     after);
-        showSite();
       } else {
         body.append(area);
       }
       box.append(head, body, buttons.append(hint, cancel, save));
       overlay.append(box);
       $(document.body).append(overlay);
+      // AFTER the overlay is in the document: showSite scrolls the
+      // frame to the lines nearest the snippet, and a detached
+      // element has a scrollHeight of zero, so doing this earlier
+      // left a long frame at its beginning whenever CodeMirror did
+      // not load and the textarea fallback was used.
+      if (sites.length) showSite();
       $(document).on('keydown', onKey);
 
       // the dialog is usable as a plain textarea until the editor
@@ -321,8 +337,8 @@ define(['require'], function (require) {
         }));
         cm.setSize('100%', '100%');
         cm.focus();
-        // the frame is measured against the editor, which only has a
-        // height once CodeMirror has laid itself out
+        // again once CodeMirror has laid itself out: it takes the
+        // height the frames are measured against
         if (sites.length) showSite();
       }).catch(function (e) {
         // a textarea still edits the attribute

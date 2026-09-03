@@ -362,16 +362,17 @@ define(['hfsm/viz/describe',
    * Where this snippet ends up in the generated code, if the host can
    * say.
    *
-   * Measured against what is in the EDITOR rather than what is in the
-   * model: the two differ the moment someone types, and the frame
-   * should sit around the lines being written.
+   * Measured against the model the code was GENERATED from, which the
+   * host hands over with the files -- not against what is in the
+   * editor. Using the editor's text slid the frame the moment anyone
+   * typed.
    */
-  Inspector.prototype._sites = function (id, attr, value) {
+  Inspector.prototype._sites = function (id, attr) {
     var self = this;
     if (describe.fieldKind(attr) !== 'code') return [];   // prose is not compiled
-    var files = HostServices.ask(self._host, 'generatedFiles', [], null);
-    if (!files) return [];
-    return codeContext.sites(files, id, attr.name, value);
+    var generated = HostServices.ask(self._host, 'generated', [], null);
+    if (!generated) return [];
+    return codeContext.sites(generated, id, attr.name);
   };
 
   Inspector.prototype._expand = function (id, attr) {
@@ -384,7 +385,7 @@ define(['hfsm/viz/describe',
       title: attr.name,
       subtitle: (node && node.name ? node.name + '  ' : '') + id,
       value: value,
-      sites: self._sites(id, attr, value),
+      sites: self._sites(id, attr),
       readOnly: self._backend.isReadOnly(),
       prose: field.kind === 'prose',
       onSave: function (next) {
