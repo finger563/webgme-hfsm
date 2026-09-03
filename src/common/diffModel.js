@@ -264,6 +264,7 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
 
     attributeChanges: attributeChanges,
 
+
     /**
      * Compare two models.
      *
@@ -279,6 +280,9 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
      *     afterPath,     null when removed
      *     status,        'added' | 'removed' | 'changed' | 'same'
      *     type, name,    from whichever side exists
+     *     event,         a transition's Event, when it has one: the
+     *                    diagram labels transitions by it, and their
+     *                    names are all the same default
      *     renamed,       name differs
      *     rehomed,       matched despite a different path
      *     moved,         position differs and nothing else does
@@ -306,7 +310,8 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
           entries.push({
             path: path, beforePath: path, afterPath: null,
             status: REMOVED, type: before[path].type, name: before[path].name,
-            renamed: false, rehomed: false, moved: false, changes: [],
+            event: before[path].Event, renamed: false, rehomed: false,
+            moved: false, changes: [],
           });
           return;
         }
@@ -316,6 +321,7 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
           path: to, beforePath: path, afterPath: to,
           status: changes.length ? CHANGED : SAME,
           type: after[to].type, name: after[to].name,
+          event: after[to].Event,
           renamed: before[path].name !== after[to].name,
           rehomed: path !== to,
           moved: moved,
@@ -328,7 +334,8 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
         entries.push({
           path: path, beforePath: null, afterPath: path,
           status: ADDED, type: after[path].type, name: after[path].name,
-          renamed: false, rehomed: false, moved: false, changes: [],
+          event: after[path].Event, renamed: false, rehomed: false,
+          moved: false, changes: [],
         });
       });
 

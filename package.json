@@ -1,7 +1,8 @@
 {
   "name": "webgme-hfsm",
   "bin": {
-    "hfsm-gen": "./bin/hfsm-gen.js"
+    "hfsm-gen": "./bin/hfsm-gen.js",
+    "hfsm-diff": "./bin/hfsm-diff.js"
   },
   "scripts": {
     "start": "node app.js",

@@ -64,13 +64,22 @@ define(['../metaRules'], function (metaRules) {
    * Internal Transition is a child rather than an edge, and still
    * reads `EVENT [guard]`.
    *
-   * @param what  a descriptor ({type, isConnection}) or a schema
-   *              ({name, isConnection})
+   * The METAMODEL is asked when the caller has not already said. A
+   * descriptor from the graph carries `isConnection`; a diff entry
+   * carries a type and nothing else, and would otherwise be labelled
+   * by a name that is the same default on every transition in the
+   * model.
+   *
+   * @param what  a descriptor ({type, isConnection}), a schema
+   *              ({name, isConnection}), or anything with a `type`
    */
   function labelledByEvent(what) {
     if (!what) return false;
-    return !!what.isConnection ||
-      what.type === 'Internal Transition' || what.name === 'Internal Transition';
+    if (what.isConnection) return true;
+    if (what.type === 'Internal Transition' ||
+        what.name === 'Internal Transition') return true;
+    return !!(what.type && metaRules.types[what.type] &&
+              metaRules.isConnection(what.type));
   }
 
   function isTransition(desc) {
@@ -103,6 +112,27 @@ define(['../metaRules'], function (metaRules) {
     },
 
     labelledByEvent: labelledByEvent,
+
+    /**
+     * What to call one object in a list -- a change list, a report,
+     * anything that is not the diagram itself.
+     *
+     * A transition by its EVENT, because that is what the diagram
+     * labels it and its name is a default nobody changes: a list of
+     * six things all called "External Transition" names nothing. One
+     * rule, so the panel in the playground and the CLI cannot end up
+     * calling the same transition two different things.
+     *
+     * @param what  { type, name, Event | event, isConnection?, path? }
+     */
+    labelFor: function (what) {
+      if (!what) return '';
+      if (labelledByEvent(what)) {
+        var event = what.Event || what.event;
+        return event ? what.type + ' ' + event : what.type;
+      }
+      return what.name || what.path || what.type || '';
+    },
 
     /**
      * The attributes worth putting in front of someone editing a node

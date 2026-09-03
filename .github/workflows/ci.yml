@@ -40,6 +40,16 @@ jobs:
           test -f build/cli-smoke/Features.puml
           test -f build/cli-smoke/Features.mmd
 
+      - name: CLI smoke test (diff)
+        run: |
+          # a model against itself is the same machine
+          node bin/hfsm-diff.js examples/Simple.json examples/Simple.json
+          # two different machines are not, and that is exit 1 rather
+          # than a crash -- so `set -e` must not treat it as failure
+          if node bin/hfsm-diff.js examples/Simple.json examples/Medium.json; then
+            echo "expected exit 1 for two different machines"; exit 1
+          fi
+
       - name: Validate SCXML export is well-formed XML
         run: |
           sudo apt-get install -y --no-install-recommends libxml2-utils

@@ -26,7 +26,7 @@ function copy(model) {
 
 describe('comparing two state machines', function () {
 
-  var diffModel, resolveModel;
+  var diffModel, resolveModel, describe;
 
   before(function () {
     this.timeout(10000);
@@ -38,11 +38,13 @@ describe('comparing two state machines', function () {
       paths: { hfsm: path.join(repoRoot, 'src/common') },
     });
     return new Promise(function (resolve, reject) {
-      req(['hfsm/diffModel', 'hfsm/resolveModel'], function (m, r) {
-        diffModel = m;
-        resolveModel = r;
-        resolve();
-      }, reject);
+      req(['hfsm/diffModel', 'hfsm/resolveModel', 'hfsm/viz/describe'],
+          function (m, r, d) {
+            diffModel = m;
+            resolveModel = r;
+            describe = d;
+            resolve();
+          }, reject);
     });
   });
 
@@ -293,6 +295,44 @@ describe('comparing two state machines', function () {
     assert.strictEqual(diff.summary.added, 2);
     assert.strictEqual(diff.summary.removed, 2);
     assert.strictEqual(diff.summary.changed, 0);
+  });
+
+  it('carries what a transition should be called', function () {
+    // Every transition is named "External Transition"; a change list
+    // of six of those names nothing. describe.labelFor is the one
+    // rule, so the playground panel and the CLI agree.
+    var before = example('Simple');
+    var after = copy(before);
+    var edge = Object.keys(after.objects).filter(function (p) {
+      return after.objects[p].Guard;
+    })[0];
+    var event = after.objects[edge].Event;
+    assert.ok(event, 'the fixture transition should carry an event');
+    after.objects[edge].Guard = 'somethingElse';
+
+    var entry = diffModel.diff(before, after).entries.filter(function (e) {
+      return e.path === edge;
+    })[0];
+    assert.strictEqual(entry.event, event, 'the entry knows its event');
+    assert.strictEqual(describe.labelFor(entry),
+                       entry.type + ' ' + event);
+    // and a state is still called by its name
+    var state = diffModel.diff(before, after).entries.filter(function (e) {
+      return e.type === 'State';
+    })[0];
+    assert.strictEqual(describe.labelFor(state), state.name);
+  });
+
+  it('knows a transition from its type alone', function () {
+    // a diff entry has no isConnection flag; without asking the
+    // metamodel, every external transition was labelled by the name
+    // it shares with every other one
+    assert.ok(describe.labelledByEvent({ type: 'External Transition' }));
+    assert.ok(describe.labelledByEvent({ type: 'Local Transition' }));
+    assert.ok(describe.labelledByEvent({ type: 'Internal Transition' }));
+    assert.ok(!describe.labelledByEvent({ type: 'State' }));
+    assert.ok(!describe.labelledByEvent({ type: 'Made Up' }));
+    assert.ok(!describe.labelledByEvent(null));
   });
 
   it('is stable: the same pair always reads the same way', function () {

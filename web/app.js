@@ -621,19 +621,15 @@
     setStatus('ready');
   }
 
-  /** what to call an object in a list of changes */
+  /**
+   * What to call an object in a list of changes.
+   *
+   * diffModel owns the rule, so the panel and the CLI cannot end up
+   * naming the same transition two different things.
+   */
   function labelFor(entry) {
-    var name = entry.name || entry.path;
-    if (entry.type && entry.type.indexOf('Transition') > -1) {
-      var event = null;
-      (entry.changes || []).forEach(function (c) {
-        if (c.attribute === 'Event') event = c.after || c.before;
-      });
-      // a transition is known by its event, the way the diagram
-      // labels it -- its name is the default nobody changes
-      return event ? entry.type + ' ' + event : entry.type;
-    }
-    return name;
+    return mods && mods.describe ? mods.describe.labelFor(entry)
+      : (entry.name || entry.path);
   }
 
   function describeChange(change) {
@@ -1363,15 +1359,17 @@
     'hfsm/checkModel',
     'hfsm/exporters',
     'hfsm/diffModel',
+    'hfsm/viz/describe',
     'templates/MetaTemplates',
   ], function (resolveModel, processor, checkModel, exporters, diffModel,
-               MetaTemplates) {
+               describe, MetaTemplates) {
     mods = {
       resolveModel: resolveModel,
       processor: processor,
       checkModel: checkModel,
       exporters: exporters,
       diffModel: diffModel,
+      describe: describe,
       MetaTemplates: MetaTemplates,
     };
     setStatus('ready');

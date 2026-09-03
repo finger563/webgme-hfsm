@@ -84,6 +84,10 @@ the UML State Machine specification, see [Wikipedia UML State Machine](https://e
 * **Standalone CLI** (`hfsm-gen`) running the same pipeline without a
   WebGME server -- for CI, scripting, and testing (see
   [docs/CLI.md](docs/CLI.md))
+* **Visual and textual diffs** between two versions of a machine --
+  added, removed and changed states, transitions and guards, on the
+  diagram in the playground and as an exit status from `hfsm-diff`
+  in CI. A layout-only change is not a change.
 * **Interop exports**: Mermaid, PlantUML, and SCXML per state machine
 * Precisely documented **execution semantics** shared by the
   simulator and the generated code
@@ -260,7 +264,17 @@ node bin/hfsm-gen.js <model.json> -o out --test-bench --export all
 
 Besides C++, it can export models as Mermaid (`.mmd`), PlantUML
 (`.puml`), and SCXML (`.scxml`) for docs and interop with other
-tools. See [docs/CLI.md](docs/CLI.md) for the model format and
+tools.
+
+`hfsm-diff` answers the other CI question -- *did this change the
+machine?* -- without a text diff of the JSON:
+
+```sh
+node bin/hfsm-diff.js before.json after.json   # exit 1 if they differ
+```
+
+Dragging a state is not a change, so a model that has only been
+re-laid-out exits 0. See [docs/CLI.md](docs/CLI.md) for the model format and
 options, [docs/SEMANTICS.md](docs/SEMANTICS.md) for the precise
 execution semantics implemented by the simulator and the generated
 code (including deliberate deviations from UML), and
