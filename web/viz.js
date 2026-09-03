@@ -326,8 +326,16 @@ define([
      * side -- it is a union built for the picture -- so an edit would
      * be written somewhere nobody can save from.
      *
-     * @return { summary, entries, dropped } -- everything the page
-     *         needs to describe the comparison in words
+     * @return {
+     *   summary  { added, removed, changed, moved, same }
+     *   entries  one per object, each carrying a `unionPath`: where
+     *            it ended up in the drawing, which is what a change
+     *            list must use to point the diagram at it
+     *   status   { '<union path>': '<status>' }, what the diagram was
+     *            coloured by
+     *   dropped  paths of edges too broken to draw -- said out loud
+     *            rather than silently left out
+     * }
      */
     compare: function (container, beforeModel, afterModel) {
       var diff = diffModel.diff(beforeModel, afterModel);

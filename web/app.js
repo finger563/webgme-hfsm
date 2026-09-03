@@ -777,7 +777,21 @@
   }
 
   /** the picker behind the Compare button */
+  /**
+   * Take the menu down.
+   *
+   * The ONE way out, on purpose. There are four -- picking an option,
+   * pressing the button again, clicking away, Escape -- and when each
+   * removed the element itself, the document-level mousedown handler
+   * outlived three of them. Open and close the menu a few times and
+   * the page is listening several times over, on handlers holding a
+   * menu that is no longer in the document.
+   */
+  var closeCompareMenu = null;
+
   function offerComparison() {
+    if (closeCompareMenu) { closeCompareMenu(); return; }  // a second click closes it
+
     var items = {};
     if (loadedText && loadedText.trim() !== getModelText().trim()) {
       items.loaded = 'the version you loaded';
@@ -788,9 +802,7 @@
     });
     items.file = 'a file\u2026';
 
-    var menu = el('compareMenu');
-    if (menu) { menu.remove(); return; }   // a second click closes it
-    menu = document.createElement('div');
+    var menu = document.createElement('div');
     menu.id = 'compareMenu';
     menu.className = 'compare-menu';
     menu.setAttribute('role', 'menu');
@@ -800,7 +812,7 @@
       option.setAttribute('role', 'menuitem');
       option.textContent = items[key];
       option.addEventListener('click', function () {
-        menu.remove();
+        close();
         chooseComparison(key, items[key]);
       });
       menu.appendChild(option);
@@ -812,12 +824,29 @@
                                menu.offsetWidth) + 'px';
     menu.querySelector('button').focus();
 
-    function away(event) {
-      if (menu.contains(event.target) || event.target === el('compareBtn')) return;
-      menu.remove();
+    function close() {
+      if (!closeCompareMenu) return;
+      closeCompareMenu = null;
       document.removeEventListener('mousedown', away);
+      document.removeEventListener('keydown', onKey);
+      menu.remove();
+      // back where it came from, rather than nowhere
+      var button = el('compareBtn');
+      if (button && document.contains(button)) button.focus();
     }
+    function away(event) {
+      // the button closes it through offerComparison, so leave that
+      // click alone or it would open and close in one gesture
+      if (menu.contains(event.target) || event.target === el('compareBtn')) return;
+      close();
+    }
+    function onKey(event) {
+      if (event.key === 'Escape') close();
+    }
+
+    closeCompareMenu = close;
     document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', onKey);
   }
 
   function chooseComparison(key, label) {
