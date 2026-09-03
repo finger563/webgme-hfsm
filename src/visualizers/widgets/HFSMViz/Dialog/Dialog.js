@@ -36,11 +36,16 @@ define(['bower/mustache.js/mustache.min',
            // still present at the moment a node is created.
            var INPUT_TYPE = { checkbox: 'checkbox', number: 'number' };
 
+           // aria-describedby ties the message to the field, and
+           // role="alert" makes it announced when it appears -- a
+           // refusal only a sighted user can find is not a refusal,
+           // it is a form that will not submit for no visible reason
            var attrForm = ['<div class="form-group" id="p{{id}}">',
                            '<label class="col-sm-4 control-label" for="{{id}}">{{attr}}</label>',
                            '<div class="col-sm-8 controls">' ,
-                           '<input type="{{type}}" id="{{id}}" placeholder="">',
-                           '<div class="dialog-field-error" id="e{{id}}"></div>',
+                           '<input type="{{type}}" id="{{id}}" aria-describedby="e{{id}}"',
+                           ' placeholder="">',
+                           '<div class="dialog-field-error" id="e{{id}}" role="alert"></div>',
                            '</div>',
                            '</div>'].join('\n');
 
@@ -50,8 +55,9 @@ define(['bower/mustache.js/mustache.min',
                                '<label class="col-sm-4 control-label" for="{{id}}">{{attr}}</label>',
                                '<div class="col-sm-8 controls">' ,
                                '<textarea id="{{id}}" class="dialog-{{kind}}" rows="3"',
+                               ' aria-describedby="e{{id}}"',
                                ' spellcheck="{{spellcheck}}"></textarea>',
-                               '<div class="dialog-field-error" id="e{{id}}"></div>',
+                               '<div class="dialog-field-error" id="e{{id}}" role="alert"></div>',
                                '</div>',
                                '</div>'].join('\n');
 
@@ -373,6 +379,9 @@ define(['bower/mustache.js/mustache.min',
                el.text(problem || '');
                el.toggle(!!problem);
                group.toggleClass('has-error', !!problem);
+               // the red border says "invalid" to a sighted user and
+               // to nobody else
+               self.fieldFor(a).attr('aria-invalid', problem ? 'true' : null);
            };
 
            Dialog.prototype.getAttributesFromForm = function () {
