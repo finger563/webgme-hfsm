@@ -135,6 +135,8 @@ That question — *what can I write here?* — previously had no answer
 inside the tool. People generated the code and read it, which meant
 leaving the editor.
 
+![A guard framed by the else-if it compiles into](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-code-context-guard.jpg)
+
 It costs no new machinery. The generator already marks every snippet
 it emits:
 
@@ -189,8 +191,18 @@ the editor opening.
 
 **Compare…** on the Diagram tab puts a second model beside the one in
 the editor and shows what changed: added in green, removed in red and
-dashed, changed in amber, with a list beside the diagram saying what
-each change actually was.
+dashed, changed in amber and dotted, with a list beside the diagram
+saying what each change actually was.
+
+![Comparing against the version the model was loaded from](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-diff-what-changed.jpg)
+
+The colours say **where** something changed; the list says **what**.
+Neither is much use alone — a state outlined in amber does not tell
+you its guard now reads `false`, and a list of paths does not tell you
+where in the machine they are. Clicking an entry moves the diagram to
+it, which is the join between the two.
+
+![The change list](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-diff-change-list.png)
 
 You can compare against **the version you loaded** — the most useful
 one, because it answers *what have I changed?* — against any built-in
@@ -241,6 +253,12 @@ The comparison is **read-only**: what is on screen belongs to neither
 model, so an edit could not be saved back to either without silently
 picking one. The palette goes away and Save layout is hidden while it
 is on.
+
+Comparing two machines that share no history shows how much of this
+is doing real work: everything the older one had is re-homed and
+drawn dashed, so what went is as visible as what arrived.
+
+![Two different machines compared](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-diff-two-machines.jpg)
 
 A removed transition whose endpoint is in neither model cannot be
 drawn at all. It is dropped — and said, in the panel, rather than

@@ -23,6 +23,11 @@ Everything below happens on your own machine: edit the diagram,
 simulate it, read the generated C++, download the lot. Nothing is
 uploaded anywhere, and it works offline once loaded.
 
+[![The playground comparing an edited machine against the version it was loaded from](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-diff-what-changed.jpg)](https://finger563.github.io/webgme-hfsm/)
+
+*Model on the left, diagram and simulator in the middle, and — here —
+a comparison against the version this machine was loaded from.*
+
 ---
 
 ## What it produces
@@ -214,6 +219,11 @@ right there instead of somewhere you have to go and look. A
 transition action compiled into six different places says so, and
 lets you step through all six.
 
+![A guard being edited inside the else-if it compiles into](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-code-context-guard.jpg)
+
+*A guard is emitted inside a line, so it is framed that way: `else if (`
+above what you are typing and `) {` below it.*
+
 **Simulate it.** Spawn events, tick, restart; watch the active branch
 light up and each entry / exit / action fire in order. Edit the
 machine's variables and event payloads mid-run to steer the guards.
@@ -222,10 +232,20 @@ machine's variables and event payloads mid-run to steer the guards.
 PlantUML and SCXML — readable in the browser, downloadable as a set.
 
 **Compare two versions.** *Compare…* puts another model beside this
-one and marks up what changed: added, removed, changed, with a list
-naming each difference. Compare against the version you loaded to
-answer *what have I changed?* See
-[docs/PLAYGROUND.md](docs/PLAYGROUND.md#comparing-two-machines).
+one and marks up what changed — added in green, removed in red and
+dashed, changed in amber and dotted — with a list naming each
+difference. Clicking an entry takes the diagram to it. Compare
+against the version you loaded to answer *what have I changed?*
+
+![The change list naming each difference](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-diff-change-list.png)
+
+Comparing two genuinely different machines shows the other half:
+whatever the older one had is put back where it used to be, so you
+can see what went.
+
+![Two different machines compared](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/playground-diff-two-machines.jpg)
+
+More in [docs/PLAYGROUND.md](docs/PLAYGROUND.md#comparing-two-machines).
 
 **It does not lose your work.** The model is kept per browser tab, so
 a refresh — or a crash — brings back what you were editing, along
@@ -387,7 +407,6 @@ code which traces when transitions are fired, which guards are true,
 which actions are executed, and which events are in the State
 Machine's event queue.
 
-[![Asciinema recording of interactive test bench](https://asciinema.org/a/kWbxIsIDlQ0ysAlp0ss9X8zJw.png)](https://asciinema.org/a/kWbxIsIDlQ0ysAlp0ss9X8zJw?t=9)
 
 <details><summary>Example Test Bench Output for the Complex Example State Machine</summary><p>
 
