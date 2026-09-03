@@ -254,6 +254,30 @@ describe('asking the host for a frame', function () {
         ._sites('/c/T', ENTRY, ''), []);
   });
 
+  it('labels the step buttons, not just their tooltips', function () {
+    // '\u2039' is not a label. A tooltip is for a mouse pointer.
+    var src = fs.readFileSync(path.join(
+      repoRoot,
+      'src/visualizers/widgets/HFSMViz/Inspector/CodeEditor.js'), 'utf8');
+    var labels = src.match(/aria-label', 'The (previous|next) place/g) || [];
+    assert.strictEqual(labels.length, 2,
+                       'both step buttons should carry an aria-label');
+  });
+
+  it('does not leave a class nothing styles', function () {
+    // 'is-framed' was set on the modal and styled nowhere -- dead
+    // code with an explanatory comment, which is worse than neither
+    var root = path.join(repoRoot, 'src/visualizers/widgets/HFSMViz/Inspector');
+    var js = fs.readFileSync(path.join(root, 'CodeEditor.js'), 'utf8');
+    var css = fs.readFileSync(path.join(root, 'Inspector.css'), 'utf8');
+    (js.match(/addClass\('([a-z-]+)'\)/g) || []).forEach(function (call) {
+      var name = call.match(/'([a-z-]+)'/)[1];
+      if (name === 'inspector-cm') return;   // styled via .CodeMirror
+      assert.ok(css.indexOf('.' + name) > -1,
+                name + ' is added by the editor and styled nowhere');
+    });
+  });
+
   it('offers generatedFiles as optional, not required', function () {
     assert.ok(HostServices.OPTIONAL.indexOf('generatedFiles') > -1);
     assert.ok(HostServices.REQUIRED.indexOf('generatedFiles') === -1,

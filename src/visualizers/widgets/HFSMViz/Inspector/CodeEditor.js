@@ -192,16 +192,28 @@ define(['require'], function (require) {
       var after = $('<pre class="code-context is-after"></pre>')
           .attr('aria-hidden', 'true');
       var where = $('<span class="code-modal-where"></span>');
+      // A single glyph is not a label. The title is for a mouse
+      // pointer; aria-label is what anything else reads.
       var prev = $('<button type="button" class="code-modal-step">\u2039</button>')
-          .attr('title', 'The previous place this is generated into');
+          .attr('title', 'The previous place this is generated into')
+          .attr('aria-label', 'The previous place this is generated into');
       var next = $('<button type="button" class="code-modal-step">\u203a</button>')
-          .attr('title', 'The next place this is generated into');
+          .attr('title', 'The next place this is generated into')
+          .attr('aria-label', 'The next place this is generated into');
 
       function showSite() {
         var site = sites[siteIndex];
         if (!site) return;
         before.text(site.before);
         after.text(site.after);
+        // The lines NEAREST the snippet are the ones worth seeing: the
+        // aliases just above it, the brace just below. So a frame too
+        // tall to fit shows its bottom, and the one below shows its
+        // top -- set here rather than left to a flexbox trick, which
+        // depended on how a browser lays out an overflowing text node
+        // and had to be re-set on every step anyway.
+        before.scrollTop(before.prop('scrollHeight'));
+        after.scrollTop(0);
         where.text(site.file + ':' + site.line +
                    (sites.length > 1
                     ? '   \u00b7   ' + (siteIndex + 1) + ' of ' + sites.length +
@@ -309,9 +321,9 @@ define(['require'], function (require) {
         }));
         cm.setSize('100%', '100%');
         cm.focus();
-        // the frame's height depends on the editor's, so it can only
-        // settle once CodeMirror has laid itself out
-        if (sites.length) box.addClass('is-framed');
+        // the frame is measured against the editor, which only has a
+        // height once CodeMirror has laid itself out
+        if (sites.length) showSite();
       }).catch(function (e) {
         // a textarea still edits the attribute
         console.error('Could not load the code editor: ', e);

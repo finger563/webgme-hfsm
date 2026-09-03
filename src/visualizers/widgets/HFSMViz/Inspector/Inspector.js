@@ -217,7 +217,13 @@ define(['hfsm/viz/describe',
     input.addClass('inspector-input').attr('id', fieldId);
     if (readOnly) input.prop('disabled', true);
 
-    var error = $('<div class="inspector-error"></div>').hide();
+    // Tied to the field and announced when it appears -- the same
+    // gap the create dialog had: a red border is a refusal only a
+    // sighted user can find.
+    var errorId = fieldId + '-error';
+    var error = $('<div class="inspector-error"></div>')
+        .attr('id', errorId).attr('role', 'alert').hide();
+    input.attr('aria-describedby', errorId);
     var field = { input: input, kind: kind, attr: attr, row: row, cm: null,
                   type: type };
     self._fields[attr.name] = field;
@@ -238,9 +244,11 @@ define(['hfsm/viz/describe',
       if (problem) {
         error.text(problem).show().removeClass('is-note');
         row.addClass('is-invalid');
+        input.attr('aria-invalid', 'true');
         return;
       }
       row.removeClass('is-invalid');
+      input.attr('aria-invalid', null);
       var note = self._note(attr, next, type);
       if (note) error.text(note).addClass('is-note').show();
       else error.hide();
