@@ -149,6 +149,31 @@ describe('hfsm-diff', function () {
     assert.ok(/unknown option/.test(out.stderr), out.stderr);
   });
 
+  it('is installed as a command, and the lockfile agrees', function () {
+    // A bin added to package.json and not to package-lock.json means
+    // `npm ci` installs a different set of commands from `npm i`.
+    var pkg = JSON.parse(fs.readFileSync(
+      path.join(repoRoot, 'package.json'), 'utf8'));
+    var lock = JSON.parse(fs.readFileSync(
+      path.join(repoRoot, 'package-lock.json'), 'utf8'));
+    assert.ok(pkg.bin['hfsm-diff'], 'package.json should install it');
+    // compared by what they RESOLVE to: npm normalises './bin/x' to
+    // 'bin/x' when it writes the lock, and that difference is not a
+    // difference
+    function resolved(bin) {
+      var out = {};
+      Object.keys(bin || {}).forEach(function (name) {
+        out[name] = path.resolve(repoRoot, bin[name]);
+      });
+      return out;
+    }
+    assert.deepStrictEqual(resolved(lock.packages[''].bin), resolved(pkg.bin),
+                           'the lockfile records a different set of commands');
+    Object.values(resolved(pkg.bin)).forEach(function (file) {
+      assert.ok(fs.existsSync(file), file + ' is not there');
+    });
+  });
+
   it('compares two whole examples without falling over', function () {
     var out = run([path.join(repoRoot, 'examples/Medium.json'),
                    path.join(repoRoot, 'examples/Complex.json')]);

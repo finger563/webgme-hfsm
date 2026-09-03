@@ -48,7 +48,7 @@
  * different path and no way to be recognised as the same object.
  * That is a property of the model format, not a decision made here.
  */
-define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
+define(['./exportModel', './viz/describe'], function (exportModel, describe) {
   'use strict';
 
   var ADDED = 'added';
@@ -165,14 +165,22 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
       pair(rb, ra);
     }
 
-    // A connection's name is not its identity: every transition in a
-    // model is called "External Transition" until someone renames it,
-    // which nobody does -- the diagram labels them by event. So they
-    // are matched by what they CONNECT, once the states they connect
-    // have been matched, and only then by event.
-    function isConnection(obj) {
-      return !!(obj && (metaRules.isConnection(obj.type) ||
-                        (obj.pointers && (obj.pointers.src || obj.pointers.dst))));
+    // A transition's name is not its identity: every one of them is
+    // called "External Transition" or "Internal Transition" until
+    // somebody renames it, which nobody does -- the diagram labels
+    // them by event. So they are matched by what they CONNECT, once
+    // the states they connect have been matched, and only then by
+    // event.
+    //
+    // `labelledByEvent` rather than `isConnection`, because an
+    // INTERNAL transition is not a connection -- it is a child of the
+    // state it belongs to, with no endpoints at all. Asking the wrong
+    // question left them to the name pass, which correctly refused to
+    // pair two objects both called "Internal Transition"; two
+    // identical machines rebuilt under different ids then reported
+    // every internal transition as added AND removed.
+    function isTransition(obj) {
+      return !!(obj && describe.labelledByEvent(obj));
     }
 
     // Then: same type and name, under a parent that matched.
@@ -187,7 +195,7 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
         var parentPair = pairs[parentOf(path)];
         if (parentPair === undefined) return;      // parent itself unmatched
         var obj = before[path];
-        if (isConnection(obj)) return;             // matched by endpoint below
+        if (isTransition(obj)) return;             // matched by event below
 
         function sameKind(side, candidate, parent) {
           var c = side[candidate];
@@ -221,10 +229,10 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
 
     function matchConnectionsBy(keyOf) {
       var left = Object.keys(before).filter(function (p) {
-        return pairs[p] === undefined && isConnection(before[p]);
+        return pairs[p] === undefined && isTransition(before[p]);
       });
       var right = Object.keys(after).filter(function (p) {
-        return !takenAfter[p] && isConnection(after[p]);
+        return !takenAfter[p] && isTransition(after[p]);
       });
 
       function group(paths, side, translate) {
@@ -248,9 +256,14 @@ define(['./exportModel', './metaRules'], function (exportModel, metaRules) {
       });
     }
 
+    // Endpoints first, so a transition keeps its identity even when
+    // two of them carry the same event. An internal transition has no
+    // endpoints, so every one under a parent shares a key here and
+    // the ambiguity check leaves them all for the event pass.
     matchConnectionsBy(endpointKey);
-    // a transition whose endpoint moved is still the same transition
-    // if it is the only one in there carrying that event
+    // then by event: a transition whose endpoint moved is still the
+    // same transition if it is the only one in there carrying that
+    // event, and this is the only thing an internal transition has
     matchConnectionsBy(function (obj) { return 'event:' + (obj.Event || ''); });
 
     return pairs;

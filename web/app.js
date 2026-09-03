@@ -1036,6 +1036,13 @@
     // the model text over it would leave the panel describing a
     // picture that is no longer there
     if (comparison) return;
+
+    // Claimed HERE, before any early return. Claiming it after the
+    // parse meant a refresh that found empty or invalid text did not
+    // invalidate a draw already in flight: the older callback still
+    // matched, and mounted its now-stale model over the error the
+    // newer one had just reported.
+    var token = ++drawToken;
     var quiet = !!(opts && opts.keepStatus);
     var raw = getModelText().trim();
     if (!raw) {
@@ -1059,7 +1066,6 @@
     }
 
     if (!quiet) setStatus('drawing...');
-    var token = ++drawToken;
     requirejs(['viz'], function (viz) {
       vizModule = viz;
       if (token !== drawToken) return;   // something else is drawing now

@@ -267,10 +267,13 @@ node.diff-changed {
     border-style: double;
     color: #9a6700;
 }
+/* dotted, not just amber: added is solid, removed is dashed, changed
+   is dotted, so the three are told apart without relying on colour */
 edge.diff-changed {
     line-color: #bf8700;
     target-arrow-color: #bf8700;
     source-arrow-color: #bf8700;
     color: #9a6700;
+    line-style: dotted;
     width: 4;
 }

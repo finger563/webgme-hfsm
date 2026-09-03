@@ -277,6 +277,52 @@ describe('comparing two state machines', function () {
               'but it does know they are at different paths');
   });
 
+  it('matches internal transitions by event too', function () {
+    // An internal transition is NOT a connection -- it is a child of
+    // the state it belongs to, with no endpoints. Asking
+    // metaRules.isConnection left them to the name pass, which
+    // rightly refused to pair two objects both called "Internal
+    // Transition", so two identical machines rebuilt under different
+    // ids reported every one of them as added AND removed.
+    var before = { root: '/r', objects: {
+      '/r': { name: 'M', type: 'State Machine' },
+      '/r/s': { name: 'S', type: 'State' },
+      '/r/s/1': { name: 'Internal Transition', type: 'Internal Transition',
+                  Event: 'GO' },
+      '/r/s/2': { name: 'Internal Transition', type: 'Internal Transition',
+                  Event: 'STOP' },
+    } };
+    var after = { root: '/R', objects: {
+      '/R': { name: 'M', type: 'State Machine' },
+      '/R/z': { name: 'S', type: 'State' },
+      // the other way round, to be sure it is the event doing the work
+      '/R/z/a': { name: 'Internal Transition', type: 'Internal Transition',
+                  Event: 'STOP' },
+      '/R/z/b': { name: 'Internal Transition', type: 'Internal Transition',
+                  Event: 'GO' },
+    } };
+    assert.strictEqual(
+      diffModel.describeSummary(diffModel.diff(before, after).summary),
+      'identical');
+  });
+
+  it('reports a real change to an internal transition as a change',
+     function () {
+       // and the pairing must not be so eager that it hides one
+       var before = { root: '/r', objects: {
+         '/r': { name: 'M', type: 'State Machine' },
+         '/r/s': { name: 'S', type: 'State' },
+         '/r/s/1': { name: 'Internal Transition', type: 'Internal Transition',
+                     Event: 'GO', Guard: 'ready' },
+       } };
+       var after = JSON.parse(JSON.stringify(before));
+       after.objects['/r/s/1'].Guard = 'notReady';
+       var diff = diffModel.diff(before, after);
+       assert.strictEqual(diff.summary.changed, 1);
+       assert.strictEqual(diff.summary.added, 0);
+       assert.strictEqual(diff.summary.removed, 0);
+     });
+
   it('leaves an ambiguous match alone rather than guessing', function () {
     // two states with the same name under the same parent: pairing
     // one of them with one of the others would be a coin toss, and a
