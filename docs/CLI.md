@@ -1,3 +1,10 @@
+# The command-line tools
+
+Two, sharing the same `src/common` pipeline the WebGME plugin and the
+playground run: [`hfsm-gen`](#hfsm-gen-standalone-code-generator-cli)
+generates, [`hfsm-diff`](#hfsm-diff-what-changed-between-two-models)
+compares.
+
 # hfsm-gen: Standalone Code Generator CLI
 
 `bin/hfsm-gen.js` runs the same model-check -> process -> template
@@ -31,6 +38,77 @@ node bin/hfsm-gen.js my_model.json -o out --no-code -e all
 Every run also writes `hfsm_metadata.json` recording the input file,
 its sha256, the namespace, and a timestamp, so generated code can be
 traced back to the exact model that produced it.
+
+# hfsm-diff: what changed between two models
+
+`bin/hfsm-diff.js` runs the same comparison the playground draws --
+`src/common/diffModel.js` -- in a terminal.
+
+```sh
+node bin/hfsm-diff.js <before.json> <after.json> [options]
+
+  -q, --quiet            print nothing; the exit status is the answer
+      --json             machine-readable output
+      --moved            list objects that only moved
+      --exit-zero        always exit 0, even when they differ
+```
+
+```
+$ node bin/hfsm-diff.js examples/Simple.json edited.json
+examples/Simple.json -> edited.json
+  1 added, 2 changed, 15 moved
+  + Extra  [State]
+  ~ Waiting  [State]
+      name: State 1 -> Waiting
+  ~ External Transition INPUTEVENT  [External Transition]
+      Guard: buttonPressed && data.button_id == 12 -> neverEver
+```
+
+## Exit status
+
+| status | meaning |
+| ------ | ------- |
+| 0 | the machines are the same |
+| 1 | they differ |
+| 2 | something went wrong -- unreadable file, bad JSON |
+
+Three states rather than two on purpose: a CI job that treats "the
+file is corrupt" as "the machine changed" reports the wrong thing.
+
+## A layout difference is not a difference
+
+Dragging a state changes nothing about what the machine does, so a
+model whose nodes have only moved **exits 0** -- otherwise reopening a
+model in the editor and saving it would fail the build. The move is
+still counted in the summary, and `--moved` lists what moved.
+
+This is also why `git diff` is close to useless on these files: it
+reports every coordinate, the order keys came out in, and one added
+state as a dozen unrelated lines.
+
+## In CI
+
+```sh
+# fail the build if a PR changes the machine without saying so
+node bin/hfsm-diff.js "$(git show origin/main:model.json > /tmp/base.json;
+                         echo /tmp/base.json)" model.json
+```
+
+or, to report without failing:
+
+```sh
+node bin/hfsm-diff.js --exit-zero base.json model.json
+```
+
+Transitions are named by their **event**, not by their name: every
+transition in a model is called "External Transition" until someone
+renames one, so a list of six of those names nothing. The rule lives
+in `describe.labelFor`, shared with the playground's change list, so
+the two cannot end up calling the same transition different things.
+
+For how objects are matched between the two models -- and why an
+ambiguous match is deliberately not made -- see
+[PLAYGROUND.md](PLAYGROUND.md#comparing-two-machines).
 
 ## Dependencies
 

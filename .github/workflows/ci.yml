@@ -40,6 +40,36 @@ jobs:
           test -f build/cli-smoke/Features.puml
           test -f build/cli-smoke/Features.mmd
 
+      - name: CLI smoke test (diff)
+        run: |
+          # The three exit statuses are the contract, so check for the
+          # exact one each time: "non-zero" would accept 2, which is
+          # what a crash or an unreadable file reports.
+          check() {
+            local want="$1"; shift
+            set +e; "$@" > /dev/null; local got=$?; set -e
+            if [ "$got" != "$want" ]; then
+              echo "expected exit $want, got $got, from: $*"; exit 1
+            fi
+          }
+          # the same machine
+          check 0 node bin/hfsm-diff.js examples/Simple.json examples/Simple.json
+          # a different one
+          check 1 node bin/hfsm-diff.js examples/Simple.json examples/Medium.json
+          # only the layout moved -- not a change, so still 0
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('examples/Simple.json','utf8'));
+            Object.keys(m.objects).forEach(function (p) {
+              if (m.objects[p].position) m.objects[p].position.x += 17;
+            });
+            fs.writeFileSync('/tmp/moved.json', JSON.stringify(m));
+          "
+          check 0 node bin/hfsm-diff.js examples/Simple.json /tmp/moved.json
+          # and a broken input is not a difference
+          echo '{ not json' > /tmp/bad.json
+          check 2 node bin/hfsm-diff.js examples/Simple.json /tmp/bad.json
+
       - name: Validate SCXML export is well-formed XML
         run: |
           sudo apt-get install -y --no-install-recommends libxml2-utils

@@ -216,3 +216,64 @@ edge[type = "Local Transition"] {
     border-width: 2;
     font-weight: bold;
 }
+
+/* * * * * * * * * *  comparing two machines  * * * * * * * * * * *
+
+   Three states, and they have to be tellable apart at a glance and
+   without colour alone -- a red and a green outline on two rounded
+   rectangles is not a difference everyone can see. So each also
+   changes the LINE: added is solid and heavy, removed is dashed and
+   faded, changed is double.
+
+   Only the object that changed is marked. A parent whose child gained
+   a transition has not itself changed, and colouring it as though it
+   had would make every diff look like the whole machine moved.
+*/
+
+node.diff-added {
+    border-color: #1a7f37;
+    border-width: 4;
+    color: #1a7f37;
+}
+edge.diff-added {
+    line-color: #1a7f37;
+    target-arrow-color: #1a7f37;
+    source-arrow-color: #1a7f37;
+    color: #1a7f37;
+    width: 4;
+}
+
+/* faded as well as dashed: it is not there any more, and it should
+   not compete with what is */
+node.diff-removed {
+    border-color: #cf222e;
+    border-width: 3;
+    border-style: dashed;
+    color: #cf222e;
+    opacity: 0.65;
+}
+edge.diff-removed {
+    line-color: #cf222e;
+    target-arrow-color: #cf222e;
+    source-arrow-color: #cf222e;
+    color: #cf222e;
+    line-style: dashed;
+    opacity: 0.65;
+}
+
+node.diff-changed {
+    border-color: #bf8700;
+    border-width: 4;
+    border-style: double;
+    color: #9a6700;
+}
+/* dotted, not just amber: added is solid, removed is dashed, changed
+   is dotted, so the three are told apart without relying on colour */
+edge.diff-changed {
+    line-color: #bf8700;
+    target-arrow-color: #bf8700;
+    source-arrow-color: #bf8700;
+    color: #9a6700;
+    line-style: dotted;
+    width: 4;
+}

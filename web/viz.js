@@ -26,6 +26,7 @@ define([
   'hfsm/viz/LocalBackend',
   'hfsm/viz/describe',
   'hfsm/exportModel',
+  'hfsm/diffModel',
   'widgets/HFSMViz/HFSMVizWidget',
   './host',
   './palette',
@@ -33,7 +34,7 @@ define([
   // listed here to guarantee it is on the page before one opens
   'bootstrap',
 ], function ($, _, cytoscape, coseBilkent, edgehandles, contextMenus, panzoom,
-             resolveModel, LocalBackend, describe, exportModel,
+             resolveModel, LocalBackend, describe, exportModel, diffModel,
              HFSMVizWidget, PlaygroundHost, palette) {
   'use strict';
 
@@ -159,7 +160,13 @@ define([
    *                   included -- they throw, and the caller reports
    * @return the LocalBackend, so callers can read the model back
    */
-  function mount(container, rawModel) {
+  /**
+   * @param opts  { readOnly } -- a comparison is read-only, because
+   *              what is drawn is a UNION of two machines and an edit
+   *              would land in neither of them
+   */
+  function mount(container, rawModel, opts) {
+    opts = opts || {};
     destroy();
 
     // resolve a COPY: resolveModel fills in parents, defaults and
@@ -172,13 +179,19 @@ define([
     // the backend reports every committed transaction; that is the
     // only notice the graph gets that the model has been edited
     backend = LocalBackend(model, sync);
+    if (opts.readOnly) backend.setReadOnly(true);
 
     // The palette sits above the diagram, and the widget gets a
     // container of its own: it draws into an absolutely positioned
     // element filling whatever it is given, so it cannot share a box
     // with anything else.
     var root = $(container).empty();
-    removePalette = palette.build(root, host);
+    // No palette while comparing: the parts would drop into a union
+    // of two machines that is not either of them, and a backend that
+    // refuses the edit leaves a part that can be picked up and not
+    // put down. Offering nothing is clearer than offering something
+    // that cannot work.
+    if (!opts.readOnly) removePalette = palette.build(root, host);
     var widgetHost = $('<div class="viz-host"></div>').appendTo(root);
 
     widget = new HFSMVizWidget(
@@ -304,6 +317,54 @@ define([
     },
     /** called when the user finishes dragging either of them */
     onSplitChanged: function (fn) { onSplitChanged = fn; },
+
+    /**
+     * Draw two machines at once: the newer one, with whatever the
+     * older one had and it does not, marked up.
+     *
+     * Read-only on purpose. The model being drawn belongs to neither
+     * side -- it is a union built for the picture -- so an edit would
+     * be written somewhere nobody can save from.
+     *
+     * @return {
+     *   summary  { added, removed, changed, moved, same }
+     *   entries  one per object, each carrying a `unionPath`: where
+     *            it ended up in the drawing, which is what a change
+     *            list must use to point the diagram at it
+     *   status   { '<union path>': '<status>' }, what the diagram was
+     *            coloured by
+     *   dropped  paths of edges too broken to draw -- said out loud
+     *            rather than silently left out
+     * }
+     */
+    compare: function (container, beforeModel, afterModel) {
+      var diff = diffModel.diff(beforeModel, afterModel);
+      var union = diffModel.union(beforeModel, afterModel, diff);
+      mount(container, union.model, { readOnly: true });
+      if (widget) widget.setDiff(union.status);
+      return { summary: diff.summary, entries: diff.entries,
+               dropped: union.dropped, status: union.status };
+    },
+
+    /** put the marks back after anything that rebuilt the elements */
+    reapplyDiff: function (status) {
+      if (widget) widget.setDiff(status);
+    },
+
+    comparing: function () { return !!(widget && widget.hasDiff()); },
+
+    /** fit the graph into whatever the page has not covered up */
+    fitClearOf: function (cover) {
+      if (widget) widget.fitClearOf(cover);
+    },
+
+    /**
+     * Bring an element to the middle of the view and select it, so a
+     * change list can be clicked through.
+     */
+    reveal: function (path) {
+      return widget ? widget.reveal(path) : false;
+    },
 
     /**
      * Hand over what the page has just generated -- the files and
