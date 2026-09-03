@@ -34,9 +34,11 @@
  */
 define(['hfsm/viz/describe',
         'hfsm/checkModel',
+        'hfsm/viz/codeContext',
+        'hfsm/viz/HostServices',
         './CodeEditor',
         'css!./Inspector.css'],
-       function (describe, checkModel, CodeEditor) {
+       function (describe, checkModel, codeContext, HostServices, CodeEditor) {
   'use strict';
 
   function Inspector() {
@@ -49,10 +51,13 @@ define(['hfsm/viz/describe',
   /**
    * @param container  where to draw
    * @param backend    a ModelBackend -- the only thing written through
+   * @param host       HostServices, asked for the generated code the
+   *                   pop-out editor frames a snippet with. Optional.
    */
-  Inspector.prototype.initialize = function (container, backend) {
+  Inspector.prototype.initialize = function (container, backend, host) {
     this._el = $(container);
     this._backend = backend;
+    this._host = host || null;
     this._id = null;
     this._el.addClass('hfsm-inspector');
     this.clear();
@@ -212,7 +217,13 @@ define(['hfsm/viz/describe',
     input.addClass('inspector-input').attr('id', fieldId);
     if (readOnly) input.prop('disabled', true);
 
-    var error = $('<div class="inspector-error"></div>').hide();
+    // Tied to the field and announced when it appears -- the same
+    // gap the create dialog had: a red border is a refusal only a
+    // sighted user can find.
+    var errorId = fieldId + '-error';
+    var error = $('<div class="inspector-error"></div>')
+        .attr('id', errorId).attr('role', 'alert').hide();
+    input.attr('aria-describedby', errorId);
     var field = { input: input, kind: kind, attr: attr, row: row, cm: null,
                   type: type };
     self._fields[attr.name] = field;
@@ -233,9 +244,11 @@ define(['hfsm/viz/describe',
       if (problem) {
         error.text(problem).show().removeClass('is-note');
         row.addClass('is-invalid');
+        input.attr('aria-invalid', 'true');
         return;
       }
       row.removeClass('is-invalid');
+      input.attr('aria-invalid', null);
       var note = self._note(attr, next, type);
       if (note) error.text(note).addClass('is-note').show();
       else error.hide();
@@ -345,20 +358,39 @@ define(['hfsm/viz/describe',
    * saved goes back through the same commit path as the inline field,
    * so there is one place that validates and writes.
    */
+  /**
+   * Where this snippet ends up in the generated code, if the host can
+   * say.
+   *
+   * Measured against the model the code was GENERATED from, which the
+   * host hands over with the files -- not against what is in the
+   * editor. Using the editor's text slid the frame the moment anyone
+   * typed.
+   */
+  Inspector.prototype._sites = function (id, attr) {
+    var self = this;
+    if (describe.fieldKind(attr) !== 'code') return [];   // prose is not compiled
+    var generated = HostServices.ask(self._host, 'generated', [], null);
+    if (!generated) return [];
+    return codeContext.sites(generated, id, attr.name);
+  };
+
   Inspector.prototype._expand = function (id, attr) {
     var self = this;
     var field = self._fields[attr.name];
     if (!field) return;
     var node = self._backend.getNode(id);
+    var value = readValue(field);
     CodeEditor.open({
       title: attr.name,
       subtitle: (node && node.name ? node.name + '  ' : '') + id,
-      value: readValue(field),
+      value: value,
+      sites: self._sites(id, attr),
       readOnly: self._backend.isReadOnly(),
       prose: field.kind === 'prose',
-      onSave: function (value) {
-        if (field.cm) field.cm.setValue(value);
-        else field.input.val(value);
+      onSave: function (next) {
+        if (field.cm) field.cm.setValue(next);
+        else field.input.val(next);
         if (field.kind === 'prose') grow(field.input);
         field.commit();
       },

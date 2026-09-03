@@ -502,6 +502,20 @@
     // non-fatal model warnings surface the same way the CLI prints them
     showDiagnostics(model.warnings || [], 'warn');
 
+    // The code editor shows a snippet inside the function it is
+    // compiled into, and this is where it reads that from. The MODEL
+    // goes with the files: it is the only thing that says how much
+    // of the file a snippet occupies, and a frame measured against a
+    // different model is fiction. Handed over on every successful
+    // generation, and only then -- half a generation would frame the
+    // code with the wrong surroundings.
+    var generated = { files: artifacts, model: model };
+    if (vizModule && vizModule.setGenerated) {
+      vizModule.setGenerated(generated);
+    } else {
+      pendingGenerated = generated;
+    }
+
     var count = Object.keys(artifacts).length;
     renderFileList();
     el('downloadAllBtn').disabled = count === 0;
@@ -592,6 +606,8 @@
   // generated code
   var vizModule = null;
   var vizShown = false;
+  // generated files produced before the visualizer existed
+  var pendingGenerated = null;
   var vizModelText = null;   // what the diagram was last built from
 
   function showTab(which) {
@@ -687,6 +703,13 @@
     if (!quiet) setStatus('drawing...');
     requirejs(['viz'], function (viz) {
       vizModule = viz;
+      // generate() can run before the visualizer has ever loaded --
+      // it does, on a restored draft -- so the files it produced are
+      // held until there is something to give them to
+      if (pendingGenerated) {
+        viz.setGenerated(pendingGenerated);
+        pendingGenerated = null;
+      }
       viz.onModelEdited(diagramEdited);
       viz.onSplitChanged(function () {
         rememberLayout({ diagramSplits: viz.splitSizes() });

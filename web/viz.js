@@ -77,6 +77,7 @@ define([
   var shown = {};
   var onModelEdited = null;
   var onSplitChanged = null;
+  var generated = null;
 
   function destroy() {
     if (removePalette) {
@@ -167,6 +168,7 @@ define([
     resolveModel.resolve(model);
 
     host = PlaygroundHost();
+    host.setGenerated(generated);
     // the backend reports every committed transaction; that is the
     // only notice the graph gets that the model has been edited
     backend = LocalBackend(model, sync);
@@ -302,6 +304,20 @@ define([
     },
     /** called when the user finishes dragging either of them */
     onSplitChanged: function (fn) { onSplitChanged = fn; },
+
+    /**
+     * Hand over what the page has just generated -- the files and
+     * the model they came from -- so the code editor can show a
+     * snippet inside the function it ends up in. Kept across mounts:
+     * the model being redrawn does not make the last generation less
+     * true than it was.
+     *
+     * @param next  { files, model }
+     */
+    setGenerated: function (next) {
+      generated = next || null;
+      if (host) host.setGenerated(generated);
+    },
 
     /**
      * Called after every committed edit, so the page can write the

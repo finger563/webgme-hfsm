@@ -146,17 +146,29 @@ define(['require'], function (require) {
     /**
      * The same code, full size, in a modal.
      *
-     * @param opts  { title, subtitle, value, readOnly, prose, onSave }
+     * @param opts  { title, subtitle, value, readOnly, prose, sites,
+     *                onSave }
      *   `prose` for markdown rather than C++: wrapped, unnumbered and
      *   unhighlighted, because paragraphs want the width and
      *   colouring prose as code would be a lie. The room is the point
      *   either way, which is why documentation gets this too.
+     *
+     *   `sites` is what `codeContext.sites` found: the places this
+     *   snippet is generated into. Each is shown as the lines above
+     *   and below, greyed and unselectable-looking, with the editor
+     *   between them -- so the code is written where it will run,
+     *   next to the aliases that say what is in scope. More than one
+     *   site is not a problem to hide: a transition's action really
+     *   is compiled into every place that transition can be taken,
+     *   and stepping through them is the only way to see that.
      * @return a function that closes it
      */
     open: function (opts) {
       opts = opts || {};
       ensureStylesheet();
       var CodeMirror = null;
+      var sites = (opts.sites || []).slice();
+      var siteIndex = 0;
       var overlay = $('<div class="code-modal-overlay"></div>');
       // a dialog announces itself by its heading; without the link a
       // screen reader reaches an unnamed one
@@ -170,6 +182,62 @@ define(['require'], function (require) {
         $('<span class="code-modal-subtitle"></span>').text(opts.subtitle || ''));
       var body = $('<div class="code-modal-body"></div>');
       var area = $('<textarea></textarea>').val(opts.value || '');
+
+      // The frame.
+      //
+      // NOT aria-hidden. It was, on the reasoning that the editor
+      // already contains the code -- which is wrong: the signature
+      // and the aliases saying what is in scope are the whole point
+      // of this feature and appear nowhere else, so hiding them from
+      // the accessibility tree hid the feature from the people it
+      // would help most.
+      //
+      // tabindex, because these scroll: a region you can only reach
+      // the bottom of with a mouse is not reachable. They join the
+      // dialog's focus order through focusables(), which already
+      // looks for [tabindex].
+      var before = $('<pre class="code-context is-before" tabindex="0"></pre>')
+          .attr('role', 'region')
+          .attr('aria-label', 'Generated code above this snippet');
+      var after = $('<pre class="code-context is-after" tabindex="0"></pre>')
+          .attr('role', 'region')
+          .attr('aria-label', 'Generated code below this snippet');
+      var where = $('<span class="code-modal-where"></span>');
+      // A single glyph is not a label. The title is for a mouse
+      // pointer; aria-label is what anything else reads.
+      var prev = $('<button type="button" class="code-modal-step">\u2039</button>')
+          .attr('title', 'The previous place this is generated into')
+          .attr('aria-label', 'The previous place this is generated into');
+      var next = $('<button type="button" class="code-modal-step">\u203a</button>')
+          .attr('title', 'The next place this is generated into')
+          .attr('aria-label', 'The next place this is generated into');
+
+      function showSite() {
+        var site = sites[siteIndex];
+        if (!site) return;
+        before.text(site.before);
+        after.text(site.after);
+        // The lines NEAREST the snippet are the ones worth seeing: the
+        // aliases just above it, the brace just below. So a frame too
+        // tall to fit shows its bottom, and the one below shows its
+        // top -- set here rather than left to a flexbox trick, which
+        // depended on how a browser lays out an overflowing text node
+        // and had to be re-set on every step anyway.
+        before.scrollTop(before.prop('scrollHeight'));
+        after.scrollTop(0);
+        where.text(site.file + ':' + site.line +
+                   (sites.length > 1
+                    ? '   \u00b7   ' + (siteIndex + 1) + ' of ' + sites.length +
+                      ' places this is generated into'
+                    : ''));
+      }
+
+      function step(by) {
+        siteIndex = (siteIndex + by + sites.length) % sites.length;
+        showSite();
+      }
+      prev.on('click', function () { step(-1); });
+      next.on('click', function () { step(1); });
       // read-only from the start: CodeMirror arrives asynchronously
       // and may not arrive at all, and until it does this textarea is
       // the editor -- editable, it would let a read-only model be
@@ -230,9 +298,24 @@ define(['require'], function (require) {
         if (event.target === overlay[0]) close();
       });
 
-      box.append(head, body.append(area), buttons.append(hint, cancel, save));
+      if (sites.length) {
+        box.addClass('has-context');
+        head.append(where);
+        if (sites.length > 1) head.append(prev, next);
+        body.append(before, $('<div class="code-modal-edit"></div>').append(area),
+                    after);
+      } else {
+        body.append(area);
+      }
+      box.append(head, body, buttons.append(hint, cancel, save));
       overlay.append(box);
       $(document.body).append(overlay);
+      // AFTER the overlay is in the document: showSite scrolls the
+      // frame to the lines nearest the snippet, and a detached
+      // element has a scrollHeight of zero, so doing this earlier
+      // left a long frame at its beginning whenever CodeMirror did
+      // not load and the textarea fallback was used.
+      if (sites.length) showSite();
       $(document).on('keydown', onKey);
 
       // the dialog is usable as a plain textarea until the editor
@@ -254,6 +337,9 @@ define(['require'], function (require) {
         }));
         cm.setSize('100%', '100%');
         cm.focus();
+        // again once CodeMirror has laid itself out: it takes the
+        // height the frames are measured against
+        if (sites.length) showSite();
       }).catch(function (e) {
         // a textarea still edits the attribute
         console.error('Could not load the code editor: ', e);
