@@ -8,27 +8,119 @@
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/finger563)
 
-WebGME App for creating Executable Hierarchical Finite State Machines
-(HFSMs). Contains metamodel, visualization, simulation, and code
-generation for Hierarchical Finite State Machines (HFSMs) following
-the UML State Machine specification, see [Wikipedia UML State Machine](https://en.wikipedia.org/wiki/UML_state_machine), [another reference](https://www.uml-diagrams.org/state-machine-diagrams.html), and [the UML specification](http://www.omg.org/spec/UML/).
+**Draw a state machine. Watch it run. Get C++ you would have been happy to write yourself.**
 
-**Please see the [WIKI](https://github.com/finger563/webgme-hfsm/wiki) for further information, including links to relevant Youtube Videos and specific pages about development process and such.**
+webgme-hfsm turns hierarchical state machines — the UML kind, with
+nesting, history, choice pseudostates and typed event payloads — into
+readable, dependency-free C++17 for embedded and desktop targets. It
+simulates the machine while you are drawing it, so you find the
+missing transition before you find it on hardware.
+
+### ▶ [Try it in your browser](https://finger563.github.io/webgme-hfsm/) — no install, no account, no server
+
+Pick *Complex* from the **Load example…** menu and press **Generate**.
+Everything below happens on your own machine: edit the diagram,
+simulate it, read the generated C++, download the lot. Nothing is
+uploaded anywhere, and it works offline once loaded.
+
+---
+
+## What it produces
+
+A state machine you drew:
+
+```mermaid
+stateDiagram-v2
+state "Idle" as Idle
+state "Active" as Active {
+  state "Warming" as Warming
+  state "Running" as Running
+  [*] --> Warming
+}
+[*] --> Idle
+Idle --> Active : START [batteryOK]
+Warming --> Running : TICK [tempC >= data.target]
+Active --> Idle : STOP
+```
+
+...becomes C++ you can read, with your own code where you put it:
+
+```cpp
+void Root::Active::Warming::tick ( void ) {
+  // your machine's variables, in scope, by name
+  [[maybe_unused]] auto &tempC = _root->tempC;
+  // Tick action for this state
+  //::::/m/Active/Warming::::Tick::::
+  tempC = read_thermocouple();
+}
+```
+
+C++17, no RTTI, and no framework to link against: a header and a
+source file per machine, plus a handful of small header-only files
+the generator drops beside them. Events are spawned through a
+thread-safe queue and handled to completion on one thread, so an ISR
+or another task can post into the machine without a lock of your own.
+The same runtime ships in [espp](https://github.com/esp-cpp/espp) for
+ESP32 firmware.
+
+That diagram is not a drawing of the model, by the way: it *is* the
+model, exported as Mermaid by the same tool. PlantUML and SCXML come
+out too.
+
+**Also see the [wiki](https://github.com/finger563/webgme-hfsm/wiki)**
+for videos and development notes, and the UML background:
+[Wikipedia](https://en.wikipedia.org/wiki/UML_state_machine),
+[uml-diagrams.org](https://www.uml-diagrams.org/state-machine-diagrams.html),
+[the specification](http://www.omg.org/spec/UML/).
+
+## Two ways to use it
+
+|  | [**Playground**](#playground-no-install-no-server) | [**WebGME server**](#the-webgme-editor) |
+| --- | --- | --- |
+| Install | none — [open the link](https://finger563.github.io/webgme-hfsm/) | Docker or Node + MongoDB |
+| Draw and edit machines | ✅ | ✅ |
+| Simulate, step events, inspect variables | ✅ | ✅ |
+| Generate C++, test bench, Mermaid / PlantUML / SCXML | ✅ | ✅ |
+| Compare two versions visually | ✅ | — |
+| Multi-user collaborative editing, project history, undo | — | ✅ |
+| Where the model lives | a `.json` file you own | a database, versioned |
+
+They are the *same* visualizer, simulator and generator — the
+playground is not a cut-down demo. `src/common/*` and the code
+templates are copied into the static build verbatim, and CI fails if
+the browser's output stops being byte-identical to the CLI's.
+
+Start in the playground. Move to the server when you want several
+people in one model at once.
+
+There is also a **command line** (`hfsm-gen`, `hfsm-diff`) for
+generating and diffing in CI, with no browser at all.
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
+- [What it produces](#what-it-produces)
+- [Two ways to use it](#two-ways-to-use-it)
 - [Features](#features)
-- [Description](#description)
-- [Getting Started](#getting-started)
-    - [Setting up the WebGME-HFSM Server](#setting-up-the-webgme-hfsm-server)
+    - [The whole UML statechart vocabulary](#the-whole-uml-statechart-vocabulary)
+    - [Typed event payloads](#typed-event-payloads)
+    - [Code that reads like code you wrote](#code-that-reads-like-code-you-wrote)
+    - [A simulator that is honest about your model](#a-simulator-that-is-honest-about-your-model)
+    - [Diffs that talk about state machines](#diffs-that-talk-about-state-machines)
+    - [One implementation, three front ends](#one-implementation-three-front-ends)
+    - [Exports that go somewhere useful](#exports-that-go-somewhere-useful)
+    - [Also](#also)
+- [Playground (no install, no server)](#playground-no-install-no-server)
+- [The WebGME editor](#the-webgme-editor)
+    - [Running the server](#running-the-server)
     - [Creating a HFSM](#creating-a-hfsm)
     - [Simulating a HFSM](#simulating-a-hfsm)
     - [Code Generation](#code-generation)
-        - [Standalone CLI Generation (no WebGME server)](#standalone-cli-generation-no-webgme-server)
-        - [Test Bench Code](#test-bench-code)
-- [Playground (no install)](#playground-no-install)
+- [Command line](#command-line)
+- [What is in this repository](#what-is-in-this-repository)
 - [Deployment](#deployment)
+- [The metamodel](#the-metamodel)
+- [Model layout travels with the model](#model-layout-travels-with-the-model)
 - [Validation & Testing](#validation--testing)
 - [Use Cases](#use-cases)
 - [Examples](#examples)
@@ -37,101 +129,130 @@ the UML State Machine specification, see [Wikipedia UML State Machine](https://e
 
 ## Features
 
-* Complete modeling of State Machines following the UML specification
-  including:
-  * States with Hierarchy
-  * Events
-  * Internal Transitions
-  * External Transitions
-  * Local Transitions
-  * Choice Pseudostates
-  * Deep History Pseudostates
-  * Shallow History Pseudostates
-  * Initial States
-  * End States
-* **Interactive model creation**
-  * Positions of states are saved
-  * Code can be edited directly in the model
-  * Simulator automatically updates as model changes
-  * Can use multi-select to move groups of states or to edit attributes of multiple objects (e.g. transition events)
-  * Can auto-select all transitions by `Event`
-  * Can zoom / pan the model to focus on a specific context
-* In-model **interactive simulation** of the HFSM
-  * Highlighting of execution pathways during event handling
-  * Can disable / enable transitions
-  * User can select which guards are true when transitions have guards
-  * Currently active state tree branch shown including all event actions
-  * Simulator informs the user if the model is not well formed
-* **Typed event payloads**: `Event` definitions with typed `Field`s,
-  available to guards and transition actions as `data.<field>` in
-  both the simulator and the generated code
-* **Direct variable access** in guards / actions / state code:
-  `someNumber < someValue` instead of `_root->someNumber <
-  _root->someValue` (zero-cost generated aliases; both spellings
-  work), with warnings when state declarations shadow machine
-  variables
-* Simulator **Variables and Events panels**: inspect and edit the
-  machine's variables and simulated event payload values while
-  stepping the model; guard prompts show the current values the
-  guards reference
-* In-model **collaborative code attribute editing** for the HFSM (using [the CodeEditor](https://github.com/finger563/webgme-codeeditor))
-* Model transformation plugin to produce executable **C++** code from
-  the HFSM (*with more languages coming soon*!)
-  * Disabled transitions are not generated
-  * Model is checked before being generated (with extensive
-    validation and non-fatal warnings; see
-    [docs/VALIDATION.md](docs/VALIDATION.md))
-* **Standalone CLI** (`hfsm-gen`) running the same pipeline without a
-  WebGME server -- for CI, scripting, and testing (see
-  [docs/CLI.md](docs/CLI.md))
-* **Visual and textual diffs** between two versions of a machine --
-  added, removed and changed states, transitions and guards, on the
-  diagram in the playground and as an exit status from `hfsm-diff`
-  in CI. A layout-only change is not a change.
-* **Interop exports**: Mermaid, PlantUML, and SCXML per state machine
-* Precisely documented **execution semantics** shared by the
-  simulator and the generated code
-  ([docs/SEMANTICS.md](docs/SEMANTICS.md)), enforced in CI by golden
-  generation diffs, sanitizer builds, and execution-trace checks
+### The whole UML statechart vocabulary
 
-## Description
+Hierarchical states, internal / external / local transitions, choice
+pseudostates, deep and shallow history, initial and end states —
+and, where this deviates from UML on purpose, it is
+[written down](docs/SEMANTICS.md) rather than left to be discovered.
 
-This repository contains the plugins, decorators, and visualizers (all
-of which are WebGME Components) and the base and example seeds for
-creating HFSMs with embedded c/c++ code in each state. The WebGME app
-utilizes the [CodeEditor](https://github.com/finger563/webgme-codeeditor) to allow users to edit the code for the
-model as if it were part of an IDE.
+### Typed event payloads
 
-Together these components and (meta-)modeling environment make up the
-*State Machine Domain* for WebGME.
+An `Event` carries typed `Field`s, readable in guards and actions as
+`data.<field>` — in the simulator and in the generated C++ alike.
+The generated types make an event and its payload impossible to
+mismatch: the constructor is private, and only the typed
+`Event<T>` subclass can pair them.
 
-The [Base seed](./src/seeds/base.webgmex) contains just the `Meta`
-definitions for the projects and HFSMs following the UML State Diagram
-specification and the [Examples Seed](./src/seeds/examples.webgmex)
-contains a project with three different HFSMs: *simple*, *medium*, and
-*complex*.
+### Code that reads like code you wrote
 
-HFSMs are trees, where a state may have zero or more substates.
- 
-In this modeling paradigm, `Projects` can contain any number of `State
-Machines`.
+Guards and actions refer to the machine's variables by name —
+`someNumber < someValue`, not `_root->someNumber < _root->someValue`
+— through zero-cost aliases the generator emits. Both spellings work,
+and you get a warning when a state's declaration shadows a machine
+variable.
 
-State Machines have the following attributes:
+### A simulator that is honest about your model
 
-* `Includes` : include statements for the HFSM, will be at the top of
-  the generated header
-* `Initialization` : intialization code run at the beginning of the
-  HFSM, before any of the state initialization code.
-* `Declarations` : variable/function/class declarations within the
-  HFSM's `StateMachine` namespace, will be within the generated header
-  file
-* `Definitions` : variable/function/class definitions within the
-  HFSM's `StateMachine` namespace, will be within the generated source
-  file
-  
-## Getting Started
+Step events, watch the active branch and every entry / exit / action
+fire in order, enable and disable transitions, choose which guard is
+true, and edit the variables and payloads the guards read while it
+runs. If the model is not well formed, it says so instead of
+pretending.
 
-### Setting up the WebGME-HFSM Server
+### Diffs that talk about state machines
+
+Added, removed and changed states, transitions and guards — on the
+diagram in the playground, and as an exit status from `hfsm-diff` in
+CI. A layout-only change is *not* a change, so re-arranging a diagram
+will not fail your build.
+
+### One implementation, three front ends
+
+The browser playground, the WebGME plugin and the command line run
+the same `src/common` modules and the same templates. CI regenerates
+every fixture, byte-compares the output against committed goldens,
+compiles it warning-clean under `-Werror` and Address/UB sanitizers,
+and diffs scripted execution traces — so the documented semantics,
+the simulator and the C++ cannot quietly drift apart.
+
+### Exports that go somewhere useful
+
+Mermaid (GitHub renders it inline, as above), PlantUML for design
+docs, SCXML for other statechart tools.
+
+### Also
+
+* Layout is part of the model, so a machine draws the same way in
+  every front end ([why](#model-layout-travels-with-the-model))
+* Models are validated before generation — structure, names, events,
+  payloads, determinism ([what is checked](docs/VALIDATION.md))
+* Disabled transitions are not generated
+* Collaborative code editing in the WebGME editor, via
+  [the CodeEditor](https://github.com/finger563/webgme-codeeditor)
+* C++ today; *more languages coming*
+
+## Playground (no install, no server)
+
+### ▶ [finger563.github.io/webgme-hfsm](https://finger563.github.io/webgme-hfsm/)
+
+A complete state machine workbench as a static web page. No database,
+no accounts, nothing uploaded; it keeps working after you go offline,
+and it is published from `main` on every push.
+
+**Draw and edit.** Drag states, transitions, choice and history
+pseudostates from the palette onto the diagram. Draw a transition by
+dragging from one state to another. Right-click for the rest: add a
+child, re-parent a selection, auto-arrange, set the active state.
+
+**Edit what a state actually does.** Selecting anything opens an
+inspector for its attributes — name, event, guard, entry / exit /
+tick code — with C++ syntax highlighting inline and a pop-out editor
+for anything longer. The pop-out shows your snippet **inside the
+function it will be compiled into**, so the variables in scope are
+right there instead of somewhere you have to go and look. A
+transition action compiled into six different places says so, and
+lets you step through all six.
+
+**Simulate it.** Spawn events, tick, restart; watch the active branch
+light up and each entry / exit / action fire in order. Edit the
+machine's variables and event payloads mid-run to steer the guards.
+
+**Generate.** C++ plus an interactive test bench, and Mermaid,
+PlantUML and SCXML — readable in the browser, downloadable as a set.
+
+**Compare two versions.** *Compare…* puts another model beside this
+one and marks up what changed: added, removed, changed, with a list
+naming each difference. Compare against the version you loaded to
+answer *what have I changed?* See
+[docs/PLAYGROUND.md](docs/PLAYGROUND.md#comparing-two-machines).
+
+**It does not lose your work.** The model is kept per browser tab, so
+a refresh — or a crash — brings back what you were editing, along
+with the tab you were on and how you had the panes arranged.
+
+Run it locally instead:
+
+```bash
+npm run web    # build + serve on http://localhost:8080
+```
+
+The one thing it cannot do is put several people in the same model at
+once, with history and undo — that is what [the WebGME
+editor](#the-webgme-editor) is for. Everything else is the same code:
+the visualizer, the simulator and the generator are copied into the
+static build verbatim, and CI fails if the browser's output stops
+being byte-identical to the CLI's.
+
+Full details in [docs/PLAYGROUND.md](docs/PLAYGROUND.md).
+
+## The WebGME editor
+
+Everything above, plus several people editing one model at once, a
+project history you can walk back through, and undo. It needs a
+server: Node.js and MongoDB, or the Docker image.
+
+### Running the server
 
 #### Docker
 
@@ -148,17 +269,17 @@ docker run --name mongo -d -p 27017:27017 mongo
 docker run --name webgme-hfsm -d -p 8081:8081 --link mongo:mongo webgme-hfsm:latest
 ```
 
-You can also use docker-compose:
+Or, in one step:
 
 ``` bash
-docker-compose up -d
+docker compose up -d --build
 ```
 
 #### Native
 
 Dependencies:
-* [nodejs ^6.0](https://www.nodejs.org)
-* [mongodb](https://www.mongodb.com)
+* [Node.js 20](https://nodejs.org) (what CI and the Docker image use)
+* [MongoDB](https://www.mongodb.com)
 
 ```bash
 git clone https://github.com/finger563/webgme-hfsm
@@ -253,34 +374,8 @@ You can edit the code attributes for the `State Machines`, `States`,
 `Internal Transitions`, and `External Transitions` within the
 CodeEditor visualizer.
 
-#### Standalone CLI Generation (no WebGME server)
-
-The same generator can run from the command line against a plain JSON
-model file -- useful for CI, scripting, and testing:
-
-```sh
-node bin/hfsm-gen.js <model.json> -o out --test-bench --export all
-```
-
-Besides C++, it can export models as Mermaid (`.mmd`), PlantUML
-(`.puml`), and SCXML (`.scxml`) for docs and interop with other
-tools.
-
-`hfsm-diff` answers the other CI question -- *did this change the
-machine?* -- without a text diff of the JSON:
-
-```sh
-node bin/hfsm-diff.js before.json after.json   # exit 1 if they differ
-```
-
-Dragging a state is not a change, so a model that has only been
-re-laid-out exits 0. See [docs/CLI.md](docs/CLI.md) for the model format and
-options, [docs/SEMANTICS.md](docs/SEMANTICS.md) for the precise
-execution semantics implemented by the simulator and the generated
-code (including deliberate deviations from UML), and
-[docs/VALIDATION.md](docs/VALIDATION.md) for the model checks and the
-CI validation pipeline (golden generation tests, sanitizer builds,
-and execution-trace checks).
+The same generation runs [from the command line](#command-line) with
+no server involved.
 
 #### Test Bench Code
 
@@ -471,32 +566,92 @@ Finished
 
 </p></details>
 
-## Playground (no install)
+## Command line
 
-For turning a model into code without running a server at all, the
-repo ships a **static web playground**: load a model, validate it,
-generate the C++ (and Mermaid / PlantUML / SCXML), and download the
-result — entirely in the browser. No database, no authentication, no
-accounts, and it works offline.
+Neither the editor nor a browser is required to generate. `hfsm-gen`
+runs the same pipeline against a plain JSON model — the format the
+playground loads and saves, and the one the plugin writes next to the
+generated code:
 
-```bash
-npm run web    # build + serve on http://localhost:8080
+```sh
+node bin/hfsm-gen.js my_machine.json -o out --test-bench --export all
 ```
 
-It is also published to GitHub Pages on every push to `main`. It runs
-the *same* generator modules as the CLI and the WebGME plugin (copied
-into the build verbatim, with CI asserting the output stays
-byte-identical to the goldens), so what you get in the browser is
-what you get from `hfsm-gen`.
+Out comes the C++, an interactive test bench, and Mermaid / PlantUML /
+SCXML. Commit the model next to your firmware and regenerate on every
+build; there is nothing to install but Node.
 
-It does not do modeling or simulation — those still need the WebGME
-editor below. See [docs/PLAYGROUND.md](docs/PLAYGROUND.md).
+`hfsm-diff` answers the question a text diff cannot — *did this
+change the machine?*
 
+```
+$ node bin/hfsm-diff.js before.json after.json
+before.json -> after.json
+  1 added, 2 changed, 15 moved
+  + Extra  [State]
+  ~ Waiting  [State]
+      name: State 1 -> Waiting
+  ~ External Transition INPUTEVENT  [External Transition]
+      Guard: buttonPressed && data.button_id == 12 -> neverEver
+```
+
+It exits `0` when the machines match, `1` when they differ and `2`
+when something is wrong with the input — so a CI job that treats "the
+file is corrupt" as "the machine changed" is not a mistake you can
+make by accident. **Dragging a state is not a change**, so reopening a
+model and saving it will not fail your build.
+
+`git diff` on the same pair reports the order the keys came out in
+and the coordinates of every node you moved.
+
+See [docs/CLI.md](docs/CLI.md) for both tools,
+[docs/SEMANTICS.md](docs/SEMANTICS.md) for the exact execution
+semantics the simulator and the generated code share (including the
+deliberate deviations from UML), and
+[docs/VALIDATION.md](docs/VALIDATION.md) for what is checked before
+anything is generated.
+
+## What is in this repository
+
+This repository contains the plugins, decorators, and visualizers (all
+of which are WebGME Components) and the base and example seeds for
+creating HFSMs with embedded c/c++ code in each state. The WebGME app
+utilizes the [CodeEditor](https://github.com/finger563/webgme-codeeditor) to allow users to edit the code for the
+model as if it were part of an IDE.
+
+Together these components and (meta-)modeling environment make up the
+*State Machine Domain* for WebGME.
+
+The [Base seed](./src/seeds/base.webgmex) contains just the `Meta`
+definitions for the projects and HFSMs following the UML State Diagram
+specification and the [Examples Seed](./src/seeds/examples.webgmex)
+contains a project with three different HFSMs: *simple*, *medium*, and
+*complex* — the same three the playground offers under **Load
+example…**, and the same three CI compiles and runs on every push.
+
+HFSMs are trees, where a state may have zero or more substates.
+ 
+In this modeling paradigm, `Projects` can contain any number of `State
+Machines`.
+
+State Machines have the following attributes:
+
+* `Includes` : include statements for the HFSM, will be at the top of
+  the generated header
+* `Initialization` : initialization code run at the beginning of the
+  HFSM, before any of the state initialization code.
+* `Declarations` : variable/function/class declarations within the
+  HFSM's `StateMachine` namespace, will be within the generated header
+  file
+* `Definitions` : variable/function/class definitions within the
+  HFSM's `StateMachine` namespace, will be within the generated source
+  file
+  
 ## Deployment
 
 GitHub Pages cannot host the *editor* (WebGME needs Node.js +
 websockets and a MongoDB) — though it does host the
-[playground](#playground-no-install). For the full editor, these
+[playground](#playground-no-install-no-server). For the full editor, these
 options work. See
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full guide,
 including the checklist for public instances.
@@ -589,13 +744,24 @@ its committed model on every CI run with a zero-drift check.
 * **Living documentation**: export Mermaid diagrams straight into
   READMEs / PRs (GitHub renders them natively), PlantUML for design
   docs, SCXML for interchange with other statechart tools
-* **Design reviews & teaching**: collaborative editing plus in-model
-  simulation with variable / payload inspection makes state machine
-  behavior explorable without compiling anything
+* **Design reviews**: send a colleague [the playground
+  link](https://finger563.github.io/webgme-hfsm/) and a `.json` file —
+  they can open it, step it, and see what changed against the previous
+  version without installing anything
+* **Teaching**: in-model simulation with variable and payload
+  inspection makes statechart behaviour explorable without compiling
+  anything, on a lab machine you are not allowed to install software
+  on
 
 ## Examples
 
-Example HFSMs included in the [Examples Seed](./src/seeds/examples.webgmex):
+The three machines below ship everywhere: as the [Examples
+Seed](./src/seeds/examples.webgmex) for the WebGME editor, as
+[`examples/*.json`](./examples) for the CLI, and under **Load
+example…** in [the
+playground](https://finger563.github.io/webgme-hfsm/) — where you can
+open one and press Generate without installing anything. CI compiles
+and *runs* all three on every push.
 
 *Simple*:
 ![Simple State Machine](https://raw.githubusercontent.com/wiki/finger563/webgme-hfsm/images/simple.png)
