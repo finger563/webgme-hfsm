@@ -156,6 +156,21 @@ describe('the create dialog', function () {
               .indexOf('type="text"') > -1);
   });
 
+  it('ties each error message to the field it is about', function () {
+    // A refusal only a sighted user can find is not a refusal: it is
+    // a form that will not submit for no visible reason.
+    var dialog = forType('State');
+    [{ name: 'name', type: 'string' },        // an input
+     { name: 'Entry', type: 'string' }        // a textarea
+    ].forEach(function (a) {
+      var html = dialog.renderAttributeForm(a);
+      assert.ok(html.indexOf('aria-describedby="e' + a.name + '"') > -1,
+                a.name + ': the field should point at its message');
+      assert.ok(/id="e[^"]*" role="alert"/.test(html),
+                a.name + ': and the message should be announced');
+    });
+  });
+
   it('refuses a name the generator could not use', function () {
     var dialog = forType('State');
     var name = { name: 'name', type: 'string' };
