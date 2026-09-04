@@ -34,10 +34,11 @@ Structure:
   attribute -- used to reach
   `.trim()` and come back as a TypeError with a stack trace instead
   of a model error. Booleans are strict rather than lenient: the
-  processor drops disabled transitions *before* the checker runs, so
-  a rewritten value would come too late for `Enabled` -- and the
-  string `"false"` is truthy, so accepting one without rewriting it
-  would silently generate a transition its author had disabled.
+  generator asks `Enabled === false`, so the string `"false"` would
+  read as enabled and silently generate a transition its author had
+  disabled. Quoted booleans are refused rather than rewritten --
+  WebGME stores real booleans, so a quoted one is a mistake worth
+  naming rather than guessing at.
 - **Every** state's `Timer Period` must be a finite number and not
   negative — composites included, because `getTimerPeriod()` is
   emitted for every state and a value C++ cannot return breaks the

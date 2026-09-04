@@ -68,13 +68,14 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
     /**
      * Check every attribute against the kind the metamodel declares.
      *
-     * Public and separate because it has to run BEFORE anything reads
-     * an attribute -- including `processor.processModel`, which
-     * deletes disabled transitions on `!obj.Enabled` before it calls
-     * the checker at all. Left inside the checker alone, `Enabled: 0`
-     * and `Enabled: ""` were falsey enough to delete the transition
-     * on the way past and never reach the error that was supposed to
-     * catch them. Running it twice is idempotent and costs nothing.
+     * Public and separate so it can run BEFORE anything reads or acts
+     * on an attribute. `processor.processModel` calls it first, then
+     * deletes disabled transitions; that order is the point. When this
+     * lived inside the checker alone, the processor had already run
+     * its deletion by the time the checker looked, and `Enabled: 0`
+     * or `Enabled: ""` was falsey enough to drop the transition on
+     * the way past and never reach the error meant to catch it.
+     * Running it twice is idempotent and costs nothing.
      */
     checkAttributeKinds: function(model) {
       var self = this;
@@ -123,14 +124,16 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
         return (typeof value === 'string') ? null : this.kindOf(value);
       }
       if (declared.type === 'boolean') {
-        // Strictly a boolean. Accepting the string "false" and
-        // converting it is not possible to do reliably here: the
-        // processor drops disabled transitions BEFORE it calls the
-        // checker, so anything the checker rewrites is already too
-        // late for `Enabled`. And accepting it WITHOUT converting is
-        // worse than refusing -- the code asks `!obj.Enabled`, and
-        // the string "false" is truthy, so a transition written as
-        // disabled would silently be generated as enabled.
+        // Strictly a boolean. Converting the string "false" here IS
+        // now possible -- this pass runs before the processor reads
+        // anything, so a rewrite would land in time -- but accepting
+        // one WITHOUT converting is not: the processor asks
+        // `obj.Enabled === false`, and the string "false" is not,
+        // so a transition written as disabled would silently be
+        // generated as enabled. Refusing outright is the choice here
+        // rather than the only option: WebGME stores real booleans,
+        // the metamodel declares one, and naming the mistake beats
+        // guessing which spelling of it was meant.
         return (typeof value === 'boolean') ? null : this.kindOf(value);
       }
       return null;   // float: numericValue covers it where it matters

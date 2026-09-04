@@ -1181,13 +1181,13 @@ describe('hfsm generator', function() {
     });
 
     it('refuses a string where a boolean is expected', function() {
-      // NOT leniency. The processor drops disabled transitions
-      // before it calls the checker, so anything rewritten here is
-      // already too late for `Enabled` -- and accepting "false"
-      // without rewriting it is worse than refusing, because the
-      // code asks `!obj.Enabled` and the string "false" is truthy:
-      // a transition written as disabled would be generated as
-      // enabled, silently.
+      // NOT leniency. The processor asks `obj.Enabled === false`,
+      // which the string "false" does not satisfy, so accepting one
+      // without rewriting it would generate a transition its author
+      // had disabled -- silently. Rewriting it instead would work
+      // (kinds are checked before the processor acts) but WebGME
+      // stores real booleans, so a quoted one is a mistake worth
+      // naming rather than guessing at.
       expectModelError('basic', function(objects) {
         var t = Object.keys(objects).filter(function(p) {
           return objects[p].type === 'External Transition';
