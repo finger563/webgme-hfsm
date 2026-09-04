@@ -19,7 +19,7 @@
  *   -h, --help             show this help
  *
  * The model JSON format is the webgme-to-json format; see
- * src/common/resolveModel.js and test/fixtures/ for examples.
+ * src/common/resolveModel.js, and examples/ for ready-made models.
  */
 'use strict';
 
@@ -36,8 +36,10 @@ function fail(msg) {
 
 function usage(code) {
   var lines = fs.readFileSync(__filename, 'utf8').split('\n');
-  // print the usage block from the file header comment
-  console.log(lines.slice(2, 24).map(function(l) {
+  // the usage block is the file header comment; find where it ends
+  // rather than hardcoding a line number the comment can outgrow
+  var end = lines.indexOf(' */');
+  console.log(lines.slice(2, end === -1 ? 24 : end).map(function (l) {
     return l.replace(/^ \*( |$)/, '');
   }).join('\n'));
   process.exit(code);
@@ -79,7 +81,12 @@ if (badFmt.length) fail('unknown export format(s): ' + badFmt.join(', '));
 // ------------------------- generation -------------------------------
 var amdLoader = require('./amd-loader');
 
-var inputData = fs.readFileSync(opts.input, 'utf8');
+var inputData;
+try {
+  inputData = fs.readFileSync(opts.input, 'utf8');
+} catch (e) {
+  fail('cannot read ' + opts.input + ': ' + e.message);
+}
 var model;
 try {
   model = JSON.parse(inputData);

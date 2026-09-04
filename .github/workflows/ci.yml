@@ -317,3 +317,59 @@ jobs:
                    shallow_history_state.hpp; do
             diff -u "sample_code/Simple/$f" "build/regen-simple/$f"
           done
+
+  # The CLI has to work for someone who INSTALLS this package, which is
+  # a different code path from the checkout every other job runs in:
+  # npm hoists dependencies into the consumer's node_modules, so a
+  # loader that only looks under its own directory finds nothing. That
+  # is exactly how `npm install webgme-hfsm && hfsm-gen` came to fail
+  # with "cannot find underscore" while all of CI stayed green.
+  packaged-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Generate the reference output from the checkout, the way the
+      # other jobs do.
+      - name: Install generator dependencies
+        run: >
+          npm install --no-save --no-package-lock --ignore-scripts
+          requirejs requirejs-text handlebars underscore
+
+      - name: Generate from the checkout
+        run: node bin/hfsm-gen.js examples/Complex.json -o build/from-checkout
+
+      # Now do it the way a user would: pack, install the tarball into
+      # an unrelated directory, and run the installed binary.
+      - name: Pack and install as a dependency
+        run: |
+          npm pack --pack-destination /tmp
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          echo '{"name":"consumer","version":"1.0.0"}' > package.json
+          npm install --no-audit --no-fund /tmp/webgme-hfsm-*.tgz
+
+      - name: The heavy optional peers must not be installed
+        run: |
+          cd /tmp/consumer
+          for heavy in webgme webgme-codeeditor codemirror; do
+            if [ -d "node_modules/$heavy" ]; then
+              echo "$heavy was installed for a CLI-only consumer"; exit 1
+            fi
+          done
+
+      - name: Generate from the installed package
+        run: |
+          cd /tmp/consumer
+          cp $GITHUB_WORKSPACE/examples/Complex.json .
+          ./node_modules/.bin/hfsm-gen Complex.json -o out
+          ./node_modules/.bin/hfsm-diff Complex.json Complex.json
+
+      # Same generator, same bytes -- the metadata carries a timestamp.
+      - name: Installed output must match the checkout
+        run: |
+          diff -r --exclude=hfsm_metadata.json \
+            build/from-checkout /tmp/consumer/out
