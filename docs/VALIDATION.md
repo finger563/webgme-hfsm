@@ -27,7 +27,18 @@ Structure:
   source (composite parent -> child); anything else -- including the
   reverse direction -- is converted to an external transition (with a
   console warning).
-- Leaf states must have a non-zero `Timer Period`.
+- **Every** state's `Timer Period` must be a finite number and not
+  negative — composites included, because `getTimerPeriod()` is
+  emitted for every state and a value C++ cannot return breaks the
+  build. The value must *be* a number (or a string spelling one):
+  `[]` coerces to `0` through `Number()` and would render as
+  `return (double)();`.
+- **0 means no timer**, and that meaning is leaf-specific, since
+  `sleep_until_event()` asks the active leaf. It is the metamodel
+  default, so every freshly created state has one. A leaf with `Tick`
+  code and no timer is a *warning*, not an error: the code is legal
+  and still runs, just at whatever rate the event loop turns over
+  rather than on a schedule.
 - States cannot set `Includes` (only the machine can).
 
 Event payload definitions:

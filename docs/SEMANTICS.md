@@ -160,11 +160,16 @@ dispatch, but tick actions may spawn events.
 
 ## Timers
 
-Each leaf state has a `Timer Period` (seconds; the model checker
-requires a non-zero period on leaf states). `sleep_until_event()`
-sleeps until an event arrives or the *active leaf's* period elapses,
-whichever is first; a state without a period (e.g. the End State)
-blocks until an event arrives. The typical event loop is:
+Each leaf state has a `Timer Period`: the seconds between ticks while
+that state is active, or **0 for no timer**.
+
+`sleep_until_event()` sleeps until an event arrives or the *active
+leaf's* period elapses, whichever is first. With a period of 0 there
+is nothing to wait for, so it blocks until an event arrives rather
+than spinning on a zero timeout — which is also what the End State
+does, and always did.
+
+The typical event loop is:
 
 ```cpp
 root.initialize();
@@ -175,6 +180,27 @@ while (running) {
   root.sleep_until_event();
 }
 ```
+
+Note what zero does and does not do. `tick()` is called every time
+round this loop, before the wait — so a period of 0 does **not** stop
+the active state's `Tick` code running. What it stops is anything
+*waking* the loop on a schedule: with no period the only thing that
+ends `sleep_until_event()` is an event arriving, so the loop turns
+over at whatever rate events happen to arrive, and the tick with it.
+Zero means *this state has no clock of its own*, not *this state does
+nothing*.
+
+Zero is also the metamodel default, so a state you have just created
+has no timer until you give it one. The checker used to reject that,
+which made every freshly created state invalid; it now accepts it and
+**warns instead when a state has `Tick` code but no timer**, since
+that code then runs only as often as events arrive.
+
+Every state's period is validated -- not just leaves -- because
+`getTimerPeriod()` is emitted for all of them and a value C++ cannot
+return breaks the build. Non-numeric and negative periods are
+rejected; the zero-means-no-timer *meaning*, and the `Tick` warning,
+apply to leaves, since `sleep_until_event()` asks the active leaf.
 
 ## Threading contract
 

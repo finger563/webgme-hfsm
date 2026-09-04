@@ -123,8 +123,9 @@ amdLoader.load([
   try {
     resolveModel.resolve(model);
     processor.processModel(model); // includes checkModel; throws strings
+    // a warning may be a plain string or one that knows its object
     (model.warnings || []).forEach(function(w) {
-      console.error('hfsm-gen: warning: ' + w);
+      console.error('hfsm-gen: warning: ' + ((w && w.message) || w));
     });
 
     if (opts.code) {

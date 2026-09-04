@@ -41,6 +41,51 @@ define(['./viz/describe'], function(describe) {
     },
 
     /**
+     * The number an attribute holds, or null if it does not hold one.
+     *
+     * `Number()` on its own is not a test: `Number([])` is 0, so an
+     * empty array passed for a timer period and was then rendered by
+     * the template as nothing at all -- `return (double)();`, which
+     * is exactly the uncompilable output this validation exists to
+     * prevent. Booleans and `{}` coerce just as happily.
+     *
+     * Strings are allowed because a hand-written model may quote the
+     * value -- but see the caller: what is accepted here is written
+     * back in canonical form, because JavaScript and C++ do not agree
+     * on what a numeric literal looks like.
+     */
+    numericValue: function(raw) {
+      if (typeof raw === 'number') return isFinite(raw) ? raw : null;
+      if (typeof raw === 'string') {
+        var text = raw.trim();
+        if (text === '') return null;
+        var value = Number(text);
+        return isFinite(value) ? value : null;
+      }
+      return null;   // arrays, objects, booleans, null, undefined
+    },
+
+    /**
+     * A warning that knows which object it is about.
+     *
+     * An object rather than a string, for the same reason `problem`
+     * throws an Error: so a UI can offer to take you there. It
+     * stringifies to the message, so anything that concatenates it --
+     * the CLI did, before it was taught otherwise -- still reads
+     * correctly rather than printing [object Object].
+     */
+    warning: function(obj, message) {
+      var text = 'WARNING: ' + this.describeObject(obj) + ' ' + message;
+      return {
+        message: text,
+        path: obj && obj.path,
+        objectName: obj && obj.name,
+        objectType: obj && obj.type,
+        toString: function() { return text; },
+      };
+    },
+
+    /**
      * Throw a problem that knows which object it is about.
      *
      * An Error rather than the bare string this used to throw, so the
@@ -561,17 +606,73 @@ define(['./viz/describe'], function(describe) {
               self.error(obj, "State has END State but no END TRANSITION!");
             }
           }
-          // leaf states (determined by LIST LENGTHS -- an empty list
-          // is not a child) need a finite numeric timer period > 0;
-          // string-coerced comparison also let values like "abc" or
-          // "Infinity" through into `return (double)(abc)`
+          // EVERY state emits `getTimerPeriod` -- see StateTempl.cpp
+          // -- so every state's period has to be something C++ can
+          // return. A composite with "abc" compiled to
+          // `return (double)(abc);` and failed the build, because
+          // this check used to sit inside the leaf test below.
+          //
+          // The period only MEANS anything on a leaf, since
+          // `sleep_until_event` asks the active leaf for it. So the
+          // value is validated everywhere and interpreted only there.
+          var numericPeriod = self.numericValue(obj['Timer Period']);
+          if (numericPeriod === null) {
+            self.badProperty(obj, 'Timer Period',
+              'A timer period must be a finite number: the seconds between' +
+              ' ticks, or 0 for no timer.');
+          } else if (numericPeriod < 0) {
+            self.badProperty(obj, 'Timer Period',
+              'A timer period cannot be negative. Use 0 for no timer.');
+          } else {
+            // WHAT IS VALIDATED MUST BE WHAT IS EMITTED. The template
+            // prints this attribute verbatim, and the two languages
+            // disagree about what a number looks like: JavaScript
+            // reads "0o10" as 8, C++ has no such literal -- clang
+            // takes it as an extension and refuses under
+            // -pedantic-errors, gcc does not take it at all. Checking
+            // the value and then emitting the text that was checked
+            // is not the same thing, so the parsed number is written
+            // back and the template emits that.
+            //
+            // Rewriting the model from the checker has precedent
+            // above: a Local Transition that is not local becomes an
+            // External Transition there.
+            obj['Timer Period'] = numericPeriod;
+          }
+
+          // Leaf states (determined by LIST LENGTHS -- an empty list
+          // is not a child) carry the period the machine sleeps for
+          // while they are active.
+          //
+          // ZERO MEANS NO TIMER, which is what the runtime has always
+          // done: `sleep_until_event` blocks until an event arrives
+          // rather than spinning on a zero timeout. The checker used
+          // to refuse it anyway, which made every state dropped from
+          // the palette invalid -- `Timer Period` defaults to 0 in
+          // the metamodel -- for a value the generated code handles
+          // perfectly well.
           var isLeaf = (obj.State_list || []).length === 0 &&
               (obj.Initial_list || []).length === 0;
           if (isLeaf) {
-            var period = Number(obj['Timer Period']);
-            if (!isFinite(period) || period <= 0) {
-              self.badProperty(obj, 'Timer Period',
-                'Leaf states must have a finite numeric timer period greater than zero.');
+            if (numericPeriod === 0 && typeof obj.Tick === 'string' &&
+                obj.Tick.trim() !== '') {
+              // Now that 0 is legal it can be MEANT, so the mistake
+              // worth catching is the state that has tick code and no
+              // timer to run it. Zero does not stop `tick()` being
+              // called -- the documented loop calls it every time
+              // round, before it sleeps -- it stops anything WAKING
+              // the loop on a schedule, so the code runs at whatever
+              // rate events happen to arrive. Legal, occasionally
+              // deliberate, and almost never what was intended.
+              if (!model.warnings) {
+                model.warnings = [];
+              }
+              model.warnings.push(self.warning(obj,
+                "has Tick code but no timer period, so nothing wakes the" +
+                  " machine on its own while it is active: the code runs" +
+                  " only as often as the event loop comes round, which" +
+                  " with no timer means as often as events arrive. Set a" +
+                  " timer period, or move the code to Entry."));
             }
           }
         }

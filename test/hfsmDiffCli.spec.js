@@ -180,8 +180,11 @@ describe('hfsm-diff', function () {
     // meant a stack into checkModel internals, on top of the message
     // that actually says what to fix.
     var model = example('Simple');
-    model.objects['/9/BAD'] = { name: 'Cooldown', type: 'State',
-                                position: { x: 1, y: 1 } };
+    // a C++ keyword: still rejected, unlike the timer period that
+    // used to be the easiest way to make a model invalid
+    model.objects['/9/BAD'] = { name: 'class', type: 'State',
+                                position: { x: 1, y: 1 },
+                                'Timer Period': 1 };
     var file = write('bad-model.json', model);
     var out;
     try {
@@ -195,9 +198,9 @@ describe('hfsm-diff', function () {
     }
 
     assert.strictEqual(out.status, 1, 'a rejected model fails the run');
-    assert.ok(/Timer Period/.test(out.stderr), out.stderr);
-    assert.ok(/State "Cooldown"/.test(out.stderr),
-              'and names the state: ' + out.stderr);
+    assert.ok(/invalid name/.test(out.stderr), out.stderr);
+    assert.ok(/\(\/9\/BAD\)/.test(out.stderr),
+              'and points at the object: ' + out.stderr);
     assert.ok(!/at Object\./.test(out.stderr),
               'but shows no stack trace: ' + out.stderr);
   });

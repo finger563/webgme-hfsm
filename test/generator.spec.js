@@ -209,23 +209,172 @@ describe('hfsm generator', function() {
       }, /exactly 1 unguarded/i);
     });
 
+    it('accepts a timer period of zero, meaning no timer', function() {
+      // What the runtime has always done: sleep_until_event blocks
+      // until an event arrives rather than spinning on a zero
+      // timeout. The checker used to refuse it, which made every
+      // state dropped from the palette invalid -- the metamodel
+      // default is 0.
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = 0;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+
+    it('warns when a state has tick code but no timer to run it', function() {
+      // now that 0 can be MEANT, the mistake worth catching is the
+      // state whose tick code has nothing waking it on a schedule
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = 0;
+      model.objects['/p/m/Idle'].Tick = 'counter++;';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+
+      var warning = (model.warnings || []).filter(function(w) {
+        return /Tick code but no timer/i.test((w && w.message) || w);
+      })[0];
+      assert.ok(warning, 'expected the warning: ' +
+                JSON.stringify(model.warnings || []));
+
+      // The point of the warning is not its text -- it is that a UI
+      // can offer to take you to the object. Asserting only the
+      // joined string would pass just as happily if it lost these.
+      assert.strictEqual(warning.path, '/p/m/Idle');
+      assert.strictEqual(warning.objectName, 'Idle');
+      assert.strictEqual(warning.objectType, 'State');
+      assert.ok(/State "Idle"/.test(warning.message), warning.message);
+      // and it still reads correctly anywhere it is concatenated
+      assert.strictEqual(String(warning), warning.message);
+    });
+
+    it('does not claim a state with no timer never ticks', function() {
+      // `tick()` is called every time round the documented loop,
+      // before it sleeps -- zero stops anything WAKING the loop on a
+      // schedule, not the call itself
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = 0;
+      model.objects['/p/m/Idle'].Tick = 'counter++;';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var text = String((model.warnings || [])[0] || '');
+      assert.ok(!/only tick when an event/i.test(text), text);
+      assert.ok(/nothing wakes the machine on its own/i.test(text), text);
+    });
+
+    it('does not warn about a state with no timer and no tick code',
+       function() {
+         var model = loadFixture('basic');
+         model.objects['/p/m/Idle']['Timer Period'] = 0;
+         mods.resolveModel.resolve(model);
+         mods.processor.processModel(model);
+         assert.ok(!/Tick code but no timer/i.test((model.warnings || []).join('\n')),
+                   'a state that simply has no timer is not a problem');
+       });
+
+    it('validates the timer period of composite states too', function() {
+      // Every state emits getTimerPeriod, not just leaves, so a
+      // composite with a non-numeric period compiled to
+      // `return (double)(abc);` and failed the build. The check used
+      // to sit inside the leaf test.
+      expectModelError('features', function(objects) {
+        objects['/p/m/A']['Timer Period'] = 'abc';   // /p/m/A has children
+      }, /must be a finite number/i);
+      expectModelError('features', function(objects) {
+        objects['/p/m/A']['Timer Period'] = -3;
+      }, /cannot be negative/i);
+    });
+
+    it('does not warn about a composite with no timer and tick code',
+       function() {
+         // the period only MEANS anything on a leaf -- sleep_until_event
+         // asks the active leaf -- so the warning stays leaf-specific
+         var model = loadFixture('features');
+         model.objects['/p/m/A']['Timer Period'] = 0;
+         model.objects['/p/m/A'].Tick = 'counter++;';
+         mods.resolveModel.resolve(model);
+         mods.processor.processModel(model);
+         assert.ok(!/Tick code but no timer/i.test((model.warnings || []).join('\n')),
+                   'a composite does not tick on its own timer anyway');
+       });
+
+    it('rejects a negative timer period', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle']['Timer Period'] = -1;
+      }, /cannot be negative/i);
+    });
+
+    it('rejects a timer period that is not really a number', function() {
+      // Number([]) is 0, so an empty array passed the old check and
+      // was rendered as nothing at all -- `return (double)();`
+      [[], {}, true, false, null].forEach(function(value) {
+        expectModelError('basic', function(objects) {
+          objects['/p/m/Idle']['Timer Period'] = value;
+        }, /must be a finite number/i);
+      });
+    });
+
+    it('emits an accepted period as a C++ literal, not the text it was given',
+       function() {
+         // JavaScript and C++ disagree about what a number looks
+         // like. Number('0o10') is 8; C++ has no 0o literal -- clang
+         // takes it as an extension and refuses under
+         // -pedantic-errors, gcc does not take it at all. Validating
+         // the text and then emitting that same text is not the same
+         // thing as validating what gets emitted.
+         var model = loadFixture('basic');
+         model.objects['/p/m/Idle']['Timer Period'] = '0o10';
+         mods.resolveModel.resolve(model);
+         mods.processor.processModel(model);
+         assert.strictEqual(model.objects['/p/m/Idle']['Timer Period'], 8,
+                            'the checker rewrites it to the number it read');
+
+         var rendered = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+         var source = rendered[Object.keys(rendered).filter(function(f) {
+           return /_generated_states\.cpp$/.test(f);
+         })[0]];
+         assert.ok(source.indexOf('(double)(8)') > -1,
+                   'expected (double)(8) in the generated source');
+         assert.ok(source.indexOf('0o10') === -1,
+                   'the JavaScript-only literal must not reach the output');
+       });
+
+    it('leaves an ordinary numeric period exactly as it was', function() {
+      // normalising must not quietly reformat a model that was fine
+      var model = loadFixture('basic');
+      var before = model.objects['/p/m/Idle']['Timer Period'];
+      assert.strictEqual(typeof before, 'number');
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.strictEqual(model.objects['/p/m/Idle']['Timer Period'], before);
+    });
+
+    it('still accepts a period written as a string', function() {
+      // a hand-written model may quote it, and the generator emits it
+      // verbatim either way
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = '0.25';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+
     it('rejects leaf states with missing or non-numeric timer periods', function() {
       expectModelError('basic', function(objects) {
-        objects['/p/m/Idle']['Timer Period'] = 0;
-      }, /finite numeric timer period/i);
+        objects['/p/m/Idle']['Timer Period'] = '';
+      }, /must be a finite number/i);
       // "abc" and "Infinity" compare false to <= 0 but generate
       // uncompilable `return (double)(abc)`
       expectModelError('basic', function(objects) {
         objects['/p/m/Idle']['Timer Period'] = 'abc';
-      }, /finite numeric timer period/i);
+      }, /must be a finite number/i);
       expectModelError('basic', function(objects) {
         objects['/p/m/Idle']['Timer Period'] = 'Infinity';
-      }, /finite numeric timer period/i);
+      }, /must be a finite number/i);
       // an empty State_list is not a child: still a leaf
       expectModelError('basic', function(objects) {
-        objects['/p/m/Idle']['Timer Period'] = 0;
+        delete objects['/p/m/Idle']['Timer Period'];
+        objects['/p/m/Idle']['Timer Period'] = null;
         objects['/p/m/Idle'].State_list = [];
-      }, /finite numeric timer period/i);
+      }, /must be a finite number/i);
     });
 
     it('rejects an object-form root that is not a valid root', function() {
