@@ -1104,6 +1104,55 @@ describe('hfsm generator', function() {
     });
   });
 
+  describe('disabled transitions', function() {
+    // 'drops disabled transitions' above covers the model side -- the
+    // object is gone. These cover the consequence that matters, which
+    // is that the transition is absent from the generated C++, and
+    // that an enabled one survives. Worth having while the condition
+    // that drops them is being edited.
+
+    it('are not generated', function() {
+      var enabled = loadFixture('features');
+      mods.resolveModel.resolve(enabled);
+      mods.processor.processModel(enabled);
+      var withIt = mods.MetaTemplates.renderHFSM(enabled, NAMESPACE);
+
+      var disabled = loadFixture('features');
+      var internal = Object.keys(disabled.objects).filter(function(p) {
+        return disabled.objects[p].type === 'Internal Transition';
+      })[0];
+      assert.ok(internal, 'the fixture should have an internal transition');
+      var event = disabled.objects[internal].Event;
+      disabled.objects[internal].Enabled = false;
+      mods.resolveModel.resolve(disabled);
+      mods.processor.processModel(disabled);
+      var without = mods.MetaTemplates.renderHFSM(disabled, NAMESPACE);
+
+      function source(rendered) {
+        return rendered[Object.keys(rendered).filter(function(f) {
+          return /_generated_states\.cpp$/.test(f);
+        })[0]];
+      }
+      assert.notStrictEqual(source(withIt), source(without),
+                            'disabling a transition should change the output');
+      assert.ok(source(withIt).indexOf(internal) > -1,
+                'the enabled one is generated: ' + internal);
+      assert.ok(source(without).indexOf(internal) === -1,
+                'the disabled one is not: ' + internal + ' (' + event + ')');
+    });
+
+    it('are kept when Enabled is true', function() {
+      var model = loadFixture('features');
+      var internal = Object.keys(model.objects).filter(function(p) {
+        return model.objects[p].type === 'Internal Transition';
+      })[0];
+      model.objects[internal].Enabled = true;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.ok(model.objects[internal], 'still in the model');
+    });
+  });
+
   describe('attributes hold what the metamodel says they hold', function() {
     // JSON carries anything, and nearly every attribute is declared
     // `string` and then read as one -- trimmed, matched against a
@@ -1145,6 +1194,41 @@ describe('hfsm generator', function() {
         })[0];
         objects[t].Enabled = 'false';
       }, /Expected true or false, but this is a string/);
+    });
+
+    it('refuses a falsey value of the wrong kind, before it is acted on',
+       function() {
+         // processModel deletes a transition on its Enabled being
+         // falsey, BEFORE it calls the checker -- so `Enabled: 0`
+         // and `Enabled: ""` used to delete the transition on the way
+         // past and never reach the error meant to catch them
+         ['', 0].forEach(function(value) {
+           expectModelError('features', function(objects) {
+             var t = Object.keys(objects).filter(function(p) {
+               return objects[p].type === 'Internal Transition';
+             })[0];
+             objects[t].Enabled = value;
+           }, /Expected true or false/);
+         });
+       });
+
+    it('treats null as a value somebody wrote, not as absent', function() {
+      // resolveModel fills defaults for `undefined` only, so a null
+      // survives -- and `"name": null` reached sanitizeString and
+      // threw the TypeError this pass exists to replace
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].name = null;
+      }, /Expected text, but this is null/);
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Entry = null;
+      }, /Expected text, but this is null/);
+    });
+
+    it('still leaves a genuinely absent attribute alone', function() {
+      var model = loadFixture('basic');
+      delete model.objects['/p/m/Idle'].Entry;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
     });
 
     it('says which object and which attribute', function() {

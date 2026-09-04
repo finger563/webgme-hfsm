@@ -66,6 +66,35 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
     },
 
     /**
+     * Check every attribute against the kind the metamodel declares.
+     *
+     * Public and separate because it has to run BEFORE anything reads
+     * an attribute -- including `processor.processModel`, which
+     * deletes disabled transitions on `!obj.Enabled` before it calls
+     * the checker at all. Left inside the checker alone, `Enabled: 0`
+     * and `Enabled: ""` were falsey enough to delete the transition
+     * on the way past and never reach the error that was supposed to
+     * catch them. Running it twice is idempotent and costs nothing.
+     */
+    checkAttributeKinds: function(model) {
+      var self = this;
+      Object.keys(model.objects || {}).forEach(function(objPath) {
+        var obj = model.objects[objPath];
+        var declared = (metaRules.types[obj.type] || {}).attributes || {};
+        Object.keys(obj).forEach(function(attribute) {
+          var wrong = self.wrongKind(obj.type, attribute, obj[attribute]);
+          if (!wrong) return;
+          var isBoolean = (declared[attribute] || {}).type === 'boolean';
+          self.badProperty(obj, attribute,
+            (isBoolean ? 'Expected true or false, but this is '
+                       : 'Expected text, but this is ') + wrong + '. ' +
+            (isBoolean ? 'Write it without quotes.'
+                       : 'Quote the value if it was meant literally.'));
+        });
+      });
+    },
+
+    /**
      * Whether an attribute holds what the metamodel says it holds.
      *
      * Nearly every attribute is declared `string` and is read as one
@@ -76,13 +105,16 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
      * stack trace into the generator, from the component whose job is
      * to produce readable errors about models.
      *
-     * Absent is fine -- resolveModel fills defaults, and an attribute
-     * nobody set is not a mistake.
+     * ABSENT is fine -- resolveModel fills defaults for `undefined`,
+     * and an attribute nobody set is not a mistake. `null` is not
+     * absent: it is a value somebody wrote, resolveModel leaves it
+     * alone, and `"name": null` then reached `sanitizeString` and
+     * threw the very TypeError this pass exists to replace.
      *
      * @return the offending value's kind, or null when it is fine
      */
     wrongKind: function(type, attribute, value) {
-      if (value === undefined || value === null) return null;
+      if (value === undefined) return null;
       var declared = metaRules.types[type] &&
           metaRules.types[type].attributes &&
           metaRules.types[type].attributes[attribute];
@@ -333,24 +365,8 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
 
       // FIRST, because every check below this reads attributes as the
       // kind the metamodel says they are -- trimming them, matching
-      // them against name patterns, printing them into C++. A value
-      // of the wrong kind used to surface as a TypeError from
-      // somewhere deep in the generator instead of as a model error.
-      objPaths.forEach(function(objPath) {
-        var obj = model.objects[objPath];
-        var declared = (metaRules.types[obj.type] || {}).attributes || {};
-        Object.keys(obj).forEach(function(attribute) {
-          var wrong = self.wrongKind(obj.type, attribute, obj[attribute]);
-          if (wrong) {
-            var isBoolean = (declared[attribute] || {}).type === 'boolean';
-            self.badProperty(obj, attribute,
-              (isBoolean ? 'Expected true or false, but this is '
-                         : 'Expected text, but this is ') + wrong + '. ' +
-              (isBoolean ? 'Write it without quotes.'
-                         : 'Quote the value if it was meant literally.'));
-          }
-        });
-      });
+      // them against name patterns, printing them into C++.
+      self.checkAttributeKinds(model);
 
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];

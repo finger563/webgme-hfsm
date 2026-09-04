@@ -29,7 +29,9 @@ Structure:
   console warning).
 - Every attribute must hold what the metamodel says it holds: text
   where text is declared, `true`/`false` where a boolean is. JSON
-  carries anything, and a hand-written `"Default": 12` used to reach
+  carries anything, and a hand-written `"Default": 12` -- or a
+  `null`, which is a value somebody wrote rather than an absent
+  attribute -- used to reach
   `.trim()` and come back as a TypeError with a stack trace instead
   of a model error. Booleans are strict rather than lenient: the
   processor drops disabled transitions *before* the checker runs, so
