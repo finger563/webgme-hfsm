@@ -581,6 +581,28 @@ define(['./viz/describe'], function(describe) {
               self.error(obj, "State has END State but no END TRANSITION!");
             }
           }
+          // EVERY state emits `getTimerPeriod` -- see StateTempl.cpp
+          // -- so every state's period has to be something C++ can
+          // return. A composite with "abc" compiled to
+          // `return (double)(abc);` and failed the build, because
+          // this check used to sit inside the leaf test below.
+          //
+          // The period only MEANS anything on a leaf, since
+          // `sleep_until_event` asks the active leaf for it. So the
+          // value is validated everywhere and interpreted only there.
+          var rawPeriod = obj['Timer Period'];
+          var numericPeriod = Number(rawPeriod);
+          var noPeriod = rawPeriod === undefined || rawPeriod === null ||
+              (typeof rawPeriod === 'string' && rawPeriod.trim() === '');
+          if (noPeriod || !isFinite(numericPeriod)) {
+            self.badProperty(obj, 'Timer Period',
+              'A timer period must be a finite number: the seconds between' +
+              ' ticks, or 0 for no timer.');
+          } else if (numericPeriod < 0) {
+            self.badProperty(obj, 'Timer Period',
+              'A timer period cannot be negative. Use 0 for no timer.');
+          }
+
           // Leaf states (determined by LIST LENGTHS -- an empty list
           // is not a child) carry the period the machine sleeps for
           // while they are active.
@@ -600,19 +622,8 @@ define(['./viz/describe'], function(describe) {
           var isLeaf = (obj.State_list || []).length === 0 &&
               (obj.Initial_list || []).length === 0;
           if (isLeaf) {
-            var raw = obj['Timer Period'];
-            var period = Number(raw);
-            var missing = raw === undefined || raw === null ||
-                (typeof raw === 'string' && raw.trim() === '');
-            if (missing || !isFinite(period)) {
-              self.badProperty(obj, 'Timer Period',
-                'A timer period must be a finite number: the seconds between' +
-                ' ticks, or 0 for no timer.');
-            } else if (period < 0) {
-              self.badProperty(obj, 'Timer Period',
-                'A timer period cannot be negative. Use 0 for no timer.');
-            } else if (period === 0 && typeof obj.Tick === 'string' &&
-                       obj.Tick.trim() !== '') {
+            if (numericPeriod === 0 && typeof obj.Tick === 'string' &&
+                obj.Tick.trim() !== '') {
               // Now that 0 is legal it can be MEANT, so the mistake
               // worth catching is the state that has tick code and no
               // timer to run it: with no period the machine sleeps

@@ -245,6 +245,32 @@ describe('hfsm generator', function() {
                    'a state that simply has no timer is not a problem');
        });
 
+    it('validates the timer period of composite states too', function() {
+      // Every state emits getTimerPeriod, not just leaves, so a
+      // composite with a non-numeric period compiled to
+      // `return (double)(abc);` and failed the build. The check used
+      // to sit inside the leaf test.
+      expectModelError('features', function(objects) {
+        objects['/p/m/A']['Timer Period'] = 'abc';   // /p/m/A has children
+      }, /must be a finite number/i);
+      expectModelError('features', function(objects) {
+        objects['/p/m/A']['Timer Period'] = -3;
+      }, /cannot be negative/i);
+    });
+
+    it('does not warn about a composite with no timer and tick code',
+       function() {
+         // the period only MEANS anything on a leaf -- sleep_until_event
+         // asks the active leaf -- so the warning stays leaf-specific
+         var model = loadFixture('features');
+         model.objects['/p/m/A']['Timer Period'] = 0;
+         model.objects['/p/m/A'].Tick = 'counter++;';
+         mods.resolveModel.resolve(model);
+         mods.processor.processModel(model);
+         assert.ok(!/Tick code but no timer/i.test((model.warnings || []).join('\n')),
+                   'a composite does not tick on its own timer anyway');
+       });
+
     it('rejects a negative timer period', function() {
       expectModelError('basic', function(objects) {
         objects['/p/m/Idle']['Timer Period'] = -1;
