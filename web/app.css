@@ -525,6 +525,23 @@ select:focus-visible,
     color: #fff;
 }
 
+/* a diagnostic that knows which object it is about offers to go
+   there -- 'which box is /c/FRESH?' is the next question after any of
+   these messages */
+.diag-goto {
+    margin-left: 8px;
+    font: inherit;
+    font-size: 11px;
+    padding: 1px 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    opacity: .8;
+}
+.diag-goto:hover { opacity: 1; }
+
 /* ------------------- comparing two machines ---------------------
 
    The diagram says WHERE something changed; this says WHAT. It sits

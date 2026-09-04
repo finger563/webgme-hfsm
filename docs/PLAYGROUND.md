@@ -207,6 +207,32 @@ text so opening ten snippets in a row renders once. Pressing
 *Generate* is still how you get files to read and download — this is a
 private render nobody sees.
 
+### The code on screen is the code for the model on screen
+
+Entering the **Code** tab regenerates if the model has moved on, the
+same way the Diagram tab always has. Output that is two edits behind
+is worse than no output, because it is indistinguishable from output
+that is current.
+
+Not on every keystroke: generating is cheap, but showing an error
+after every character while somebody is halfway through typing a
+guard is not helpful. Pressing **Generate** is still there, and still
+does the whole set including the test bench and the exporters.
+
+### Errors say which object, and take you to it
+
+A generation error names the object it is about — `State "Cooldown"
+(/c/BROKEN) has invalid Timer Period` rather than a bare path — and
+carries that object with it, so the diagnostic offers a **Show me**
+link that switches to the diagram and selects it. The field that
+needs fixing is then in the inspector, right there.
+
+A transition is named by its event, since every transition is called
+`External Transition` until somebody renames one. And an object is
+never identified by the very property being rejected: `State
+"1nvalid" has invalid name: '1nvalid'` reads like a stutter, so that
+one is just `State (/c/x)`.
+
 ### It always says something
 
 Three different things can mean "no frame", and they used to look

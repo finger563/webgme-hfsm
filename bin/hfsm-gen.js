@@ -175,7 +175,12 @@ amdLoader.load([
       timeStamp: (new Date()).toISOString(),
     }, null, 2) + '\n';
   } catch (err) {
-    fail(typeof err === 'string' ? err : (err && err.stack) || String(err));
+    // A rejected model is the user's problem to fix and the message
+    // says how; a stack trace into checkModel would just bury it.
+    // Anything else is our bug, and then the stack is the point.
+    if (typeof err === 'string') fail(err);
+    else if (err && err.name === 'ModelError') fail(err.message);
+    else fail((err && err.stack) || String(err));
   }
 
   fs.mkdirSync(opts.out, { recursive: true });

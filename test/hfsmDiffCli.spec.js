@@ -174,6 +174,34 @@ describe('hfsm-diff', function () {
     });
   });
 
+  it('reports a rejected model without a stack trace', function () {
+    // hfsm-gen used to print err.stack for anything that was not a
+    // string. Once the checker started throwing real Errors that
+    // meant a stack into checkModel internals, on top of the message
+    // that actually says what to fix.
+    var model = example('Simple');
+    model.objects['/9/BAD'] = { name: 'Cooldown', type: 'State',
+                                position: { x: 1, y: 1 } };
+    var file = write('bad-model.json', model);
+    var out;
+    try {
+      execFile(process.execPath,
+               [path.join(repoRoot, 'bin/hfsm-gen.js'), file, '-o',
+                path.join(scratch, 'out')],
+               { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      out = { status: 0, stderr: '' };
+    } catch (err) {
+      out = { status: err.status, stderr: String(err.stderr || '') };
+    }
+
+    assert.strictEqual(out.status, 1, 'a rejected model fails the run');
+    assert.ok(/Timer Period/.test(out.stderr), out.stderr);
+    assert.ok(/State "Cooldown"/.test(out.stderr),
+              'and names the state: ' + out.stderr);
+    assert.ok(!/at Object\./.test(out.stderr),
+              'but shows no stack trace: ' + out.stderr);
+  });
+
   it('compares two whole examples without falling over', function () {
     var out = run([path.join(repoRoot, 'examples/Medium.json'),
                    path.join(repoRoot, 'examples/Complex.json')]);

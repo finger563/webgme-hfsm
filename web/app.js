@@ -269,6 +269,10 @@
     s.className = 'status' + (kind ? ' status-' + kind : '');
   }
 
+  /**
+   * @param items  strings, or { message, path } -- a path makes the
+   *               line a link to the object the message is about
+   */
   function showDiagnostics(items, kind) {
     var box = el('diagnostics');
     if (!items || !items.length) {
@@ -280,10 +284,51 @@
     box.className = 'diagnostics diagnostics-' + kind;
     box.textContent = '';
     items.forEach(function (item) {
+      var text = (item && item.message) || item;
+      var path = item && item.path;
       var line = document.createElement('div');
       line.className = 'diag-line';
-      line.textContent = item;
+      line.textContent = text;
+
+      // "which box is /c/FRESH?" is the next question after any of
+      // these messages, and the diagram is right there
+      if (path) {
+        var go = document.createElement('button');
+        go.type = 'button';
+        go.className = 'diag-goto';
+        go.textContent = 'Show me';
+        go.title = 'Select ' + path + ' on the diagram';
+        go.addEventListener('click', function () { reveal(path); });
+        line.appendChild(go);
+      }
       box.appendChild(line);
+    });
+  }
+
+  /** an error as a diagnostic line, keeping whatever object it names */
+  function diagnosticFor(err) {
+    var message = typeof err === 'string' ? err
+        : (err && err.message) || String(err);
+    return (err && err.path) ? { message: message, path: err.path } : message;
+  }
+
+  /**
+   * Put the diagram on screen with one object selected.
+   *
+   * Drawing may be needed first -- the error probably arrived while
+   * the code tab was showing -- and the diagram draws from the model
+   * text, which is exactly the text the error is about.
+   */
+  function reveal(path) {
+    showTab('diagram');
+    requirejs(['viz'], function (viz) {
+      // let the draw showTab kicked off finish before pointing at
+      // something in it
+      window.setTimeout(function () {
+        if (!viz.reveal(path)) {
+          setStatus('That object is not drawn on the diagram', 'warn');
+        }
+      }, 0);
     });
   }
 
@@ -431,6 +476,9 @@
       setStatus('still loading the generator…', 'warn');
       return;
     }
+    // cleared up front: everything below can fail, and half a
+    // generation must not look like a current one
+    generatedFrom = null;
     artifacts = Object.create(null);
     currentName = null;
     el('fileList').textContent = '';
@@ -476,10 +524,11 @@
 
     try {
       mods.resolveModel.resolve(model);
-      mods.processor.processModel(model); // throws strings on violations
+      mods.processor.processModel(model); // throws on violations
     } catch (err) {
-      showDiagnostics([typeof err === 'string' ? err : (err && err.message) || String(err)],
-                      'error');
+      // the checker's errors carry the object they are about, so the
+      // line can offer to go and select it
+      showDiagnostics([diagnosticFor(err)], 'error');
       setStatus('model rejected', 'error');
       return;
     }
@@ -519,6 +568,7 @@
     // now, so hand it over rather than doing the same work again the
     // first time somebody opens a snippet.
     contextCache = { text: raw, result: { files: artifacts, model: model } };
+    generatedFrom = raw;
 
     var count = Object.keys(artifacts).length;
     renderFileList();
@@ -990,6 +1040,9 @@
   // generated code
   var vizModule = null;
   var vizShown = false;
+  // the model text the files currently on the Code tab were made
+  // from, so entering that tab can tell whether they are still true
+  var generatedFrom = null;
   // The last generation done FOR THE CODE EDITOR's context frame,
   // keyed by the model text it came from. Not the same thing as
   // pressing Generate: that publishes files for the user to read and
@@ -1029,6 +1082,26 @@
     // you last TYPED, not the one you were looking at
     rememberDraft();
     if (diagram) refreshDiagram();
+    else refreshCode();
+  }
+
+  /**
+   * Make sure the code on screen is the code for the model on screen.
+   *
+   * Looking at generated output that is two edits behind is worse
+   * than looking at nothing: it is indistinguishable from output that
+   * is current. So entering the Code tab regenerates if the model has
+   * moved on -- the same rule the Diagram tab has always followed,
+   * and the same rule the editor's context frames now follow.
+   *
+   * NOT on every keystroke. Generating is cheap but showing an error
+   * after every character while somebody is halfway through typing a
+   * guard is not helpful.
+   */
+  function refreshCode() {
+    if (vizShown || !mods) return;
+    if (getModelText().trim() === generatedFrom) return;   // already current
+    generate();
   }
 
   // The diagram is an editor too: dropping a part in, drawing a
