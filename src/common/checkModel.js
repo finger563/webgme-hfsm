@@ -41,6 +41,29 @@ define(['./viz/describe'], function(describe) {
     },
 
     /**
+     * The number an attribute holds, or null if it does not hold one.
+     *
+     * `Number()` on its own is not a test: `Number([])` is 0, so an
+     * empty array passed for a timer period and was then rendered by
+     * the template as nothing at all -- `return (double)();`, which
+     * is exactly the uncompilable output this validation exists to
+     * prevent. Booleans and `{}` coerce just as happily.
+     *
+     * Strings are allowed because a hand-written model may quote the
+     * value, and the generator emits it verbatim either way.
+     */
+    numericValue: function(raw) {
+      if (typeof raw === 'number') return isFinite(raw) ? raw : null;
+      if (typeof raw === 'string') {
+        var text = raw.trim();
+        if (text === '') return null;
+        var value = Number(text);
+        return isFinite(value) ? value : null;
+      }
+      return null;   // arrays, objects, booleans, null, undefined
+    },
+
+    /**
      * A warning that knows which object it is about.
      *
      * An object rather than a string, for the same reason `problem`
@@ -590,11 +613,8 @@ define(['./viz/describe'], function(describe) {
           // The period only MEANS anything on a leaf, since
           // `sleep_until_event` asks the active leaf for it. So the
           // value is validated everywhere and interpreted only there.
-          var rawPeriod = obj['Timer Period'];
-          var numericPeriod = Number(rawPeriod);
-          var noPeriod = rawPeriod === undefined || rawPeriod === null ||
-              (typeof rawPeriod === 'string' && rawPeriod.trim() === '');
-          if (noPeriod || !isFinite(numericPeriod)) {
+          var numericPeriod = self.numericValue(obj['Timer Period']);
+          if (numericPeriod === null) {
             self.badProperty(obj, 'Timer Period',
               'A timer period must be a finite number: the seconds between' +
               ' ticks, or 0 for no timer.');
@@ -626,17 +646,21 @@ define(['./viz/describe'], function(describe) {
                 obj.Tick.trim() !== '') {
               // Now that 0 is legal it can be MEANT, so the mistake
               // worth catching is the state that has tick code and no
-              // timer to run it: with no period the machine sleeps
-              // until an event arrives, so the tick only happens when
-              // something else wakes it. Legal, occasionally
+              // timer to run it. Zero does not stop `tick()` being
+              // called -- the documented loop calls it every time
+              // round, before it sleeps -- it stops anything WAKING
+              // the loop on a schedule, so the code runs at whatever
+              // rate events happen to arrive. Legal, occasionally
               // deliberate, and almost never what was intended.
               if (!model.warnings) {
                 model.warnings = [];
               }
               model.warnings.push(self.warning(obj,
-                "has Tick code but no timer period, so it will only tick" +
-                  " when an event happens to wake the machine. Set a timer" +
-                  " period, or move the code to Entry."));
+                "has Tick code but no timer period, so nothing wakes the" +
+                  " machine on its own while it is active: the code runs" +
+                  " only as often as the event loop comes round, which" +
+                  " with no timer means as often as events arrive. Set a" +
+                  " timer period, or move the code to Entry."));
             }
           }
         }

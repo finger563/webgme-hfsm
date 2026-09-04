@@ -223,16 +223,42 @@ describe('hfsm generator', function() {
 
     it('warns when a state has tick code but no timer to run it', function() {
       // now that 0 can be MEANT, the mistake worth catching is the
-      // state that will only tick when something else wakes it
+      // state whose tick code has nothing waking it on a schedule
       var model = loadFixture('basic');
       model.objects['/p/m/Idle']['Timer Period'] = 0;
       model.objects['/p/m/Idle'].Tick = 'counter++;';
       mods.resolveModel.resolve(model);
       mods.processor.processModel(model);
-      var warnings = (model.warnings || []).join('\n');
-      assert.ok(/Tick code but no timer/i.test(warnings), warnings);
-      // and it says which state, by name
-      assert.ok(/Idle/.test(warnings), warnings);
+
+      var warning = (model.warnings || []).filter(function(w) {
+        return /Tick code but no timer/i.test((w && w.message) || w);
+      })[0];
+      assert.ok(warning, 'expected the warning: ' +
+                JSON.stringify(model.warnings || []));
+
+      // The point of the warning is not its text -- it is that a UI
+      // can offer to take you to the object. Asserting only the
+      // joined string would pass just as happily if it lost these.
+      assert.strictEqual(warning.path, '/p/m/Idle');
+      assert.strictEqual(warning.objectName, 'Idle');
+      assert.strictEqual(warning.objectType, 'State');
+      assert.ok(/State "Idle"/.test(warning.message), warning.message);
+      // and it still reads correctly anywhere it is concatenated
+      assert.strictEqual(String(warning), warning.message);
+    });
+
+    it('does not claim a state with no timer never ticks', function() {
+      // `tick()` is called every time round the documented loop,
+      // before it sleeps -- zero stops anything WAKING the loop on a
+      // schedule, not the call itself
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = 0;
+      model.objects['/p/m/Idle'].Tick = 'counter++;';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var text = String((model.warnings || [])[0] || '');
+      assert.ok(!/only tick when an event/i.test(text), text);
+      assert.ok(/nothing wakes the machine on its own/i.test(text), text);
     });
 
     it('does not warn about a state with no timer and no tick code',
@@ -275,6 +301,25 @@ describe('hfsm generator', function() {
       expectModelError('basic', function(objects) {
         objects['/p/m/Idle']['Timer Period'] = -1;
       }, /cannot be negative/i);
+    });
+
+    it('rejects a timer period that is not really a number', function() {
+      // Number([]) is 0, so an empty array passed the old check and
+      // was rendered as nothing at all -- `return (double)();`
+      [[], {}, true, false, null].forEach(function(value) {
+        expectModelError('basic', function(objects) {
+          objects['/p/m/Idle']['Timer Period'] = value;
+        }, /must be a finite number/i);
+      });
+    });
+
+    it('still accepts a period written as a string', function() {
+      // a hand-written model may quote it, and the generator emits it
+      // verbatim either way
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = '0.25';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
     });
 
     it('rejects leaf states with missing or non-numeric timer periods', function() {
