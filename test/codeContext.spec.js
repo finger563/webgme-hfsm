@@ -471,23 +471,20 @@ describe('framing a snippet after the model has been edited', function () {
               'and it is the right function: ' + sites[0].before.split('\n')[0]);
   });
 
-  it('a state created with the metamodel default cannot be generated at all',
+  it('frames a state created with nothing but the palette default',
      function () {
-       // Worth pinning, because it is the OTHER reason a frame goes
-       // missing after an edit, and it is not this feature's fault:
-       // `Timer Period` defaults to 0 in the metamodel, and checkModel
-       // requires a leaf state to have more than 0. So a state
-       // straight from the palette makes the whole model fail to
-       // generate until someone sets one.
-       //
-       // The editor no longer swallows that -- it shows the reason --
-       // but the trap is upstream of here.
+       // This used to throw. `Timer Period` defaults to 0 and the
+       // checker demanded more than 0, so every state dropped from
+       // the palette made the whole model fail to generate -- which
+       // is what made a missing frame so easy to hit. Zero now means
+       // "no timer", which is what the runtime always did with it.
        var edited = JSON.parse(base);
        edited.objects['/c/NEW'] = { name: 'Recovering', type: 'State',
                                     position: { x: 10, y: 10 } };
-       assert.throws(function () { generate(JSON.stringify(edited)); },
-                     /Timer Period/,
-                     'a palette-fresh state should still be rejected here');
+       var fresh = generate(JSON.stringify(edited));
+       var sites = codeContext.sites(fresh, '/c/NEW', 'Entry');
+       assert.strictEqual(sites.length, 1,
+                          'a palette-fresh state generates, and is framed');
      });
 
   it('frames an edited guard by what it says now, not what it said', function () {

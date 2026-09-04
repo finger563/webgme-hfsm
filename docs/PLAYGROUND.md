@@ -242,10 +242,10 @@ identical:
   on the server and the visualizer has never seen its output. Not a
   fault, so nothing is said.
 - **The model will not generate right now.** Normal half-way through
-  an edit — and the commonest cause is a state you have just created,
-  because `Timer Period` defaults to `0` and a leaf state needs more
-  than that. The editor shows the checker's own message, so you find
-  out while editing rather than when you next press *Generate*.
+  an edit — a transition with no event yet, a name that is not a C++
+  identifier. The editor shows the checker's own message, naming the
+  object, so you find out while editing rather than when you next
+  press *Generate*.
 - **This snippet is not emitted anywhere.** A disabled transition, or
   a state nothing reaches. Said plainly.
 

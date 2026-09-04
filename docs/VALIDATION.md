@@ -27,7 +27,12 @@ Structure:
   source (composite parent -> child); anything else -- including the
   reverse direction -- is converted to an external transition (with a
   console warning).
-- Leaf states must have a non-zero `Timer Period`.
+- A leaf state's `Timer Period` must be a finite number and not
+  negative. **0 means no timer** — the machine sleeps until an event
+  arrives rather than ticking — which is the metamodel default and so
+  the state of every freshly created state. A state with `Tick` code
+  and no timer is a *warning*, not an error: the code is legal but
+  will only run when an event happens to wake the machine.
 - States cannot set `Includes` (only the machine can).
 
 Event payload definitions:

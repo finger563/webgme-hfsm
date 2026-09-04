@@ -177,7 +177,7 @@ define([
     // surface non-fatal model warnings (e.g. state variables
     // shadowing machine variables) to the user
     (projectModel.warnings || []).forEach(function(w) {
-      self.notify('warning', w);
+      self.notify('warning', (w && w.message) || w);
     });
     self.projectModel = projectModel;
     self.projectRoot = projectModel.root;

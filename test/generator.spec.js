@@ -209,23 +209,66 @@ describe('hfsm generator', function() {
       }, /exactly 1 unguarded/i);
     });
 
+    it('accepts a timer period of zero, meaning no timer', function() {
+      // What the runtime has always done: sleep_until_event blocks
+      // until an event arrives rather than spinning on a zero
+      // timeout. The checker used to refuse it, which made every
+      // state dropped from the palette invalid -- the metamodel
+      // default is 0.
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = 0;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+
+    it('warns when a state has tick code but no timer to run it', function() {
+      // now that 0 can be MEANT, the mistake worth catching is the
+      // state that will only tick when something else wakes it
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle']['Timer Period'] = 0;
+      model.objects['/p/m/Idle'].Tick = 'counter++;';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var warnings = (model.warnings || []).join('\n');
+      assert.ok(/Tick code but no timer/i.test(warnings), warnings);
+      // and it says which state, by name
+      assert.ok(/Idle/.test(warnings), warnings);
+    });
+
+    it('does not warn about a state with no timer and no tick code',
+       function() {
+         var model = loadFixture('basic');
+         model.objects['/p/m/Idle']['Timer Period'] = 0;
+         mods.resolveModel.resolve(model);
+         mods.processor.processModel(model);
+         assert.ok(!/Tick code but no timer/i.test((model.warnings || []).join('\n')),
+                   'a state that simply has no timer is not a problem');
+       });
+
+    it('rejects a negative timer period', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle']['Timer Period'] = -1;
+      }, /cannot be negative/i);
+    });
+
     it('rejects leaf states with missing or non-numeric timer periods', function() {
       expectModelError('basic', function(objects) {
-        objects['/p/m/Idle']['Timer Period'] = 0;
-      }, /finite numeric timer period/i);
+        objects['/p/m/Idle']['Timer Period'] = '';
+      }, /must be a finite number/i);
       // "abc" and "Infinity" compare false to <= 0 but generate
       // uncompilable `return (double)(abc)`
       expectModelError('basic', function(objects) {
         objects['/p/m/Idle']['Timer Period'] = 'abc';
-      }, /finite numeric timer period/i);
+      }, /must be a finite number/i);
       expectModelError('basic', function(objects) {
         objects['/p/m/Idle']['Timer Period'] = 'Infinity';
-      }, /finite numeric timer period/i);
+      }, /must be a finite number/i);
       // an empty State_list is not a child: still a leaf
       expectModelError('basic', function(objects) {
-        objects['/p/m/Idle']['Timer Period'] = 0;
+        delete objects['/p/m/Idle']['Timer Period'];
+        objects['/p/m/Idle']['Timer Period'] = null;
         objects['/p/m/Idle'].State_list = [];
-      }, /finite numeric timer period/i);
+      }, /must be a finite number/i);
     });
 
     it('rejects an object-form root that is not a valid root', function() {

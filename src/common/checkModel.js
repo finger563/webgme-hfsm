@@ -41,6 +41,26 @@ define(['./viz/describe'], function(describe) {
     },
 
     /**
+     * A warning that knows which object it is about.
+     *
+     * An object rather than a string, for the same reason `problem`
+     * throws an Error: so a UI can offer to take you there. It
+     * stringifies to the message, so anything that concatenates it --
+     * the CLI did, before it was taught otherwise -- still reads
+     * correctly rather than printing [object Object].
+     */
+    warning: function(obj, message) {
+      var text = 'WARNING: ' + this.describeObject(obj) + ' ' + message;
+      return {
+        message: text,
+        path: obj && obj.path,
+        objectName: obj && obj.name,
+        objectType: obj && obj.type,
+        toString: function() { return text; },
+      };
+    },
+
+    /**
      * Throw a problem that knows which object it is about.
      *
      * An Error rather than the bare string this used to throw, so the
@@ -561,17 +581,51 @@ define(['./viz/describe'], function(describe) {
               self.error(obj, "State has END State but no END TRANSITION!");
             }
           }
-          // leaf states (determined by LIST LENGTHS -- an empty list
-          // is not a child) need a finite numeric timer period > 0;
-          // string-coerced comparison also let values like "abc" or
-          // "Infinity" through into `return (double)(abc)`
+          // Leaf states (determined by LIST LENGTHS -- an empty list
+          // is not a child) carry the period the machine sleeps for
+          // while they are active.
+          //
+          // ZERO MEANS NO TIMER, which is what the runtime has always
+          // done: `sleep_until_event` blocks until an event arrives
+          // rather than spinning on a zero timeout. The checker used
+          // to refuse it anyway, which made every state dropped from
+          // the palette invalid -- `Timer Period` defaults to 0 in
+          // the metamodel -- for a value the generated code handles
+          // perfectly well.
+          //
+          // What is still refused: anything that is not a finite
+          // number, since a string-coerced comparison let "abc" and
+          // "Infinity" through into `return (double)(abc)`; and
+          // negatives, which mean nothing.
           var isLeaf = (obj.State_list || []).length === 0 &&
               (obj.Initial_list || []).length === 0;
           if (isLeaf) {
-            var period = Number(obj['Timer Period']);
-            if (!isFinite(period) || period <= 0) {
+            var raw = obj['Timer Period'];
+            var period = Number(raw);
+            var missing = raw === undefined || raw === null ||
+                (typeof raw === 'string' && raw.trim() === '');
+            if (missing || !isFinite(period)) {
               self.badProperty(obj, 'Timer Period',
-                'Leaf states must have a finite numeric timer period greater than zero.');
+                'A timer period must be a finite number: the seconds between' +
+                ' ticks, or 0 for no timer.');
+            } else if (period < 0) {
+              self.badProperty(obj, 'Timer Period',
+                'A timer period cannot be negative. Use 0 for no timer.');
+            } else if (period === 0 && typeof obj.Tick === 'string' &&
+                       obj.Tick.trim() !== '') {
+              // Now that 0 is legal it can be MEANT, so the mistake
+              // worth catching is the state that has tick code and no
+              // timer to run it: with no period the machine sleeps
+              // until an event arrives, so the tick only happens when
+              // something else wakes it. Legal, occasionally
+              // deliberate, and almost never what was intended.
+              if (!model.warnings) {
+                model.warnings = [];
+              }
+              model.warnings.push(self.warning(obj,
+                "has Tick code but no timer period, so it will only tick" +
+                  " when an event happens to wake the machine. Set a timer" +
+                  " period, or move the code to Entry."));
             }
           }
         }
