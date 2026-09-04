@@ -1,5 +1,5 @@
 
-define([], function() {
+define(['./viz/describe'], function(describe) {
   'use strict';
   return {
     stripRegex: /^([^\n]+)/gm,
@@ -11,11 +11,13 @@ define([], function() {
      * Period' leaves you hunting for which box that is. The name is
      * what is written on the diagram, so it goes first.
      *
-     * A name equal to the TYPE carries no information -- that is the
-     * default every transition keeps, since the diagram labels them
-     * by event and nobody renames them. In that case the event is
-     * what identifies it, and if there is no event either, the type
-     * alone is still better than nothing.
+     * A TRANSITION is identified by its event, whatever its name --
+     * the same rule `describe` labels the diagram by, asked of
+     * `describe` rather than guessed at here. An earlier version
+     * guessed, by treating a name equal to the type as meaningless;
+     * that got the common case right and quietly disagreed about a
+     * transition somebody had actually renamed, which would then be
+     * called one thing in an error and another on the diagram.
      *
      * @param avoid  a property not to identify it by, because the
      *               message is about to quote that property anyway:
@@ -26,11 +28,14 @@ define([], function() {
       if (!obj) return 'the model';
       var type = obj.type || 'object';
       var where = obj.path ? ' (' + obj.path + ')' : '';
+      if (describe.labelledByEvent(obj)) {
+        if (avoid !== 'Event' && obj.Event) {
+          return type + ' [' + obj.Event + ']' + where;
+        }
+        return type + where;
+      }
       if (avoid !== 'name' && obj.name && obj.name !== type) {
         return type + ' "' + obj.name + '"' + where;
-      }
-      if (avoid !== 'Event' && obj.Event) {
-        return type + ' [' + obj.Event + ']' + where;
       }
       return type + where;
     },

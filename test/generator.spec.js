@@ -967,6 +967,25 @@ describe('hfsm generator', function() {
         'State "Recovering" (/c/x)');
     });
 
+    it('names a transition by its event even when it has been renamed',
+       function() {
+         // describe labels EVERY transition by its event regardless of
+         // name; guessing here from "name equals type" got the common
+         // case right and disagreed about a renamed one, which would
+         // then be called one thing in an error and another on the
+         // diagram
+         assert.strictEqual(
+           mods.checkModel.describeObject({ type: 'External Transition',
+                                            name: 'goHomeWhenDone',
+                                            Event: 'DONE', path: '/c/t' }),
+           'External Transition [DONE] (/c/t)');
+         assert.strictEqual(
+           mods.checkModel.describeObject({ type: 'Internal Transition',
+                                            name: 'renamedToo',
+                                            Event: 'TICK', path: '/c/i' }),
+           'Internal Transition [TICK] (/c/i)');
+       });
+
     it('falls back to the event when the name is the type', function() {
       // every transition is called "External Transition" until
       // somebody renames one, and nobody does -- the diagram labels

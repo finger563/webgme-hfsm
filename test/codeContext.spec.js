@@ -384,6 +384,26 @@ describe('asking the host for a frame', function () {
     assert.ok(/not emitted/i.test(context.note), context.note);
   });
 
+  it('tells a snippet that is not emitted from files that do not match',
+     function () {
+       // Both produce no sites, and saying the wrong one is worse
+       // than saying nothing.
+       var notEmitted = withHost({ generated: function () { return generated; } })
+           ._sites('/nowhere', ENTRY);
+       assert.deepStrictEqual(notEmitted.sites, []);
+       assert.ok(/not emitted/i.test(notEmitted.note), notEmitted.note);
+
+       // the marker is there, but the value the model claims is not
+       var wrong = JSON.parse(JSON.stringify(
+         { objects: { '/c/T': { Entry: 'this was never generated' } } }));
+       var mismatched = withHost({
+         generated: function () { return { files: files, model: wrong }; },
+       })._sites('/c/T', ENTRY);
+       assert.deepStrictEqual(mismatched.sites, []);
+       assert.ok(/does not match the model/i.test(mismatched.note),
+                 mismatched.note);
+     });
+
   it('offers generated as optional, not required', function () {
     assert.ok(HostServices.OPTIONAL.indexOf('generated') > -1);
     assert.ok(HostServices.REQUIRED.indexOf('generated') === -1,
