@@ -388,8 +388,22 @@ define(['hfsm/viz/describe',
 
     var sites = codeContext.sites(generated, id, attr.name);
     if (!sites.length) {
-      return { sites: [], note: 'Not emitted in the generated code — a ' +
-               'disabled transition, or a state nothing reaches.' };
+      // Two different things produce no sites, and saying the wrong
+      // one is worse than saying nothing. If the MARKER is absent the
+      // generator never emitted this snippet; if it is present but
+      // the value is not where it says, the files and the model
+      // handed over do not belong together.
+      var marker = codeContext.markerFor(id, attr.name);
+      var files = generated.files || {};
+      var emitted = Object.keys(files).some(function (name) {
+        return typeof files[name] === 'string' &&
+          files[name].indexOf(marker) > -1;
+      });
+      return { sites: [], note: emitted
+               ? 'The generated code does not match the model, so there is ' +
+                 'nothing reliable to show around this.'
+               : 'Not emitted in the generated code — a disabled ' +
+                 'transition, or a state nothing reaches.' };
     }
     return { sites: sites };
   };

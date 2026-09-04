@@ -316,16 +316,22 @@ textarea.inspector-prose {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-/* why there is no frame -- muted, since it is an explanation and
-   not a warning */
+/* Why there is no frame. A band across the dialog rather than a
+   scrap in the header: these are the checker's own messages, which
+   run to a sentence of reason plus a sentence of what to do, and
+   truncating them with the rest in a tooltip put the useful half out
+   of reach of anyone not using a mouse. So it wraps, and it is
+   allowed the room. */
 .code-modal-note {
-    margin-left: auto;
+    flex: none;
+    padding: 8px 14px;
+    border-bottom: 1px solid #d0d7de;
+    background: #fff8c5;
     color: #57606a;
-    font-size: 11px;
-    font-style: italic;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .code-modal-step {

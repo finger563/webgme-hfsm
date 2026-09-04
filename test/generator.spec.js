@@ -955,6 +955,103 @@ describe('hfsm generator', function() {
     });
   });
 
+  describe('checkModel error identity', function() {
+    // A path is exact and says nothing. "/c/FRESH has invalid Timer
+    // Period" leaves you hunting for which box that is, and the tool
+    // knows perfectly well which one it means.
+
+    it('names the object the message is about', function() {
+      assert.strictEqual(
+        mods.checkModel.describeObject({ type: 'State', name: 'Recovering',
+                                         path: '/c/x' }),
+        'State "Recovering" (/c/x)');
+    });
+
+    it('names a transition by its event even when it has been renamed',
+       function() {
+         // describe labels EVERY transition by its event regardless of
+         // name; guessing here from "name equals type" got the common
+         // case right and disagreed about a renamed one, which would
+         // then be called one thing in an error and another on the
+         // diagram
+         assert.strictEqual(
+           mods.checkModel.describeObject({ type: 'External Transition',
+                                            name: 'goHomeWhenDone',
+                                            Event: 'DONE', path: '/c/t' }),
+           'External Transition [DONE] (/c/t)');
+         assert.strictEqual(
+           mods.checkModel.describeObject({ type: 'Internal Transition',
+                                            name: 'renamedToo',
+                                            Event: 'TICK', path: '/c/i' }),
+           'Internal Transition [TICK] (/c/i)');
+       });
+
+    it('falls back to the event when the name is the type', function() {
+      // every transition is called "External Transition" until
+      // somebody renames one, and nobody does -- the diagram labels
+      // them by event, so an error should too
+      assert.strictEqual(
+        mods.checkModel.describeObject({ type: 'External Transition',
+                                         name: 'External Transition',
+                                         Event: 'START', path: '/c/t' }),
+        'External Transition [START] (/c/t)');
+      assert.strictEqual(
+        mods.checkModel.describeObject({ type: 'External Transition',
+                                         name: 'External Transition',
+                                         path: '/c/t' }),
+        'External Transition (/c/t)');
+    });
+
+    it('does not identify an object by the very property it is rejecting',
+       function() {
+         // 'State "1nvalid" has invalid name: '1nvalid'' is a stutter
+         assert.strictEqual(
+           mods.checkModel.describeObject({ type: 'State', name: '1nvalid',
+                                            path: '/c/x' }, 'name'),
+           'State (/c/x)');
+         assert.strictEqual(
+           mods.checkModel.describeObject({ type: 'External Transition',
+                                           name: 'External Transition',
+                                           Event: 'no good', path: '/c/t' },
+                                          'Event'),
+           'External Transition (/c/t)');
+       });
+
+    it('carries the object on the error, so a UI can go there', function() {
+      var obj = { type: 'State', name: 'Cooldown', path: '/c/BROKEN',
+                  'Timer Period': 0 };
+      var caught = null;
+      try {
+        mods.checkModel.badProperty(obj, 'Timer Period', 'Leaf states need one.');
+      } catch (err) { caught = err; }
+
+      assert.ok(caught, 'should have thrown');
+      assert.strictEqual(caught.path, '/c/BROKEN');
+      assert.strictEqual(caught.objectName, 'Cooldown');
+      assert.strictEqual(caught.objectType, 'State');
+      // and it still reads the way every consumer prints it
+      assert.ok(/^ERROR: /.test(caught.message), caught.message);
+      assert.ok(caught.message.indexOf('State "Cooldown" (/c/BROKEN)') > -1,
+                caught.message);
+      assert.ok(caught.message.indexOf('Leaf states need one.') > -1);
+    });
+
+    it('still throws something every existing consumer can print',
+       function() {
+         // the CLI, the plugin, the playground and these tests all do
+         // `typeof err === 'string' ? err : err.message`
+         var caught = null;
+         try {
+           mods.checkModel.error({ type: 'State', name: 'A', path: '/p' },
+                                 'something is wrong');
+         } catch (err) { caught = err; }
+         var printed = typeof caught === 'string' ? caught
+             : String(caught && caught.message);
+         assert.ok(/something is wrong/.test(printed), printed);
+         assert.ok(/\/p/.test(printed), 'the path is still in the text');
+       });
+  });
+
   describe('checkModel.nameProblem', function() {
     // The editor refuses names through this so that it refuses exactly
     // what the checker refuses. These assertions are the contract

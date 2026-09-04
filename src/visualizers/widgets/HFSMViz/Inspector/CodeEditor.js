@@ -343,13 +343,23 @@ define(['require'], function (require) {
         body.append(before, $('<div class="code-modal-edit"></div>').append(area),
                     after);
       } else {
-        if (opts.note) {
-          head.append($('<span class="code-modal-note"></span>')
-                      .text(opts.note).attr('title', opts.note));
-        }
         body.append(area);
       }
       box.append(head, body, buttons.append(hint, cancel, save));
+
+      // Why there is no frame goes in a band of its own between the
+      // header and the editor, NOT squeezed into the header. These
+      // are the checker's own messages -- a reason and what to do
+      // about it -- and in the header they were cut off with the full
+      // text only in a title tooltip, which is no use to anyone
+      // without a mouse. Here it wraps, and it is read out with the
+      // dialog because the dialog is described by it.
+      if (!sites.length && opts.note) {
+        var noteId = 'code-modal-note-' + dialogCount;
+        box.attr('aria-describedby', noteId);
+        $('<div class="code-modal-note"></div>')
+          .attr('id', noteId).text(opts.note).insertBefore(body);
+      }
       overlay.append(box);
       $(document.body).append(overlay);
       // AFTER the overlay is in the document: showSite scrolls the

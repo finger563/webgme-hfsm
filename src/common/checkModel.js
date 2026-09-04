@@ -1,17 +1,73 @@
 
-define([], function() {
+define(['./viz/describe'], function(describe) {
   'use strict';
   return {
     stripRegex: /^([^\n]+)/gm,
-    badProperty: function(obj, prop, msg="") {
-      if (msg.length > 0) {
-        throw "ERROR: " +obj.path+" has invalid " +prop+": '"+obj[prop] + "'.\n " + msg;
-      } else {
-        throw "ERROR: " +obj.path+" has invalid " +prop+": '"+obj[prop] + "'.";
+
+    /**
+     * What to call an object in an error message.
+     *
+     * A path is exact and says nothing: '/c/FRESH has invalid Timer
+     * Period' leaves you hunting for which box that is. The name is
+     * what is written on the diagram, so it goes first.
+     *
+     * A TRANSITION is identified by its event, whatever its name --
+     * the same rule `describe` labels the diagram by, asked of
+     * `describe` rather than guessed at here. An earlier version
+     * guessed, by treating a name equal to the type as meaningless;
+     * that got the common case right and quietly disagreed about a
+     * transition somebody had actually renamed, which would then be
+     * called one thing in an error and another on the diagram.
+     *
+     * @param avoid  a property not to identify it by, because the
+     *               message is about to quote that property anyway:
+     *               'State "1nvalid" has invalid name: '1nvalid'' says
+     *               it twice and reads like a stutter.
+     */
+    describeObject: function(obj, avoid) {
+      if (!obj) return 'the model';
+      var type = obj.type || 'object';
+      var where = obj.path ? ' (' + obj.path + ')' : '';
+      if (describe.labelledByEvent(obj)) {
+        if (avoid !== 'Event' && obj.Event) {
+          return type + ' [' + obj.Event + ']' + where;
+        }
+        return type + where;
       }
+      if (avoid !== 'name' && obj.name && obj.name !== type) {
+        return type + ' "' + obj.name + '"' + where;
+      }
+      return type + where;
+    },
+
+    /**
+     * Throw a problem that knows which object it is about.
+     *
+     * An Error rather than the bare string this used to throw, so the
+     * path and name travel WITH the message and a UI can offer to
+     * take you there. `message` still reads the same way and still
+     * starts with 'ERROR: ', because the CLI, the plugin and the
+     * tests all print or match it.
+     */
+    problem: function(obj, message, avoid) {
+      var err = new Error('ERROR: ' + this.describeObject(obj, avoid) + ' ' + message);
+      // says "the model is wrong", not "the generator broke" -- the
+      // difference decides whether a caller shows a stack trace
+      err.name = 'ModelError';
+      if (obj) {
+        err.path = obj.path;
+        err.objectName = obj.name;
+        err.objectType = obj.type;
+      }
+      return err;
+    },
+
+    badProperty: function(obj, prop, msg="") {
+      var what = "has invalid " + prop + ": '" + (obj ? obj[prop] : '') + "'.";
+      throw this.problem(obj, msg.length > 0 ? what + "\n " + msg : what, prop);
     },
     error: function(obj, str) {
-      throw "ERROR: " +obj.path+" : "+str;
+      throw this.problem(obj, ": " + str);
     },
     sanitizeString: function(str) {
       return str.replace(/[ \-]/gi,'_');

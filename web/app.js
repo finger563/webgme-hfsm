@@ -269,6 +269,10 @@
     s.className = 'status' + (kind ? ' status-' + kind : '');
   }
 
+  /**
+   * @param items  strings, or { message, path } -- a path makes the
+   *               line a link to the object the message is about
+   */
   function showDiagnostics(items, kind) {
     var box = el('diagnostics');
     if (!items || !items.length) {
@@ -280,10 +284,77 @@
     box.className = 'diagnostics diagnostics-' + kind;
     box.textContent = '';
     items.forEach(function (item) {
+      var text = (item && item.message) || item;
+      var path = item && item.path;
       var line = document.createElement('div');
       line.className = 'diag-line';
-      line.textContent = item;
+      line.textContent = text;
+
+      // "which box is /c/FRESH?" is the next question after any of
+      // these messages, and the diagram is right there.
+      //
+      // Only where there is something to show, though. An Event or a
+      // Field is a real object the checker validates and the diagram
+      // deliberately does not draw, so offering to take you to one is
+      // offering a journey that ends in "not drawn".
+      if (path && isDrawable(item && item.objectType)) {
+        var go = document.createElement('button');
+        go.type = 'button';
+        go.className = 'diag-goto';
+        go.textContent = 'Show me';
+        go.title = 'Select ' + path + ' on the diagram';
+        go.addEventListener('click', function () { reveal(path); });
+        line.appendChild(go);
+      }
       box.appendChild(line);
+    });
+  }
+
+  /**
+   * Whether the diagram draws objects of this type at all.
+   *
+   * `describe` owns the list -- it is the same question as "does the
+   * palette offer this" and "does the change list link this", and a
+   * second copy here is the one that would go stale.
+   */
+  function isDrawable(type) {
+    if (!type) return true;              // unknown: let reveal try
+    if (!mods || !mods.describe) return true;
+    return mods.describe.NON_GRAPH_TYPES.indexOf(type) === -1;
+  }
+
+  /** an error as a diagnostic line, keeping whatever object it names */
+  function diagnosticFor(err) {
+    var message = typeof err === 'string' ? err
+        : (err && err.message) || String(err);
+    if (!err || !err.path) return message;
+    return { message: message, path: err.path, objectType: err.objectType };
+  }
+
+  /**
+   * Put the diagram on screen with one object selected.
+   *
+   * Drawing may be needed first -- the error probably arrived while
+   * the code tab was showing -- and the diagram draws from the model
+   * text, which is exactly the text the error is about.
+   */
+  function reveal(path) {
+    showTab('diagram');
+    requirejs(['viz'], function (viz) {
+      // The draw showTab started is asynchronous, and reporting "not
+      // drawn" because it had not finished yet would be a lie about
+      // the model. So try for a moment before believing it.
+      var deadline = Date.now() + 2000;
+      (function attempt() {
+        if (viz.reveal(path)) return;
+        if (Date.now() < deadline) {
+          window.setTimeout(attempt, 50);
+          return;
+        }
+        // genuinely not on the diagram: an Event or a Field is real,
+        // listed, and not drawn
+        setStatus('That object is not drawn on the diagram', 'warn');
+      }());
     });
   }
 
@@ -431,6 +502,9 @@
       setStatus('still loading the generator…', 'warn');
       return;
     }
+    // cleared up front: everything below can fail, and half a
+    // generation must not look like a current one
+    generatedFrom = null;
     artifacts = Object.create(null);
     currentName = null;
     el('fileList').textContent = '';
@@ -440,8 +514,14 @@
     el('downloadBtn').disabled = true;
     el('downloadAllBtn').disabled = true;
 
-    var raw = getModelText();
-    if (!raw.trim()) {
+    // TRIMMED, because this is what both caches are keyed on and what
+    // every other comparison in the page uses. Storing the untrimmed
+    // text meant a model ending in a newline -- which every loaded
+    // example does -- never matched, so entering the Code tab
+    // regenerated every time and threw away the file you had open.
+    var raw = getModelText().trim();
+    if (!raw) {
+
       showDiagnostics(['Nothing to generate: paste or load a model first.'], 'error');
       setStatus('no model', 'error');
       return;
@@ -458,28 +538,20 @@
 
     // Leaving the box empty means "use the model's" -- see namespaceFor
     var namespace = namespaceFor(model);
-    if (!/^[A-Za-z_]\w*(::[A-Za-z_]\w*)*$/.test(namespace)) {
-      showDiagnostics(['Invalid C++ namespace "' + namespace +
-                       '" (expected identifier or identifier::identifier...).'], 'error');
-      setStatus('bad namespace', 'error');
-      return;
-    }
-    var badSegments = namespace.split('::').filter(function (seg) {
-      return mods.checkModel.cppKeywords.indexOf(seg) > -1;
-    });
-    if (badSegments.length) {
-      showDiagnostics(['Invalid C++ namespace: segment(s) ' +
-                       badSegments.join(', ') + ' are C++ keywords.'], 'error');
+    var namespaceIssue = namespaceProblem(namespace);
+    if (namespaceIssue) {
+      showDiagnostics([namespaceIssue], 'error');
       setStatus('bad namespace', 'error');
       return;
     }
 
     try {
       mods.resolveModel.resolve(model);
-      mods.processor.processModel(model); // throws strings on violations
+      mods.processor.processModel(model); // throws on violations
     } catch (err) {
-      showDiagnostics([typeof err === 'string' ? err : (err && err.message) || String(err)],
-                      'error');
+      // the checker's errors carry the object they are about, so the
+      // line can offer to go and select it
+      showDiagnostics([diagnosticFor(err)], 'error');
       setStatus('model rejected', 'error');
       return;
     }
@@ -518,7 +590,9 @@
     // model, not from this one -- but this one is current as of right
     // now, so hand it over rather than doing the same work again the
     // first time somebody opens a snippet.
-    contextCache = { text: raw, result: { files: artifacts, model: model } };
+    contextCache = { text: generationKey(),
+                     result: { files: artifacts, model: model } };
+    generatedFrom = generationKey();
 
     var count = Object.keys(artifacts).length;
     renderFileList();
@@ -549,10 +623,56 @@
    * Same precedence as the CLI (bin/hfsm-gen.js): an explicit value
    * wins, then the model's own `namespace`, then the default.
    */
+  /**
+   * What a generation depends on, as one string.
+   *
+   * The model text is not enough: the namespace is emitted into every
+   * file and lives in its own input, so changing it changes the
+   * output without changing a character of the model. Keying the
+   * cache on the text alone meant a stale render survived a namespace
+   * change -- including one that made the model ungeneratable.
+   */
+  function generationKey() {
+    return [
+      getModelText().trim(),
+      (el('namespaceInput').value || '').trim(),
+      // the test bench adds files, so toggling it changes the answer
+      // without changing the model -- leave it out and the Code tab
+      // keeps showing a file list from the other setting
+      el('testBenchInput').checked ? 'tb' : '',
+    ].join('\u0000');
+  }
+
   function namespaceFor(model) {
     return (el('namespaceInput').value || '').trim() ||
       (typeof model.namespace === 'string' && model.namespace.trim()) ||
       'state_machine';
+  }
+
+  /**
+   * Why this namespace could not be emitted, or null.
+   *
+   * It is emitted verbatim into every generated file, so each
+   * ::-segment has to be an identifier and not a C++ keyword --
+   * `namespace class {` does not compile.
+   *
+   * Shared, because the context frame used to skip these checks and
+   * would happily show you signatures from a model that Generate
+   * refused for exactly this reason.
+   */
+  function namespaceProblem(namespace) {
+    if (!/^[A-Za-z_]\w*(::[A-Za-z_]\w*)*$/.test(namespace)) {
+      return 'Invalid C++ namespace "' + namespace +
+        '" (expected identifier or identifier::identifier...).';
+    }
+    var bad = namespace.split('::').filter(function (seg) {
+      return mods.checkModel.cppKeywords.indexOf(seg) > -1;
+    });
+    if (bad.length) {
+      return 'Invalid C++ namespace: segment(s) ' + bad.join(', ') +
+        ' are C++ keywords.';
+    }
+    return null;
   }
 
   /**
@@ -579,14 +699,21 @@
     if (!mods) return null;                 // generator still loading
     var raw = getModelText().trim();
     if (!raw) return { problem: 'There is no model yet.' };
-    if (contextCache.text === raw) return contextCache.result;
+    var key = generationKey();
+    if (contextCache.text === key) return contextCache.result;
 
     var result;
     try {
       var model = JSON.parse(raw);
       mods.resolveModel.resolve(model);
       mods.processor.processModel(model);
-      result = { files: mods.MetaTemplates.renderHFSM(model, namespaceFor(model)),
+      // the same namespace rules Generate applies: a frame drawn from
+      // a model Generate would refuse is a frame of code that will
+      // never exist
+      var namespace = namespaceFor(model);
+      var bad = namespaceProblem(namespace);
+      if (bad) return (contextCache = { text: key, result: { problem: bad } }).result;
+      result = { files: mods.MetaTemplates.renderHFSM(model, namespace),
                  model: model };
     } catch (err) {
       // Half-finished edits are normal while modelling, so this is
@@ -595,7 +722,7 @@
       result = { problem: 'The model does not generate right now: ' +
                  (typeof err === 'string' ? err : (err && err.message) || String(err)) };
     }
-    contextCache = { text: raw, result: result };
+    contextCache = { text: key, result: result };
     return result;
   }
 
@@ -990,6 +1117,9 @@
   // generated code
   var vizModule = null;
   var vizShown = false;
+  // what the files currently on the Code tab were made from, so
+  // entering that tab can tell whether they are still true
+  var generatedFrom = null;
   // The last generation done FOR THE CODE EDITOR's context frame,
   // keyed by the model text it came from. Not the same thing as
   // pressing Generate: that publishes files for the user to read and
@@ -1029,6 +1159,26 @@
     // you last TYPED, not the one you were looking at
     rememberDraft();
     if (diagram) refreshDiagram();
+    else refreshCode();
+  }
+
+  /**
+   * Make sure the code on screen is the code for the model on screen.
+   *
+   * Looking at generated output that is two edits behind is worse
+   * than looking at nothing: it is indistinguishable from output that
+   * is current. So entering the Code tab regenerates if the model has
+   * moved on -- the same rule the Diagram tab has always followed,
+   * and the same rule the editor's context frames now follow.
+   *
+   * NOT on every keystroke. Generating is cheap but showing an error
+   * after every character while somebody is halfway through typing a
+   * guard is not helpful.
+   */
+  function refreshCode() {
+    if (vizShown || !mods) return;
+    if (generationKey() === generatedFrom) return;   // already current
+    generate();
   }
 
   // The diagram is an editor too: dropping a part in, drawing a
