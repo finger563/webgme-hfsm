@@ -368,7 +368,7 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
       // them against name patterns, printing them into C++.
       self.checkAttributeKinds(model);
 
-      objPaths.map(function(objPath) {
+      objPaths.forEach(function(objPath) {
         var obj = model.objects[objPath];
         if (obj.type == 'Project' ||
             obj.type == 'State Machine' ||
@@ -770,7 +770,7 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
       var renderedListKeys = ['State_list', 'End State_list',
                               'Deep History Pseudostate_list',
                               'Shallow History Pseudostate_list'];
-      objPaths.map(function(objPath) {
+      objPaths.forEach(function(objPath) {
         var parent = model.objects[objPath];
         var byGenerated = Object.create(null);
         renderedListKeys.forEach(function(key) {
