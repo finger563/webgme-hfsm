@@ -176,16 +176,58 @@ If the value is not where the marker says it should be, the file was
 generated from a different model, and there is no frame at all rather
 than one drawn in the wrong place.
 
-The frame comes from the host, through the optional `generated()`
+The frame is **syntax highlighted too**, on a muted palette. It is
+generated C++ — a signature, then a column of
+`[[maybe_unused]] auto &x = _root->x;` aliases — and that is a lot of
+punctuation to read as one flat grey block, when the aliases are the
+part people came to read. What marks the frame as not-editable is the
+shaded ground, the dashed separators and the white editor between
+them; it never needed to be unreadable as well. CodeMirror's
+`runMode` does the highlighting: it tokenizes a string into a plain
+element, with no editor, no cursor and no second copy of the
+document.
+
+### It is about the model as it is now
+
+Opening a snippet **asks the page to generate**, there and then, for
+the model currently in the editor. It does not use whatever *Generate*
+last produced.
+
+That distinction was originally the other way round, and it was wrong
+in a way that took using it to notice. Edit a guard and the frame
+still showed the old surroundings. Add a state and open its Entry and
+there was **no frame at all** — that state was in no generated file
+yet, so there was nothing to find. Nothing said so; the frame just
+quietly wasn't there, and knowing to press *Generate* first was
+something you had to be told. That is training, not a tool.
+
+It is affordable because generating is not expensive: a few
+milliseconds for the largest example here, cached against the model
+text so opening ten snippets in a row renders once. Pressing
+*Generate* is still how you get files to read and download — this is a
+private render nobody sees.
+
+### It always says something
+
+Three different things can mean "no frame", and they used to look
+identical:
+
+- **This host has no generated code.** WebGME, where the plugin runs
+  on the server and the visualizer has never seen its output. Not a
+  fault, so nothing is said.
+- **The model will not generate right now.** Normal half-way through
+  an edit — and the commonest cause is a state you have just created,
+  because `Timer Period` defaults to `0` and a leaf state needs more
+  than that. The editor shows the checker's own message, so you find
+  out while editing rather than when you next press *Generate*.
+- **This snippet is not emitted anywhere.** A disabled transition, or
+  a state nothing reaches. Said plainly.
+
+The frame comes from the host through the optional `generated()`
 service, which returns the files **and the model they came from** —
 both together, because files paired with the wrong model produce a
-frame that is fiction. Where generated code comes from is genuinely
-host-specific: the playground generates in the page and has both to
-hand, while in WebGME the plugin runs on the server and the visualizer
-has never seen its output. A host that cannot
-answer loses the frame and nothing else — including a host whose
-generation just failed, which is caught rather than allowed to stop
-the editor opening.
+frame that is fiction. It is a function rather than a value precisely
+so the answer can be about the model at the moment it is asked for.
 
 ## Comparing two machines
 

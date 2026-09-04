@@ -286,9 +286,23 @@ describe('asking the host for a frame', function () {
   var ENTRY = { name: 'Entry', type: 'string' };
 
   it('asks for code', function () {
-    var sites = withHost({ generated: function () { return generated; } })
+    var context = withHost({ generated: function () { return generated; } })
         ._sites('/c/T', ENTRY);
-    assert.strictEqual(sites.length, 1);
+    assert.strictEqual(context.sites.length, 1);
+    assert.ok(!context.note, 'nothing to explain when there is a frame');
+  });
+
+  it('asks the host at the moment the snippet is opened', function () {
+    // The whole point: the answer must be about the model as it is
+    // NOW, not as it was when Generate was last pressed. So the host
+    // is CALLED, not read.
+    var calls = 0;
+    var inspector = withHost({
+      generated: function () { calls++; return generated; },
+    });
+    inspector._sites('/c/T', ENTRY);
+    inspector._sites('/c/T', ENTRY);
+    assert.strictEqual(calls, 2, 'asked every time, not cached in here');
   });
 
   it('does not ask for prose', function () {
@@ -297,22 +311,24 @@ describe('asking the host for a frame', function () {
     var host = { generated: function () { return generated; } };
     assert.deepStrictEqual(
       withHost(host)._sites('/c/T', { name: 'documentation', type: 'string' }),
-      []);
+      { sites: [] }, 'and nothing to explain -- prose is simply not code');
   });
 
   it('degrades to no frame rather than failing', function () {
     // this is the WebGME case: the plugin runs on the server, so the
     // visualizer has never seen generated code
-    assert.deepStrictEqual(withHost(null)._sites('/c/T', ENTRY), []);
-    assert.deepStrictEqual(withHost({})._sites('/c/T', ENTRY), []);
+    // A host with nothing to offer -- WebGME, where the plugin runs
+    // on the server -- is not a fault, so it gets no note.
+    assert.deepStrictEqual(withHost(null)._sites('/c/T', ENTRY), { sites: [] });
+    assert.deepStrictEqual(withHost({})._sites('/c/T', ENTRY), { sites: [] });
     assert.deepStrictEqual(
       withHost({ generated: function () { return null; } })
-        ._sites('/c/T', ENTRY), []);
+        ._sites('/c/T', ENTRY), { sites: [] });
     // files without the model they came from is not enough to measure
     // anything, so it is not enough to draw a frame
     assert.deepStrictEqual(
       withHost({ generated: function () { return { files: files }; } })
-        ._sites('/c/T', ENTRY), []);
+        ._sites('/c/T', ENTRY).sites, []);
   });
 
   it('survives a host that throws', function () {
@@ -320,7 +336,7 @@ describe('asking the host for a frame', function () {
     // than an editor with no frame
     assert.deepStrictEqual(
       withHost({ generated: function () { throw new Error('boom'); } })
-        ._sites('/c/T', ENTRY), []);
+        ._sites('/c/T', ENTRY), { sites: [] });
   });
 
   it('labels the step buttons, not just their tooltips', function () {
@@ -347,11 +363,145 @@ describe('asking the host for a frame', function () {
     });
   });
 
+  it('says why there is no frame, rather than showing less and saying nothing',
+     function () {
+       // A model that will not generate is normal half-way through an
+       // edit. The editor should say that is what happened, because
+       // an editor that quietly shows less than usual reads as broken.
+       var context = withHost({
+         generated: function () { return { problem: 'it does not compile' }; },
+       })._sites('/c/T', ENTRY);
+       assert.deepStrictEqual(context.sites, []);
+       assert.strictEqual(context.note, 'it does not compile');
+     });
+
+  it('says when a snippet is simply not generated anywhere', function () {
+    // a state nothing reaches, or a disabled transition: real, saved,
+    // and in none of the output
+    var context = withHost({ generated: function () { return generated; } })
+        ._sites('/nowhere', ENTRY);
+    assert.deepStrictEqual(context.sites, []);
+    assert.ok(/not emitted/i.test(context.note), context.note);
+  });
+
   it('offers generated as optional, not required', function () {
     assert.ok(HostServices.OPTIONAL.indexOf('generated') > -1);
     assert.ok(HostServices.REQUIRED.indexOf('generated') === -1,
               'a host without it is not a broken host');
     // and the do-nothing host answers it
     assert.strictEqual(HostServices.none().generated(), null);
+  });
+});
+
+/**
+ * The frame has to be about the model as it is NOW.
+ *
+ * This is the bug the on-demand generation fixes, reproduced at the
+ * level it actually happens: edit the model, then ask where a snippet
+ * lands. Against the LAST generation the answer is wrong or missing;
+ * against a fresh one it is right. Nothing here touches a browser --
+ * what is being checked is that regenerating is enough.
+ */
+describe('framing a snippet after the model has been edited', function () {
+  this.timeout(20000);
+
+  var codeContext, generate, base;
+
+  before(function () {
+    var amdLoader = require('../bin/amd-loader');
+    return amdLoader.load([
+      'src/common/viz/codeContext',
+      'src/common/resolveModel',
+      'src/common/processor',
+      'src/plugins/SoftwareGenerator/templates/MetaTemplates',
+    ]).then(function (loaded) {
+      codeContext = loaded[0];
+      var resolveModel = loaded[1], processor = loaded[2], MetaTemplates = loaded[3];
+      // what the page's generationForContext does, minus the DOM
+      generate = function (text) {
+        var model = JSON.parse(text);
+        resolveModel.resolve(model);
+        processor.processModel(model);
+        return { files: MetaTemplates.renderHFSM(model, 'state_machine'),
+                 model: model };
+      };
+      base = fs.readFileSync(
+        path.join(repoRoot, 'examples/Complex.json'), 'utf8');
+    });
+  });
+
+  it('frames a state that did not exist at the last generation', function () {
+    // THE reported case: add a state, open its Entry, get nothing --
+    // because that state is in no generated file yet.
+    var stale = generate(base);
+    var edited = JSON.parse(base);
+    edited.objects['/c/NEW'] = { name: 'Recovering', type: 'State',
+                                 position: { x: 10, y: 10 },
+                                 'Timer Period': 1,
+                                 Entry: 'retries = 0;' };
+    var text = JSON.stringify(edited);
+
+    assert.deepStrictEqual(codeContext.sites(stale, '/c/NEW', 'Entry'), [],
+                           'against the last generation: no frame at all');
+
+    var fresh = generate(text);
+    var sites = codeContext.sites(fresh, '/c/NEW', 'Entry');
+    assert.strictEqual(sites.length, 1, 'against a fresh one: framed');
+    assert.ok(/void Root::Recovering::entry/.test(sites[0].before),
+              'and it is the right function: ' + sites[0].before.split('\n')[0]);
+  });
+
+  it('a state created with the metamodel default cannot be generated at all',
+     function () {
+       // Worth pinning, because it is the OTHER reason a frame goes
+       // missing after an edit, and it is not this feature's fault:
+       // `Timer Period` defaults to 0 in the metamodel, and checkModel
+       // requires a leaf state to have more than 0. So a state
+       // straight from the palette makes the whole model fail to
+       // generate until someone sets one.
+       //
+       // The editor no longer swallows that -- it shows the reason --
+       // but the trap is upstream of here.
+       var edited = JSON.parse(base);
+       edited.objects['/c/NEW'] = { name: 'Recovering', type: 'State',
+                                    position: { x: 10, y: 10 } };
+       assert.throws(function () { generate(JSON.stringify(edited)); },
+                     /Timer Period/,
+                     'a palette-fresh state should still be rejected here');
+     });
+
+  it('frames an edited guard by what it says now, not what it said', function () {
+    var guarded = '/c/Y/t';
+    var edited = JSON.parse(base);
+    var was = edited.objects[guarded].Guard;
+    assert.ok(was, 'fixture should have a guard');
+    edited.objects[guarded].Guard = 'someNumber > 99';
+    var text = JSON.stringify(edited);
+
+    var stale = generate(base);
+    var staleSites = codeContext.sites(stale, guarded, 'Guard');
+    if (staleSites.length) {
+      assert.ok(staleSites[0].before.indexOf(was) === -1 ||
+                staleSites[0].after.indexOf(was) === -1,
+                'sanity: the stale frame is built around the old value');
+    }
+
+    var fresh = generate(text);
+    var sites = codeContext.sites(fresh, guarded, 'Guard');
+    assert.ok(sites.length, 'the edited guard is framed');
+    sites.forEach(function (site) {
+      assert.ok(site.before.indexOf('someNumber > 99') === -1,
+                'the guard itself is not inside its own frame');
+    });
+  });
+
+  it('costs little enough to do whenever a snippet is opened', function () {
+    // The frame used to be tied to a button press on the theory that
+    // generating was expensive. It is not: this is what makes doing
+    // it on demand the right answer rather than a trade-off.
+    var t0 = Date.now();
+    for (var i = 0; i < 5; i++) generate(base);
+    var each = (Date.now() - t0) / 5;
+    assert.ok(each < 250, 'generating Complex took ' + each.toFixed(0) + 'ms');
   });
 });

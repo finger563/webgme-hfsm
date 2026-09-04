@@ -362,17 +362,36 @@ define(['hfsm/viz/describe',
    * Where this snippet ends up in the generated code, if the host can
    * say.
    *
-   * Measured against the model the code was GENERATED from, which the
-   * host hands over with the files -- not against what is in the
-   * editor. Using the editor's text slid the frame the moment anyone
-   * typed.
+   * Measured against the model the generated code came from -- which
+   * the host supplies together with the files, because a frame
+   * measured against a different model is fiction.
+   *
+   * ALWAYS SAYS SOMETHING. A missing frame used to be silence, and
+   * silence is indistinguishable from a bug: you could not tell "this
+   * code is not emitted anywhere" from "the model will not generate"
+   * from "this host has no generated code to offer". Each of those
+   * now comes back with its reason, for the editor to show.
+   *
+   * @return { sites, note }
    */
   Inspector.prototype._sites = function (id, attr) {
     var self = this;
-    if (describe.fieldKind(attr) !== 'code') return [];   // prose is not compiled
+    // prose is markdown; it is never compiled into anything, so there
+    // is no function to show it inside and nothing to explain
+    if (describe.fieldKind(attr) !== 'code') return { sites: [] };
+
     var generated = HostServices.ask(self._host, 'generated', [], null);
-    if (!generated) return [];
-    return codeContext.sites(generated, id, attr.name);
+    // the host offers none at all -- WebGME, where the plugin runs on
+    // the server. Not a fault, and not worth a note on every open.
+    if (!generated) return { sites: [] };
+    if (generated.problem) return { sites: [], note: generated.problem };
+
+    var sites = codeContext.sites(generated, id, attr.name);
+    if (!sites.length) {
+      return { sites: [], note: 'Not emitted in the generated code — a ' +
+               'disabled transition, or a state nothing reaches.' };
+    }
+    return { sites: sites };
   };
 
   Inspector.prototype._expand = function (id, attr) {
@@ -381,11 +400,13 @@ define(['hfsm/viz/describe',
     if (!field) return;
     var node = self._backend.getNode(id);
     var value = readValue(field);
+    var context = self._sites(id, attr);
     CodeEditor.open({
       title: attr.name,
       subtitle: (node && node.name ? node.name + '  ' : '') + id,
       value: value,
-      sites: self._sites(id, attr),
+      sites: context.sites,
+      note: context.note,
       readOnly: self._backend.isReadOnly(),
       prose: field.kind === 'prose',
       onSave: function (next) {
