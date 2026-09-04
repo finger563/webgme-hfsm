@@ -176,6 +176,17 @@ If the value is not where the marker says it should be, the file was
 generated from a different model, and there is no frame at all rather
 than one drawn in the wrong place.
 
+The frame is **syntax highlighted too**, on a muted palette. It is
+generated C++ — a signature, then a column of
+`[[maybe_unused]] auto &x = _root->x;` aliases — and that is a lot of
+punctuation to read as one flat grey block, when the aliases are the
+part people came to read. What marks the frame as not-editable is the
+shaded ground, the dashed separators and the white editor between
+them; it never needed to be unreadable as well. CodeMirror's
+`runMode` does the highlighting: it tokenizes a string into a plain
+element, with no editor, no cursor and no second copy of the
+document.
+
 ### It is about the model as it is now
 
 Opening a snippet **asks the page to generate**, there and then, for

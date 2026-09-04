@@ -44,7 +44,12 @@ define(['require'], function (require) {
   function editor() {
     if (!pending) {
       pending = new Promise(function (resolve, reject) {
-        require(['codemirror/lib/codemirror', 'codemirror/mode/clike/clike'],
+        // runmode comes along for the read-only context frames: it
+        // highlights a string into a plain element without building
+        // an editor around it
+        require(['codemirror/lib/codemirror',
+                 'codemirror/mode/clike/clike',
+                 'codemirror/addon/runmode/runmode'],
                 function (CodeMirror) { resolve(CodeMirror); }, reject);
       });
     }
@@ -216,11 +221,40 @@ define(['require'], function (require) {
           .attr('title', 'The next place this is generated into')
           .attr('aria-label', 'The next place this is generated into');
 
+      /**
+       * Put framing code into an element, highlighted if it can be.
+       *
+       * The frame is generated C++ -- function signatures and a
+       * column of `[[maybe_unused]] auto &x = _root->x;` aliases --
+       * which is a lot of punctuation to read as one flat grey block.
+       * Highlighting it makes the aliases scannable; the muted
+       * palette in the stylesheet is what keeps it reading as context
+       * rather than as the thing being edited.
+       *
+       * runMode rather than a CodeMirror instance: this is text to
+       * read, not an editor. No cursor, no gutter, no second copy of
+       * the document. Falls back to plain text before CodeMirror has
+       * loaded, and if it never does.
+       */
+      function fill(el, code) {
+        el.empty();
+        if (CodeMirror && CodeMirror.runMode) {
+          try {
+            CodeMirror.runMode(code, MODE, el[0]);
+            return;
+          } catch (e) {
+            // highlighting is a nicety; the code still has to appear
+            console.error('Could not highlight the context frame: ', e);
+          }
+        }
+        el.text(code);
+      }
+
       function showSite() {
         var site = sites[siteIndex];
         if (!site) return;
-        before.text(site.before);
-        after.text(site.after);
+        fill(before, site.before);
+        fill(after, site.after);
         // The lines NEAREST the snippet are the ones worth seeing: the
         // aliases just above it, the brace just below. So a frame too
         // tall to fit shows its bottom, and the one below shows its

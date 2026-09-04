@@ -244,6 +244,35 @@ textarea.inspector-prose {
        reasonable thing to want; just not editable */
     border: 0;
 }
+/* Highlighted, but quieter than the editor.
+   
+   The frame is generated C++: a signature, then a column of
+   `[[maybe_unused]] auto &x = _root->x;` aliases. That is a lot of
+   punctuation to read as one flat grey block, and the aliases are the
+   part people actually came to read -- they say what is in scope.
+   
+   So the tokens are coloured, on a muted palette against the shaded
+   ground. What marks the frame as not-editable is the background, the
+   dashed separators and the white editor between them; it never
+   needed to be unreadable as well. Anything runMode does not tokenize
+   keeps the grey set on .code-context. */
+.code-context .cm-comment  { color: #6a737d; font-style: italic; }
+.code-context .cm-keyword   { color: #8250df; }
+.code-context .cm-builtin,
+.code-context .cm-atom      { color: #0550ae; }
+.code-context .cm-number    { color: #0550ae; }
+.code-context .cm-string,
+.code-context .cm-string-2  { color: #0a3069; }
+.code-context .cm-def       { color: #24292f; }
+.code-context .cm-variable,
+.code-context .cm-variable-2 { color: #57606a; }
+.code-context .cm-variable-3,
+.code-context .cm-type      { color: #953800; }
+.code-context .cm-meta      { color: #6e7781; }
+.code-context .cm-operator  { color: #57606a; }
+.code-context .cm-bracket   { color: #8c959f; }
+.code-context .cm-error     { color: #cf222e; }
+
 /* they are focusable so they can be scrolled from the keyboard;
    a focus ring that only shows for keyboard users keeps that from
    flashing up on every click */

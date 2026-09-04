@@ -47,6 +47,7 @@ function must(file) {
  'vendor/codemirror/mode/clike/clike.js',
  'vendor/codemirror/mode/xml/xml.js',
  'vendor/codemirror/mode/shell/shell.js',
+ 'vendor/codemirror/addon/runmode/runmode.js',
  'src/common/resolveModel.js', 'src/common/processor.js',
  'src/common/checkModel.js', 'src/common/declParser.js',
  'src/common/exporters.js',

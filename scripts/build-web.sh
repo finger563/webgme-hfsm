@@ -70,6 +70,7 @@ say "vendor (requirejs, text, handlebars, underscore)"
 # library twice and the modes would register on the wrong copy.
 CM_SRC="$(dirname "$(find_first "$REPO_ROOT/node_modules/codemirror/lib/codemirror.js")")/.."
 mkdir -p "$OUT/vendor/codemirror/lib" \
+         "$OUT/vendor/codemirror/addon/runmode" \
          "$OUT/vendor/codemirror/mode/javascript" \
          "$OUT/vendor/codemirror/mode/clike" \
          "$OUT/vendor/codemirror/mode/xml" \
@@ -80,7 +81,10 @@ cp "$CM_SRC/mode/javascript/javascript.js" "$OUT/vendor/codemirror/mode/javascri
 cp "$CM_SRC/mode/clike/clike.js"           "$OUT/vendor/codemirror/mode/clike/"
 cp "$CM_SRC/mode/xml/xml.js"               "$OUT/vendor/codemirror/mode/xml/"
 cp "$CM_SRC/mode/shell/shell.js"           "$OUT/vendor/codemirror/mode/shell/"
-say "codemirror (json, c++, xml, shell modes)"
+# runMode highlights a string into a plain element, with no editor
+# attached -- what the code editor's read-only context frames use
+cp "$CM_SRC/addon/runmode/runmode.js" "$OUT/vendor/codemirror/addon/runmode/"
+say "codemirror (json, c++, xml, shell modes; runmode)"
 
 # 3b. the visualizer: the SAME widget and simulator WebGME runs, not a
 #     second implementation. Phase A/B put the model behind
