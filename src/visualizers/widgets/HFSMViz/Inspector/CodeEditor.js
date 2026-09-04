@@ -147,7 +147,7 @@ define(['require'], function (require) {
      * The same code, full size, in a modal.
      *
      * @param opts  { title, subtitle, value, readOnly, prose, sites,
-     *                onSave }
+     *                note, onSave }
      *   `prose` for markdown rather than C++: wrapped, unnumbered and
      *   unhighlighted, because paragraphs want the width and
      *   colouring prose as code would be a lie. The room is the point
@@ -161,6 +161,10 @@ define(['require'], function (require) {
      *   site is not a problem to hide: a transition's action really
      *   is compiled into every place that transition can be taken,
      *   and stepping through them is the only way to see that.
+     *
+     *   `note` is why there is no frame, when there is none and the
+     *   reason is worth saying. An editor that simply shows less than
+     *   usual, with nothing to explain it, reads as broken.
      * @return a function that closes it
      */
     open: function (opts) {
@@ -305,6 +309,10 @@ define(['require'], function (require) {
         body.append(before, $('<div class="code-modal-edit"></div>').append(area),
                     after);
       } else {
+        if (opts.note) {
+          head.append($('<span class="code-modal-note"></span>')
+                      .text(opts.note).attr('title', opts.note));
+        }
         body.append(area);
       }
       box.append(head, body, buttons.append(hint, cancel, save));

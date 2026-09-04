@@ -287,6 +287,18 @@ textarea.inspector-prose {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* why there is no frame -- muted, since it is an explanation and
+   not a warning */
+.code-modal-note {
+    margin-left: auto;
+    color: #57606a;
+    font-size: 11px;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .code-modal-step {
     font: inherit;
     font-size: 13px;

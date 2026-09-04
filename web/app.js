@@ -456,12 +456,8 @@
       return;
     }
 
-    // Same precedence as the CLI (bin/hfsm-gen.js): an explicit
-    // value wins, then the model's own `namespace`, then the default.
-    // Leaving the box empty therefore means "use the model's".
-    var namespace = (el('namespaceInput').value || '').trim() ||
-        (typeof model.namespace === 'string' && model.namespace.trim()) ||
-        'state_machine';
+    // Leaving the box empty means "use the model's" -- see namespaceFor
+    var namespace = namespaceFor(model);
     if (!/^[A-Za-z_]\w*(::[A-Za-z_]\w*)*$/.test(namespace)) {
       showDiagnostics(['Invalid C++ namespace "' + namespace +
                        '" (expected identifier or identifier::identifier...).'], 'error');
@@ -518,19 +514,11 @@
     // non-fatal model warnings surface the same way the CLI prints them
     showDiagnostics(model.warnings || [], 'warn');
 
-    // The code editor shows a snippet inside the function it is
-    // compiled into, and this is where it reads that from. The MODEL
-    // goes with the files: it is the only thing that says how much
-    // of the file a snippet occupies, and a frame measured against a
-    // different model is fiction. Handed over on every successful
-    // generation, and only then -- half a generation would frame the
-    // code with the wrong surroundings.
-    var generated = { files: artifacts, model: model };
-    if (vizModule && vizModule.setGenerated) {
-      vizModule.setGenerated(generated);
-    } else {
-      pendingGenerated = generated;
-    }
+    // The editor's context frame reads from a render of the CURRENT
+    // model, not from this one -- but this one is current as of right
+    // now, so hand it over rather than doing the same work again the
+    // first time somebody opens a snippet.
+    contextCache = { text: raw, result: { files: artifacts, model: model } };
 
     var count = Object.keys(artifacts).length;
     renderFileList();
@@ -551,6 +539,64 @@
     // with it, and doing that on every keystroke would throw away
     // work nobody asked to discard.
     refreshDiagram({ keepStatus: true });
+  }
+
+  /* ------------- generated code, for the editor's frame ------------ */
+
+  /**
+   * The namespace a generation should use.
+   *
+   * Same precedence as the CLI (bin/hfsm-gen.js): an explicit value
+   * wins, then the model's own `namespace`, then the default.
+   */
+  function namespaceFor(model) {
+    return (el('namespaceInput').value || '').trim() ||
+      (typeof model.namespace === 'string' && model.namespace.trim()) ||
+      'state_machine';
+  }
+
+  /**
+   * Generated code for the code editor to frame a snippet with.
+   *
+   * WHY THIS IS A FUNCTION AND NOT A VALUE
+   * --------------------------------------
+   * The frame has to match the model as it is NOW. It used to be
+   * whatever Generate last produced, which meant the surroundings
+   * were stale the moment you changed anything -- and a state you had
+   * just added had no frame at all, because it was in no generated
+   * file yet. Nothing said so; the frame simply went missing, and
+   * knowing to press Generate first was something you had to be told.
+   *
+   * So the page renders on demand instead. It costs a few
+   * milliseconds, it is cached against the model text so opening ten
+   * snippets in a row renders once, and it is quiet: no file list, no
+   * status, no diagnostics. Pressing Generate is still how you get
+   * files to read and download -- this is not that.
+   *
+   * @return { files, model } | { problem } | null
+   */
+  function generationForContext() {
+    if (!mods) return null;                 // generator still loading
+    var raw = getModelText().trim();
+    if (!raw) return { problem: 'There is no model yet.' };
+    if (contextCache.text === raw) return contextCache.result;
+
+    var result;
+    try {
+      var model = JSON.parse(raw);
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      result = { files: mods.MetaTemplates.renderHFSM(model, namespaceFor(model)),
+                 model: model };
+    } catch (err) {
+      // Half-finished edits are normal while modelling, so this is
+      // not an error to shout about -- but the editor should say why
+      // there is no frame rather than showing an empty one.
+      result = { problem: 'The model does not generate right now: ' +
+                 (typeof err === 'string' ? err : (err && err.message) || String(err)) };
+    }
+    contextCache = { text: raw, result: result };
+    return result;
   }
 
   /* ------------------ comparing two machines ---------------------- */
@@ -944,8 +990,11 @@
   // generated code
   var vizModule = null;
   var vizShown = false;
-  // generated files produced before the visualizer existed
-  var pendingGenerated = null;
+  // The last generation done FOR THE CODE EDITOR's context frame,
+  // keyed by the model text it came from. Not the same thing as
+  // pressing Generate: that publishes files for the user to read and
+  // download, this is a private render nobody sees.
+  var contextCache = { text: null, result: null };
   // the comparison currently on screen, or null
   var comparison = null;
   // Which draw is the current one.
@@ -1069,13 +1118,11 @@
     requirejs(['viz'], function (viz) {
       vizModule = viz;
       if (token !== drawToken) return;   // something else is drawing now
-      // generate() can run before the visualizer has ever loaded --
-      // it does, on a restored draft -- so the files it produced are
-      // held until there is something to give them to
-      if (pendingGenerated) {
-        viz.setGenerated(pendingGenerated);
-        pendingGenerated = null;
-      }
+      // The visualizer asks for this when someone opens a snippet, so
+      // it is a function rather than a value: whatever the model says
+      // AT THAT MOMENT, not whatever it said when Generate was last
+      // pressed.
+      viz.setGenerated(generationForContext);
       viz.onModelEdited(diagramEdited);
       viz.onSplitChanged(function () {
         rememberLayout({ diagramSplits: viz.splitSizes() });

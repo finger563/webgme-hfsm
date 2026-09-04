@@ -40,35 +40,34 @@ define(['jquery', 'hfsm/viz/HostServices'], function ($, HostServices) {
     // backend that are gone.
     this._closeMenu = null;
     this._closeDialog = null;
-    // what the page last generated -- files AND the model they came
-    // from -- for the code editor's frame
+    // asked for generated code when someone opens a snippet; see
+    // setGenerated
     this._generated = null;
   }
 
   /* --------------------- generated code ----------------------- */
 
   /**
-   * What the page produced the last time Generate ran: the files,
-   * and the model they were generated from.
+   * Generated code for the code editor to frame a snippet with.
    *
-   * Deliberately whatever was generated LAST, not what the model
-   * currently says: the editor uses this to show a snippet in
-   * context, and the surroundings of a function do not change every
-   * time someone types. A model edited since is at worst framed by
-   * the previous version of the same function; a frame that vanished
-   * on every keystroke would be worse.
+   * Asked for at the moment a snippet is opened, so the answer can be
+   * about the model as it is THEN. The page decides whether that
+   * means reusing the last render or doing another one; all this does
+   * is ask.
    *
-   * The model travels WITH the files because that is the only thing
-   * that says how much of the file the snippet occupies -- see
+   * The model travels with the files because it is the only thing
+   * that says how much of the file a snippet occupies -- see
    * codeContext.
+   *
+   * @return { files, model } | { problem } | null
    */
   PlaygroundHost.prototype.generated = function () {
-    return this._generated;
+    return this._generated ? this._generated() : null;
   };
 
-  PlaygroundHost.prototype.setGenerated = function (generated) {
-    this._generated = (generated && generated.files && generated.model)
-      ? generated : null;
+  /** @param provider  () => { files, model } | { problem } | null */
+  PlaygroundHost.prototype.setGenerated = function (provider) {
+    this._generated = (typeof provider === 'function') ? provider : null;
   };
 
   /* ----------------------- context menu ----------------------- */

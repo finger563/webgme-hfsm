@@ -367,16 +367,17 @@ define([
     },
 
     /**
-     * Hand over what the page has just generated -- the files and
-     * the model they came from -- so the code editor can show a
-     * snippet inside the function it ends up in. Kept across mounts:
-     * the model being redrawn does not make the last generation less
-     * true than it was.
+     * How the code editor gets generated code to frame a snippet
+     * with. A FUNCTION, called when a snippet is opened, so the page
+     * can answer for the model as it stands at that moment rather
+     * than as it stood when Generate was last pressed.
      *
-     * @param next  { files, model }
+     * Kept across mounts, since it does not belong to any one of them.
+     *
+     * @param provider  () => { files, model } | { problem } | null
      */
-    setGenerated: function (next) {
-      generated = next || null;
+    setGenerated: function (provider) {
+      generated = (typeof provider === 'function') ? provider : null;
       if (host) host.setGenerated(generated);
     },
 
