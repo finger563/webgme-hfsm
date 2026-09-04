@@ -255,6 +255,48 @@ both together, because files paired with the wrong model produce a
 frame that is fiction. It is a function rather than a value precisely
 so the answer can be about the model at the moment it is asked for.
 
+## Linking to it, and embedding it
+
+The playground reads four query parameters, so another site can point
+at a particular machine rather than at a blank page:
+
+| parameter | does |
+| --- | --- |
+| `?example=<name>` | loads one of the bundled models (`Simple`, `Medium`, `Complex`, `basic`, `features`, `payloads`). Case and a `.json` suffix are both ignored. |
+| `?model=<url>` | loads a model from anywhere that serves it with `Access-Control-Allow-Origin`. Only `http` and `https` -- a `javascript:` or `data:` URL is refused, because a link is the one part of this someone else writes. |
+| `?view=diagram` | opens on the diagram instead of the code. |
+| `?embed=1` | drops the title, tagline and repo link, and adds a link back to the full page. Everything that does work stays. |
+
+So a project that generates its state machine from a model in its own
+repository can link straight to it:
+
+```
+https://finger563.github.io/webgme-hfsm/?model=https://example.org/hfsm/Machine.json&view=diagram
+```
+
+or put it in the page:
+
+```html
+<iframe
+  src="https://finger563.github.io/webgme-hfsm/?model=https://example.org/hfsm/Machine.json&view=diagram&embed=1"
+  width="100%" height="600" style="border: 1px solid #d0d7de; border-radius: 6px"
+  title="The Machine HFSM, in the HFSM Playground"></iframe>
+```
+
+The embedded page is the tool, not a picture of it: whoever is reading
+the documentation can drive the simulator, read the generated C++ and
+download it, all without leaving the page or installing anything.
+
+A link wins **once**. Open one, edit the model, refresh, and your
+edits come back rather than the link overwriting them -- after the
+first visit the tab's own draft takes over. Opening the same link in
+a new tab starts from the model again.
+
+If a link cannot be followed -- an example that does not exist, a
+refused URL, a model the other site does not allow this page to read
+-- the reason is shown and nothing is generated, rather than silently
+showing whatever was there before.
+
 ## Comparing two machines
 
 **Compare…** on the Diagram tab puts a second model beside the one in
