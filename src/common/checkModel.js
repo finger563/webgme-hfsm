@@ -634,11 +634,6 @@ define(['./viz/describe'], function(describe) {
           // the palette invalid -- `Timer Period` defaults to 0 in
           // the metamodel -- for a value the generated code handles
           // perfectly well.
-          //
-          // What is still refused: anything that is not a finite
-          // number, since a string-coerced comparison let "abc" and
-          // "Infinity" through into `return (double)(abc)`; and
-          // negatives, which mean nothing.
           var isLeaf = (obj.State_list || []).length === 0 &&
               (obj.Initial_list || []).length === 0;
           if (isLeaf) {
