@@ -313,6 +313,41 @@ describe('hfsm generator', function() {
       });
     });
 
+    it('emits an accepted period as a C++ literal, not the text it was given',
+       function() {
+         // JavaScript and C++ disagree about what a number looks
+         // like. Number('0o10') is 8; C++ has no 0o literal -- clang
+         // takes it as an extension and refuses under
+         // -pedantic-errors, gcc does not take it at all. Validating
+         // the text and then emitting that same text is not the same
+         // thing as validating what gets emitted.
+         var model = loadFixture('basic');
+         model.objects['/p/m/Idle']['Timer Period'] = '0o10';
+         mods.resolveModel.resolve(model);
+         mods.processor.processModel(model);
+         assert.strictEqual(model.objects['/p/m/Idle']['Timer Period'], 8,
+                            'the checker rewrites it to the number it read');
+
+         var rendered = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+         var source = rendered[Object.keys(rendered).filter(function(f) {
+           return /_generated_states\.cpp$/.test(f);
+         })[0]];
+         assert.ok(source.indexOf('(double)(8)') > -1,
+                   'expected (double)(8) in the generated source');
+         assert.ok(source.indexOf('0o10') === -1,
+                   'the JavaScript-only literal must not reach the output');
+       });
+
+    it('leaves an ordinary numeric period exactly as it was', function() {
+      // normalising must not quietly reformat a model that was fine
+      var model = loadFixture('basic');
+      var before = model.objects['/p/m/Idle']['Timer Period'];
+      assert.strictEqual(typeof before, 'number');
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.strictEqual(model.objects['/p/m/Idle']['Timer Period'], before);
+    });
+
     it('still accepts a period written as a string', function() {
       // a hand-written model may quote it, and the generator emits it
       // verbatim either way

@@ -50,7 +50,9 @@ define(['./viz/describe'], function(describe) {
      * prevent. Booleans and `{}` coerce just as happily.
      *
      * Strings are allowed because a hand-written model may quote the
-     * value, and the generator emits it verbatim either way.
+     * value -- but see the caller: what is accepted here is written
+     * back in canonical form, because JavaScript and C++ do not agree
+     * on what a numeric literal looks like.
      */
     numericValue: function(raw) {
       if (typeof raw === 'number') return isFinite(raw) ? raw : null;
@@ -621,6 +623,21 @@ define(['./viz/describe'], function(describe) {
           } else if (numericPeriod < 0) {
             self.badProperty(obj, 'Timer Period',
               'A timer period cannot be negative. Use 0 for no timer.');
+          } else {
+            // WHAT IS VALIDATED MUST BE WHAT IS EMITTED. The template
+            // prints this attribute verbatim, and the two languages
+            // disagree about what a number looks like: JavaScript
+            // reads "0o10" as 8, C++ has no such literal -- clang
+            // takes it as an extension and refuses under
+            // -pedantic-errors, gcc does not take it at all. Checking
+            // the value and then emitting the text that was checked
+            // is not the same thing, so the parsed number is written
+            // back and the template emits that.
+            //
+            // Rewriting the model from the checker has precedent
+            // above: a Local Transition that is not local becomes an
+            // External Transition there.
+            obj['Timer Period'] = numericPeriod;
           }
 
           // Leaf states (determined by LIST LENGTHS -- an empty list
