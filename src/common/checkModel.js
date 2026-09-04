@@ -336,7 +336,7 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
       // them against name patterns, printing them into C++. A value
       // of the wrong kind used to surface as a TypeError from
       // somewhere deep in the generator instead of as a model error.
-      objPaths.map(function(objPath) {
+      objPaths.forEach(function(objPath) {
         var obj = model.objects[objPath];
         var declared = (metaRules.types[obj.type] || {}).attributes || {};
         Object.keys(obj).forEach(function(attribute) {
