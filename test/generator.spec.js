@@ -1104,6 +1104,82 @@ describe('hfsm generator', function() {
     });
   });
 
+  describe('attributes hold what the metamodel says they hold', function() {
+    // JSON carries anything, and nearly every attribute is declared
+    // `string` and then read as one -- trimmed, matched against a
+    // name pattern, printed into C++. A value of the wrong kind used
+    // to surface as a TypeError with a stack trace into the
+    // generator, from the component whose job is readable errors.
+
+    it('refuses a number where text is expected, by name', function() {
+      // `"Default": 12` is the natural thing to write by hand, and
+      // it used to reach (f.Default || '').trim()
+      expectModelError('payloads', function(objects) {
+        var field = Object.keys(objects).filter(function(p) {
+          return objects[p].type === 'Field';
+        })[0];
+        objects[field].Default = 12;
+      }, /Expected text, but this is a number/);
+    });
+
+    it('refuses a list or an object where text is expected', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Entry = ['do();'];
+      }, /Expected text, but this is a list/);
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Entry = { code: 'do();' };
+      }, /Expected text, but this is an object/);
+    });
+
+    it('refuses a string where a boolean is expected', function() {
+      // NOT leniency. The processor drops disabled transitions
+      // before it calls the checker, so anything rewritten here is
+      // already too late for `Enabled` -- and accepting "false"
+      // without rewriting it is worse than refusing, because the
+      // code asks `!obj.Enabled` and the string "false" is truthy:
+      // a transition written as disabled would be generated as
+      // enabled, silently.
+      expectModelError('basic', function(objects) {
+        var t = Object.keys(objects).filter(function(p) {
+          return objects[p].type === 'External Transition';
+        })[0];
+        objects[t].Enabled = 'false';
+      }, /Expected true or false, but this is a string/);
+    });
+
+    it('says which object and which attribute', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle'].Entry = 42;
+      mods.resolveModel.resolve(model);
+      var caught = null;
+      try { mods.processor.processModel(model); } catch (err) { caught = err; }
+      assert.ok(caught, 'should have thrown');
+      assert.strictEqual(caught.path, '/p/m/Idle');
+      assert.ok(/State "Idle"/.test(caught.message), caught.message);
+      assert.ok(/Entry/.test(caught.message), caught.message);
+      // and it is a model error, not a crash: no stack trace shown
+      assert.strictEqual(caught.name, 'ModelError');
+    });
+
+    it('leaves an absent attribute alone', function() {
+      // resolveModel fills defaults; an attribute nobody set is not
+      // a mistake
+      var model = loadFixture('basic');
+      delete model.objects['/p/m/Idle'].Exit;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+
+    it('ignores attributes the metamodel does not declare', function() {
+      // extra keys are not this check's business -- resolveModel
+      // decides what is structural
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle'].somethingElse = 12;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+  });
+
   describe('checkModel error identity', function() {
     // A path is exact and says nothing. "/c/FRESH has invalid Timer
     // Period" leaves you hunting for which box that is, and the tool

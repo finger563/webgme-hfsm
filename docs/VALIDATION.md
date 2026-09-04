@@ -27,6 +27,15 @@ Structure:
   source (composite parent -> child); anything else -- including the
   reverse direction -- is converted to an external transition (with a
   console warning).
+- Every attribute must hold what the metamodel says it holds: text
+  where text is declared, `true`/`false` where a boolean is. JSON
+  carries anything, and a hand-written `"Default": 12` used to reach
+  `.trim()` and come back as a TypeError with a stack trace instead
+  of a model error. Booleans are strict rather than lenient: the
+  processor drops disabled transitions *before* the checker runs, so
+  a rewritten value would come too late for `Enabled` -- and the
+  string `"false"` is truthy, so accepting one without rewriting it
+  would silently generate a transition its author had disabled.
 - **Every** state's `Timer Period` must be a finite number and not
   negative — composites included, because `getTimerPeriod()` is
   emitted for every state and a value C++ cannot return breaks the

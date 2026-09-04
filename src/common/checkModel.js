@@ -1,5 +1,5 @@
 
-define(['./viz/describe'], function(describe) {
+define(['./viz/describe', './metaRules'], function(describe, metaRules) {
   'use strict';
   return {
     stripRegex: /^([^\n]+)/gm,
@@ -63,6 +63,53 @@ define(['./viz/describe'], function(describe) {
         return isFinite(value) ? value : null;
       }
       return null;   // arrays, objects, booleans, null, undefined
+    },
+
+    /**
+     * Whether an attribute holds what the metamodel says it holds.
+     *
+     * Nearly every attribute is declared `string` and is read as one
+     * -- trimmed, matched against a name pattern, printed into C++.
+     * JSON can carry anything, and a model written by hand rather
+     * than by WebGME easily says `"Default": 12`. That used to reach
+     * `(f.Default || '').trim()` and come out as a TypeError with a
+     * stack trace into the generator, from the component whose job is
+     * to produce readable errors about models.
+     *
+     * Absent is fine -- resolveModel fills defaults, and an attribute
+     * nobody set is not a mistake.
+     *
+     * @return the offending value's kind, or null when it is fine
+     */
+    wrongKind: function(type, attribute, value) {
+      if (value === undefined || value === null) return null;
+      var declared = metaRules.types[type] &&
+          metaRules.types[type].attributes &&
+          metaRules.types[type].attributes[attribute];
+      if (!declared) return null;             // not ours to judge
+      if (declared.type === 'string') {
+        return (typeof value === 'string') ? null : this.kindOf(value);
+      }
+      if (declared.type === 'boolean') {
+        // Strictly a boolean. Accepting the string "false" and
+        // converting it is not possible to do reliably here: the
+        // processor drops disabled transitions BEFORE it calls the
+        // checker, so anything the checker rewrites is already too
+        // late for `Enabled`. And accepting it WITHOUT converting is
+        // worse than refusing -- the code asks `!obj.Enabled`, and
+        // the string "false" is truthy, so a transition written as
+        // disabled would silently be generated as enabled.
+        return (typeof value === 'boolean') ? null : this.kindOf(value);
+      }
+      return null;   // float: numericValue covers it where it matters
+    },
+
+    /** what to call a value in a message about its type */
+    kindOf: function(value) {
+      if (Array.isArray(value)) return 'a list';
+      if (value === null) return 'null';
+      if (typeof value === 'object') return 'an object';
+      return 'a ' + typeof value;
     },
 
     /**
@@ -283,6 +330,28 @@ define(['./viz/describe'], function(describe) {
         eventNames[key].push(name);
       };
       var objPaths = Object.keys(model.objects);
+
+      // FIRST, because every check below this reads attributes as the
+      // kind the metamodel says they are -- trimming them, matching
+      // them against name patterns, printing them into C++. A value
+      // of the wrong kind used to surface as a TypeError from
+      // somewhere deep in the generator instead of as a model error.
+      objPaths.map(function(objPath) {
+        var obj = model.objects[objPath];
+        var declared = (metaRules.types[obj.type] || {}).attributes || {};
+        Object.keys(obj).forEach(function(attribute) {
+          var wrong = self.wrongKind(obj.type, attribute, obj[attribute]);
+          if (wrong) {
+            var isBoolean = (declared[attribute] || {}).type === 'boolean';
+            self.badProperty(obj, attribute,
+              (isBoolean ? 'Expected true or false, but this is '
+                         : 'Expected text, but this is ') + wrong + '. ' +
+              (isBoolean ? 'Write it without quotes.'
+                         : 'Quote the value if it was meant literally.'));
+          }
+        });
+      });
+
       objPaths.map(function(objPath) {
         var obj = model.objects[objPath];
         if (obj.type == 'Project' ||
