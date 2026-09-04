@@ -70,11 +70,19 @@ define(['./checkModel', './declParser', 'underscore'], function(checkModel, decl
     },
     processModel: function(model) {
       var self = this;
+      // Before anything is read or removed: an attribute of the wrong
+      // kind must be an error rather than whatever its truthiness
+      // happens to do. `Enabled: 0` used to delete the transition on
+      // the way past, silently, and never reach the checker.
+      checkModel.checkAttributeKinds(model);
+
       // REMOVE ALL EVENTS THAT ARE MARKED AS DISABLED
       var transitionTypes = ['External Transition', 'Local Transition', 'Internal Transition'];
-      Object.keys(model.objects).map(function(objPath) {
+      Object.keys(model.objects).forEach(function(objPath) {
         var obj = model.objects[objPath];
-        if (transitionTypes.indexOf(obj.type) > -1 && !obj.Enabled) {
+        // `=== false`, not `!`: kinds are checked above, so this is
+        // the same test -- said in a way that does not depend on it
+        if (transitionTypes.indexOf(obj.type) > -1 && obj.Enabled === false) {
           console.log('deleting disabled transition: '+objPath);
           delete model.objects[objPath];
         }

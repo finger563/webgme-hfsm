@@ -1104,6 +1104,166 @@ describe('hfsm generator', function() {
     });
   });
 
+  describe('disabled transitions', function() {
+    // 'drops disabled transitions' above covers the model side -- the
+    // object is gone. These cover the consequence that matters, which
+    // is that the transition is absent from the generated C++, and
+    // that an enabled one survives. Worth having while the condition
+    // that drops them is being edited.
+
+    it('are not generated', function() {
+      var enabled = loadFixture('features');
+      mods.resolveModel.resolve(enabled);
+      mods.processor.processModel(enabled);
+      var withIt = mods.MetaTemplates.renderHFSM(enabled, NAMESPACE);
+
+      var disabled = loadFixture('features');
+      var internal = Object.keys(disabled.objects).filter(function(p) {
+        return disabled.objects[p].type === 'Internal Transition';
+      })[0];
+      assert.ok(internal, 'the fixture should have an internal transition');
+      var event = disabled.objects[internal].Event;
+      disabled.objects[internal].Enabled = false;
+      mods.resolveModel.resolve(disabled);
+      mods.processor.processModel(disabled);
+      var without = mods.MetaTemplates.renderHFSM(disabled, NAMESPACE);
+
+      function source(rendered) {
+        return rendered[Object.keys(rendered).filter(function(f) {
+          return /_generated_states\.cpp$/.test(f);
+        })[0]];
+      }
+      assert.notStrictEqual(source(withIt), source(without),
+                            'disabling a transition should change the output');
+      assert.ok(source(withIt).indexOf(internal) > -1,
+                'the enabled one is generated: ' + internal);
+      assert.ok(source(without).indexOf(internal) === -1,
+                'the disabled one is not: ' + internal + ' (' + event + ')');
+    });
+
+    it('are kept when Enabled is true', function() {
+      var model = loadFixture('features');
+      var internal = Object.keys(model.objects).filter(function(p) {
+        return model.objects[p].type === 'Internal Transition';
+      })[0];
+      model.objects[internal].Enabled = true;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      assert.ok(model.objects[internal], 'still in the model');
+    });
+  });
+
+  describe('attributes hold what the metamodel says they hold', function() {
+    // JSON carries anything, and nearly every attribute is declared
+    // `string` and then read as one -- trimmed, matched against a
+    // name pattern, printed into C++. A value of the wrong kind used
+    // to surface as a TypeError with a stack trace into the
+    // generator, from the component whose job is readable errors.
+
+    it('refuses a number where text is expected, by name', function() {
+      // `"Default": 12` is the natural thing to write by hand, and
+      // it used to reach (f.Default || '').trim()
+      expectModelError('payloads', function(objects) {
+        var field = Object.keys(objects).filter(function(p) {
+          return objects[p].type === 'Field';
+        })[0];
+        objects[field].Default = 12;
+      }, /Expected text, but this is a number/);
+    });
+
+    it('refuses a list or an object where text is expected', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Entry = ['do();'];
+      }, /Expected text, but this is a list/);
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Entry = { code: 'do();' };
+      }, /Expected text, but this is an object/);
+    });
+
+    it('refuses a string where a boolean is expected', function() {
+      // NOT leniency. The processor asks `obj.Enabled === false`,
+      // which the string "false" does not satisfy, so accepting one
+      // without rewriting it would generate a transition its author
+      // had disabled -- silently. Rewriting it instead would work
+      // (kinds are checked before the processor acts) but WebGME
+      // stores real booleans, so a quoted one is a mistake worth
+      // naming rather than guessing at.
+      expectModelError('basic', function(objects) {
+        var t = Object.keys(objects).filter(function(p) {
+          return objects[p].type === 'External Transition';
+        })[0];
+        objects[t].Enabled = 'false';
+      }, /Expected true or false, but this is a string/);
+    });
+
+    it('refuses a falsey value of the wrong kind, before it is acted on',
+       function() {
+         // processModel deletes a transition on its Enabled being
+         // falsey, BEFORE it calls the checker -- so `Enabled: 0`
+         // and `Enabled: ""` used to delete the transition on the way
+         // past and never reach the error meant to catch them
+         ['', 0].forEach(function(value) {
+           expectModelError('features', function(objects) {
+             var t = Object.keys(objects).filter(function(p) {
+               return objects[p].type === 'Internal Transition';
+             })[0];
+             objects[t].Enabled = value;
+           }, /Expected true or false/);
+         });
+       });
+
+    it('treats null as a value somebody wrote, not as absent', function() {
+      // resolveModel fills defaults for `undefined` only, so a null
+      // survives -- and `"name": null` reached sanitizeString and
+      // threw the TypeError this pass exists to replace
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].name = null;
+      }, /Expected text, but this is null/);
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Entry = null;
+      }, /Expected text, but this is null/);
+    });
+
+    it('still leaves a genuinely absent attribute alone', function() {
+      var model = loadFixture('basic');
+      delete model.objects['/p/m/Idle'].Entry;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+
+    it('says which object and which attribute', function() {
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle'].Entry = 42;
+      mods.resolveModel.resolve(model);
+      var caught = null;
+      try { mods.processor.processModel(model); } catch (err) { caught = err; }
+      assert.ok(caught, 'should have thrown');
+      assert.strictEqual(caught.path, '/p/m/Idle');
+      assert.ok(/State "Idle"/.test(caught.message), caught.message);
+      assert.ok(/Entry/.test(caught.message), caught.message);
+      // and it is a model error, not a crash: no stack trace shown
+      assert.strictEqual(caught.name, 'ModelError');
+    });
+
+    it('leaves an absent attribute alone', function() {
+      // resolveModel fills defaults; an attribute nobody set is not
+      // a mistake
+      var model = loadFixture('basic');
+      delete model.objects['/p/m/Idle'].Exit;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+
+    it('ignores attributes the metamodel does not declare', function() {
+      // extra keys are not this check's business -- resolveModel
+      // decides what is structural
+      var model = loadFixture('basic');
+      model.objects['/p/m/Idle'].somethingElse = 12;
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);   // must not throw
+    });
+  });
+
   describe('checkModel error identity', function() {
     // A path is exact and says nothing. "/c/FRESH has invalid Timer
     // Period" leaves you hunting for which box that is, and the tool

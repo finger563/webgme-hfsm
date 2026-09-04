@@ -27,6 +27,18 @@ Structure:
   source (composite parent -> child); anything else -- including the
   reverse direction -- is converted to an external transition (with a
   console warning).
+- Every attribute must hold what the metamodel says it holds: text
+  where text is declared, `true`/`false` where a boolean is. JSON
+  carries anything, and a hand-written `"Default": 12` -- or a
+  `null`, which is a value somebody wrote rather than an absent
+  attribute -- used to reach
+  `.trim()` and come back as a TypeError with a stack trace instead
+  of a model error. Booleans are strict rather than lenient: the
+  generator asks `Enabled === false`, so the string `"false"` would
+  read as enabled and silently generate a transition its author had
+  disabled. Quoted booleans are refused rather than rewritten --
+  WebGME stores real booleans, so a quoted one is a mistake worth
+  naming rather than guessing at.
 - **Every** state's `Timer Period` must be a finite number and not
   negative — composites included, because `getTimerPeriod()` is
   emitted for every state and a value C++ cannot return breaks the
