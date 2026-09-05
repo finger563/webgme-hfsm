@@ -65,8 +65,14 @@ describe('packaging', function() {
      'codemirror'].forEach(
       function(heavy) {
         assert.notInclude(deps, heavy, heavy + ' must not be a hard dependency');
+        // BOTH halves. npm reads peerDependenciesMeta only for names
+        // that are also in peerDependencies, so metadata on its own
+        // declares nothing -- dropping the peer entry and leaving the
+        // metadata behind would look fine here and change the install.
+        assert.property(pkg.peerDependencies || {}, heavy,
+          heavy + ' should be declared a peer dependency');
         assert.property(pkg.peerDependenciesMeta || {}, heavy,
-          heavy + ' should be declared an optional peer');
+          heavy + ' should have peerDependenciesMeta');
         assert.isTrue((pkg.peerDependenciesMeta[heavy] || {}).optional,
           heavy + ' peer must be marked optional or npm will install it');
       });
@@ -79,28 +85,50 @@ describe('packaging', function() {
     assert.notProperty(pkg.scripts, 'postinstall');
   });
 
-  it('says what to install when the editor server cannot start', function() {
-    // The guard has to come before every other require. 
-    // pulls in , so loading config first
+  it('names every package the editor server is missing', function() {
+    // Two failures this pins.
+    //
+    // The guard has to come before every other require: `./config`
+    // pulls in `webgme/config/validator`, so loading config first
     // crashed with a bare MODULE_NOT_FOUND and the message never
-    // printed -- and a check that stubs only the exact id 'webgme'
-    // does not notice, because the subpath is what actually fails.
+    // printed. A check that stubs only the exact id 'webgme' does not
+    // notice, because the subpath is what actually fails.
+    //
+    // And it has to name ALL of them. config.default reaches
+    // config.webgme, which points at webgme-codeeditor and
+    // webgme-ui-replay, and adds webgme-to-json and codemirror -- so
+    // saying "npm install webgme" alone walks somebody straight into
+    // the next failure. Three of the four have no main entry, hence
+    // the fs.existsSync half of the stub below: they are found on
+    // disk, not by require.
+    var appPath = path.join(repoRoot, 'app.js').replace(/\\/g, '/');
     var script = [
+      "var fs = require('fs'), realExists = fs.existsSync;",
       "var Module = require('module'), orig = Module._resolveFilename;",
       "Module._resolveFilename = function (r) {",
-      "  if (/^webgme(\\/|$)/.test(r)) {",
+      "  if (/^(webgme|codemirror)(\\/|$)/.test(r)) {",
       "    var e = new Error(r); e.code = 'MODULE_NOT_FOUND'; throw e;",
       "  }",
       "  return orig.apply(this, arguments);",
       "};",
-      "require('" + path.join(repoRoot, "app.js").replace(/\\/g, "/") + "');",
-    ].join("\n");
-    var run = childProcess.spawnSync(process.execPath, ["-e", script],
-                                     { encoding: "utf8" });
-    assert.include(run.stderr, "npm install webgme",
-      "app.js should say what to install; it printed: " +
-      (run.stderr || run.stdout).split("\n")[0]);
-    assert.notInclude(run.stderr, "MODULE_NOT_FOUND");
+      "fs.existsSync = function (p) {",
+      "  if (/node_modules[\\\\/](webgme-|codemirror)/.test(p)) { return false; }",
+      "  return realExists.apply(fs, arguments);",
+      "};",
+      "require('" + appPath + "');",
+    ].join('\n');
+
+    var run = childProcess.spawnSync(process.execPath, ['-e', script],
+                                     { encoding: 'utf8' });
+    var said = run.stderr || run.stdout;
+
+    assert.notInclude(said, 'MODULE_NOT_FOUND',
+      'the guard ran too late and node reported the failure instead');
+    ['webgme', 'webgme-codeeditor', 'webgme-to-json', 'webgme-ui-replay',
+     'codemirror'].forEach(function(peer) {
+      assert.include(said, peer,
+        'the message should name ' + peer + '; it said: ' + said.split('\n')[3]);
+    });
   });
 
   it('resolves its AMD libraries from wherever npm put them', function() {

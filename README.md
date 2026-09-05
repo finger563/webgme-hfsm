@@ -309,10 +309,11 @@ npm run setup   # bower packages for the editor's front end
 npm start
 ```
 
-`webgme` is an *optional* peer dependency, so installing this package
-to use the CLI or build the playground does not pull in the editor
-server. A checkout gets it from `devDependencies`, which is what the
-commands above rely on.
+`webgme` and the other editor packages are *optional* peer
+dependencies: `npm install webgme-hfsm` for the CLI does not drag in
+the editor server. A checkout gets them from `devDependencies`, which
+is what the commands above rely on -- running the server and building
+the playground are both checkout workflows.
 
 Which will run the WebGME-HFSM server on **PORT 8081** of your local
 machine, accepting connections on all IP addresses available to it.
