@@ -224,10 +224,14 @@
   // finished booting -- restoring the draft generates, and generating
   // clears the diagnostics, so saying it at the time says nothing
   var requestProblem = null;
-  // a link that failed while the generator was still loading: the
-  // fetch and the module load race, and whichever finishes second
-  // used to have the last word on the status line
+  // The fetch for a URL-requested model races the generator's module
+  // load, and whichever finishes second used to have the last word on
+  // the status line. Both directions were wrong: a failure announced
+  // before the modules landed was overwritten by "ready", and a fetch
+  // still in flight when they landed was ALSO called "ready" -- so a
+  // slow or hung ?model= read as finished with nothing on screen.
   var linkFailed = false;
+  var linkInFlight = false;
 
   function writeDraft() {
     draftTimer = null;
@@ -342,10 +346,12 @@
     if (!wanted) return false;   // ?view= / ?embed= alone: nothing to fetch
 
     setStatus('loading ' + wanted.label + '\u2026');
+    linkInFlight = true;
     fetch(wanted.url).then(function (r) {
       if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
       return r.text();
     }).then(function (text) {
+      linkInFlight = false;
       loadModelText(text);
       try {
         sessionStorage.setItem(APPLIED_KEY, window.location.search);
@@ -358,6 +364,7 @@
                        'Access-Control-Allow-Origin for this page to read it.'],
                       'error');
       setStatus('load failed', 'error');
+      linkInFlight = false;
       linkFailed = true;
       // The link was the only reason not to restore this tab's draft,
       // and it did not arrive -- so fall back to it rather than
@@ -1801,7 +1808,10 @@
       describe: describe,
       MetaTemplates: MetaTemplates,
     };
-    if (!linkFailed) setStatus('ready');
+    // "ready" is about the generator, but it is the only thing on the
+    // status line -- so it must not claim a link that is still on its
+    // way has arrived, or overwrite one that already failed.
+    if (!linkFailed && !linkInFlight) setStatus('ready');
 
     // Put the tab back the way it was, not just the text in it.
     //
