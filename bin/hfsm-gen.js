@@ -16,6 +16,11 @@
  *   -e, --export <fmts>    comma-separated interop exports:
  *                          mermaid, plantuml, scxml (or 'all')
  *       --no-code          skip C++ code generation (exports only)
+ *       --no-support       skip the support headers that are the same
+ *                          for every machine (state_base.hpp,
+ *                          deep_history_state.hpp,
+ *                          shallow_history_state.hpp, magic_enum.hpp)
+ *                          -- for projects that already vendor them
  *   -h, --help             show this help
  *
  * The model JSON format is the webgme-to-json format; see
@@ -50,6 +55,7 @@ var args = process.argv.slice(2);
 var opts = {
   input: null,
   out: 'generated',
+  support: true,   // emit the shared runtime headers alongside the machine
   namespace: null, // -n flag > model.namespace > 'state_machine'
   testBench: false,
   exports: [],
@@ -65,6 +71,7 @@ for (var i = 0; i < args.length; i++) {
     opts.exports = opts.exports.concat((args[++i] || '').split(','));
   }
   else if (a === '--no-code') opts.code = false;
+  else if (a === '--no-support') opts.support = false;
   else if (a[0] === '-') fail("unknown option '" + a + "' (see --help)");
   else if (!opts.input) opts.input = a;
   else fail('multiple input files given');
@@ -138,6 +145,23 @@ amdLoader.load([
     if (opts.code) {
       Object.assign(artifacts,
                     MetaTemplates.renderHFSM(model, opts.namespace));
+      if (!opts.support && opts.testBench) {
+        // The bench is meant to build on its own, and it cannot
+        // without these -- verified: the Makefile stops at
+        // 'deep_history_state.hpp' file not found.
+        console.error("hfsm-gen: warning: --no-support with --test-bench: " +
+                      "the generated Makefile expects the support headers, " +
+                      "so supply your own copies or drop --no-support.");
+      }
+      if (!opts.support) {
+        // Asked for, not filtered by name here: a project that vendors
+        // this runtime already -- espp's state_machine component, say
+        // -- needs its OWN copies on the include path, and a second
+        // set beside the generated machine would shadow them.
+        MetaTemplates.supportFileNames().forEach(function(fname) {
+          delete artifacts[fname];
+        });
+      }
       if (opts.testBench) {
         Object.assign(artifacts,
                       MetaTemplates.renderTestCode(model, opts.namespace));

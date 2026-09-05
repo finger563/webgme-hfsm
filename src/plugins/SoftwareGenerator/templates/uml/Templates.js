@@ -78,6 +78,18 @@ define(['bower/handlebars/handlebars.min',
              "GeneratedStatesTemplHpp",
              "GeneratedStatesTemplCpp" ];
 
+         // The templates that are the same runtime for every machine
+         // rather than anything about THIS one. A project that already
+         // vendors this support library -- espp's state_machine
+         // component does -- wants the other three files and not
+         // these, because its own copies are the ones the rest of its
+         // code is built against.
+         var supportTemplates = [
+           "StateBaseData",
+           "DeepHistoryData",
+           "ShallowHistoryData",
+         ];
+
          var keyTemplates = {
            'StateBaseData': 'state_base.hpp',
            'DeepHistoryData': 'deep_history_state.hpp',
@@ -315,6 +327,19 @@ define(['bower/handlebars/handlebars.min',
          return {
            renderStatic: function() {
              return staticFiles;
+           },
+
+           /**
+            * The files that are the same for every machine.
+            *
+            * Derived from the template tables rather than listed
+            * again: a support template added above appears here
+            * without anyone remembering to.
+            */
+           supportFileNames: function() {
+             return supportTemplates.map(function(key) {
+               return keyTemplates[key];
+             }).concat(Object.keys(staticFiles));
            },
            renderStates: function(root) {
              var rendered = {};
