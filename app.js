@@ -45,6 +45,30 @@ var missingPeers = SERVER_PEERS.filter(function (peer) {
     return !fs.existsSync(path.join(__dirname, 'node_modules', peer.id));
 }).map(function (peer) { return peer.id; });
 
+// Whether this copy is an installed dependency rather than a
+// checkout. It changes what the honest advice is, so the message has
+// to know: npm puts the editor packages BESIDE webgme-hfsm, while the
+// config looks for them inside it, so telling a packaged install to
+// `npm install webgme-codeeditor` names a command that cannot ever
+// satisfy the check -- it would report the same four missing on every
+// run, forever.
+var PACKAGED = __dirname.split(path.sep).indexOf('node_modules') !== -1;
+
+if (missingPeers.length && PACKAGED) {
+    console.error('The WebGME editor server runs from a CHECKOUT of this');
+    console.error('repository, not from an installed copy. Its config points');
+    console.error('at ./node_modules/<pkg> and ../src/seeds inside the repo,');
+    console.error('and npm installs those packages beside webgme-hfsm rather');
+    console.error('than inside it -- so no npm install here can satisfy them.');
+    console.error('');
+    console.error('  git clone https://github.com/finger563/webgme-hfsm');
+    console.error('  cd webgme-hfsm && npm install && npm run setup && npm start');
+    console.error('');
+    console.error('The hfsm-gen / hfsm-diff CLIs need none of this and work');
+    console.error('from the install you already have -- see docs/CLI.md.');
+    process.exit(1);
+}
+
 if (missingPeers.length) {
     console.error('The WebGME editor needs ' + missingPeers.length + ' package' +
                   (missingPeers.length === 1 ? '' : 's') + ' that a plain');

@@ -16,6 +16,7 @@ var assert = require('chai').assert;
 var fs = require('fs');
 var path = require('path');
 var childProcess = require('child_process');
+var os = require('os');
 
 var repoRoot = path.resolve(__dirname, '..');
 var pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
@@ -129,6 +130,40 @@ describe('packaging', function() {
       assert.include(said, peer,
         'the message should name ' + peer + '; it said: ' + said.split('\n')[3]);
     });
+  });
+
+  it('does not tell an installed copy to run an install that cannot work',
+     function() {
+    // npm puts the editor packages BESIDE webgme-hfsm; the config
+    // looks for them INSIDE it. So in a packaged layout the check can
+    // never be satisfied, and naming `npm install webgme-codeeditor`
+    // would send somebody round a loop that reports the same four
+    // missing every time. The server is a checkout workflow, and the
+    // message has to say so rather than suggest a fix that is not one.
+    var root = fs.mkdtempSync(path.join(os.tmpdir(), 'hfsm-packaged-'));
+    var pkg = path.join(root, 'node_modules', 'webgme-hfsm');
+    fs.mkdirSync(pkg, { recursive: true });
+    fs.copyFileSync(path.join(repoRoot, 'app.js'), path.join(pkg, 'app.js'));
+
+    // every peer present, installed the way npm actually installs them
+    ['webgme', 'webgme-codeeditor', 'webgme-to-json', 'webgme-ui-replay',
+     'codemirror'].forEach(function(peer) {
+      var dir = path.join(root, 'node_modules', peer);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'package.json'),
+        JSON.stringify({ name: peer, version: '1.0.0', main: 'index.js' }));
+      fs.writeFileSync(path.join(dir, 'index.js'), 'module.exports = {};');
+    });
+
+    var run = childProcess.spawnSync(process.execPath,
+                                     [path.join(pkg, 'app.js')],
+                                     { encoding: 'utf8', cwd: root });
+    var said = run.stderr || run.stdout;
+
+    assert.notMatch(said, /npm install webgme-codeeditor/,
+      'suggested an install that cannot satisfy this layout: ' + said);
+    assert.match(said, /git clone|CHECKOUT/,
+      'should point at a checkout instead; it said: ' + said);
   });
 
   it('resolves its AMD libraries from wherever npm put them', function() {
