@@ -59,7 +59,10 @@ describe('packaging', function() {
     // start` needs it, so it is an OPTIONAL peer: npm does not install
     // optional peers, which is the whole point.
     var deps = Object.keys(pkg.dependencies || {});
-    ['webgme', 'webgme-codeeditor', 'webgme-ui-replay', 'codemirror'].forEach(
+    // every optional peer, not a sample of them: one left off the list
+    // is one that can quietly become a hard dependency again
+    ['webgme', 'webgme-codeeditor', 'webgme-to-json', 'webgme-ui-replay',
+     'codemirror'].forEach(
       function(heavy) {
         assert.notInclude(deps, heavy, heavy + ' must not be a hard dependency');
         assert.property(pkg.peerDependenciesMeta || {}, heavy,
@@ -74,6 +77,30 @@ describe('packaging', function() {
     // install, and only worked because webgme happened to depend on
     // bower. Without webgme it would simply fail.
     assert.notProperty(pkg.scripts, 'postinstall');
+  });
+
+  it('says what to install when the editor server cannot start', function() {
+    // The guard has to come before every other require. 
+    // pulls in , so loading config first
+    // crashed with a bare MODULE_NOT_FOUND and the message never
+    // printed -- and a check that stubs only the exact id 'webgme'
+    // does not notice, because the subpath is what actually fails.
+    var script = [
+      "var Module = require('module'), orig = Module._resolveFilename;",
+      "Module._resolveFilename = function (r) {",
+      "  if (/^webgme(\\/|$)/.test(r)) {",
+      "    var e = new Error(r); e.code = 'MODULE_NOT_FOUND'; throw e;",
+      "  }",
+      "  return orig.apply(this, arguments);",
+      "};",
+      "require('" + path.join(repoRoot, "app.js").replace(/\\/g, "/") + "');",
+    ].join("\n");
+    var run = childProcess.spawnSync(process.execPath, ["-e", script],
+                                     { encoding: "utf8" });
+    assert.include(run.stderr, "npm install webgme",
+      "app.js should say what to install; it printed: " +
+      (run.stderr || run.stdout).split("\n")[0]);
+    assert.notInclude(run.stderr, "MODULE_NOT_FOUND");
   });
 
   it('resolves its AMD libraries from wherever npm put them', function() {

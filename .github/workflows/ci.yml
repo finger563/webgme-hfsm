@@ -355,7 +355,8 @@ jobs:
       - name: The heavy optional peers must not be installed
         run: |
           cd /tmp/consumer
-          for heavy in webgme webgme-codeeditor codemirror; do
+          for heavy in webgme webgme-codeeditor webgme-to-json \
+                       webgme-ui-replay codemirror; do
             if [ -d "node_modules/$heavy" ]; then
               echo "$heavy was installed for a CLI-only consumer"; exit 1
             fi
