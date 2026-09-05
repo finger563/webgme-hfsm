@@ -657,8 +657,10 @@ State Machines have the following attributes:
 
 * `Includes` : include statements for the HFSM, will be at the top of
   the generated header
-* `Initialization` : initialization code run at the beginning of the
-  HFSM, before any of the state initialization code.
+* `Initialization` : initialization code run once at the beginning of
+  the HFSM, before any state is entered. This is a State Machine
+  attribute only -- a *state* has no initialization step of its own:
+  use `Entry`, which runs each time the state becomes active.
 * `Declarations` : variable/function/class declarations within the
   HFSM's `StateMachine` namespace, will be within the generated header
   file

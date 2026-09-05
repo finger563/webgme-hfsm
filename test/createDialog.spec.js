@@ -119,6 +119,32 @@ describe('the create dialog', function () {
     });
   });
 
+  it('does not offer a state the fields it is not allowed to set',
+     function () {
+    // Includes and Initialization are inherited from State Machine
+    // Base and rejected by the checker for states. A field whose every
+    // value is an error is a worse way to say "not here" than not
+    // being there -- and Initialization was worse again, because
+    // nothing rejected it and nothing emitted it, so text typed in it
+    // was saved and then ran nowhere.
+    var offered = describeMod.editableAttributes(forType('State').getCurrentSchema())
+      .map(function (a) { return a.name; });
+
+    assert.ok(offered.indexOf('Initialization') === -1,
+      'a state cannot run Initialization, so it should not be offered');
+    assert.ok(offered.indexOf('Includes') === -1,
+      'a state cannot set Includes, so it should not be offered');
+    assert.ok(offered.indexOf('Entry') > -1,
+      'Entry is what a state should use instead, and must still be there');
+
+    // and the machine, which CAN use both, keeps them
+    var machine = describeMod.editableAttributes(
+      forType('State Machine').getCurrentSchema())
+      .map(function (a) { return a.name; });
+    assert.ok(machine.indexOf('Initialization') > -1);
+    assert.ok(machine.indexOf('Includes') > -1);
+  });
+
   it('gives code and prose room, and a one-line input to everything else',
      function () {
        var dialog = forType('State');
