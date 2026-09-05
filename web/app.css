@@ -708,3 +708,37 @@ select:focus-visible,
 }
 .compare-menu button:hover,
 .compare-menu button:focus { background: #f6f8fa; outline: none; }
+
+/* ---------------------------------------------------------------- */
+/* Embedded in someone else's page (?embed=1).                       */
+/*                                                                   */
+/* Only the branding goes: inside an iframe the title and the repo   */
+/* link belong to the host page, and the vertical space is worth     */
+/* more than they are. Everything that does work stays, so the       */
+/* embed is the tool rather than a picture of it.                    */
+.is-embedded .brand,
+.is-embedded .tagline,
+.is-embedded .repo { display: none; }
+
+.is-embedded .topbar {
+  padding: 4px 10px;
+  min-height: 0;
+  justify-content: flex-end;
+}
+
+/* the way back to the full page, which an iframe otherwise hides */
+.popout {
+  color: #9dc7ff;
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.popout:hover { text-decoration: underline; }
+/* in an embed this is the only link on the page, and the only way to
+   reach the full one -- it has to be obvious when tabbed to */
+.popout:focus-visible {
+  text-decoration: underline;
+  outline: 2px solid #9dc7ff;
+  outline-offset: 2px;
+  border-radius: 2px;
+}

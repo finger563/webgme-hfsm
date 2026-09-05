@@ -104,6 +104,67 @@
     { label: 'Payloads (typed event data)', file: 'examples/payloads.json' },
   ];
 
+  /* --------------------- what the URL asked for --------------------- */
+
+  var APPLIED_KEY = 'hfsm-playground:from-url';
+
+  /**
+   * What the query string is asking the page to show.
+   *
+   *   ?example=Complex     one of the bundled models, by name
+   *   ?model=<url>         a model fetched from anywhere CORS allows
+   *   ?view=diagram|code   which tab to open
+   *   ?embed=1             drop the page chrome, for an <iframe>
+   *
+   * This is how another site links to a specific machine -- espp's
+   * docs pointing at the state machine its example generates from,
+   * say -- either as a link or embedded in the page.
+   */
+  function urlRequest() {
+    var q;
+    try {
+      q = new URLSearchParams(window.location.search);
+    } catch (e) {
+      return null;      // no URLSearchParams: nothing to honour
+    }
+    var req = {
+      example: q.get('example'),
+      model: q.get('model'),
+      view: q.get('view'),
+      embed: q.get('embed') === '1' || q.get('embed') === 'true',
+    };
+    return (req.example || req.model || req.view || req.embed) ? req : null;
+  }
+
+  /** the bundled example called `name`, matched loosely on purpose */
+  function exampleNamed(name) {
+    var want = String(name).replace(/[.]json$/i, '').toLowerCase();
+    for (var i = 0; i < EXAMPLES.length; i++) {
+      var base = EXAMPLES[i].file.split('/').pop().replace(/[.]json$/i, '');
+      if (base.toLowerCase() === want) return EXAMPLES[i];
+    }
+    return null;
+  }
+
+  /**
+   * Only http(s). `javascript:` and `data:` URLs would be a way to
+   * smuggle something executable through a link that otherwise looks
+   * like it just opens a diagram.
+   *
+   * Relative URLs are resolved against this page, deliberately: it is
+   * how the bundled examples are reached, and how a site that hosts
+   * both its docs and its models refers to its own.
+   */
+  function safeModelUrl(raw) {
+    var url;
+    try {
+      url = new URL(raw, window.location.href);
+    } catch (e) {
+      return null;
+    }
+    return (url.protocol === 'https:' || url.protocol === 'http:') ? url.href : null;
+  }
+
   /* ------------------------ how it is laid out ---------------------- */
 
   /**
@@ -157,6 +218,20 @@
   var SAVE_DELAY = 400;
   var draftTimer = null;
   var restoredDraft = null;   // what this tab came back to, if anything
+  // a URL-requested model that arrived before the generator did
+  var pendingRequest = null;
+  // why a URL request was refused, held until the generator has
+  // finished booting -- restoring the draft generates, and generating
+  // clears the diagnostics, so saying it at the time says nothing
+  var requestProblem = null;
+  // The fetch for a URL-requested model races the generator's module
+  // load, and whichever finishes second used to have the last word on
+  // the status line. Both directions were wrong: a failure announced
+  // before the modules landed was overwritten by "ready", and a fetch
+  // still in flight when they landed was ALSO called "ready" -- so a
+  // slow or hung ?model= read as finished with nothing on screen.
+  var linkFailed = false;
+  var linkInFlight = false;
 
   function writeDraft() {
     draftTimer = null;
@@ -200,7 +275,7 @@
   }
 
   /** @return true if a draft was restored */
-  function restoreDraft() {
+  function restoreDraft(quiet) {
     var saved = null;
     try {
       saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
@@ -210,7 +285,10 @@
     if (!saved || typeof saved.text !== 'string' || !saved.text.trim()) {
       return false;
     }
-    restoredDraft = saved;
+    // `quiet` restores the text without asking for a generate: the
+    // caller is a failed link, and generating clears the message
+    // saying why it failed.
+    if (!quiet) restoredDraft = saved;
     // what it was loaded from, if the draft remembered -- otherwise
     // the draft itself is the best starting point there is
     loadedText = typeof saved.loaded === 'string' ? saved.loaded : saved.text;
@@ -224,10 +302,119 @@
     return true;
   }
 
+  /**
+   * Load what the URL asked for. Returns true when something is on
+   * its way, so boot knows not to restore the draft over it.
+   *
+   * The URL wins on the FIRST visit only. Someone who opens a link,
+   * edits the model and refreshes should get their edits back rather
+   * than have the link overwrite them -- so once a query has been
+   * applied in this tab, the draft takes over.
+   */
+  function applyRequest(req, whenLoaded) {
+    if (!req) return false;
+    if (req.embed) goEmbedded(req);
+
+    var already;
+    try {
+      already = sessionStorage.getItem(APPLIED_KEY) === window.location.search;
+    } catch (e) {
+      already = false;
+    }
+    if (already && hasDraft()) return false;   // their edits, not the link
+
+    var wanted = null;
+    if (req.example) {
+      var ex = exampleNamed(req.example);
+      if (!ex) {
+        requestProblem = ['No bundled example called "' + req.example + '".',
+                          'Available: ' + EXAMPLES.map(function (e) {
+                            return e.file.split('/').pop().replace(/[.]json$/, '');
+                          }).join(', ')];
+        return false;
+      }
+      wanted = { url: ex.file, label: ex.label };
+    } else if (req.model) {
+      var safe = safeModelUrl(req.model);
+      if (!safe) {
+        requestProblem = ['That model URL is not one this page will open: ' +
+                          req.model, 'Only http(s) URLs are loaded.'];
+        return false;
+      }
+      wanted = { url: safe, label: safe };
+    }
+    if (!wanted) return false;   // ?view= / ?embed= alone: nothing to fetch
+
+    setStatus('loading ' + wanted.label + '\u2026');
+    linkInFlight = true;
+    fetch(wanted.url).then(function (r) {
+      if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+      return r.text();
+    }).then(function (text) {
+      linkInFlight = false;
+      loadModelText(text);
+      try {
+        sessionStorage.setItem(APPLIED_KEY, window.location.search);
+      } catch (e) { /* private mode: the link just applies every time */ }
+      setStatus('loaded');
+      whenLoaded();
+    }).catch(function (err) {
+      showDiagnostics(['Could not load ' + wanted.label + ': ' + err.message,
+                       'A model on another site has to be served with ' +
+                       'Access-Control-Allow-Origin for this page to read it.'],
+                      'error');
+      setStatus('load failed', 'error');
+      linkInFlight = false;
+      linkFailed = true;
+      // The link was the only reason not to restore this tab's draft,
+      // and it did not arrive -- so fall back to it rather than
+      // leaving someone staring at an empty editor. Only when the
+      // editor is still empty: whatever is in it now is newer.
+      if (!getModelText().trim()) restoreDraft(true);
+    });
+    return true;
+  }
+
+  /** whether this tab has a model of its own worth keeping */
+  function hasDraft() {
+    try {
+      var saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
+      return !!(saved && typeof saved.text === 'string' && saved.text.trim());
+    } catch (e) {
+      return false;
+    }
+  }
+
   // the textarea remains the fallback when CodeMirror is unavailable,
   // so every read/write of the model goes through these two
   function getModelText() {
     return modelEditor ? modelEditor.getValue() : el('modelInput').value;
+  }
+
+  /**
+   * Strip the page down to the tool itself, for embedding in another
+   * site's documentation. The chrome that goes is the part that only
+   * makes sense on the page's own site: the title, the tagline and
+   * the repo link. Everything that does work stays, including the
+   * example picker -- an embedded playground people cannot drive is
+   * a screenshot with extra steps.
+   *
+   * A way back out is added in its place, because inside an iframe
+   * there is otherwise no way to reach the full page.
+   */
+  function goEmbedded(req) {
+    document.documentElement.classList.add('is-embedded');
+    var header = document.querySelector('header.topbar');
+    if (!header) return;
+    var out = document.createElement('a');
+    var full = new URL(window.location.href);
+    full.searchParams.delete('embed');
+    out.href = full.href;
+    out.target = '_blank';
+    out.rel = 'noopener';
+    out.className = 'popout';
+    out.textContent = 'Open in the HFSM Playground \u2197';
+    header.appendChild(out);
   }
 
   /**
@@ -1572,11 +1759,24 @@
   readLayout();     // before anything that lays itself out
   wire();
 
-  // Bring back whatever this tab was working on. Before the generator
-  // has loaded, so the text is on screen immediately -- and quietly,
-  // because from the user's side nothing happened: they refreshed and
-  // their model is still there.
-  restoreDraft();
+  // What the URL asks for comes first: a link to a particular machine
+  // has to show that machine, not whatever this tab was last editing.
+  var request = urlRequest();
+  var fromUrl = applyRequest(request, function () {
+    // the fetch may land before or after the generator is ready
+    if (mods) {
+      generate();
+      if (request.view === 'diagram') showTab('diagram');
+    } else {
+      pendingRequest = request;
+    }
+  });
+
+  // Otherwise bring back whatever this tab was working on. Before the
+  // generator has loaded, so the text is on screen immediately -- and
+  // quietly, because from the user's side nothing happened: they
+  // refreshed and their model is still there.
+  if (!fromUrl) restoreDraft();
 
   requirejs([CM_ID].concat(CM_MODES), function (cm) {
     try {
@@ -1608,7 +1808,10 @@
       describe: describe,
       MetaTemplates: MetaTemplates,
     };
-    setStatus('ready');
+    // "ready" is about the generator, but it is the only thing on the
+    // status line -- so it must not claim a link that is still on its
+    // way has arrived, or overwrite one that already failed.
+    if (!linkFailed && !linkInFlight) setStatus('ready');
 
     // Put the tab back the way it was, not just the text in it.
     //
@@ -1617,9 +1820,26 @@
     // session was not, which reads as the model not being loaded at
     // all. Generating takes well under a second for these, and it is
     // what had already happened before the refresh.
-    if (restoredDraft) {
+    if (requestProblem) {
+      // FIRST, and instead of generating. Drawing the diagram clears
+      // the diagnostics when it settles, several ticks later, so a
+      // message shown before that is wiped without ever being read --
+      // which left a mistyped link silently showing the previous
+      // model. Whatever was in the editor stays there, ungenerated,
+      // with the reason on screen and Generate one press away.
+      showDiagnostics(requestProblem, 'error');
+      setStatus('link not followed', 'error');
+      requestProblem = null;
+    } else if (restoredDraft) {
       generate();
       if (restoredDraft.tab === 'diagram') showTab('diagram');
+    } else if (pendingRequest) {
+      // the model arrived while the generator was still loading
+      generate();
+      if (pendingRequest.view === 'diagram') showTab('diagram');
+      pendingRequest = null;
+    } else if (request && request.view === 'diagram') {
+      showTab('diagram');
     }
   }, function (err) {
     showDiagnostics(['Failed to load the generator modules: ' + err.message,
