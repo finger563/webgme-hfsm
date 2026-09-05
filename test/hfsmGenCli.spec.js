@@ -39,6 +39,11 @@ describe('hfsm-gen --no-support', function() {
     full = run([]);
     lean = run(['--no-support']);
   });
+  after(function() {
+    [full, lean].forEach(function(r) {
+      if (r && r.dir) fs.rmSync(r.dir, { recursive: true, force: true });
+    });
+  });
 
   it('leaves out the files that are the same for every machine', function() {
     ['state_base.hpp', 'deep_history_state.hpp',
