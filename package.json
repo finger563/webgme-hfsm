@@ -15,7 +15,7 @@
     "check:meta": "node scripts/gen-meta.js --check",
     "setup": "bower install"
   },
-  "version": "1.7.0",
+  "version": "1.8.0",
   "repository": {
     "type": "git",
     "url": "http://github.com/finger563/webgme-hfsm.git"
