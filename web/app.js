@@ -147,9 +147,13 @@
   }
 
   /**
-   * Only http(s), and only absolute. `javascript:` and `data:` URLs
-   * would be a way to smuggle something executable through a link
-   * that otherwise looks like it just opens a diagram.
+   * Only http(s). `javascript:` and `data:` URLs would be a way to
+   * smuggle something executable through a link that otherwise looks
+   * like it just opens a diagram.
+   *
+   * Relative URLs are resolved against this page, deliberately: it is
+   * how the bundled examples are reached, and how a site that hosts
+   * both its docs and its models refers to its own.
    */
   function safeModelUrl(raw) {
     var url;
@@ -220,6 +224,10 @@
   // finished booting -- restoring the draft generates, and generating
   // clears the diagnostics, so saying it at the time says nothing
   var requestProblem = null;
+  // a link that failed while the generator was still loading: the
+  // fetch and the module load race, and whichever finishes second
+  // used to have the last word on the status line
+  var linkFailed = false;
 
   function writeDraft() {
     draftTimer = null;
@@ -263,7 +271,7 @@
   }
 
   /** @return true if a draft was restored */
-  function restoreDraft() {
+  function restoreDraft(quiet) {
     var saved = null;
     try {
       saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
@@ -273,7 +281,10 @@
     if (!saved || typeof saved.text !== 'string' || !saved.text.trim()) {
       return false;
     }
-    restoredDraft = saved;
+    // `quiet` restores the text without asking for a generate: the
+    // caller is a failed link, and generating clears the message
+    // saying why it failed.
+    if (!quiet) restoredDraft = saved;
     // what it was loaded from, if the draft remembered -- otherwise
     // the draft itself is the best starting point there is
     loadedText = typeof saved.loaded === 'string' ? saved.loaded : saved.text;
@@ -347,6 +358,12 @@
                        'Access-Control-Allow-Origin for this page to read it.'],
                       'error');
       setStatus('load failed', 'error');
+      linkFailed = true;
+      // The link was the only reason not to restore this tab's draft,
+      // and it did not arrive -- so fall back to it rather than
+      // leaving someone staring at an empty editor. Only when the
+      // editor is still empty: whatever is in it now is newer.
+      if (!getModelText().trim()) restoreDraft(true);
     });
     return true;
   }
@@ -1784,7 +1801,7 @@
       describe: describe,
       MetaTemplates: MetaTemplates,
     };
-    setStatus('ready');
+    if (!linkFailed) setStatus('ready');
 
     // Put the tab back the way it was, not just the text in it.
     //

@@ -734,3 +734,11 @@ select:focus-visible,
   white-space: nowrap;
 }
 .popout:hover { text-decoration: underline; }
+/* in an embed this is the only link on the page, and the only way to
+   reach the full one -- it has to be obvious when tabbed to */
+.popout:focus-visible {
+  text-decoration: underline;
+  outline: 2px solid #9dc7ff;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
