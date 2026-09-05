@@ -119,6 +119,16 @@ define(['bower/handlebars/handlebars.min',
              });
              return artifacts;
            },
+           /**
+            * The files that are the same runtime for every machine,
+            * rather than anything about a particular one. Exposed so
+            * a caller that already vendors this support library can
+            * ask for its names instead of knowing them.
+            */
+           supportFileNames: function() {
+             return UMLTemplates.supportFileNames();
+           },
+
            renderHFSM: function(model, namespace, objToFilePrefixFn ) {
              var self    = this;
              var objects = model.objects;

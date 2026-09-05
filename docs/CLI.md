@@ -144,6 +144,34 @@ npm install --no-save --ignore-scripts requirejs requirejs-text handlebars under
 These are the CLI's real dependencies, and they are what `npm install
 webgme-hfsm` brings with it.
 
+## Generating only the machine
+
+By default the generator emits the machine *and* the small runtime it
+depends on — `state_base.hpp`, `deep_history_state.hpp`,
+`shallow_history_state.hpp` and `magic_enum.hpp`. Those four are the
+same for every machine.
+
+A project that already vendors that runtime wants the other three
+files and not these, because its own copies are the ones the rest of
+its code is built against — a second `state_base.hpp` beside the
+generated machine lands on the include path and shadows them:
+
+```sh
+hfsm-gen my_machine.json -o generated --no-support
+```
+
+The machine itself is byte-for-byte the same either way; the flag
+decides what gets written, not what gets rendered.
+
+`--test-bench` expects the support headers (its Makefile builds
+standalone), so asking for both warns.
+
+[espp's `state_machine` example][espp] uses this from CMake: the model
+is checked in, the C++ is generated at build time, and the runtime
+comes from the component rather than from the generator.
+
+[espp]: https://github.com/esp-cpp/espp/tree/main/components/state_machine/example
+
 ## Model JSON format
 
 The input is the `webgme-to-json` format: a map of objects keyed by
