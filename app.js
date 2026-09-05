@@ -53,9 +53,9 @@ if (missingPeers.length) {
     console.error('  npm install ' + missingPeers.join(' '));
     console.error('');
     console.error('From a checkout, `npm install && npm run setup` gets all of');
-    console.error('them -- see the README. The hfsm-gen / hfsm-diff CLIs and');
-    console.error('the static playground need none of them: see docs/CLI.md');
-    console.error('and docs/PLAYGROUND.md.');
+    console.error('them -- see the README. The hfsm-gen / hfsm-diff CLIs need');
+    console.error('none of them. Building the playground is a checkout workflow;');
+    console.error('see docs/CLI.md and docs/PLAYGROUND.md.');
     process.exit(1);
 }
 
