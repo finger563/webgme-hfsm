@@ -86,6 +86,42 @@ describe('packaging', function() {
     assert.notProperty(pkg.scripts, 'postinstall');
   });
 
+  it('makes every editor install path take the setup step', function() {
+    // `bower install` used to run from postinstall, so the container
+    // builds got the editor's front end without asking. Dropping the
+    // hook -- it ran in every consumer's tree, CLI-only ones included
+    // -- moved that burden onto whoever installs, and the images that
+    // then START the editor have to carry it or they serve a broken
+    // one. CI did not catch this because its installs pass
+    // --ignore-scripts, so the hook was never running there either.
+    assert.notProperty(pkg.scripts, 'postinstall',
+      'if postinstall comes back, this test is guarding the wrong thing');
+    assert.property(pkg.scripts, 'setup');
+
+    // The COMMANDS, not the file text. Checking the text passed while
+    // the devcontainer ran a bare `npm install`, because the comment
+    // explaining the step contains the words the regex was looking
+    // for -- the test matched its own documentation.
+    var docker = fs.readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8')
+      .split('\n')
+      .filter(function(line) { return /^\s*RUN\s/.test(line); })
+      .join('\n');
+    assert.match(docker, /npm install/, 'Dockerfile should install');
+    assert.match(docker, /npm run setup/,
+      'the image installs and runs the editor but never fetches the ' +
+      'bower packages its front end is served from');
+
+    var devcontainer = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, '.devcontainer/devcontainer.json'), 'utf8')
+        .split('\n')
+        .filter(function(line) { return !/^\s*\/\//.test(line); })
+        .join('\n'));
+    var post = devcontainer.postCreateCommand || '';
+    assert.match(post, /npm install/, 'the dev container should install');
+    assert.match(post, /npm run setup/,
+      'postCreateCommand installs but never fetches the bower packages: ' + post);
+  });
+
   it('names every package the editor server is missing', function() {
     // Two failures this pins.
     //

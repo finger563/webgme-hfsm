@@ -59,6 +59,13 @@ RUN npm install -g bower
 # Install node-modules
 RUN npm install
 
+# The editor's front end is served from bower_components, which used
+# to appear via a postinstall hook. That hook ran in every consumer's
+# tree on every install -- including CLI-only ones that need none of
+# this -- so it is an explicit step now, and the image has to take it
+# or the server starts and serves a broken editor.
+RUN npm run setup
+
 # Set environment variable in order to use ./config/config.docker.js
 ENV NODE_ENV docker
 
