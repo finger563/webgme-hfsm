@@ -41,6 +41,32 @@ define(['../metaRules'], function (metaRules) {
   ];
 
   /**
+   * Attributes a type carries in the metamodel but cannot use.
+   *
+   * A State inherits these from State Machine Base, and neither has
+   * anywhere to go:
+   *
+   *  - Includes belong to the State Machine's header, not to one of
+   *    its states.
+   *  - Initialization has no moment in a state's life that it could
+   *    mean. A state's initialize() runs when the state becomes
+   *    ACTIVE -- which is exactly when Entry runs -- and the HFSM
+   *    does not initialize every state up front. Two hooks for one
+   *    moment, one with clear UML semantics and one without, is
+   *    worse than one.
+   *
+   * The value here is the advice to give when a model sets one
+   * anyway, so the checker's message and this panel's decision not
+   * to offer the field come from the same place.
+   */
+  var REJECTED_ATTRIBUTES = {
+    'State': {
+      'Includes': "includes belong to the State Machine, not to a state",
+      'Initialization': "use 'Entry', which runs when the state becomes active",
+    },
+  };
+
+  /**
    * Attributes that hold long-form TEXT rather than a value or code.
    *
    * `documentation` is markdown a person writes paragraphs in. It is
@@ -90,6 +116,12 @@ define(['../metaRules'], function (metaRules) {
     ROOT_TYPES: ROOT_TYPES,
     NON_GRAPH_TYPES: NON_GRAPH_TYPES,
     CODE_ATTRIBUTES: CODE_ATTRIBUTES,
+    REJECTED_ATTRIBUTES: REJECTED_ATTRIBUTES,
+
+    /** what `type` may not set, as {attribute: why} */
+    rejectedAttributes: function (type) {
+      return REJECTED_ATTRIBUTES[type] || {};
+    },
     PROSE_ATTRIBUTES: PROSE_ATTRIBUTES,
     IDENTIFIER_ATTRIBUTES: IDENTIFIER_ATTRIBUTES,
 
@@ -152,6 +184,13 @@ define(['../metaRules'], function (metaRules) {
       if (labelledByEvent(schema)) {
         attributes = attributes.filter(function (a) { return a.name !== 'name'; });
       }
+      // Not offered at all, rather than offered and then refused.
+      // A field whose every value is an error is a worse way to say
+      // "this does not apply here" than simply not being there --
+      // and Initialization was worse still, because nothing rejected
+      // it and nothing emitted it, so code written in it ran nowhere.
+      var rejected = REJECTED_ATTRIBUTES[schema && schema.name] || {};
+      attributes = attributes.filter(function (a) { return !rejected[a.name]; });
       return this.fieldOrder(attributes);
     },
 

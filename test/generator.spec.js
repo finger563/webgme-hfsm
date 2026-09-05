@@ -148,6 +148,40 @@ describe('hfsm generator', function() {
       }, /invalid name/);
     });
 
+    it('rejects Initialization on a state, pointing at Entry', function() {
+      // A state inherits the attribute from State Machine Base and has
+      // nowhere to run it: initialize() happens when the state becomes
+      // active, which is what Entry already means. Before this it was
+      // neither refused nor emitted -- code written into it ran
+      // nowhere, and nothing anywhere said so.
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Initialization = 'setup();';
+      }, /States cannot have 'Initialization'.*use 'Entry'/);
+    });
+
+    it('still rejects Includes on a state', function() {
+      expectModelError('basic', function(objects) {
+        objects['/p/m/Idle'].Includes = '#include <cstdio>';
+      }, /States cannot have 'Includes'/);
+    });
+
+    it('leaves Initialization alone on the State Machine, where it runs',
+       function() {
+      // the rejection is per-type: the machine's own Initialization is
+      // the one real use of the attribute
+      var model = loadFixture('basic');
+      var machine = Object.keys(model.objects).filter(function(p) {
+        return model.objects[p].type === 'State Machine';
+      })[0];
+      model.objects[machine].Initialization = '// ZQROOTINITZQ';
+      mods.resolveModel.resolve(model);
+      mods.processor.processModel(model);
+      var out = mods.MetaTemplates.renderHFSM(model, NAMESPACE);
+      var all = Object.keys(out).map(function(f) { return out[f]; }).join('\n');
+      assert.ok(all.indexOf('ZQROOTINITZQ') > -1,
+                "the machine's Initialization should still be emitted");
+    });
+
     it('rejects events on transitions out of choice pseudostates', function() {
       expectModelError('features', function(objects) {
         objects['/p/m/c1'].Event = 'SNEAKY';

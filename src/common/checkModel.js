@@ -590,7 +590,7 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
           // checks:
           // * name is good,
           // * name is unique within siblings
-          // * cannot have 'Includes' set
+          // * cannot have 'Includes' or 'Initialization' set
           // * must have 'Initial' if there are children
           // * can only one 'Initial'
           // * must have transition path from 'Initial' to a child state if 'Initial' exists
@@ -600,10 +600,22 @@ define(['./viz/describe', './metaRules'], function(describe, metaRules) {
           // * timer period is non-zero if it has no child states
           self.checkName( obj );
           var parentObj = model.objects[obj.parentPath];
-          // cannot have includes set
-          if ((obj.Includes || '').trim().length > 0) {
-            self.error(obj, "States cannot have 'Includes'");
-          }
+          // Attributes a State inherits but cannot use. The list and
+          // the advice live in `describe` because the inspector uses
+          // the same table to decide not to OFFER these fields -- a
+          // model can still arrive with one set (hand-written, or made
+          // before the field was hidden), so it is still checked here.
+          //
+          // 'Initialization' was neither offered-and-refused nor
+          // emitted before this: the templates never rendered it, so
+          // code written into it ran nowhere and nothing said so.
+          var rejected = describe.rejectedAttributes(obj.type);
+          Object.keys(rejected).forEach(function(attribute) {
+            if ((obj[attribute] || '').trim().length > 0) {
+              self.error(obj, "States cannot have '" + attribute + "' -- " +
+                         rejected[attribute]);
+            }
+          });
           // make sure no direct siblings of this state share its name
           obj.parentState = null;
           if (parentObj && parentObj.type != 'Project') {
