@@ -110,6 +110,27 @@ For how objects are matched between the two models -- and why an
 ambiguous match is deliberately not made -- see
 [PLAYGROUND.md](PLAYGROUND.md#comparing-two-machines).
 
+## Installing
+
+The CLI is on npm, and installing it does **not** drag in the WebGME
+editor -- `webgme` and friends are optional peer dependencies, so npm
+leaves them alone:
+
+```sh
+npm install webgme-hfsm      # ~10 packages
+npx hfsm-gen model.json -o generated
+```
+
+Or without installing anything permanently:
+
+```sh
+npx -p webgme-hfsm hfsm-gen model.json -o generated
+```
+
+Only `node` is required -- no MongoDB, no WebGME server, no bower.
+That is the intended way to generate code from a build system, a CI
+job, or a Makefile, rather than checking generated sources in.
+
 ## Dependencies
 
 From a dev checkout of this repo everything needed is already in
@@ -119,6 +140,9 @@ only these packages are required:
 ```sh
 npm install --no-save --ignore-scripts requirejs requirejs-text handlebars underscore
 ```
+
+These are the CLI's real dependencies, and they are what `npm install
+webgme-hfsm` brings with it.
 
 ## Model JSON format
 

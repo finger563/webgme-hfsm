@@ -304,10 +304,16 @@ Dependencies:
 ```bash
 git clone https://github.com/finger563/webgme-hfsm
 cd webgme-hfsm
-npm install -g bower # needed for extra package management
-npm install          # installs the required packages for webgme-hfsm
+npm install     # includes webgme itself, as a dev dependency
+npm run setup   # bower packages for the editor's front end
 npm start
 ```
+
+`webgme` and the other editor packages are *optional* peer
+dependencies: `npm install webgme-hfsm` for the CLI does not drag in
+the editor server. A checkout gets them from `devDependencies`, which
+is what the commands above rely on -- running the server and building
+the playground are both checkout workflows.
 
 Which will run the WebGME-HFSM server on **PORT 8081** of your local
 machine, accepting connections on all IP addresses available to it.

@@ -40,7 +40,10 @@ function fail(msg) {
 
 function usage(code) {
   var lines = fs.readFileSync(__filename, 'utf8').split('\n');
-  console.log(lines.slice(2, 30).map(function (l) {
+  // the usage block is the file header comment; find where it ends
+  // rather than hardcoding a line number the comment can outgrow
+  var end = lines.indexOf(' */');
+  console.log(lines.slice(2, end === -1 ? 24 : end).map(function (l) {
     return l.replace(/^ \*( |$)/, '');
   }).join('\n'));
   process.exit(code);

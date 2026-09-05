@@ -13,7 +13,10 @@
       "onAutoForward": "openBrowser"
     }
   },
-  "postCreateCommand": "npm install",
+  // `npm run setup` fetches the bower packages the editor's front end
+  // is served from; it was a postinstall hook until it became an
+  // explicit step, and without it the editor comes up broken.
+  "postCreateCommand": "npm install && npm run setup",
   "postStartCommand": "bash -c 'nohup npm start > /tmp/webgme-hfsm.log 2>&1 &'",
   "customizations": {
     "vscode": {
